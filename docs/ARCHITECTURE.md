@@ -60,6 +60,7 @@ so adding a cliff is an art change and the movement code never learns the word "
 | --- | --- |
 | `EventBus` | signals only; payload shapes documented at the declaration |
 | `Registry` | loads every `.tres` under `data/`, indexed by type and id, duplicates reported |
+| — | *(`GameSelect` is not an autoload: it must answer in `-s` tool runs, where singletons do not exist)* |
 | `GameState` | the live state, and the only thing that mutates it |
 | `SaveManager` | JSON slots; an unreadable save is preserved before anything else |
 | `Router` | game-flow states; the single owner of input ownership |

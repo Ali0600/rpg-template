@@ -45,6 +45,15 @@ func _init() -> void:
 		if bool(state.call(&"has_flag", &"smoke_flag")):
 			failures.append("GameState.reset left a flag behind - tests would leak state")
 
+	# Which game boots is data now, and the resolution runs before anything is on screen -
+	# so when it fails, it fails as an empty window rather than as an error anyone reads.
+	var game := GameSelect.resolve()
+	if game == null:
+		failures.append("GameSelect resolved no game (is %s set in project.godot?)" % GameSelect.SETTING)
+	else:
+		for p in game.problems():
+			failures.append("game '%s': %s" % [game.id, p])
+
 	# Pixel-art presentation is a project setting, and a setting nobody asserts is a
 	# setting an editor session can quietly change.
 	if int(ProjectSettings.get_setting("rendering/textures/canvas_textures/default_texture_filter", -1)) != 0:

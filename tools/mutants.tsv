@@ -76,3 +76,10 @@ scripts/util/lint_core.gd	s|"res://tools",|"res://nowhere",|	tests/unit/test_lin
 scripts/util/lint_core.gd	s|if not LINT_EXCLUDED_ROOTS.has\(root\):|if true:|	tests/unit/test_lint_core.gd	the suite gets linted, so every rule fixture becomes a violation
 scripts/util/content_scan.gd	s|out.append_array\(_walk\(full, extensions\)\)|pass|	tests/unit/test_content_scan.gd	content in a subdirectory is never discovered
 scripts/util/content_scan.gd	s|out.sort\(\)|pass|	tests/unit/test_content_scan.gd	discovery order stops being sorted, so generated art differs by machine
+
+# --- M7: which game is this, as data ---
+scripts/data/game_select.gd	s|if ids.size\(\) == 1:|if ids.size\(\) >= 1:|	tests/unit/test_game_select.gd	two games and no choice boots whichever was listed first
+scripts/data/game_select.gd	s|if arg.begins_with\(ARG\):|if false:|	tests/unit/test_game_select.gd	--game= is ignored, so the QA harness tests the wrong game
+scripts/data/game_select.gd	s|if not setting.is_empty\(\):|if false:|	tests/unit/test_game_select.gd	the committed project setting stops choosing the game
+scripts/data/game_manifest.gd	s|if map.spawn\(start_spawn\) == Vector2i\(-1, -1\):|if false:|	tests/unit/test_game_manifest.gd	a game starting on a spawn that does not exist is accepted
+scripts/data/game_manifest.gd	s|if not FileAccess.file_exists\(sheet\):|if false:|	tests/unit/test_game_manifest.gd	a player character with no generated art is accepted

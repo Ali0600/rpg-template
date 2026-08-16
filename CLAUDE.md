@@ -34,13 +34,20 @@ scripts/world/      Locomotion (pure) + the nodes that apply it
 scripts/ui/         DialogRunner (pure) + its view
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
-data/               all content: styles, rigs, characters, maps, dialog
+data/               all content: games, styles, rigs, characters, maps, dialog
 assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
 ```
 
 Signals up, calls down, through `EventBus`. Autoloads hold state, scenes hold views; a view
 never assigns `GameState.x` — it emits and the owner responds. One writer per piece of
 state.
+
+**Which game runs is data, not code.** `data/games/<id>.tres` (`GameManifest`) holds the first
+map, the spawn, the player's character, the config and the controls hint. `GameSelect` picks
+one: `--game=<id>` beats the `application/config/game` project setting, which beats "there is
+only one game", and two games with nothing choosing is a **refusal** — a guessed game presents
+as the game you meant to run behaving strangely. Nothing in `scripts/world/` may name a map,
+a spawn or a character again.
 
 **The sprite contract is PNG + `<name>.sheet.json`.** Nothing engine-specific is committed
 as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the

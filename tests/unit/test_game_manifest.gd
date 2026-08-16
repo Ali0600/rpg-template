@@ -1,0 +1,66 @@
+extends GdUnitTestSuite
+## Every shipped game must start somewhere real, and a manifest that does not must say so.
+##
+## The failure this prevents is quiet: a misspelt spawn drops the player at tile (1,1) with a
+## push_error nobody is watching for, and it reads as a level-design mistake in the map rather
+## than as a typo in the manifest. Same for a player character with no generated art - the
+## game boots and the player is invisible.
+
+const CONFIG := "res://data/game_config.tres"
+
+
+func _valid() -> GameManifest:
+	var manifest := GameManifest.new()
+	manifest.id = &"fixture"
+	manifest.start_map = &"demo_town"
+	manifest.start_spawn = &"start"
+	manifest.player_character = &"hero"
+	manifest.config = load(CONFIG) as GameConfig
+	return manifest
+
+
+func test_every_shipped_game_starts_somewhere_real() -> void:
+	var all := GameSelect.manifests()
+	# An instrument that cannot fail is not a check: with no manifests found, the loop below
+	# examines nothing and passes.
+	assert_bool(all.is_empty()).is_false()
+	for manifest in all:
+		assert_array(manifest.problems()).is_empty()
+
+
+func test_a_valid_manifest_has_no_problems() -> void:
+	# The control. Without it, every assertion below could be satisfied by a problems() that
+	# complains about everything.
+	assert_array(_valid().problems()).is_empty()
+
+
+func test_a_spawn_that_does_not_exist_is_reported() -> void:
+	var manifest := _valid()
+	manifest.start_spawn = &"nowhere"
+	var problems := manifest.problems()
+	assert_int(problems.size()).is_equal(1)
+	assert_str(problems[0]).contains("nowhere")
+
+
+func test_a_player_character_with_no_generated_art_is_reported() -> void:
+	# Art is generated per style and the style comes from the map, so this can only be
+	# answered once both are known - which is why it lives here and not on CharacterSpec.
+	var manifest := _valid()
+	manifest.player_character = &"not_a_character"
+	var problems := manifest.problems()
+	assert_int(problems.size()).is_equal(1)
+	assert_str(problems[0]).contains("not_a_character")
+
+
+func test_a_start_map_that_does_not_load_is_reported_without_chasing_further() -> void:
+	var manifest := _valid()
+	manifest.start_map = &"no_such_map"
+	# One problem, not four: with no map there is no style, so "the character has no art"
+	# would be a second complaint about the same missing fact.
+	assert_int(manifest.problems().size()).is_equal(1)
+
+
+func test_a_missing_config_is_reported() -> void:
+	var manifest := _valid()
+	manifest.config = null
+	assert_str("\n".join(manifest.problems())).contains("config")

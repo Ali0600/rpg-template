@@ -5,10 +5,11 @@ extends Node2D
 ## tiles. This file only knows how to assemble those, which is what makes it template code
 ## rather than game code.
 
-const DEFAULT_MAP := &"demo_town"
-const DEFAULT_SPAWN := &"start"
-const PLAYER_CHARACTER := &"hero"
-
+## The game being played, resolved once at boot. Nothing in this file names a map, a spawn,
+## a character or a line of on-screen text any more: those were three consts and a string
+## literal, and they were the whole reason a second game could not exist without editing the
+## generic world.
+var _game: GameManifest
 var _config: GameConfig
 var _style: SpriteStyle
 var _source: SpriteSource
@@ -26,14 +27,21 @@ var _last_tile := Vector2i(-9999, -9999)
 
 
 func _ready() -> void:
-	_config = load("res://data/game_config.tres") as GameConfig
+	_game = GameSelect.resolve()
+	if _game == null:
+		# GameSelect has already said which of the three ways it failed. There is no default
+		# to fall back to: picking a game is exactly what it refused to guess at.
+		return
+	for p in _game.problems():
+		push_error("World: game '%s': %s" % [_game.id, p])
+	_config = _game.config
 	if _config == null:
-		push_error("World: data/game_config.tres is missing")
+		push_error("World: game '%s' has no config" % _game.id)
 		return
 	add_child(_dialog)
 	_dialog.closed.connect(_on_dialog_closed)
 	add_child(_hint)
-	enter_map(DEFAULT_MAP, DEFAULT_SPAWN)
+	enter_map(_game.start_map, _game.start_spawn)
 
 
 ## Loads a map and puts the player on a named spawn. The one entry point, so a warp, a load
@@ -74,7 +82,7 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	if _dialog.get_child_count() == 0:
 		_dialog.setup(_style, get_viewport_rect().size)
 	if _hint.get_child_count() == 0:
-		_hint.setup(_style, get_viewport_rect().size, "WASD / arrows to walk    E or space to talk")
+		_hint.setup(_style, get_viewport_rect().size, _game.controls_hint)
 	_spawn_player(data, spawn_id)
 	_spawn_npcs(data)
 	_configure_camera(data)
@@ -94,7 +102,7 @@ func _spawn_player(data: MapData, spawn_id: StringName) -> void:
 	if _player == null:
 		_player = ActorBody.new()
 		_player.name = "Player"
-		_player.setup(_config, _source, PLAYER_CHARACTER)
+		_player.setup(_config, _source, _game.player_character)
 	elif _player.get_parent() != null:
 		_player.get_parent().remove_child(_player)
 	# The player joins the y-sorted layer, not the map root: it has to sort against the decor

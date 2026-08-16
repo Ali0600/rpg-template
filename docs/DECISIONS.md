@@ -168,3 +168,30 @@ one-glance menu of things still worth trying.
   the mutation harness is what keeps the other gates honest.
 - *Trusting a green suite* — rejected on the evidence: gdUnit4 exits 0 when a discovery
   crash means it ran nothing, so `check.sh` counts executed suites against suites on disk.
+
+## Which game runs is a manifest resource, chosen by a precedence that refuses to guess
+
+The fork: `world_scene.gd` held `demo_town`, `start` and `hero` as consts, so a second game
+could not exist without editing the generic world. Where should those live, and what picks
+between two games?
+
+- **Chosen: a `GameManifest` resource per game in `data/games/`, selected by
+  `--game=` > the `application/config/game` project setting > "there is exactly one".**
+  A resource rather than loose settings because a game is a *set* of decisions that travel
+  together, and because `config: GameConfig` can then be a real reference the exporter
+  follows rather than a path string that fails at first step.
+- *Extra fields on `GameConfig`* — rejected: `game_config.tres` is the numbers a designer
+  tunes, and "which map do we start in" is not a number. Two games sharing one feel would
+  also have had to duplicate every tuning value.
+- *A `--game` argument only* — rejected: the exported web build has no command line, so the
+  browser demo could never be anything but the default.
+- *A project setting only* — rejected: the QA harness cannot edit `project.godot` on its way
+  past, so a second game would only ever be reachable by walking to it through a warp.
+- *Picking the first game when nothing chooses* — **rejected on the failure mode, which is
+  the whole point of the entry.** Booting the wrong game does not present as a selection
+  bug; it presents as the game you meant to run behaving strangely, and you go and debug
+  that. Refusing costs one line of config and is unmistakable.
+- *A title screen that lists the games* — `deferred — worth trying`. It is the friendly
+  version of the same choice and needs `Router.State.TITLE` to actually be entered, which
+  nothing does yet. Revisit hook: `scripts/data/game_select.gd::ids()` already returns
+  exactly the menu such a screen would show.
