@@ -109,11 +109,17 @@ func test_a_tile_with_no_warp_reports_none() -> void:
 	var map := MapData.load_from("res://data/maps/demo_town.json")
 	assert_bool(map.warp_at(Vector2i(4, 6)).is_empty()).is_true()
 
-func test_both_shipped_maps_are_valid_and_their_doors_line_up() -> void:
+func test_every_shipped_map_is_valid_and_its_doors_line_up() -> void:
 	# A warp naming a map that does not exist, or a spawn that map does not have, sends the
 	# player nowhere - and "nowhere" renders as a black screen, not as an error.
-	for map_id in ["demo_town", "demo_cave"]:
-		var map := MapData.load_from("res://data/maps/%s.json" % map_id)
+	# Scanned rather than listed. A hardcoded pair validates the two maps someone remembered
+	# to add, and silently gives every later map no coverage at all - the map a second game
+	# ships being exactly the one nobody would think to add here.
+	var map_files := ContentScan.files_of("res://data/maps", "json")
+	assert_bool(map_files.is_empty()).is_false()
+	for map_path in map_files:
+		var map_id := map_path.get_file().get_basename()
+		var map := MapData.load_from(map_path)
 		assert_array(map.problems(_known_tiles(), _solid_tiles())).override_failure_message(
 			"%s: %s" % [map_id, map.problems(_known_tiles(), _solid_tiles())]).is_empty()
 		for entry: Variant in map.warps:
@@ -124,3 +130,45 @@ func test_both_shipped_maps_are_valid_and_their_doors_line_up() -> void:
 			assert_vector(destination.spawn(StringName(str(warp["spawn"])))) \
 				.override_failure_message("%s warps to spawn '%s' of '%s', which has no such spawn"
 					% [map_id, warp["spawn"], warp["map"]]).is_not_equal(Vector2i(-1, -1))
+
+func test_the_shipped_map_declares_an_object_the_gates_will_exercise() -> void:
+	# An interaction verb that only a second game uses is a verb the demo's own gates never
+	# touch. The well is here so every CI run presses something that is not a person.
+	var map := MapData.load_from("res://data/maps/demo_town.json")
+	assert_int(map.objects.size()).is_greater(0)
+
+func test_every_object_fault_is_reported_not_just_the_first() -> void:
+	# The fixture carries one good object and five faults: an id shared with an NPC, an id
+	# used twice, one that does nothing at all, one off the map, and one with no id.
+	var map := MapData.load_from(FIXTURES + "bad_objects.json")
+	assert_bool(map.ok).override_failure_message(map.error).is_true()
+	var joined := "\n".join(map.problems(_known_tiles(), _solid_tiles()))
+	assert_str(joined).contains("'elder' is used twice")
+	assert_str(joined).contains("'twice' is used twice")
+	assert_str(joined).contains("'silent' does nothing")
+	assert_str(joined).contains("'off_the_map'")
+	assert_str(joined).contains("an object has no id")
+	# ...and the one that is fine is not complained about.
+	assert_str(joined).not_contains("'fine'")
+
+func test_a_locked_warp_does_not_open_without_its_flag() -> void:
+	var map := MapData.load_from(FIXTURES + "locked_warp.json")
+	var gate := map.warp_at(Vector2i(6, 1))
+	assert_bool(MapData.warp_allowed(gate, {})).is_false()
+	assert_bool(MapData.warp_allowed(gate, {&"has_gate_key": false})).is_false()
+
+func test_a_locked_warp_opens_once_the_flag_is_set() -> void:
+	var map := MapData.load_from(FIXTURES + "locked_warp.json")
+	assert_bool(MapData.warp_allowed(map.warp_at(Vector2i(6, 1)), {&"has_gate_key": true})).is_true()
+
+func test_a_warp_with_no_requirement_is_open() -> void:
+	# The regression that adding the field could have caused: every door written before
+	# locking existed has no requires_flag, and all of them must keep working.
+	var map := MapData.load_from(FIXTURES + "locked_warp.json")
+	assert_bool(MapData.warp_allowed(map.warp_at(Vector2i(6, 3)), {})).is_true()
+
+func test_a_locked_warp_with_nothing_to_say_is_reported() -> void:
+	# A locked door that says nothing is a door that ignores you: the player presses into it,
+	# nothing happens, and it reads as the warp being broken rather than as the gate being shut.
+	var map := MapData.load_from(FIXTURES + "locked_warp.json")
+	assert_str("\n".join(map.problems(_known_tiles(), _solid_tiles()))).contains("says nothing when refused")

@@ -7,8 +7,11 @@
 		"data, so making cliffs solid is an art decision and the movement code never learns",
 		"the word 'cliff'.",
 		"",
-		"Coordinates in spawns, npcs and warps are [column, row], zero-based, matching the",
-		"rows below."
+		"Coordinates in spawns, npcs, objects and warps are [column, row], zero-based,",
+		"matching the rows below.",
+		"",
+		"An 'object' is an interaction point, not a sprite: the well below is the water tiles",
+		"you can already see, plus four lines saying what happens when you press into them."
 	],
 	"id": "demo_town",
 	"style": "gb16",
@@ -77,6 +80,9 @@
 			"dialog": "smith",
 			"behavior": "static"
 		}
+	],
+	"objects": [
+		{ "id": "well_sign", "tile": [4, 9], "kind": "sign", "dialog": "well_sign" }
 	],
 	"warps": [
 		{ "tile": [19, 6], "map": "demo_cave", "spawn": "west_gate" }

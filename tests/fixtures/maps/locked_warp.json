@@ -1,0 +1,12 @@
+{ "_readme": "A gate that needs a key, and one that is locked with nothing to say - the second is a door that ignores you, which reads as the warp being broken rather than as the door being shut.",
+  "id": "locked_warp", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["########", "#......#", "#......#", "#......#", "########"],
+  "spawns": { "start": [1, 2] },
+  "warps": [
+    { "tile": [6, 1], "map": "demo_town", "spawn": "start",
+      "requires_flag": "has_gate_key", "locked_dialog": "well_sign" },
+    { "tile": [6, 2], "map": "demo_town", "spawn": "start",
+      "requires_flag": "has_gate_key" },
+    { "tile": [6, 3], "map": "demo_town", "spawn": "start" }
+  ] }

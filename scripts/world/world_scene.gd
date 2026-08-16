@@ -224,6 +224,14 @@ func _check_warp() -> void:
 	var destination: StringName = warp["map"]
 	if String(destination).is_empty():
 		return
+
+	if not MapData.warp_allowed(warp, GameState.flags):
+		# Once per arrival, not once per frame: _last_tile is already updated above, so
+		# standing against a locked gate says its line once rather than every tick.
+		var locked: StringName = warp.get("locked_dialog", &"")
+		if not String(locked).is_empty():
+			_open_dialog(locked)
+		return
 	enter_map(destination, warp["spawn"])
 
 
@@ -281,6 +289,20 @@ func _targets() -> Array[Interactor.Target]:
 		# nothing ever read it: try_interact looked the target back up by id, which is why an
 		# interaction could only ever be with an NPC.
 		out.append(Interactor.Target.new(npc_id, body.global_position, _config.body_size, record))
+
+	# Objects are interaction points with no body of their own: what the player sees is the
+	# decor tile they stand on. They join the same list, so a sign and a villager are found
+	# by the same "closest thing I am facing" rule rather than by two competing ones.
+	if _built != null:
+		for entry: Variant in _built.data.objects:
+			var object: Dictionary = entry
+			var raw := JsonFile.to_int_array(object.get("tile", []))
+			if raw.size() != 2:
+				continue
+			var at := MapData.tile_to_world(Vector2i(raw[0], raw[1]), _built.tile_size)
+			var record := object.duplicate()
+			record["id"] = StringName(str(object.get("id", "")))
+			out.append(Interactor.Target.new(record["id"], at, _config.body_size, record))
 	return out
 
 

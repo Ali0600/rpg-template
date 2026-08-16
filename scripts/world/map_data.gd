@@ -25,8 +25,15 @@ var decor: Array[String] = []
 var spawns: Dictionary = {}
 ## Array of {"id", "character", "tile", "facing", "dialog", "behavior"}.
 var npcs: Array = []
-## Array of {"tile", "map", "spawn"}.
+## Array of {"tile", "map", "spawn", "requires_flag", "locked_dialog"}.
 var warps: Array = []
+## Things that are not people but can be pressed: signs, chests, levers. Each is
+## {"id", "tile", "kind", "dialog", "set_flag", "once"} plus anything a game invents.
+##
+## An object is an INTERACTION POINT, not a sprite. What you see is the decor tile it stands
+## on, and whether it blocks you comes from that tile's own metadata - so adding a chest is
+## an art change plus four lines of data, and MapBuilder gains no rendering code at all.
+var objects: Array = []
 var style_id: StringName = &"gb16"
 
 
@@ -45,6 +52,7 @@ static func load_from(path: String) -> MapData:
 	map.spawns = file.get_dict("spawns")
 	map.npcs = file.get_array("npcs")
 	map.warps = file.get_array("warps")
+	map.objects = file.get_array("objects")
 	map.ok = true
 	return map
 
@@ -106,8 +114,22 @@ func warp_at(at: Vector2i) -> Dictionary:
 			return {
 				"map": StringName(str(warp.get("map", ""))),
 				"spawn": StringName(str(warp.get("spawn", "start"))),
+				"requires_flag": StringName(str(warp.get("requires_flag", ""))),
+				"locked_dialog": StringName(str(warp.get("locked_dialog", ""))),
 			}
 	return {}
+
+
+## Whether a warp will actually fire. Pure, so "a locked door needs its key" is a test that
+## reads a result rather than one that walks a player into a wall for 300 frames.
+##
+## A warp with no requires_flag is open, which is what every warp written before this existed
+## means - adding the field must not quietly lock the doors that already work.
+static func warp_allowed(warp: Dictionary, flags: Dictionary) -> bool:
+	var requires := StringName(str(warp.get("requires_flag", "")))
+	if String(requires).is_empty():
+		return true
+	return bool(flags.get(requires, false))
 
 
 ## The world position of a tile's CENTRE, in pixels. Actors stand on tile centres, so this
@@ -214,6 +236,13 @@ func problems(known_tiles: Array[String], solid_tiles: Array[String] = []) -> Ar
 			out.append("warp at %s is outside the %s map" % [at, bounds])
 		if str(warp.get("map", "")).is_empty():
 			out.append("warp at %s names no destination map" % at)
+		# A locked door with no line to say is a door that ignores you: the player presses
+		# into it and nothing at all happens, which reads as the warp being broken.
+		if not str(warp.get("requires_flag", "")).is_empty() and str(warp.get("locked_dialog", "")).is_empty():
+			out.append("warp at %s is locked behind '%s' but says nothing when refused"
+				% [at, warp.get("requires_flag", "")])
+
+	out.append_array(_object_problems(bounds))
 
 	if not solid_tiles.is_empty():
 		var open := open_edges(solid_tiles)
@@ -223,6 +252,50 @@ func problems(known_tiles: Array[String], solid_tiles: Array[String] = []) -> Ar
 			var shown := open.slice(0, mini(4, open.size()))
 			out.append("the map's edge is open at %s%s - a character can walk off it. Wall it in, or put a warp there."
 				% [shown, "" if open.size() <= 4 else " and %d more" % (open.size() - 4)])
+	return out
+
+
+## Everything wrong with this map's objects.
+##
+## Separate from problems() only because the id-uniqueness check needs a set that the other
+## loops do not, and folding it in would put a second concern inside a loop that already has
+## one - which is how a scan quietly stops covering half of what it claims.
+func _object_problems(bounds: Vector2i) -> Array[String]:
+	var out: Array[String] = []
+	var taken: Dictionary = {}
+	# Objects and NPCs are both interaction targets, so they share one id namespace: two
+	# things answering to "chest" makes "which one did the player press" a coin toss.
+	for entry: Variant in npcs:
+		var npc: Dictionary = entry
+		taken[str(npc.get("id", ""))] = true
+
+	for entry: Variant in objects:
+		var object: Dictionary = entry
+		var object_id := str(object.get("id", ""))
+		if object_id.is_empty():
+			out.append("an object has no id")
+			continue
+		if taken.has(object_id):
+			# Two chests sharing an id share the memory of having been opened, so the second
+			# one is found already empty - a bug that reads as a missing item.
+			out.append("object id '%s' is used twice" % object_id)
+		taken[object_id] = true
+
+		var raw := JsonFile.to_int_array(object.get("tile", []))
+		if raw.size() != 2:
+			out.append("object '%s' has no tile" % object_id)
+			continue
+		var at := Vector2i(raw[0], raw[1])
+		if at.x < 0 or at.y < 0 or at.x >= bounds.x or at.y >= bounds.y:
+			out.append("object '%s' at %s is outside the %s map" % [object_id, at, bounds])
+
+		# An object with nothing to say, no flag to set and no kind for a game to recognise is
+		# a dead button: the player walks up, presses, and nothing happens.
+		var says := str(object.get("dialog", ""))
+		var sets := str(object.get("set_flag", ""))
+		var kind := str(object.get("kind", ""))
+		if says.is_empty() and sets.is_empty() and kind.is_empty():
+			out.append("object '%s' does nothing - give it a dialog, a set_flag, or a kind its game handles" % object_id)
 	return out
 
 

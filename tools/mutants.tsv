@@ -92,3 +92,9 @@ scripts/world/interaction.gd	s|return "%s/%s" % \[map_id, object_id\]|return obj
 scripts/world/game_context.gd	s|ctx._flags = flags.duplicate\(\)|ctx._flags = flags|	tests/unit/test_interaction.gd	a hook holds live state instead of a snapshot
 scripts/util/lint_core.gd	s|if check_autoload:|if false:|	tests/unit/test_lint_core.gd	game code names an autoload and drops out of the parse and compile gates
 scripts/data/game_manifest.gd	s|out.append\("hooks script %s is not a GameHooks" % hooks.resource_path\)|pass|	tests/unit/test_game_manifest.gd	a hooks script that is not a GameHooks is accepted and never called
+
+# --- M7: objects and locked doors ---
+scripts/world/map_data.gd	s|return bool\(flags.get\(requires, false\)\)|return true|	tests/unit/test_map_data.gd	a locked door opens without its key
+scripts/world/map_data.gd	s|if taken.has\(object_id\):|if false:|	tests/unit/test_map_data.gd	two objects share an id, so the second is found already opened
+scripts/world/map_data.gd	s|if says.is_empty\(\) and sets.is_empty\(\) and kind.is_empty\(\):|if false:|	tests/unit/test_map_data.gd	an object nobody can interact with ships as a dead button
+scripts/world/map_data.gd	s|map.objects = file.get_array\("objects"\)|map.objects = []|	tests/unit/test_map_data.gd	a map stops carrying its objects at all

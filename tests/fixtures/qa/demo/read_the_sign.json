@@ -1,0 +1,43 @@
+{
+	"_readme": [
+		"The object gate: press something that is not a person.",
+		"",
+		"Until this existed, every interaction the running game ever performed was with an NPC,",
+		"so the whole object path - a target with no body, found by the same reach rule, its",
+		"record dispatched through Interaction - was covered by unit tests alone. A verb only a",
+		"second game uses is a verb the shipped game's gates never touch.",
+		"",
+		"The well is the water tiles at the bottom-left of the town. There is no sign sprite:",
+		"an object is an interaction POINT, and what you see is the decor already on the map.",
+		"",
+		"Spawn is tile (4,6). Two tiles down is (4,8), standing on grass with the water - and",
+		"the object - directly below. 40 frames at 48px/s is exactly 32px, so the walk lands on",
+		"the tile centre rather than near it."
+	],
+	"steps": [
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "world" },
+		{ "op": "assert_map", "map": "demo_town" },
+
+		{ "op": "note", "text": "walk down to the water's edge" },
+		{ "op": "hold", "action": "move_down", "frames": 40 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "assert_position", "tile": [4, 8] },
+
+		{ "op": "note", "text": "press into the well - it is an object, not an NPC" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 20 },
+		{ "op": "assert_state", "state": "dialog" },
+
+		{ "op": "note", "text": "and it gives control back like any other conversation" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "assert_state", "state": "world" },
+		{ "op": "mark", "name": "freed" },
+		{ "op": "hold", "action": "move_up", "frames": 30 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "assert_moved", "axis": "y", "expect": "decrease", "since": "freed" }
+	]
+}
