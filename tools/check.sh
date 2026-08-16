@@ -123,12 +123,34 @@ step "7/7 play the game"
 # the real map data. It boots the game, walks the player east, and checks a wall stops them.
 # Unit tests cannot answer any of those, and `-s tools/x.gd` cannot even load a scene whose
 # script names an autoload - so this runs the game proper and drives it from a script.
-"$GODOT" --headless --path . -- --qa-script=res://tests/fixtures/qa/walk_into_wall.json
-result $? "the player walks, and a wall stops them"
-"$GODOT" --headless --path . -- --qa-script=res://tests/fixtures/qa/talk_to_npc.json
-result $? "talking to an NPC takes control, and gives it back"
-"$GODOT" --headless --path . -- --qa-script=res://tests/fixtures/qa/warp_between_maps.json
-result $? "a warp moves between maps, both ways, without bouncing"
+#
+# Scripts are grouped by the game they drive - tests/fixtures/qa/<game>/*.json - and each is
+# run with --game=<dirname>. A hardcoded list here was fine while there was one game and
+# stopped being fine the moment there were two: a second game's scripts would simply never
+# run, and the gate would report a full pass having driven only the first.
+play_fail=0
+play_ran=0
+for game_dir in tests/fixtures/qa/*/; do
+  [ -d "$game_dir" ] || continue
+  game_id="$(basename "$game_dir")"
+  for script in "$game_dir"*.json; do
+    [ -f "$script" ] || continue
+    play_ran=$((play_ran + 1))
+    "$GODOT" --headless --path . -- --qa-script="res://$script" --game="$game_id"
+    if [ $? -ne 0 ]; then
+      echo "  FAILED: $script (--game=$game_id)"
+      play_fail=1
+    fi
+  done
+done
+# A play gate that drove nothing is a broken gate, not a passing one - the same reason
+# lint_rules refuses to report a clean scan of zero files.
+if [ "$play_ran" -eq 0 ]; then
+  echo "  no QA scripts found under tests/fixtures/qa/<game>/ - the gate ran nothing"
+  play_fail=1
+fi
+result $play_fail "$play_ran scripted play sessions"
+
 
 # Opt-in because it re-runs a suite per mutant. It is the gate that proves the OTHER gates
 # bite, so it runs before a milestone is called done, not on every save:

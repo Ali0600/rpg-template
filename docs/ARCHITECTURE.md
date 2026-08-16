@@ -54,6 +54,17 @@ in without re-tuning any of them.
 **Art data decides collision.** Which tiles block movement comes from the tiles' own metadata,
 so adding a cliff is an art change and the movement code never learns the word "cliff".
 
+**An object is an interaction point, not a sprite.** A map's `objects` are ids at tiles with
+something to say or a flag to set. What the player *sees* is the decor tile already there, and
+whether it blocks them comes from that tile — so a sign or a chest is four lines of data and
+`MapBuilder` gains no rendering code. They join NPCs in one candidate list, so the "closest
+thing I am facing" rule stays a single rule rather than two competing ones.
+
+A warp can carry `requires_flag` and `locked_dialog`: that is a locked door, expressed in
+data. A warp without them is open, which is what every warp written before locking existed
+means — and a warp that is locked with nothing to say is a *validation error*, because a door
+that ignores you reads as a broken warp rather than as a shut gate.
+
 ## Autoloads
 
 | | |

@@ -1,7 +1,7 @@
 extends Node
 ## Drives the running game from a script file, so behaviour can be checked without hands.
 ##
-##     Godot --path . -- --qa-script=res://tests/fixtures/qa/walk_into_wall.json
+##     Godot --path . -- --qa-script=res://tests/fixtures/qa/demo/walk_into_wall.json
 ##
 ## This exists because `-s tools/some_tool.gd` CANNOT load a scene whose script names an
 ## autoload: in that mode the singletons are not registered as identifiers and the script

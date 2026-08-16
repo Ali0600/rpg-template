@@ -120,10 +120,12 @@ tools/mutate_check.sh --list   # what each mutant claims to cover
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
 ```
 
-Drive the real game from a script, or photograph it:
+Drive the real game from a script, or photograph it. QA scripts live under
+`tests/fixtures/qa/<game>/` and `check.sh` runs every one with `--game=<that directory>`, so
+a new script needs no edit to the gate:
 
 ```bash
-/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/talk_to_npc.json
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/demo/talk_to_npc.json --game=demo
 ```
 
 Other headless tools: `setup_input_map.gd` (rewrites the input map — re-run after changing

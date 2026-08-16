@@ -1,0 +1,17 @@
+{ "_readme": "Four object faults at once, plus one object that is fine. Several in one file so the scan is proven to report all of them rather than the first: a validator that stops at the first fault sends you round the loop once per typo.",
+  "id": "bad_objects", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["########", "#......#", "#......#", "#......#", "########"],
+  "spawns": { "start": [1, 2] },
+  "npcs": [
+    { "id": "elder", "character": "npc_elder", "tile": [6, 1], "dialog": "elder" }
+  ],
+  "objects": [
+    { "id": "fine", "tile": [1, 1], "dialog": "well_sign" },
+    { "id": "elder", "tile": [2, 1], "dialog": "well_sign" },
+    { "id": "twice", "tile": [3, 1], "dialog": "well_sign" },
+    { "id": "twice", "tile": [4, 1], "dialog": "well_sign" },
+    { "id": "silent", "tile": [5, 1] },
+    { "id": "off_the_map", "tile": [99, 1], "dialog": "well_sign" },
+    { "tile": [6, 3], "dialog": "well_sign" }
+  ] }

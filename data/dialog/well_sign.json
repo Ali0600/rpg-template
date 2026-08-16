@@ -1,0 +1,20 @@
+{
+	"_readme": [
+		"The demo's one non-NPC interaction. It exists so the shipped game exercises the",
+		"object path on every CI run - an interaction verb that only appears in a second",
+		"game is a verb the demo's own gates never touch."
+	],
+	"id": "well_sign",
+	"start": "read",
+	"nodes": {
+		"read": {
+			"speaker": "The well",
+			"text": "A notice, nailed to the frame: DO NOT DRINK. (Someone has crossed out DRINK and written FALL IN.)",
+			"next": "look"
+		},
+		"look": {
+			"speaker": "The well",
+			"text": "You lean over. Water, and a very small version of your own face."
+		}
+	}
+}
