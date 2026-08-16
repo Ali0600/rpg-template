@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"hero_nes"
+style_id = &"nes16"
+seed = 1
+parts = {
+"body": "body_tunic",
+"hair": "hair_short"
+}
+ramps = {
+"body": "cloth_green"
+}

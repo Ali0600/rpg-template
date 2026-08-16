@@ -54,6 +54,21 @@ like the tool clobbering something.
 value via `ProjectSettings.get_setting()` (as `smoke_boot.gd` does) rather than grepping the
 file for a line.
 
+## A colour computed in floats does not survive an 8-bit image
+
+`Color.to_rgba32()` **rounds** a channel; storing a colour in a `FORMAT_RGBA8` image
+**truncates** it. So `Color("#008840").darkened(0.35)` reports itself as `#00582a` and comes
+back out of the PNG as `#005829`.
+
+**Why it came up:** the tinted-outline style failed the palette gate on its very first run.
+Two pieces of code agreed on the formula and still disagreed on the answer, because one of
+them had been through the image and the other had not. `Color8(r, g, b, a)` round-trips
+exactly for all 256 values — measured, not assumed.
+
+**Takeaway:** compute any colour that will be stored in a fixed-point buffer in whole bytes,
+and when two sides of a pipeline "use the same formula" but disagree, suspect the storage
+between them before the formula.
+
 ## An exemption belongs outside the scan loop
 
 Every rule in `scripts/util/lint_core.gd` decides its exemptions once, before iterating

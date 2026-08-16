@@ -12,8 +12,13 @@ It ships two halves:
    maps, NPCs and dialog, game-flow states, saves with migrations, a seeded RNG, an audio
    bus, a headless QA harness, and a CI gate that runs all of it.
 
-> **Status:** M0 (skeleton, tooling and CI) is in. The sprite generator lands in M1 — see
+> **Status:** the generator and its gates are in (M0–M1); the world systems land next — see
 > [the milestone list](#milestones).
+
+![Two styles, one rig](docs/images/styles.png)
+
+*The same rig under two styles. Not one pixel of shape is redrawn between them — `gb16` and
+`nes16` differ only in palette, outline treatment and timings.*
 
 ## Why it looks the way it looks
 
@@ -65,7 +70,7 @@ backlog are in [docs/DECISIONS.md](docs/DECISIONS.md).
 ## Milestones
 
 - [x] **M0** — project skeleton, headless tooling, lint rules, mutation harness, CI
-- [ ] **M1** — the sprite generator, its consistency gates, and generated assets
+- [x] **M1** — the sprite generator, its consistency gates, and generated assets
 - [ ] **M2** — the sprite view scene and Sprite Lab preview
 - [ ] **M3** — movement, collision, camera, data maps, game-flow states, QA harness
 - [ ] **M4** — NPCs, interaction, dialog

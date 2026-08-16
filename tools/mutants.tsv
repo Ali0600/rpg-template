@@ -15,3 +15,17 @@ scripts/util/lint_core.gd	s|return at > 0 and code\[at - 1\] == "."|return false
 scripts/util/dir.gd	s|if absf\(v.x\) >= absf\(v.y\):|if absf(v.x) > absf(v.y):|	tests/unit/test_dir.gd	a diagonal tie stops facing sideways
 scripts/util/dir.gd	s|const ALL: Array\[D\] = \[D.DOWN, D.LEFT, D.RIGHT, D.UP\]|const ALL: Array[D] = [D.DOWN, D.RIGHT, D.LEFT, D.UP]|	tests/unit/test_dir.gd	the canonical row order silently swaps left and right
 scripts/util/json_file.gd	s|if not \(parsed is Dictionary\):|if false:|	tests/unit/test_json_file.gd	a JSON array is accepted where an object is required
+
+# --- M1: the sprite generator's consistency rules ---
+scripts/spritegen/sprite_compositor.gd	s|mirrored.flip_x\(\)|pass|	tests/unit/test_gates_consistency.gd	facing left stops being facing right mirrored
+scripts/spritegen/sprite_compositor.gd	s|var dy: int = at.y \+ \(bob if rig.bobs\(part_id\) else 0\)|var dy: int = at.y + bob|	tests/unit/test_gates_consistency.gd	the walk bob lifts the feet off the ground line
+scripts/spritegen/sprite_compositor.gd	s|if style.outline_mode != SpriteStyle.Outline.NONE:|if false:|	tests/unit/test_gates_consistency.gd	the outline pass stops running
+scripts/data/sprite_style.gd	s|return Color8\(_tint_byte\(c.r\), _tint_byte\(c.g\), _tint_byte\(c.b\), 255\)|return c.darkened(0.35)|	tests/unit/test_gates_consistency.gd	a tinted outline is computed in floats and lands off-palette
+scripts/spritegen/sheet_builder.gd	s|meta.directions = Dir.ALL.duplicate\(\)|meta.directions = [Dir.D.DOWN, Dir.D.RIGHT, Dir.D.LEFT, Dir.D.UP]|	tests/unit/test_sprite_contract.gd	sheet rows silently swap left and right
+scripts/spritegen/sheet_builder.gd	s|meta.anchor = Vector2i\(cell.x / 2, ground\)|meta.anchor = Vector2i(cell.x / 2, cell.y - 2)|	tests/unit/test_sprite_contract.gd	the anchor stops being measured from the pixels
+scripts/spritegen/sprite_frames_factory.gd	s|frames.remove_animation\(&\"default\"\)|pass|	tests/unit/test_sprite_contract.gd	the placeholder default animation is left in place
+scripts/spritegen/sheet_meta.gd	s|if texture_size != expected:|if false:|	tests/unit/test_sprite_contract.gd	a sheet whose metadata disagrees with its image is accepted
+scripts/spritegen/rig.gd	s|if row.length\(\) != width:|if false:|	tests/unit/test_rig_and_style.gd	a ragged part row stops being reported
+scripts/data/character_spec.gd	s|chosen_ramps\[slot\] = chosen_ramps\[source\]|pass|	tests/unit/test_rig_and_style.gd	hands and sleeves stop matching skin and cloth
+scripts/data/character_spec.gd	s|part_id = str\(rng.derive\("part:" \+ slot\).pick\(options, ""\)\)|part_id = str(rng.derive("part").pick(options, ""))|	tests/unit/test_determinism.gd	every slot draws from one shared stream
+scripts/spritegen/tile_set_factory.gd	s|if not bool\(e.get\(\"solid\", false\)\):|if true:|	tests/unit/test_tiles.gd	solid tiles stop blocking movement

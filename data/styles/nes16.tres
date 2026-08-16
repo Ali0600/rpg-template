@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="SpriteStyle" load_steps=2 format=3]
+
+; The proof that art is data. This style shares the gb16 rig - not one pixel of shape is
+; redrawn - and changes only the palette, the outline treatment and the animation timing.
+; Everything it produces is a different-looking cast standing in a different-looking world.
+;
+; The palette is deliberately NES-flavoured: fewer, harder hues with more contrast between
+; tones. The outline is TINTED rather than SOLID, so each material is edged in its own
+; shadow colour instead of a single black - softer, and a visibly different treatment.
+
+[ext_resource type="Script" path="res://scripts/data/sprite_style.gd" id="1_style"]
+
+[resource]
+script = ExtResource("1_style")
+id = &"nes16"
+cell_size = Vector2i(16, 24)
+tile_size = 16
+rig_id = &"gb16"
+ramps = {
+"cloth_blue": ["#0058f8", "#3cbcfc", "#a4e4fc"],
+"cloth_green": ["#008840", "#00a800", "#b8f818"],
+"cloth_red": ["#a81000", "#f83800", "#f87858"],
+"eye": ["#000000", "#101010", "#3c3c3c"],
+"hair_black": ["#000000", "#3c3c3c", "#787878"],
+"hair_blonde": ["#a84400", "#e45c10", "#fcbc3c"],
+"hair_brown": ["#503000", "#884400", "#e45c10"],
+"leather": ["#503000", "#884400", "#a84400"],
+"pants_blue": ["#0000bc", "#0058f8", "#3cbcfc"],
+"pants_brown": ["#503000", "#884400", "#a84400"],
+"pants_grey": ["#101010", "#3c3c3c", "#787878"],
+"skin_dark": ["#884400", "#a84400", "#e45c10"],
+"skin_light": ["#a84400", "#e45c10", "#fcbc3c"],
+"stone": ["#3c3c3c", "#787878", "#bcbcbc"],
+"terrain_grass": ["#008840", "#00a800", "#b8f818"],
+"terrain_path": ["#884400", "#a84400", "#e45c10"],
+"terrain_water": ["#0000bc", "#0058f8", "#3cbcfc"],
+"terrain_bush": ["#005800", "#008840", "#00a800"]
+}
+default_ramps = {
+"arms": "cloth_blue",
+"body": "cloth_blue",
+"face": "eye",
+"hair": "hair_brown",
+"hands": "skin_light",
+"head": "skin_light",
+"legs": "pants_blue",
+"shoes": "leather"
+}
+ramp_choices = {
+"body": ["cloth_blue", "cloth_green", "cloth_red"],
+"hair": ["hair_brown", "hair_black", "hair_blonde"],
+"head": ["skin_light", "skin_dark"],
+"legs": ["pants_brown", "pants_blue", "pants_grey"]
+}
+part_choices = {
+"hair": ["hair_short", "hair_long"],
+"body": ["body_tunic", "body_robe"]
+}
+outline_mode = 2
+outline_color_hex = "#000000"
+tile_ramps = {
+"bush": "terrain_bush",
+"grass": "terrain_grass",
+"grass_alt": "terrain_grass",
+"path": "terrain_path",
+"wall": "stone",
+"water": "terrain_water"
+}
+walk_frames = 4
+walk_fps = 6
+idle_fps = 3
+bob_offsets = Array[int]([0, -1, 0, -1])
+mirror_left_from_right = true

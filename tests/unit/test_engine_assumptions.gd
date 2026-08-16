@@ -45,6 +45,22 @@ func test_set_pixel_preserves_exact_color_bytes() -> void:
 	assert_int(img.get_pixel(1, 1).to_rgba32()).is_equal(c.to_rgba32())
 	assert_int(img.get_pixel(0, 0).to_rgba32()).is_equal(0)
 
+func test_color8_survives_a_round_trip_through_an_image_but_floats_may_not() -> void:
+	# Storing a colour in an 8-bit image TRUNCATES the channel, while Color.to_rgba32()
+	# ROUNDS it. A colour computed in floats can therefore report one value and come back
+	# out of the image as another, one unit darker - which is why every generated colour is
+	# built from whole bytes with Color8.
+	var img := Image.create_empty(1, 1, false, Image.FORMAT_RGBA8)
+	for v in 256:
+		var c := Color8(v, v, v, 255)
+		img.set_pixel(0, 0, c)
+		assert_int(img.get_pixel(0, 0).to_rgba32()).is_equal(c.to_rgba32())
+
+	# The failure this rule exists to prevent, pinned so it cannot come back unnoticed.
+	var floaty := Color("#008840").darkened(0.35)
+	img.set_pixel(0, 0, floaty)
+	assert_int(img.get_pixel(0, 0).to_rgba32()).is_not_equal(floaty.to_rgba32())
+
 func test_flip_x_mutates_in_place_and_is_its_own_inverse() -> void:
 	# The left-facing row is the right-facing row flipped. flip_x has NO return value: a
 	# `var left = right.flip_x()` would bind null and silently mirror the original.

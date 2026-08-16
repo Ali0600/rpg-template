@@ -1,0 +1,148 @@
+class_name SheetMeta
+extends RefCounted
+## The description that travels with a sprite sheet PNG.
+##
+## This pair - a PNG and its .sheet.json - is the whole contract between "how art was made"
+## and "how the game uses it". A procedural rig, a downloaded pack and an AI generator are
+## interchangeable as long as they write this. Nothing engine-specific is committed, so a
+## fresh clone has no import-order problem and the same art could feed a different engine.
+##
+## Rows are directions in canonical order and columns are animation frames. `directions`
+## records the order THIS file used, so a sheet whose rows are labelled with compass names
+## in some other sequence still lands in the right place - see SpriteFramesFactory.
+
+const VERSION := 1
+
+var version: int = VERSION
+var cell: Vector2i = Vector2i(16, 24)
+var columns: int = 4
+var rows: int = 4
+## Canonical Dir.D values, one per row, top to bottom.
+var directions: Array[int] = []
+## clip name -> {"frames": Array[int], "fps": int, "loop": bool}
+var animations: Dictionary = {}
+## Where the character's origin sits inside a cell: horizontal centre, ground row. Measured
+## from the drawn pixels rather than assumed, so the value is right by construction.
+var anchor: Vector2i = Vector2i.ZERO
+var source: String = "procedural"
+var style: String = ""
+var character: String = ""
+var seed: int = 0
+
+
+static func from_dict(d: Dictionary) -> SheetMeta:
+	var m := SheetMeta.new()
+	m.version = int(d.get("version", VERSION))
+	var cell_raw := JsonFile.to_int_array(d.get("cell", []))
+	if cell_raw.size() == 2:
+		m.cell = Vector2i(cell_raw[0], cell_raw[1])
+	m.columns = int(d.get("columns", 0))
+	m.rows = int(d.get("rows", 0))
+	for raw: Variant in d.get("directions", []) as Array:
+		# Row labels are text so a sheet can describe itself in its own vocabulary;
+		# Dir.from_name maps compass spellings onto the canonical four. -1 (unknown) is
+		# kept rather than dropped so validation can name the offending row.
+		m.directions.append(Dir.from_name(str(raw)))
+	var anims: Dictionary = d.get("animations", {})
+	for name: Variant in anims.keys():
+		var a: Dictionary = anims[name]
+		m.animations[str(name)] = {
+			"frames": JsonFile.to_int_array(a.get("frames", [])),
+			"fps": int(a.get("fps", 8)),
+			"loop": bool(a.get("loop", true)),
+		}
+	var anchor_raw := JsonFile.to_int_array(d.get("anchor", []))
+	if anchor_raw.size() == 2:
+		m.anchor = Vector2i(anchor_raw[0], anchor_raw[1])
+	m.source = str(d.get("source", "unknown"))
+	m.style = str(d.get("style", ""))
+	m.character = str(d.get("character", ""))
+	m.seed = int(d.get("seed", 0))
+	return m
+
+
+func to_dict() -> Dictionary:
+	var dir_names: Array[String] = []
+	for d in directions:
+		dir_names.append(String(Dir.name_of(d)))
+	return {
+		"version": version,
+		"cell": [cell.x, cell.y],
+		"columns": columns,
+		"rows": rows,
+		"directions": dir_names,
+		"animations": animations,
+		"anchor": [anchor.x, anchor.y],
+		"source": source,
+		"style": style,
+		"character": character,
+		"seed": seed,
+	}
+
+
+## The row a direction lives on, or -1 if this sheet does not have it.
+func row_of(dir: int) -> int:
+	return directions.find(dir)
+
+
+func clip_names() -> Array[String]:
+	var out: Array[String] = []
+	for k: Variant in animations.keys():
+		out.append(str(k))
+	out.sort()
+	return out
+
+
+func frames_of(clip: String) -> Array[int]:
+	var a: Dictionary = animations.get(clip, {})
+	return JsonFile.to_int_array(a.get("frames", []))
+
+
+func fps_of(clip: String) -> int:
+	var a: Dictionary = animations.get(clip, {})
+	return int(a.get("fps", 8))
+
+
+func loops(clip: String) -> bool:
+	var a: Dictionary = animations.get(clip, {})
+	return bool(a.get("loop", true))
+
+
+## Everything that would make this sheet unusable, checked against the image it describes.
+## Pass a null texture size to check the metadata alone.
+func problems(texture_size: Vector2i = Vector2i.ZERO) -> Array[String]:
+	var out: Array[String] = []
+	if version != VERSION:
+		out.append("sheet version %d, this build reads %d" % [version, VERSION])
+	if cell.x <= 0 or cell.y <= 0:
+		out.append("cell must be positive, got %s" % cell)
+	if columns <= 0 or rows <= 0:
+		out.append("sheet is %dx%d cells" % [columns, rows])
+	if directions.size() != rows:
+		out.append("%d direction labels for %d rows" % [directions.size(), rows])
+	for i in directions.size():
+		if directions[i] < 0:
+			out.append("row %d has an unrecognised direction label" % i)
+	var seen: Array[int] = []
+	for d in directions:
+		if d >= 0 and seen.has(d):
+			out.append("direction '%s' appears on more than one row" % Dir.name_of(d))
+		seen.append(d)
+	if animations.is_empty():
+		out.append("sheet declares no animations")
+	for clip in clip_names():
+		var frames := frames_of(clip)
+		if frames.is_empty():
+			out.append("animation '%s' has no frames" % clip)
+		for f in frames:
+			if f < 0 or f >= columns:
+				out.append("animation '%s' uses frame %d of %d columns" % [clip, f, columns])
+		if fps_of(clip) <= 0:
+			out.append("animation '%s' has fps %d" % [clip, fps_of(clip)])
+	if anchor.x < 0 or anchor.y < 0 or anchor.x >= cell.x or anchor.y >= cell.y:
+		out.append("anchor %s is outside the %s cell" % [anchor, cell])
+	if texture_size != Vector2i.ZERO:
+		var expected := Vector2i(cell.x * columns, cell.y * rows)
+		if texture_size != expected:
+			out.append("texture is %s but the metadata describes %s" % [texture_size, expected])
+	return out

@@ -1,0 +1,82 @@
+class_name ArtFixtures
+extends RefCounted
+## Loads the shipped styles, rigs and characters for the consistency gates.
+##
+## The gates run against the REAL data, not against a miniature fixture: a palette rule that
+## only holds for a two-colour test style says nothing about the art the game ships. Loading
+## every style also means adding a style automatically puts it under the same gates - a new
+## palette cannot quietly opt out of the rules it is supposed to obey.
+##
+## These live here rather than inside a suite because gdUnit4's scanner crashes on a suite
+## whose function signature names a project class; helpers can be typed normally.
+
+const STYLE_DIR := "res://data/styles"
+const RIG_DIR := "res://data/rigs"
+const CHARACTER_DIR := "res://data/characters"
+const GENERATED_ROOT := "res://assets/generated"
+
+
+static func style_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for path in _files(STYLE_DIR, "tres"):
+		var style := load(path) as SpriteStyle
+		if style != null:
+			out.append(style.id)
+	out.sort()
+	return out
+
+
+static func style(style_id: StringName) -> SpriteStyle:
+	return load("%s/%s.tres" % [STYLE_DIR, style_id]) as SpriteStyle
+
+
+static func rig_for(style_value: SpriteStyle) -> Rig:
+	return Rig.load_from("%s/%s.json" % [RIG_DIR, style_value.rig_id])
+
+
+## Every character that belongs to a style, in a stable order.
+static func characters_of(style_id: StringName) -> Array[CharacterSpec]:
+	var out: Array[CharacterSpec] = []
+	for path in _files(CHARACTER_DIR, "tres"):
+		var spec := load(path) as CharacterSpec
+		if spec != null and spec.style_id == style_id:
+			out.append(spec)
+	out.sort_custom(func(a: CharacterSpec, b: CharacterSpec) -> bool: return String(a.id) < String(b.id))
+	return out
+
+
+## Every frame of every direction for one character, as flat images. The gates want to check
+## all of them - a rule that holds for the front idle pose and fails on the fourth walk
+## frame facing up is exactly the kind of drift nobody sees by looking.
+static func all_frames(rig: Rig, style_value: SpriteStyle, spec: CharacterSpec) -> Array[Image]:
+	var out: Array[Image] = []
+	var resolved := spec.resolve(rig, style_value)
+	for dir: int in Dir.ALL:
+		for frame in style_value.walk_frames:
+			out.append(SpriteCompositor.compose(rig, style_value, resolved, dir, frame))
+	return out
+
+
+static func generated_texture_path(style_id: StringName, character_id: StringName) -> String:
+	return "%s/%s/%s.png" % [GENERATED_ROOT, style_id, character_id]
+
+
+static func generated_meta_path(style_id: StringName, character_id: StringName) -> String:
+	return "%s/%s/%s.sheet.json" % [GENERATED_ROOT, style_id, character_id]
+
+
+static func _files(dir_path: String, extension: String) -> Array[String]:
+	var out: Array[String] = []
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while name != "":
+		var check := name.trim_suffix(".remap")
+		if not dir.current_is_dir() and check.get_extension() == extension:
+			out.append(dir_path.path_join(check))
+		name = dir.get_next()
+	dir.list_dir_end()
+	out.sort()
+	return out

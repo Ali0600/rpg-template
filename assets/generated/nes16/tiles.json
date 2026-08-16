@@ -1,0 +1,45 @@
+{
+	"columns": 6,
+	"rows": 1,
+	"style": "nes16",
+	"tile_size": 16,
+	"tiles": [
+		{
+			"id": "grass",
+			"index": 0,
+			"ramp": "terrain_grass",
+			"solid": false
+		},
+		{
+			"id": "grass_alt",
+			"index": 1,
+			"ramp": "terrain_grass",
+			"solid": false
+		},
+		{
+			"id": "path",
+			"index": 2,
+			"ramp": "terrain_path",
+			"solid": false
+		},
+		{
+			"id": "water",
+			"index": 3,
+			"ramp": "terrain_water",
+			"solid": true
+		},
+		{
+			"id": "wall",
+			"index": 4,
+			"ramp": "stone",
+			"solid": true
+		},
+		{
+			"id": "bush",
+			"index": 5,
+			"ramp": "terrain_bush",
+			"solid": true
+		}
+	],
+	"version": 1
+}

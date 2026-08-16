@@ -1,0 +1,25 @@
+{
+	"_readme": [
+		"A sheet as an OUTSIDE source would describe it: compass row labels, in a different",
+		"order from this project's canonical down/left/right/up. Nothing about it is edited",
+		"by hand on the way in - SpriteFramesFactory maps the labels through Dir, which is",
+		"what makes dropping in a third-party or AI-generated pack a data operation rather",
+		"than a code one.",
+		"",
+		"There is deliberately no PNG beside this file: it exercises metadata handling only."
+	],
+	"version": 1,
+	"cell": [16, 24],
+	"columns": 4,
+	"rows": 4,
+	"directions": ["north", "east", "south", "west"],
+	"animations": {
+		"idle": { "frames": [0], "fps": 4, "loop": true },
+		"walk": { "frames": [0, 1, 2, 3], "fps": 8, "loop": true }
+	},
+	"anchor": [8, 23],
+	"source": "external",
+	"style": "someone_elses_pack",
+	"character": "wanderer",
+	"seed": 0
+}

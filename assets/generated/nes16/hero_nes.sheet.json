@@ -1,0 +1,42 @@
+{
+	"anchor": [
+		8,
+		23
+	],
+	"animations": {
+		"idle": {
+			"fps": 3,
+			"frames": [
+				0
+			],
+			"loop": true
+		},
+		"walk": {
+			"fps": 6,
+			"frames": [
+				0,
+				1,
+				2,
+				3
+			],
+			"loop": true
+		}
+	},
+	"cell": [
+		16,
+		24
+	],
+	"character": "hero_nes",
+	"columns": 4,
+	"directions": [
+		"down",
+		"left",
+		"right",
+		"up"
+	],
+	"rows": 4,
+	"seed": 1,
+	"source": "procedural",
+	"style": "nes16",
+	"version": 1
+}
