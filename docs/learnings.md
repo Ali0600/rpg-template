@@ -186,3 +186,20 @@ they drift apart the first time one of them needs to change. One now delegates t
 
 **Takeaway:** read a harness's refusals, not just its failures — "I cannot target this
 uniquely" is a fact about the code, not about the harness.
+
+## Browser automation may not be able to drive a Godot web build at all
+
+Godot's web export maps input from `KeyboardEvent.code` — the physical key. Some browser
+automation sends *trusted* key events with `code: ""`, `keyCode: 0`, and only `key`
+populated; the engine receives an event it cannot map to any key. Synthetic events built by
+hand with a correct `code` arrive with `isTrusted: false` and are ignored.
+
+**Why it came up:** verifying the deployed demo. The page loaded, the engine logged its
+version and renderer, the whole world drew correctly — and nothing responded to a keypress.
+The obvious reading is "the web build is broken", and the next move is to go re-debug an
+export that is fine.
+
+**Takeaway:** before concluding a deployed build is broken, prove the *instrument* can
+deliver the input at all — add a listener to the page and inspect what your own keypress
+actually looks like when it arrives. An automation that cannot produce a `code` cannot test
+any engine that reads one, and that is a fact about the tool rather than the deliverable.
