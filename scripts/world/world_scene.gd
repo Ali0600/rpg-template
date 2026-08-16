@@ -63,6 +63,11 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	_built = built
 	add_child(built.root)
 
+	# Anything outside the map - the letterbox on a map smaller than the viewport - is painted
+	# with the style's own panel colour rather than the engine's default grey, so a small area
+	# reads as framed rather than as unfinished. Style-driven, like every other colour.
+	RenderingServer.set_default_clear_color(_style.ui_color("panel"))
+
 	_source = FileSpriteSource.create(_style.id)
 	# The dialog box takes its colours from the map's style, so a map in a different style
 	# arrives with matching chrome rather than the previous map's.
