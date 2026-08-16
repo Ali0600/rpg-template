@@ -64,3 +64,36 @@ func test_a_missing_config_is_reported() -> void:
 	var manifest := _valid()
 	manifest.config = null
 	assert_str("\n".join(manifest.problems())).contains("config")
+
+
+func test_a_game_without_hooks_is_normal() -> void:
+	# Most games are expressible in maps and dialog. The shipped demo has no code at all,
+	# and "no hooks" must not read as "broken game".
+	var manifest := _valid()
+	assert_object(manifest.new_hooks()).is_null()
+	assert_array(manifest.problems()).is_empty()
+
+
+func test_a_hooks_script_is_instantiated_as_game_code() -> void:
+	# The seam, against a real Script rather than a mock: this is the whole path from a line
+	# in a .tres to an object the world will call.
+	var manifest := _valid()
+	manifest.hooks = load("res://tests/helpers/stub_hooks.gd") as Script
+	assert_object(manifest.new_hooks()).is_not_null()
+	assert_array(manifest.problems()).is_empty()
+
+
+func test_each_call_gets_a_fresh_hooks_instance() -> void:
+	# Shared hooks would carry state from one run of a game into the next, which is a save
+	# bug that only appears on the second playthrough.
+	var manifest := _valid()
+	manifest.hooks = load("res://tests/helpers/stub_hooks.gd") as Script
+	assert_object(manifest.new_hooks()).is_not_same(manifest.new_hooks())
+
+
+func test_a_script_that_is_not_a_gamehooks_is_reported() -> void:
+	# Named in the manifest, so a typo picks up some other script and the game boots with
+	# hooks that are silently never called.
+	var manifest := _valid()
+	manifest.hooks = load("res://scripts/util/content_scan.gd") as Script
+	assert_str("\n".join(manifest.problems())).contains("GameHooks")

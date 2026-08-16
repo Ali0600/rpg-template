@@ -16,10 +16,17 @@ const SKIP_DIRS: Array[String] = ["addons", ".godot", ".git"]
 func _init() -> void:
 	var hits: Array[String] = []
 	var scanned := 0
+	# Read live, never typed here: the rule that bans naming a singleton in game code is only
+	# as complete as this list, and a stale copy would let the newest autoload through.
+	var autoloads := LintCore.autoload_names()
+	if autoloads.is_empty():
+		printerr("lint_rules: found no autoloads in project.godot - the game-code rule is broken")
+		quit(1)
+		return
 	for root in LintCore.lint_roots():
 		for path in _all_gd(root):
 			scanned += 1
-			hits.append_array(LintCore.scan_text(path, FileAccess.get_file_as_string(path)))
+			hits.append_array(LintCore.scan_text(path, FileAccess.get_file_as_string(path), autoloads))
 
 	# A scan that visited nothing is a broken scan, not a clean repo. Without this, a
 	# renamed directory turns the gate into a green light wired to nothing.

@@ -35,6 +35,7 @@ scripts/ui/         DialogRunner (pure) + its view
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
 data/               all content: games, styles, rigs, characters, maps, dialog
+games/<id>/         a game's OWN code: a GameHooks subclass, and nothing generic
 assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
 ```
 
@@ -48,6 +49,14 @@ one: `--game=<id>` beats the `application/config/game` project setting, which be
 only one game", and two games with nothing choosing is a **refusal** — a guessed game presents
 as the game you meant to run behaving strangely. Nothing in `scripts/world/` may name a map,
 a spawn or a character again.
+
+**Gameplay goes in `games/<id>/`, never in `scripts/`.** A game's code is a `GameHooks`
+subclass named by its manifest. It is handed a `GameContext` and **may not name an autoload** —
+naming one removes a file from the per-file parse gate AND `compile_all.gd`, so it would leave
+two of the four gates silently; `LintCore.RULE_AUTOLOAD` fails the build on it. Hooks read a
+snapshot and append effects; `world_scene._apply` is the single place any of it reaches live
+state. `on_interact` returning `false` means "not mine" and the data's own behaviour runs — a
+game is additive or it is not using this seam.
 
 **The sprite contract is PNG + `<name>.sheet.json`.** Nothing engine-specific is committed
 as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the

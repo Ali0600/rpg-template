@@ -11,6 +11,23 @@ extends GdUnitTestSuite
 const FIXTURE_DIR := "res://tests/fixtures/lint/"
 ## A path under scripts/world: subject to every rule, exempt from none.
 const SUBJECT := "res://scripts/world/fixture_subject.gd"
+## A path under games/: template code plus the one rule that applies only to game code.
+const GAME_SUBJECT := "res://games/example/example_hooks.gd"
+## Passed explicitly so the rule stays pure. The live list comes from project.godot.
+const AUTOLOADS: Array[String] = ["EventBus", "GameState", "Router"]
+
+## Which path each fixture is scanned AS. It is not decoration: the autoload rule fires only
+## for game code, so its fixture has to arrive from under games/ or it proves nothing.
+func _fixture_subjects() -> Dictionary:
+	return {
+		"bad_rng.gd.txt": SUBJECT,
+		"bad_direction.gd.txt": SUBJECT,
+		"bad_color.gd.txt": SUBJECT,
+		"bad_autoload.gd.txt": GAME_SUBJECT,
+	}
+
+func _autoload_hits(hits: Array[String]) -> Array[String]:
+	return hits.filter(func(h: String) -> bool: return h.contains(LintCore.RULE_AUTOLOAD))
 
 func _load(name: String) -> String:
 	var text := FileAccess.get_file_as_string(FIXTURE_DIR + name)
@@ -81,8 +98,9 @@ func test_every_rule_has_a_fixture_that_proves_it_fires() -> void:
 	# The structural guard: adding a rule without a known-bad input leaves it unproven, and
 	# this fails the moment rule_names() grows past the fixtures.
 	var fired: Array[String] = []
-	for fixture in ["bad_rng.gd.txt", "bad_direction.gd.txt", "bad_color.gd.txt"]:
-		for rule in _rules_hit(LintCore.scan_text(SUBJECT, _load(fixture))):
+	for fixture: String in _fixture_subjects().keys():
+		var subject: String = _fixture_subjects()[fixture]
+		for rule in _rules_hit(LintCore.scan_text(subject, _load(fixture), AUTOLOADS)):
 			if not fired.has(rule):
 				fired.append(rule)
 	fired.sort()
@@ -140,3 +158,30 @@ func test_hits_name_the_file_and_line() -> void:
 	var hits := LintCore.scan_text(SUBJECT, "var ok := 1\nvar bad := \"down\"\n")
 	assert_int(hits.size()).is_equal(1)
 	assert_str(hits[0]).starts_with(SUBJECT + ":2: ")
+
+func test_game_code_may_not_name_an_autoload() -> void:
+	# The fixture has two singletons used as singletons, and four near-misses: a local whose
+	# name resembles one, the name inside a string, the name inside a comment, and the
+	# sanctioned GameContext call that replaces it.
+	var hits := LintCore.scan_text(GAME_SUBJECT, _load("bad_autoload.gd.txt"), AUTOLOADS)
+	assert_int(_autoload_hits(hits).size()).is_equal(2)
+
+func test_template_code_may_name_an_autoload() -> void:
+	# Not a general ban. world_scene.gd names GameState on purpose: it is the file that owns
+	# turning an effect into live state, which is exactly why game code does not have to.
+	var hits := LintCore.scan_text(SUBJECT, _load("bad_autoload.gd.txt"), AUTOLOADS)
+	assert_array(_autoload_hits(hits)).is_empty()
+
+func test_the_autoload_rule_needs_the_live_list_to_check_anything() -> void:
+	# Called with no names the rule cannot fire, which is a fail-open - so tools/lint_rules.gd
+	# refuses to run at all when project.godot yields no autoloads, rather than reporting a
+	# clean scan of a check that never happened.
+	var hits := LintCore.scan_text(GAME_SUBJECT, _load("bad_autoload.gd.txt"))
+	assert_array(_autoload_hits(hits)).is_empty()
+
+func test_the_autoload_names_are_read_from_the_project_not_typed() -> void:
+	# The one derivation both the linter and compile_all use. A typed copy would go stale the
+	# day a singleton is added, and the file naming it would silently stop being compiled.
+	var names := LintCore.autoload_names()
+	assert_bool(names.is_empty()).is_false()
+	assert_array(names).contains(["GameState", "Router", "EventBus"])

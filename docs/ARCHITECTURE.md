@@ -84,13 +84,32 @@ has proven is tested — and three times during this build a mutant proved a tes
 
 ## Where a new game changes things
 
+- **Which game runs** → a manifest in `data/games/`: start map, spawn, player character,
+  config, controls hint. `config/game` in `project.godot` picks one; `--game=<id>` overrides.
 - **Art style** → a new file in `data/styles/`. Nothing else.
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
 - **Writing** → files in `data/dialog/`.
-- **Feel** → `data/game_config.tres`.
-- **New mechanics** → new files under `scripts/`, with the pure part separated so it can be
-  tested without a scene, and a mutant per rule.
+- **Feel** → `data/game_config.tres`, or a config of the game's own.
+- **New mechanics** → a `GameHooks` subclass under `games/<id>/`, named by the manifest.
+  Never under `scripts/`: that tree is the template, and every mechanic added to it makes
+  the template more specific to one game.
 
-If a change to any of the first five requires editing something under `scripts/`, that is a
+If a change to any of the first six requires editing something under `scripts/`, that is a
 bug in the template rather than in the game.
+
+### The rule that makes `games/` work
+
+Game code is handed a `GameContext` and **may not name an autoload** — no `GameState.`, no
+`Router.`, no `EventBus.`. This is mechanical, not stylistic: Godot's `--check-only` and
+`tools/compile_all.gd` both *skip* any script naming a singleton (one does not exist in a
+standalone run), so a hook that reached for `GameState` would silently leave two of the four
+gates and could only fail in front of a player. `LintCore` fails the build on it.
+
+A hook reads the snapshot and *appends effects* — `set_flag`, `mark_seen`, `say`, `warp_to`,
+`play` — which `world_scene` applies in one place. Same shape as `DialogRunner`, which
+collects flags and never writes them. It also means a hook cannot acquire a power the data
+lacks, and a sign cannot acquire one the hook lacks: both produce the same list.
+
+Returning `false` from `on_interact` means *"not mine"*, and the template's own behaviour
+runs. That is what keeps a game additive.

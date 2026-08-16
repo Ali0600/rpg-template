@@ -76,6 +76,7 @@ Regenerate the art after editing a rig or a style:
 | The world | `data/maps/*.json` — ASCII rows plus a legend | no |
 | What people say | `data/dialog/*.json` | no |
 | How it feels to move | `data/game_config.tres` | no |
+| New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts, new tiles | `data/rigs/*.json`, `TileGen.TILES` | one file |
 
 If changing any of the first six needs a code edit, that's a bug in the template.

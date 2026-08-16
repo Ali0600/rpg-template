@@ -10,6 +10,8 @@ extends Node2D
 ## literal, and they were the whole reason a second game could not exist without editing the
 ## generic world.
 var _game: GameManifest
+## The game's own code, if it has any. Null is normal - the demo has none.
+var _hooks: GameHooks
 var _config: GameConfig
 var _style: SpriteStyle
 var _source: SpriteSource
@@ -25,6 +27,10 @@ var _hint := ControlsHint.new()
 ## on every frame spent standing there.
 var _last_tile := Vector2i(-9999, -9999)
 
+## How many map entries may chain through on_map_entered before it is called a loop.
+const MAX_CHAINED_ENTRIES := 8
+var _entry_depth := 0
+
 
 func _ready() -> void:
 	_game = GameSelect.resolve()
@@ -38,6 +44,7 @@ func _ready() -> void:
 	if _config == null:
 		push_error("World: game '%s' has no config" % _game.id)
 		return
+	_hooks = _game.new_hooks()
 	add_child(_dialog)
 	_dialog.closed.connect(_on_dialog_closed)
 	add_child(_hint)
@@ -90,6 +97,22 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	GameState.current_map = map_id
 	Router.reset()
 	EventBus.map_entered.emit({"map_id": map_id, "spawn_id": spawn_id})
+
+	# Last, so a game's code sees a map that is fully built and a player already standing in
+	# it. Its effects go through the same _apply as everything else - including a warp, which
+	# is why the depth is counted: a hook that warps on entry can re-enter forever, and an
+	# unguarded stack overflow reports as a crash with no clue which map caused it.
+	if _hooks != null:
+		if _entry_depth >= MAX_CHAINED_ENTRIES:
+			push_error("World: %d chained map entries - a hook is warping on entry in a loop"
+				% _entry_depth)
+		else:
+			_entry_depth += 1
+			var ctx := _context()
+			_hooks.on_map_entered(ctx)
+			if ctx.has_effects():
+				_apply(ctx)
+			_entry_depth -= 1
 	return true
 
 
@@ -132,7 +155,14 @@ func _spawn_npcs(data: MapData) -> void:
 		# map is data, and the worst case here is an NPC looking the wrong way.
 		var facing := Dir.from_name(str(npc.get("facing", "")))
 		body.halt(facing if facing >= 0 else Dir.D.DOWN)
-		_npcs[npc_id] = {"body": body, "dialog": str(npc.get("dialog", ""))}
+		# The whole entry is kept, not just the two fields the template reads. It is what a
+		# game's hook is handed, so a key the template has no opinion about ("behavior",
+		# whatever a game invents) survives the trip instead of being quietly dropped here.
+		var record := npc.duplicate()
+		record["id"] = npc_id
+		record["kind"] = StringName(str(npc.get("kind", "npc")))
+		record["body"] = body
+		_npcs[npc_id] = record
 
 
 func _configure_camera(data: MapData) -> void:
@@ -218,30 +248,19 @@ func try_interact() -> bool:
 	var target := Interactor.find(_player.global_position, _player.facing, _config, _targets())
 	if target == null:
 		return false
-	var npc: Dictionary = _npcs.get(target.id, {})
-	var dialog_id := str(npc.get("dialog", ""))
-	if dialog_id.is_empty():
-		return false
+	var record: Dictionary = target.payload if target.payload is Dictionary else {}
 
-	# The NPC turns to face the player. Small, and its absence is the loudest thing about a
-	# conversation with someone looking the other way.
-	var body: ActorBody = npc["body"]
-	body.halt(Dir.facing_from_vector(_player.global_position - body.global_position, body.facing))
+	# Turning to face the player happens on being FOUND, not on a conversation opening, so
+	# someone with nothing to say still looks at you rather than ignoring you.
+	var body := record.get("body") as ActorBody
+	if body != null:
+		body.halt(Dir.facing_from_vector(_player.global_position - body.global_position, body.facing))
 
-	var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, GameState.flags)
-	if not runner.ok:
-		push_error("World: %s" % runner.error)
+	var ctx := _context()
+	if not Interaction.resolve(_hooks, ctx, target):
 		return false
-	for p in runner.problems():
-		push_error("World: " + p)
-
-	_player.halt()
-	if not _dialog.open(runner):
-		return false
-	Router.open_overlay(Router.State.DIALOG)
-	EventBus.interacted.emit({"target_id": target.id, "kind": &"dialog"})
-	EventBus.dialog_changed.emit({"dialog_id": StringName(dialog_id), "open": true})
-	return true
+	EventBus.interacted.emit({"target_id": target.id, "kind": record.get("kind", &"")})
+	return _apply(ctx)
 
 
 func _on_dialog_closed(flags: Array) -> void:
@@ -256,9 +275,66 @@ func _on_dialog_closed(flags: Array) -> void:
 func _targets() -> Array[Interactor.Target]:
 	var out: Array[Interactor.Target] = []
 	for npc_id: Variant in _npcs.keys():
-		var body: ActorBody = _npcs[npc_id]["body"]
-		out.append(Interactor.Target.new(npc_id, body.global_position, _config.body_size, body))
+		var record: Dictionary = _npcs[npc_id]
+		var body: ActorBody = record["body"]
+		# The payload is the RECORD now, not the body. Interactor has always carried one and
+		# nothing ever read it: try_interact looked the target back up by id, which is why an
+		# interaction could only ever be with an NPC.
+		out.append(Interactor.Target.new(npc_id, body.global_position, _config.body_size, record))
 	return out
+
+
+## The snapshot a hook is handed. Built here because this is the file that is allowed to name
+## the autoloads; nothing under games/ may.
+func _context() -> GameContext:
+	var tile := MapData.world_to_tile(_player.global_position, _built.tile_size) if _player != null else Vector2i.ZERO
+	return GameContext.create(GameState.current_map, tile, GameState.flags, GameState.seen, self)
+
+
+## The one place an effect reaches live state. Everything - the template's own verbs and a
+## game's hooks alike - arrives here as the same list, so there is a single answer to "what
+## can an interaction actually do".
+##
+## A failing effect logs and the rest still run: the flag on a chest is the durable half and
+## the line of text is presentation, so a broken dialog file must not also swallow the pickup.
+func _apply(ctx: GameContext) -> bool:
+	var did := false
+	for effect: Dictionary in ctx.effects():
+		var op := StringName(str(effect.get("op", "")))
+		match op:
+			GameContext.OP_FLAG:
+				GameState.set_flag(StringName(str(effect.get("key", ""))), bool(effect.get("value", true)))
+				did = true
+			GameContext.OP_SEEN:
+				GameState.mark_seen(str(effect.get("key", "")))
+				did = true
+			GameContext.OP_SOUND:
+				EventBus.sound_requested.emit({"id": StringName(str(effect.get("id", "")))})
+				did = true
+			GameContext.OP_DIALOG:
+				did = _open_dialog(StringName(str(effect.get("dialog", "")))) or did
+			GameContext.OP_WARP:
+				did = enter_map(StringName(str(effect.get("map", ""))),
+					StringName(str(effect.get("spawn", "start")))) or did
+			_:
+				push_error("World: unknown effect '%s' - nothing carried it out" % op)
+	return did
+
+
+func _open_dialog(dialog_id: StringName) -> bool:
+	var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, GameState.flags)
+	if not runner.ok:
+		push_error("World: %s" % runner.error)
+		return false
+	for p in runner.problems():
+		push_error("World: " + p)
+
+	_player.halt()
+	if not _dialog.open(runner):
+		return false
+	Router.open_overlay(Router.State.DIALOG)
+	EventBus.dialog_changed.emit({"dialog_id": dialog_id, "open": true})
+	return true
 
 
 ## Test and QA access. Reaching for the node directly from outside would tie every test to

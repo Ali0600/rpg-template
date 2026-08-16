@@ -83,3 +83,12 @@ scripts/data/game_select.gd	s|if arg.begins_with\(ARG\):|if false:|	tests/unit/t
 scripts/data/game_select.gd	s|if not setting.is_empty\(\):|if false:|	tests/unit/test_game_select.gd	the committed project setting stops choosing the game
 scripts/data/game_manifest.gd	s|if map.spawn\(start_spawn\) == Vector2i\(-1, -1\):|if false:|	tests/unit/test_game_manifest.gd	a game starting on a spawn that does not exist is accepted
 scripts/data/game_manifest.gd	s|if not FileAccess.file_exists\(sheet\):|if false:|	tests/unit/test_game_manifest.gd	a player character with no generated art is accepted
+
+# --- M7: the gameplay seam ---
+scripts/world/interaction.gd	s|if hooks != null and hooks.on_interact\(ctx, target\):|if false:|	tests/unit/test_interaction.gd	game code never sees an interaction at all
+scripts/world/interaction.gd	s|if hooks != null and hooks.on_interact\(ctx, target\):|if hooks != null:|	tests/unit/test_interaction.gd	a hook that refuses still swallows the interaction
+scripts/world/interaction.gd	s|if once and ctx.was_seen\(key\):|if false:|	tests/unit/test_interaction.gd	a chest can be looted forever
+scripts/world/interaction.gd	s|return "%s/%s" % \[map_id, object_id\]|return object_id|	tests/unit/test_interaction.gd	two maps share one chest, so the second is found already open
+scripts/world/game_context.gd	s|ctx._flags = flags.duplicate\(\)|ctx._flags = flags|	tests/unit/test_interaction.gd	a hook holds live state instead of a snapshot
+scripts/util/lint_core.gd	s|if check_autoload:|if false:|	tests/unit/test_lint_core.gd	game code names an autoload and drops out of the parse and compile gates
+scripts/data/game_manifest.gd	s|out.append\("hooks script %s is not a GameHooks" % hooks.resource_path\)|pass|	tests/unit/test_game_manifest.gd	a hooks script that is not a GameHooks is accepted and never called
