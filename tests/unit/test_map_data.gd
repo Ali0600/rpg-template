@@ -94,3 +94,33 @@ func test_an_unknown_spawn_returns_a_sentinel_rather_than_the_origin() -> void:
 	var map := MapData.load_from("res://data/maps/demo_town.json")
 	assert_vector(map.spawn(&"nowhere")).is_equal(Vector2i(-1, -1))
 	assert_vector(map.spawn(&"start")).is_not_equal(Vector2i(-1, -1))
+
+func test_a_warp_is_found_by_the_tile_it_sits_on() -> void:
+	# Looked up by tile rather than by proximity, so stepping ONTO the door is the whole
+	# rule - a radius would fire while the player is still visibly beside it.
+	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var warp := map.warp_at(Vector2i(19, 6))
+	assert_bool(warp.is_empty()).override_failure_message(
+		"the town's east gate has no warp on it").is_false()
+	assert_str(String(warp["map"])).is_equal("demo_cave")
+	assert_str(String(warp["spawn"])).is_equal("west_gate")
+
+func test_a_tile_with_no_warp_reports_none() -> void:
+	var map := MapData.load_from("res://data/maps/demo_town.json")
+	assert_bool(map.warp_at(Vector2i(4, 6)).is_empty()).is_true()
+
+func test_both_shipped_maps_are_valid_and_their_doors_line_up() -> void:
+	# A warp naming a map that does not exist, or a spawn that map does not have, sends the
+	# player nowhere - and "nowhere" renders as a black screen, not as an error.
+	for map_id in ["demo_town", "demo_cave"]:
+		var map := MapData.load_from("res://data/maps/%s.json" % map_id)
+		assert_array(map.problems(_known_tiles(), _solid_tiles())).override_failure_message(
+			"%s: %s" % [map_id, map.problems(_known_tiles(), _solid_tiles())]).is_empty()
+		for entry: Variant in map.warps:
+			var warp: Dictionary = entry
+			var destination := MapData.load_from("res://data/maps/%s.json" % warp["map"])
+			assert_bool(destination.ok).override_failure_message(
+				"%s warps to '%s', which does not exist" % [map_id, warp["map"]]).is_true()
+			assert_vector(destination.spawn(StringName(str(warp["spawn"])))) \
+				.override_failure_message("%s warps to spawn '%s' of '%s', which has no such spawn"
+					% [map_id, warp["spawn"], warp["map"]]).is_not_equal(Vector2i(-1, -1))

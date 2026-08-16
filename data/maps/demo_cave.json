@@ -1,0 +1,57 @@
+{
+	"_readme": [
+		"A second map, reachable through the east gate of demo_town. It exists to prove the",
+		"warp round-trip: two maps, two doors, and a spawn beside each one that does not",
+		"immediately send the player back.",
+		"",
+		"It also uses a different mix of tiles from the same style - stone underfoot rather",
+		"than grass - which is what a second area looks like when the palette is shared."
+	],
+	"id": "demo_cave",
+	"style": "gb16",
+	"legend": {
+		".": "path",
+		"#": "wall",
+		"~": "water",
+		"*": "bush"
+	},
+	"ground": [
+		"############",
+		"#..........#",
+		"#..........#",
+		"#...~~~~...#",
+		"#...~~~~...#",
+		"#..........#",
+		"...........#",
+		"#..........#",
+		"############"
+	],
+	"decor": [
+		"            ",
+		"  *      *  ",
+		"            ",
+		"            ",
+		"            ",
+		"            ",
+		"            ",
+		"  *      *  ",
+		"            "
+	],
+	"spawns": {
+		"west_gate": [1, 6],
+		"start": [5, 6]
+	},
+	"npcs": [
+		{
+			"id": "hermit",
+			"character": "npc_smith",
+			"tile": [8, 2],
+			"facing": "down",
+			"dialog": "smith",
+			"behavior": "static"
+		}
+	],
+	"warps": [
+		{ "tile": [0, 6], "map": "demo_town", "spawn": "east_gate" }
+	]
+}

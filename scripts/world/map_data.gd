@@ -95,6 +95,21 @@ func spawn_ids() -> Array[String]:
 	return out
 
 
+## The warp on a tile, as {"map": StringName, "spawn": StringName}, or an empty dictionary.
+## Looked up by tile rather than by proximity so stepping onto the tile is the whole rule -
+## a radius would fire while the player is still visibly beside the door.
+func warp_at(at: Vector2i) -> Dictionary:
+	for entry: Variant in warps:
+		var warp: Dictionary = entry
+		var raw := JsonFile.to_int_array(warp.get("tile", []))
+		if raw.size() == 2 and Vector2i(raw[0], raw[1]) == at:
+			return {
+				"map": StringName(str(warp.get("map", ""))),
+				"spawn": StringName(str(warp.get("spawn", "start"))),
+			}
+	return {}
+
+
 ## The world position of a tile's CENTRE, in pixels. Actors stand on tile centres, so this
 ## is the one conversion; a caller doing its own multiply is a caller that will forget the
 ## half-tile offset.
