@@ -1,0 +1,71 @@
+class_name GameManifest
+extends Resource
+## Which game this is, as data.
+##
+## Everything here used to be a `const` at the top of scripts/world/world_scene.gd - the
+## first map, the spawn to stand on, whose sprite the player wears, the line of controls
+## text - which meant a second game could not exist without editing the generic world code.
+## The template's whole claim is that it does not need editing, so "which game is this" is
+## the first thing that had to stop being code.
+##
+## A manifest is the ONLY file that names a game's content. Everything downstream is reached
+## from here: the map names its style, the style names its rig, the characters are generated
+## per style. Point this at different files and it is a different game.
+
+## Used by Registry as this resource's key, and by --game= on the command line.
+@export var id: StringName = &""
+
+## Shown to a human, never matched on.
+@export var title: String = ""
+
+## Where a new game begins. The spawn must exist in that map, which problems() checks -
+## a game whose first frame lands the player at (1,1) because a spawn name was misspelt is
+## a bug that reads as a level-design mistake.
+@export var start_map: StringName = &""
+@export var start_spawn: StringName = &"start"
+
+## The character spec whose generated sheet the player wears. It has to have been generated
+## for the START MAP's style, since art is per style.
+@export var player_character: StringName = &"hero"
+
+## The feel of moving and interacting. A resource rather than a path so the reference is
+## real: the exporter follows it, and a typo fails at load instead of at first step.
+@export var config: GameConfig
+
+## The one line of on-screen help. It belongs to the game because it names the game's verbs:
+## "E or space to talk" is wrong for a game whose button does anything else.
+@export var controls_hint: String = ""
+
+
+## Everything wrong with this manifest, in the idiom of every other problems() here: all of
+## them, not the first, so "what is broken about this game" is one read rather than five runs.
+func problems() -> Array[String]:
+	var out: Array[String] = []
+	if String(id).is_empty():
+		out.append("manifest has no id")
+	if String(start_map).is_empty():
+		out.append("manifest '%s' names no start_map" % id)
+		return out
+
+	var map_path := "res://data/maps/%s.json" % start_map
+	var map := MapData.load_from(map_path)
+	if not map.ok:
+		out.append("start_map '%s' does not load: %s" % [start_map, map.error])
+		return out
+	if map.spawn(start_spawn) == Vector2i(-1, -1):
+		out.append("map '%s' has no spawn '%s' (it has: %s)"
+			% [start_map, start_spawn, ", ".join(map.spawn_ids())])
+
+	# Art is generated per style, and the style comes from the map - so "this character
+	# exists" is only answerable once you know which map the game opens in.
+	var sheet := "res://assets/generated/%s/%s.sheet.json" % [map.style_id, player_character]
+	if not FileAccess.file_exists(sheet):
+		out.append("player_character '%s' has no generated art for style '%s' (expected %s)"
+			% [player_character, map.style_id, sheet])
+
+	if config == null:
+		out.append("manifest '%s' has no config" % id)
+	else:
+		for p in config.problems():
+			out.append("config: " + p)
+	return out

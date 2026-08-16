@@ -70,6 +70,7 @@ Regenerate the art after editing a rig or a style:
 
 | To change | Edit | Touch any code? |
 | --- | --- | --- |
+| Which game runs, and where it starts | `data/games/*.tres` | no |
 | The whole art style | a file in `data/styles/` | no |
 | Who the characters are | files in `data/characters/` | no |
 | The world | `data/maps/*.json` — ASCII rows plus a legend | no |
@@ -77,7 +78,12 @@ Regenerate the art after editing a rig or a style:
 | How it feels to move | `data/game_config.tres` | no |
 | New body parts, new tiles | `data/rigs/*.json`, `TileGen.TILES` | one file |
 
-If changing any of the first five needs a code edit, that's a bug in the template.
+If changing any of the first six needs a code edit, that's a bug in the template.
+
+A **game** is one `data/games/<id>.tres`: its first map and spawn, the character the player
+wears, the tuning it uses, the line of on-screen help. More than one can live side by side —
+`config/game` in `project.godot` picks the one that boots, and `--game=<id>` overrides it for
+a headless run. With exactly one game, neither is needed.
 
 ## Sprite Lab
 

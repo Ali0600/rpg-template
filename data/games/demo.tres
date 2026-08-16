@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GameManifest" load_steps=3 format=3]
+
+; The shipped demo, as a game rather than as constants in world_scene.gd. A second game is
+; a second file beside this one - nothing about the generic world knows either exists.
+
+[ext_resource type="Script" path="res://scripts/data/game_manifest.gd" id="1_manifest"]
+[ext_resource type="Resource" path="res://data/game_config.tres" id="2_config"]
+
+[resource]
+script = ExtResource("1_manifest")
+id = &"demo"
+title = "2D RPG Template"
+start_map = &"demo_town"
+start_spawn = &"start"
+player_character = &"hero"
+config = ExtResource("2_config")
+controls_hint = "WASD / arrows to walk    E or space to talk"
