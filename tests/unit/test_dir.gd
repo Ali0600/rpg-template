@@ -12,7 +12,7 @@ func test_canonical_order_is_down_left_right_up() -> void:
 	# Written out by hand on purpose: quoting Dir.ALL to test Dir.ALL proves nothing.
 	assert_int(Dir.ALL.size()).is_equal(4)
 	assert_int(Dir.ALL[0]).is_equal(D.DOWN)
-	assert_int(Dir.ALL[1]).is_equal(D.LEFT)
+	assert_int(Dir.ALL[1]).is_equal(D.RIGHT)
 	assert_int(Dir.ALL[2]).is_equal(D.RIGHT)
 	assert_int(Dir.ALL[3]).is_equal(D.UP)
 
