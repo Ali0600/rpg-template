@@ -76,8 +76,12 @@ jobs:
 
       - name: Export the web build
         run: |
-          # Deliberately not `set -e`: the exit code of the export is checked by hand below,
-          # for the reason spelled out there.
+          # `set +e` is the load-bearing line. GitHub runs every `run:` step with
+          # `bash --noprofile --norc -eo pipefail`, so errexit is ALREADY ON before this
+          # script starts - writing `set -uo pipefail` does not cancel it, and the export
+          # below would kill the shell before the status line could read its code. The exit
+          # code is checked by hand here, for the reason spelled out further down.
+          set +e
           set -uo pipefail
           mkdir -p build/web
           ~/godot-bin/godot --headless --path . --import >/dev/null 2>&1 || true
