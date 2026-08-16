@@ -13,10 +13,18 @@ var player_position: Vector2 = Vector2.ZERO
 var player_facing: int = 0  # Dir.D value; DOWN is 0.
 var flags: Dictionary = {}
 var seen: Dictionary = {}
+var play_seconds: float = 0.0
 
 
 func _ready() -> void:
 	EventBus.system_ready.emit({"system": &"GameState"})
+
+
+func _process(delta: float) -> void:
+	# Only counts while the game is actually being played, so a save's play time means time
+	# spent playing rather than time spent with the window open.
+	if Router.player_can_move():
+		play_seconds += delta
 
 
 ## Returns the state to its just-booted values. Tests call this in before_test: an autoload
@@ -28,6 +36,7 @@ func reset() -> void:
 	player_facing = 0
 	flags = {}
 	seen = {}
+	play_seconds = 0.0
 
 
 func new_game(start_map: StringName, start_position: Vector2, facing: int) -> void:
@@ -56,3 +65,28 @@ func was_seen(key: StringName) -> bool:
 func set_player(position: Vector2, facing: int) -> void:
 	player_position = position
 	player_facing = facing
+
+
+## The live state as a save. Kept here rather than in SaveManager because this is the object
+## that OWNS the state - a writer that reached in and read the fields would be a second place
+## that has to learn about every new one.
+func to_save() -> SaveData:
+	var out := SaveData.new()
+	out.map = current_map
+	out.position = player_position
+	out.facing = player_facing
+	out.flags = flags.duplicate(true)
+	out.seen = seen.duplicate(true)
+	out.play_seconds = play_seconds
+	return out
+
+
+## Replaces the live state wholesale. Duplicated on the way in, so a loaded save cannot be
+## mutated from underneath by whoever still holds the SaveData.
+func from_save(data: SaveData) -> void:
+	current_map = data.map
+	player_position = data.position
+	player_facing = data.facing
+	flags = data.flags.duplicate(true)
+	seen = data.seen.duplicate(true)
+	play_seconds = data.play_seconds

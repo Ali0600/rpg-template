@@ -85,6 +85,18 @@ static func to_int_array(raw: Variant) -> Array[int]:
 	return out
 
 
+## Floats, for values that are genuinely fractional - a saved position, a tuning weight.
+## Reading those through to_int_array would truncate them silently, which for a save means a
+## player reloading a few pixels from where they stood.
+static func to_float_array(raw: Variant) -> Array[float]:
+	var out: Array[float] = []
+	if not (raw is Array):
+		return out
+	for v: Variant in raw as Array:
+		out.append(float(v))
+	return out
+
+
 static func to_string_array(raw: Variant) -> Array[String]:
 	var out: Array[String] = []
 	if not (raw is Array):
