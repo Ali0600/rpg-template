@@ -73,7 +73,6 @@
 		{ "op": "assert_flag", "key": "has_gate_key", "expect": true },
 
 		{ "op": "note", "text": "and it opens once: pressing again does nothing at all" },
-		{ "op": "wait", "frames": 20 },
 		{ "op": "press", "action": "interact" },
 		{ "op": "wait", "frames": 20 },
 		{ "op": "assert_state", "state": "world" },

@@ -265,3 +265,25 @@ before the thing it is checking has started is a green light wired to nothing.
 awaits it — prefer expressing the wait in the machine's own currency (a flag the tick loop
 honours). And when you find such a race, pin it: the regression test here is a shipped script
 with the `wait` deliberately *removed*, so the assertion sits exactly where the race was.
+
+## A held input survives a scene transition, so "walk until you arrive" overshoots into the next room
+
+Scripting a play session across three maps, several routes walked into a door while still
+holding the direction key. The warp fires, the new map is built, the player is placed on its
+spawn — and the key is *still held*, so they keep walking in the new map for the remainder of
+the hold. One route ended up against the far wall of a room it had only just entered.
+
+**Why it came up:** the counts were written by dividing distance by speed, which is correct
+right up to the moment the map underneath changes. It reads as a broken warp ("we ended up
+somewhere else"), not as an input that outlived its context.
+
+Two smaller versions of the same class turned up in the same session. A body stopped by a
+collider rests with its feet exactly on the blocking tile's edge, so `floor(y / tile)` reports
+the tile it is *touching* rather than the one it is standing in. And a walk of "exactly two
+tiles" landed at y=63.1 rather than 64 — fractional accumulation — which floors into the row
+above and silently misses a warp one row down.
+
+**Takeaway:** in a scripted end-to-end test, aim at things that *stop* you — a wall, a body —
+rather than counting frames to a coordinate: a collider lands on the same pixel every run,
+while a count lands wherever the tuning happens to be today. And never let a hold span a
+transition unless the far side also ends against something solid.

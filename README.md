@@ -86,6 +86,29 @@ wears, the tuning it uses, the line of on-screen help. More than one can live si
 `config/game` in `project.godot` picks the one that boots, and `--game=<id>` overrides it for
 a headless run. With exactly one game, neither is needed.
 
+## Two games, one template
+
+The repo ships **two** games, which is the only honest way to claim the template is one.
+
+| | The demo | The Barred Gate |
+| --- | --- | --- |
+| Look | `gb16` / `nes16` | `dusk16` — a third palette on the *same rig* |
+| World | a town and a cave | a village, a hollow, a keep |
+| Verbs | walk, talk, read a well | …plus a stash that opens once, and a gate that stays shut |
+| Code | none | one file: which of the warden's three lines to say |
+
+`config/game` in `project.godot` chooses the one that boots; `--game=<id>` overrides it for a
+headless run. Both are driven end to end by scripted play sessions in CI.
+
+The second game was added **without editing a single file under `scripts/`, `tools/` or
+`scenes/`** — 31 files, all of them new. That is the template's claim, stated as something
+`git diff --stat` can check rather than something the README asserts.
+
+Building it found three real defects in the template, which is what a second game is for: a
+QA op that raced the steps written after it, an art-drift gate that walked a different set of
+directories than the game did, and three separate lists of "which directories does this
+project own" that disagreed.
+
 ## Sprite Lab
 
 A live preview of the generator — all four directions and the whole cast, laid out at the
@@ -121,6 +144,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M4** — NPCs, interaction, branching dialog
 - [x] **M5** — saves with migrations, audio seam, content registry
 - [x] **M6** — web export and a live demo
+- [x] **M7** — a second game, built to find out whether the first six were true
 
 ## Experience Gained
 
