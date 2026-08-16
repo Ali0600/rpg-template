@@ -65,18 +65,7 @@ static func generated_meta_path(style_id: StringName, character_id: StringName) 
 	return "%s/%s/%s.sheet.json" % [GENERATED_ROOT, style_id, character_id]
 
 
+## The gates must see exactly what the generator writes, so both walk through ContentScan.
+## When these two disagreed, the gate's "every style, every character" was quietly a subset.
 static func _files(dir_path: String, extension: String) -> Array[String]:
-	var out: Array[String] = []
-	var dir := DirAccess.open(dir_path)
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		var check := name.trim_suffix(".remap")
-		if not dir.current_is_dir() and check.get_extension() == extension:
-			out.append(dir_path.path_join(check))
-		name = dir.get_next()
-	dir.list_dir_end()
-	out.sort()
-	return out
+	return ContentScan.files_of(dir_path, extension)

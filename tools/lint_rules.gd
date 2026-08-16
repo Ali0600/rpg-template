@@ -7,14 +7,16 @@ extends SceneTree
 ##
 ##     Godot --headless --path . -s tools/lint_rules.gd
 
-const ROOTS: Array[String] = ["res://scripts", "res://tools"]
+## The roots come from LintCore, not from a copy here: this file, tools/compile_all.gd and
+## check.sh's parse gate each used to keep their own list, and a directory missing from one
+## of them is a directory nobody lints.
 const SKIP_DIRS: Array[String] = ["addons", ".godot", ".git"]
 
 
 func _init() -> void:
 	var hits: Array[String] = []
 	var scanned := 0
-	for root in ROOTS:
+	for root in LintCore.lint_roots():
 		for path in _all_gd(root):
 			scanned += 1
 			hits.append_array(LintCore.scan_text(path, FileAccess.get_file_as_string(path)))

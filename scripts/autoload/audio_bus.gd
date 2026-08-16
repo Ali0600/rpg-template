@@ -10,6 +10,7 @@ extends Node
 ## missing sound survives to release: nobody notices a noise that was never there.
 
 const SOUND_DIR := "res://data/audio"
+const SOUND_EXTS: Array[String] = ["ogg", "wav", "mp3"]
 
 var _sounds: Dictionary = {}
 var _warned: Dictionary = {}
@@ -29,19 +30,12 @@ func _ready() -> void:
 func reload() -> void:
 	_sounds.clear()
 	_warned.clear()
-	var dir := DirAccess.open(SOUND_DIR)
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		var check := name.trim_suffix(".remap")
-		if not dir.current_is_dir() and ["ogg", "wav", "mp3"].has(check.get_extension()):
-			var stream := load(SOUND_DIR.path_join(check)) as AudioStream
-			if stream != null:
-				_sounds[StringName(check.get_basename())] = stream
-		name = dir.get_next()
-	dir.list_dir_end()
+	for path in ContentScan.files(SOUND_DIR, SOUND_EXTS):
+		var stream := load(path) as AudioStream
+		if stream != null:
+			# Keyed by filename, not by path, so sounds can be filed into subdirectories
+			# without the id a game asks for changing.
+			_sounds[StringName(path.get_file().get_basename())] = stream
 
 
 func ids() -> Array[StringName]:

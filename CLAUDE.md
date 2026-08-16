@@ -28,7 +28,7 @@ regression, however good that game looks.
 
 ```
 scripts/spritegen/  pure RefCounted, deterministic, NO node access — the generator
-scripts/util/       dir, json_file, seeded_rng, hashing, lint_core
+scripts/util/       dir, json_file, seeded_rng, hashing, lint_core, content_scan
 scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData…)
 scripts/world/      Locomotion (pure) + the nodes that apply it
 scripts/ui/         DialogRunner (pure) + its view
@@ -78,6 +78,15 @@ validator that has only ever passed is decoration.
 - Adding an autoload changes what the parse gate skips: `check.sh` and `compile_all.gd` both
   derive that list from `project.godot`, so add the singleton there and cover it in
   `smoke_boot.gd` — never by editing a list in a tool.
+- **`LintCore.SOURCE_ROOTS` is the one list of directories this project owns.** The linter
+  and `compile_all.gd` read it; `check.sh`'s parse gate keeps no list at all and excludes
+  what is not ours. A new top-level source directory goes there and nowhere else, and
+  `test_lint_core.gd` fails until it does.
+- **Content is discovered through `ContentScan`, never a hand-rolled `DirAccess` walk.**
+  Four of those existed and disagreed about recursion, so content one directory down was
+  registered by the game, never generated, and the art-drift gate passed having compared
+  nothing. Results are sorted because the generator's output order must not depend on the
+  filesystem.
 - **The deployed web build cannot be driven by browser automation.** Godot maps web input
   from `KeyboardEvent.code`; the automation available here sends trusted events with an empty
   `code`, and hand-built events with a correct `code` arrive untrusted and are ignored. A

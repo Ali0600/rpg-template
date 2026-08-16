@@ -1,0 +1,3 @@
+Not a .json. Present so "finds the nested file" cannot be satisfied by a walk that returns
+everything it encounters - a scan with no extension filter would pass that test and hand the
+generator a directory listing.

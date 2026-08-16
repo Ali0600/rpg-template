@@ -158,22 +158,12 @@ func _emit_json(path: String, value: Dictionary) -> void:
 		_drifted.append(path + " (metadata differs)")
 
 
+## Recursive and sorted, via the same walk Registry uses. It was neither, which meant a spec
+## in a subdirectory was registered by Registry and never generated here - the drift gate
+## then compared nothing and reported green.
 func _load_all(dir_path: String) -> Array:
-	var out: Array = []
-	var dir := DirAccess.open(dir_path)
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		var check := name.trim_suffix(".remap")
-		if not dir.current_is_dir() and check.get_extension() == "tres":
-			var res := load(dir_path.path_join(check))
-			if res != null:
-				out.append(res)
-		name = dir.get_next()
-	dir.list_dir_end()
-	return out
+	var exts: Array[String] = ["tres"]
+	return ContentScan.resources(dir_path, exts)
 
 
 func _fail(message: String) -> void:
