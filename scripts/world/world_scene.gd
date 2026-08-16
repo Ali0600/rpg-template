@@ -15,6 +15,10 @@ var _source: SpriteSource
 var _built: MapBuilder.Built
 var _player: ActorBody
 var _camera := Camera2D.new()
+var _dialog := DialogBox.new()
+## npc id -> {"body": ActorBody, "dialog": String}
+var _npcs: Dictionary = {}
+var _gate := InputGate.new()
 
 
 func _ready() -> void:
@@ -22,6 +26,8 @@ func _ready() -> void:
 	if _config == null:
 		push_error("World: data/game_config.tres is missing")
 		return
+	add_child(_dialog)
+	_dialog.closed.connect(_on_dialog_closed)
 	enter_map(DEFAULT_MAP, DEFAULT_SPAWN)
 
 
@@ -53,6 +59,10 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	add_child(built.root)
 
 	_source = FileSpriteSource.create(_style.id)
+	# The dialog box takes its colours from the map's style, so a map in a different style
+	# arrives with matching chrome rather than the previous map's.
+	if _dialog.get_child_count() == 0:
+		_dialog.setup(_style, get_viewport_rect().size)
 	_spawn_player(data, spawn_id)
 	_spawn_npcs(data)
 	_configure_camera(data)
@@ -83,13 +93,15 @@ func _spawn_player(data: MapData, spawn_id: StringName) -> void:
 
 
 func _spawn_npcs(data: MapData) -> void:
+	_npcs.clear()
 	for entry: Variant in data.npcs:
 		var npc: Dictionary = entry
 		var raw := JsonFile.to_int_array(npc.get("tile", []))
 		if raw.size() != 2:
 			continue
+		var npc_id := StringName(str(npc.get("id", "?")))
 		var body := ActorBody.new()
-		body.name = "Npc_" + str(npc.get("id", "?"))
+		body.name = "Npc_" + String(npc_id)
 		body.setup(_config, _source, StringName(str(npc.get("character", ""))))
 		_built.sorted.add_child(body)
 		body.global_position = MapData.tile_to_world(Vector2i(raw[0], raw[1]), _built.tile_size)
@@ -97,6 +109,7 @@ func _spawn_npcs(data: MapData) -> void:
 		# map is data, and the worst case here is an NPC looking the wrong way.
 		var facing := Dir.from_name(str(npc.get("facing", "")))
 		body.halt(facing if facing >= 0 else Dir.D.DOWN)
+		_npcs[npc_id] = {"body": body, "dialog": str(npc.get("dialog", ""))}
 
 
 func _configure_camera(data: MapData) -> void:
@@ -136,11 +149,87 @@ func _physics_process(_delta: float) -> void:
 	GameState.set_player(_player.global_position, step.facing)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_pressed() or event.is_echo():
+		return
+	# One event, one action - the same guard the rest of the project uses. An interaction
+	# handled twice opens a conversation and immediately advances past its first line.
+	if not _gate.accept(event):
+		return
+	if not Router.accepts_world_input() or not event.is_action(&"interact"):
+		return
+	if try_interact():
+		get_viewport().set_input_as_handled()
+
+
+## Talks to whatever the player is facing. Public because the QA harness drives it and
+## because it is the one action worth being able to trigger without an input event.
+func try_interact() -> bool:
+	if _player == null:
+		return false
+	var target := Interactor.find(_player.global_position, _player.facing, _config, _targets())
+	if target == null:
+		return false
+	var npc: Dictionary = _npcs.get(target.id, {})
+	var dialog_id := str(npc.get("dialog", ""))
+	if dialog_id.is_empty():
+		return false
+
+	# The NPC turns to face the player. Small, and its absence is the loudest thing about a
+	# conversation with someone looking the other way.
+	var body: ActorBody = npc["body"]
+	body.halt(Dir.facing_from_vector(_player.global_position - body.global_position, body.facing))
+
+	var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, GameState.flags)
+	if not runner.ok:
+		push_error("World: %s" % runner.error)
+		return false
+	for p in runner.problems():
+		push_error("World: " + p)
+
+	_player.halt()
+	if not _dialog.open(runner):
+		return false
+	Router.open_overlay(Router.State.DIALOG)
+	EventBus.interacted.emit({"target_id": target.id, "kind": &"dialog"})
+	EventBus.dialog_changed.emit({"dialog_id": StringName(dialog_id), "open": true})
+	return true
+
+
+func _on_dialog_closed(flags: Array) -> void:
+	# Flags are applied HERE, once the conversation actually reached them - the runner
+	# collects them and never writes, so an abandoned dialog leaves no promises behind.
+	for flag: Variant in flags:
+		GameState.set_flag(StringName(str(flag)), true)
+	Router.close_overlay()
+	EventBus.dialog_changed.emit({"dialog_id": &"", "open": false})
+
+
+func _targets() -> Array[Interactor.Target]:
+	var out: Array[Interactor.Target] = []
+	for npc_id: Variant in _npcs.keys():
+		var body: ActorBody = _npcs[npc_id]["body"]
+		out.append(Interactor.Target.new(npc_id, body.global_position, _config.body_size, body))
+	return out
+
+
 ## Test and QA access. Reaching for the node directly from outside would tie every test to
-## the scene's shape; these are the two things anything outside actually needs.
+## the scene's shape; these are the things anything outside actually needs.
 func player() -> ActorBody:
 	return _player
 
 
 func map_data() -> MapData:
 	return _built.data if _built != null else null
+
+
+func dialog_box() -> DialogBox:
+	return _dialog
+
+
+func npc_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for k: StringName in _npcs.keys():
+		out.append(k)
+	out.sort()
+	return out

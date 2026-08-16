@@ -34,7 +34,7 @@ scripts/spritegen/tile_set_factory.gd	s|if not bool\(e.get\(\"solid\", false\)\)
 scripts/world/sprite_view.gd	s|_sprite.centered = false|_sprite.centered = true|	tests/integration/test_sprite_view_scene.gd	the sprite origin stops being the character's feet
 scripts/world/sprite_view.gd	s|_sprite.offset = -Vector2\(meta.anchor\)|_sprite.offset = Vector2.ZERO|	tests/integration/test_sprite_view_scene.gd	the measured anchor stops positioning the sprite
 scripts/world/sprite_view.gd	s|if clip_name == _clip and dir == _facing:|if false:|	tests/integration/test_sprite_view_scene.gd	an unchanged pose is re-issued every frame
-scripts/ui/sprite_lab.gd	s|if event == _last_event:|if false:|	tests/integration/test_sprite_view_scene.gd	one input event is acted on twice
+scripts/ui/sprite_lab.gd	s|if not _gate.accept\(event\):|if false:|	tests/integration/test_sprite_view_scene.gd	one input event is acted on twice
 
 # --- M3: movement, maps and game flow ---
 scripts/world/locomotion.gd	s|move = move.normalized\(\)|pass|	tests/unit/test_locomotion.gd	walking diagonally is 41% faster than walking straight
@@ -49,3 +49,13 @@ scripts/world/map_data.gd	s|if solid_tiles.has\(ground_at\(at\)\) or solid_tiles
 scripts/world/actor_body.gd	s|_shape.position = Vector2\(0.0, -config.body_size.y / 2.0\)|_shape.position = Vector2.ZERO|	tests/integration/test_world_movement.gd	the collision box sinks through the floor line
 scripts/world/map_builder.gd	s|built.sorted.y_sort_enabled = true|built.sorted.y_sort_enabled = false|	tests/integration/test_world_movement.gd	actors stop sorting against the scenery
 scripts/spritegen/tile_gen.gd	s|if not bool\(def.get\(\"decor\", false\)\):|if false:|	tests/unit/test_tiles.gd	a decor tile becomes a solid square cut into the ground
+
+# --- M4: interaction and dialog ---
+scripts/util/input_gate.gd	s|if event == _last and frame == _frame:|if event == _last:|	tests/unit/test_input_gate.gd	a repeated press of the same key is swallowed forever
+scripts/util/input_gate.gd	s|if event == _last and frame == _frame:|if false:|	tests/unit/test_input_gate.gd	one event is acted on twice in a frame
+scripts/ui/dialog_runner.gd	s|if index < 0 or index >= choices.size\(\):|if false:|	tests/unit/test_dialog_runner.gd	an out-of-range choice is clamped instead of refused
+scripts/ui/dialog_runner.gd	s|if not flag.is_empty\(\):|if false:|	tests/unit/test_dialog_runner.gd	a choice stops earning its flag
+scripts/ui/dialog_runner.gd	s|if not _visible_choices\(node\).is_empty\(\):|if false:|	tests/unit/test_dialog_runner.gd	a line with choices advances and picks for the player
+scripts/ui/dialog_runner.gd	s|if not requires.is_empty\(\) and not bool\(_known_flags.get\(requires, false\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice the player cannot take is offered anyway
+scripts/world/interactor.gd	s|if to_target.dot\(forward\) <= 0.0:|if false:|	tests/unit/test_interactor.gd	you can talk to someone standing behind you
+scripts/world/interactor.gd	s|if d > config.interact_reach \+ config.body_size.x:|if false:|	tests/unit/test_interactor.gd	interaction reaches across the whole map

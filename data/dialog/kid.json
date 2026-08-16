@@ -1,0 +1,26 @@
+{
+	"id": "kid",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Kid",
+			"text": "I can walk in four directions. Watch!",
+			"next": "brag"
+		},
+		"brag": {
+			"speaker": "Kid",
+			"text": "...that's all four. There aren't any more.",
+			"next": "boast"
+		},
+		"boast": {
+			"speaker": "Kid",
+			"text": "The elder says you promised to finish the town. Did you?",
+			"choices": [
+				{ "text": "I did.", "next": "knew", "requires_flag": "promised_elder" },
+				{ "text": "Not yet.", "next": "shrug" }
+			]
+		},
+		"knew": { "speaker": "Kid", "text": "I KNEW it. I'm telling everyone." },
+		"shrug": { "speaker": "Kid", "text": "That's what grown-ups always say." }
+	}
+}

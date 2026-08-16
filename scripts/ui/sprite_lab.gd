@@ -22,7 +22,7 @@ var _style_index := 0
 var _character_index := 0
 var _walking := true
 var _seed_offset := 0
-var _last_event: InputEvent = null
+var _gate := InputGate.new()
 
 var _style: SpriteStyle
 var _rig: Rig
@@ -207,14 +207,9 @@ func _characters_of(style_id: StringName) -> Array[CharacterSpec]:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
-	# One event, one action. The same InputEvent can reach a node more than once - a parent
-	# forwarding it, or a test harness that both parses the event AND calls _unhandled_input
-	# directly - and a handler that TOGGLES state turns that into a no-op that is very hard
-	# to read: the key appears dead rather than doubly-live. Comparing the instance is safe
-	# because real input delivers a fresh object each time.
-	if event == _last_event:
+	# One event, one action - see InputGate for why this is not a plain identity check.
+	if not _gate.accept(event):
 		return
-	_last_event = event
 
 	if event.is_action(&"move_right"):
 		_character_index += 1

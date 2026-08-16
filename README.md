@@ -12,13 +12,18 @@ It ships two halves:
    maps, NPCs and dialog, game-flow states, saves with migrations, a seeded RNG, an audio
    bus, a headless QA harness, and a CI gate that runs all of it.
 
-> **Status:** the generator, the world and four-direction movement are in (M0–M3). NPC
-> interaction, dialog and saves land next — see [the milestone list](#milestones).
+> **Status:** the generator, the world, movement and conversations are in (M0–M4). Saves and
+> the web demo land next — see [the milestone list](#milestones).
 
 ![The demo town](docs/images/world.png)
 
 *The demo town: a map authored as ASCII rows, terrain generated from the same palette as the
 cast, y-sorted so characters pass behind the scenery.*
+
+![Talking to an NPC](docs/images/dialog.png)
+
+*Interaction: the NPC turns to face the player, control passes to the dialog box, and the
+line reveals a character at a time.*
 
 ![Two styles, one rig](docs/images/styles.png)
 
@@ -78,7 +83,7 @@ backlog are in [docs/DECISIONS.md](docs/DECISIONS.md).
 - [x] **M1** — the sprite generator, its consistency gates, and generated assets
 - [ ] **M2** — the sprite view scene and Sprite Lab preview
 - [x] **M3** — movement, collision, camera, data maps, game-flow states, QA harness
-- [ ] **M4** — NPCs, interaction, dialog
+- [x] **M4** — NPCs, interaction, dialog
 - [ ] **M5** — saves with migrations, audio, content registry
 - [ ] **M6** — web export and a live demo
 
