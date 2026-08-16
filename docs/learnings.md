@@ -81,3 +81,44 @@ line goes unchecked — while the gate still reports green.
 **Takeaway:** normalise and decide exemptions once, up front; report every hit, never the
 first; and assert how many things were scanned, because "green" and "checked everything" are
 different claims.
+
+## An identity check on an input event breaks the second press
+
+The engine reuses `InputEvent` instances between frames. A handler that guards against
+double-delivery with "have I seen this object before?" therefore treats every genuine
+repeated press of the same key as a duplicate — the button works exactly once and then dies.
+
+**Why it came up:** the guard was added to survive a test harness that delivers each event
+twice (gdUnit4 both parses the event and calls `_unhandled_input` directly). It fixed that and
+broke real input, and the symptom — a dialog that opened and then refused to advance — pointed
+nowhere near the guard.
+
+**Takeaway:** scope an idempotence guard to the window the duplication happens in. The same
+object in the same *frame* is a duplicate; the same object a frame later is a person pressing
+the button again. Both halves deserve a test, because each one alone is a bug.
+
+## Setting input state and delivering an input event are different things
+
+`Input.action_press()` updates the input singleton's state — which is what `Input.get_axis`
+and other polling reads. It does **not** synthesise an event, so `_unhandled_input` never
+sees it. `Input.parse_input_event()` does both.
+
+**Why it came up:** the QA harness could walk the player anywhere and could not press a
+button. The failure looked like the interact button being broken, not like the harness being
+half-connected — the game was fine.
+
+**Takeaway:** when scripted input drives one kind of code and not another, check which of the
+two mechanisms you are using before debugging the code that "doesn't respond".
+
+## A `break` inside an `if` is a syntax error, so that mutant never ran
+
+A mutation that changed `while cond:` to `if cond:` turned a loop containing `break` into
+invalid GDScript. The harness reported BROKEN — the runner never started, so no test judged
+it — rather than passing it off as a killed mutant.
+
+**Why it came up:** the mutant was meant to prove a migration chain runs every step rather
+than one. It could never have proven anything.
+
+**Takeaway:** a mutant must produce code that still *compiles*, or it tests the parser instead
+of the tests. A harness that cannot tell "the suite went red" from "nothing ran" would have
+scored this as success — which is why the runner counts executed suites, not just exit codes.

@@ -1,0 +1,110 @@
+name: pages
+
+# Publishes the playable demo, but ONLY from a green main. `workflow_run` rather than a plain
+# `push` trigger is the difference between "the deploy waits for the tests" and "the deploy
+# races the tests" - the second one looks identical until the day a red build ships.
+on:
+  workflow_run:
+    workflows: [check]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.1-stable
+  # Both pinned in the repo rather than fetched alongside the download: a checksum served by
+  # the same host as the file it describes cannot detect that host serving a different file.
+  # To update, bump GODOT_VERSION and paste the new sums from
+  # https://github.com/godotengine/godot-builds/releases/download/<version>/SHA512-SUMS.txt
+  GODOT_SHA512: 4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+  TEMPLATES_SHA512: afcc83d8d3d298038f19c58744a0d660fa75dd4baa33cb55d1011bb2565a2a8c2381728924564cb909e37c205a23f21b521b23bd057993afd43ae4da0b2f9d47
+
+jobs:
+  build:
+    # Never deploy off a red build. workflow_dispatch has no upstream run to inspect, so it is
+    # allowed through explicitly rather than by the check being absent.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the commit that passed CI
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # workflow_run checks out the default branch's HEAD by default, which is not
+          # necessarily the commit that was tested. Pin it to the one that went green.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Cache the engine and export templates
+        id: godot-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/godot-bin
+            ~/.local/share/godot/export_templates
+          key: godot-web-${{ env.GODOT_VERSION }}
+
+      - name: Download and verify Godot and its templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          tpz="Godot_v${GODOT_VERSION}_export_templates.tpz"
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$zip" "$base/$zip"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$tpz" "$base/$tpz"
+          echo "${GODOT_SHA512}  ${zip}" | sha512sum --check --strict
+          echo "${TEMPLATES_SHA512}  ${tpz}" | sha512sum --check --strict
+
+          mkdir -p ~/godot-bin
+          unzip -q "$zip" -d ~/godot-bin
+          mv ~/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot-bin/godot
+          chmod +x ~/godot-bin/godot
+
+          # The engine looks for templates under a directory named for its own version, in
+          # the form it reports: "4.7.1.stable", not the release tag "4.7.1-stable".
+          dest=~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          mkdir -p "$dest"
+          unzip -q "$tpz" -d /tmp/templates
+          mv /tmp/templates/templates/* "$dest"/
+
+      - name: Export the web build
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          ~/godot-bin/godot --headless --path . --import >/dev/null 2>&1 || true
+          ~/godot-bin/godot --headless --path . --export-release "Web" build/web/index.html
+          # An export that "succeeds" without producing a runnable page is the failure this
+          # catches: the command can report success while the templates were missing.
+          test -s build/web/index.html
+          test -s build/web/index.wasm
+          test -s build/web/index.pck
+          # GitHub Pages runs Jekyll over the artifact unless told not to, and Jekyll drops
+          # files beginning with an underscore - which is most of an Emscripten build.
+          touch build/web/.nojekyll
+          ls -la build/web
+
+      - name: Package the site
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

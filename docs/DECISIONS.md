@@ -127,6 +127,40 @@ one-glance menu of things still worth trying.
 - *A third-party setup-godot action* — rejected: one more supply-chain dependency to
   SHA-pin and audit for a step that is four lines of `curl` and `sha512sum`.
 
+## The web build is single-threaded
+
+- **Chosen: `variant/thread_support=false`, pinned in the committed export preset.** A
+  threaded web build needs `SharedArrayBuffer`, which needs the COOP/COEP cross-origin
+  isolation headers — and GitHub Pages cannot send custom headers, so a threaded build would
+  export successfully, deploy successfully, and then refuse to start in the browser. Godot
+  4.3+ makes single-threaded the default and supported path for exactly this reason.
+- *Threaded, hosted somewhere that can send headers* — deferred: better audio latency and
+  real threads, at the cost of the demo no longer being one file in a repo. Revisit hook:
+  `export_presets.cfg`, one line, plus a host that is not Pages.
+
+## Deploy waits for CI rather than racing it
+
+- **Chosen: the Pages workflow triggers on `workflow_run` of the check workflow, gated on
+  `conclusion == 'success'`, and checks out that run's `head_sha`.** A plain `push` trigger
+  runs the deploy *beside* the tests, not after them — which looks identical every day until
+  the one where a red build ships. Pinning the SHA matters too: `workflow_run` checks out the
+  default branch's HEAD by default, which is not necessarily the commit that was tested.
+- *A `needs:` in one workflow* — rejected: it would couple the demo's slow template download
+  to every PR's feedback time.
+
+## The QA harness drives the real game
+
+- **Chosen: an autoload that reads a JSON script and drives the running game.** Not a choice
+  so much as a discovery: `-s tools/x.gd` cannot even *load* a scene whose script names an
+  autoload, because singletons are not registered as identifiers in that mode. Anything that
+  needs the real game must be driven from inside it.
+- Two things it must do that were not obvious. Count **physics** frames, not idle ones —
+  headless they run at wildly different rates, so "hold right for 30 frames" would mean a
+  different distance on every machine. And press through `Input.parse_input_event`, not
+  `Input.action_press` — the latter sets input *state* (what polling reads) and never
+  delivers an *event* (what handlers read), so a harness built on it can move the player
+  around perfectly and never press a button.
+
 ## Testing: gdUnit4, vendored, with a mutation harness
 
 - **Chosen: gdUnit4 6.2.0 committed into `addons/`, run from the CLI, plus
