@@ -25,7 +25,18 @@ const SKIP_DIRS: Array[String] = ["addons", ".godot", ".git", ".import"]
 ## Every file under `root` whose extension is in `extensions`, sorted, as res:// paths.
 ## A missing directory is empty, not an error - callers scan optional content roots.
 static func files(root: String, extensions: Array[String]) -> Array[String]:
-	var out := _walk(root, extensions)
+	return in_order(_walk(root, extensions))
+
+
+## The ordering contract, as a function over a list rather than over a directory.
+##
+## It is separate from the walk because DirAccess order cannot be forced from a test: it is
+## already alphabetical on one filesystem and is not on another, so a mutant aimed at a sort
+## inside the walk was killed on macOS and SURVIVED on the Ubuntu runner - the assertion was
+## decoration on exactly the machine that gates the merge. Given the list, ordering is
+## provable anywhere.
+static func in_order(paths: Array[String]) -> Array[String]:
+	var out := paths.duplicate()
 	out.sort()
 	return out
 

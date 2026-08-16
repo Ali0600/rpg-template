@@ -226,3 +226,20 @@ order for a directory containing a subdirectory.
 place, the copies drift and the failure is silent — one caller sees more than another and
 whichever one is a *gate* quietly narrows. Write the walk once, and make the sorted order
 part of the contract if anything downstream is compared byte for byte.
+
+## A mutant's ability to kill can depend on the machine it runs on
+
+The sort added above got a mutant: remove `out.sort()`, and the ordering test should go red.
+It did — on macOS. On the Ubuntu CI runner the same mutant **survived**, because ext4 handed
+back an already-alphabetical directory listing, so sorted and unsorted output were identical
+and the assertion could not tell them apart.
+
+**Why it came up:** the mutation harness is the thing that decides whether a test is real, so
+a mutant that is only lethal on the developer's filesystem quietly certifies a decorative
+test — on the one machine that gates the merge, no less. It was caught only because CI runs a
+different OS than the laptop.
+
+**Takeaway:** when a test's ability to *detect* depends on ambient state you cannot set
+(directory order, hash order, clock, locale), move the contract into a pure function over
+input you *can* set, and point the mutant at that. "It kills locally" is not the claim you
+need; "it kills where the gate runs" is.

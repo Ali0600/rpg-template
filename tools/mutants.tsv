@@ -75,4 +75,4 @@ scripts/world/map_data.gd	s|if raw.size\(\) == 2 and Vector2i\(raw\[0\], raw\[1\
 scripts/util/lint_core.gd	s|"res://tools",|"res://nowhere",|	tests/unit/test_lint_core.gd	a source directory stops being linted, parsed and compiled
 scripts/util/lint_core.gd	s|if not LINT_EXCLUDED_ROOTS.has\(root\):|if true:|	tests/unit/test_lint_core.gd	the suite gets linted, so every rule fixture becomes a violation
 scripts/util/content_scan.gd	s|out.append_array\(_walk\(full, extensions\)\)|pass|	tests/unit/test_content_scan.gd	content in a subdirectory is never discovered
-scripts/util/content_scan.gd	s|out.sort\(\)|pass|	tests/unit/test_content_scan.gd	discovery order follows the filesystem, so generated art differs by machine
+scripts/util/content_scan.gd	s|out.sort\(\)|pass|	tests/unit/test_content_scan.gd	discovery order stops being sorted, so generated art differs by machine
