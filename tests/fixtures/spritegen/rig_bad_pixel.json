@@ -1,0 +1,13 @@
+{
+	"_readme": "Deliberately broken: '4' is not a tone character. Unchecked it draws as transparent and quietly deletes pixels.",
+	"id": "badpixel",
+	"cell": [16, 24],
+	"slot_order": { "front": ["body"] },
+	"slot_defaults": { "body": "cloth_blue" },
+	"parts": {
+		"body_bad": {
+			"slot": "body",
+			"views": { "front": { "at": [4, 11], "frames": [["224222", "222222"]] } }
+		}
+	}
+}

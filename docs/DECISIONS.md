@@ -53,6 +53,36 @@ one-glance menu of things still worth trying.
 - **Expected quality tier, stated up front:** clean GB/SNES-era chibi with a strict
   palette. Not hand-painted. Higher fidelity is a source swap, not a rewrite.
 
+## Cell size is 16×24, not 16×32
+
+- **Chosen: a 16×24 character cell on 16px tiles.** Planned as 16×32, changed while laying
+  out the rig: a 24-row cell gives a head that is a clean third of the height (the chibi
+  proportion that stays readable at 16px wide) with no dead space, and 24 = 1.5 tiles keeps
+  characters and terrain in one size family. A 32-row cell left eight empty rows above every
+  head that only a tall hat would ever use.
+- *16×32* — deferred: worth revisiting if the template ever wants hats, helmets or long
+  weapons that break the head line. Revisit hook: `cell_size` on the style plus the `at`
+  offsets in the rig; nothing in code assumes 24.
+
+## Slots that must share a colour, share it
+
+- **Chosen: `slot_ramp_from` in the rig — sleeves follow the body, hands follow the head.**
+  Randomised characters otherwise get pale hands on a dark face, which reads as a rendering
+  bug rather than as a data one. An explicit ramp on the character still wins, so gloves are
+  expressible.
+- *One ramp per slot, always* — rejected: simpler, and produces a visibly broken cast the
+  moment skin tone is randomised.
+
+## Generated colours are computed in whole bytes
+
+- **Chosen: `Color8` arithmetic for the tinted outline, not `Color.darkened()`.** An 8-bit
+  image truncates a float channel while `Color.to_rgba32()` rounds it, so a float-derived
+  colour reports one value and comes back out of the PNG one unit darker. The palette gate
+  caught it on the tinted style's first run.
+- *Loosening the palette gate to a tolerance* — rejected outright: a palette whose members
+  depend on which side of the pipeline you ask is not a palette, and a gate with a tolerance
+  cannot catch the next colour that leaks in.
+
 ## Rigs and stamps are JSON, not .tres
 
 - **Chosen: `data/rigs/*.json` holding ASCII pixel grids.** Pixel art authored as text

@@ -1,0 +1,13 @@
+{
+	"_readme": "Deliberately broken: the part is placed so it runs past the right edge of the cell. Silently clipped, and reads as a missing limb.",
+	"id": "offcell",
+	"cell": [16, 24],
+	"slot_order": { "front": ["body"] },
+	"slot_defaults": { "body": "cloth_blue" },
+	"parts": {
+		"body_bad": {
+			"slot": "body",
+			"views": { "front": { "at": [12, 11], "frames": [["222222", "222222"]] } }
+		}
+	}
+}

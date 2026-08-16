@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="SpriteStyle" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/sprite_style.gd" id="1_style"]
+
+[resource]
+script = ExtResource("1_style")
+id = &"gb16"
+cell_size = Vector2i(16, 24)
+tile_size = 16
+rig_id = &"gb16"
+ramps = {
+"cloth_blue": ["#2b4b7d", "#306082", "#5b6ee1"],
+"cloth_green": ["#2f5a3d", "#4b692f", "#6abe30"],
+"cloth_red": ["#813a3a", "#ac3232", "#d95763"],
+"eye": ["#1a1c2c", "#222034", "#45283c"],
+"hair_black": ["#1a1c2c", "#333c57", "#566c86"],
+"hair_blonde": ["#8f563b", "#d9a066", "#fbf236"],
+"hair_brown": ["#45283c", "#663931", "#8f563b"],
+"leather": ["#3f2832", "#663931", "#8f563b"],
+"pants_blue": ["#222034", "#3f4a70", "#4b5bab"],
+"pants_brown": ["#3f2832", "#5a4032", "#8f563b"],
+"pants_grey": ["#302c2e", "#4e4a4e", "#696a6a"],
+"skin_dark": ["#663931", "#8f563b", "#ac6d4c"],
+"skin_light": ["#8f563b", "#d9a066", "#eec39a"],
+"stone": ["#4e4a4e", "#696a6a", "#847e87"],
+"terrain_grass": ["#4b692f", "#6abe30", "#99e550"],
+"terrain_path": ["#8f563b", "#ac6d4c", "#d9a066"],
+"terrain_water": ["#2b4b7d", "#306082", "#5b6ee1"],
+"terrain_bush": ["#2f5a3d", "#4b692f", "#6abe30"]
+}
+default_ramps = {
+"arms": "cloth_blue",
+"body": "cloth_blue",
+"face": "eye",
+"hair": "hair_brown",
+"hands": "skin_light",
+"head": "skin_light",
+"legs": "pants_blue",
+"shoes": "leather"
+}
+ramp_choices = {
+"body": ["cloth_blue", "cloth_green", "cloth_red"],
+"hair": ["hair_brown", "hair_black", "hair_blonde"],
+"head": ["skin_light", "skin_dark"],
+"legs": ["pants_brown", "pants_blue", "pants_grey"]
+}
+part_choices = {
+"hair": ["hair_short", "hair_long"],
+"body": ["body_tunic", "body_robe"]
+}
+outline_mode = 1
+outline_color_hex = "#1a1c2c"
+tile_ramps = {
+"bush": "terrain_bush",
+"grass": "terrain_grass",
+"grass_alt": "terrain_grass",
+"path": "terrain_path",
+"wall": "stone",
+"water": "terrain_water"
+}
+walk_frames = 4
+walk_fps = 8
+idle_fps = 4
+bob_offsets = Array[int]([0, -1, 0, -1])
+mirror_left_from_right = true
