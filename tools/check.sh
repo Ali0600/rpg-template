@@ -56,7 +56,13 @@ while IFS= read -r f; do
     echo "  $f"; echo "$out" | grep -E 'Parse Error|Compile Error' | head -3
     parse_fail=1
   fi
-done < <(find scripts tools tests -name '*.gd' 2>/dev/null)
+  # No directory list here on purpose. A list would be a fourth copy of "what this project
+  # contains" (LintCore.SOURCE_ROOTS is the other three), and the failure mode of a stale
+  # one is silence: a new directory simply stops being parsed. Scanning everything and
+  # excluding what is not ours cannot go stale.
+done < <(find . -name '*.gd' \
+  -not -path './addons/*' -not -path './.godot/*' -not -path './.git/*' \
+  -not -path './build/*' -not -path './export/*' 2>/dev/null)
 result $parse_fail "standalone scripts parse"
 
 step "3b/7 whole-project compile"

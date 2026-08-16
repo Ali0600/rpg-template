@@ -19,6 +19,26 @@ extends RefCounted
 ## loop (an exemption evaluated inside a loop that also breaks out of it silently ends the
 ## scan), and every hit is reported rather than the first.
 
+## Every directory whose .gd files belong to this project. It lives here, in the pure and
+## testable half, because three tools used to keep their own copy - tools/lint_rules.gd,
+## tools/compile_all.gd and check.sh's parse gate - and the three lists disagreed. A new
+## top-level directory escaped all three at once, silently: no error, no scan, no coverage.
+##
+## tests/unit/test_lint_core.gd holds the two guards that make the list mean something: every
+## top-level directory containing a .gd must appear here, and everything listed here must
+## exist. The first catches a directory added without being covered; the second catches a
+## directory renamed out from under a gate.
+const SOURCE_ROOTS: Array[String] = [
+	"res://scripts",
+	"res://tools",
+	"res://tests",
+]
+
+## The suite is compiled and parsed like everything else, but it is NOT linted: proving that
+## a rule fires means writing the very thing the rule bans (tests/unit/test_lint_core.gd
+## contains "left" on purpose). Every other root obeys every rule.
+const LINT_EXCLUDED_ROOTS: Array[String] = ["res://tests"]
+
 const RULE_RNG := "unseeded_rng"
 const RULE_DIRECTION := "direction_text"
 const RULE_COLOR := "color_literal"
@@ -63,6 +83,15 @@ const COLOR_ALLOWED_PREFIXES: Array[String] = [
 ## input is a rule nobody has proven fires.
 static func rule_names() -> Array[String]:
 	return [RULE_RNG, RULE_DIRECTION, RULE_COLOR]
+
+
+## The roots tools/lint_rules.gd walks: everything this project owns, minus the suite.
+static func lint_roots() -> Array[String]:
+	var out: Array[String] = []
+	for root in SOURCE_ROOTS:
+		if not LINT_EXCLUDED_ROOTS.has(root):
+			out.append(root)
+	return out
 
 
 ## Returns one string per violation: "<path>:<line>: <rule>: <detail>". Empty means clean.

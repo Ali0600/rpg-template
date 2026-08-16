@@ -26,6 +26,57 @@ func _rules_hit(hits: Array[String]) -> Array[String]:
 				out.append(rule)
 	return out
 
+## Directories in the repo that are not this project's source.
+const NOT_OURS: Array[String] = ["addons"]
+
+func _top_level_dirs() -> Array[String]:
+	var out: Array[String] = []
+	var dir := DirAccess.open("res://")
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while name != "":
+		if dir.current_is_dir() and not name.begins_with(".") and not NOT_OURS.has(name):
+			out.append(name)
+		name = dir.get_next()
+	dir.list_dir_end()
+	out.sort()
+	return out
+
+func test_every_top_level_source_directory_is_scanned() -> void:
+	# The guard on the list itself. A new top-level directory holding .gd files used to
+	# escape the linter, the per-file parse gate and the whole-project compile at once, and
+	# nothing said so - the files simply stopped being covered. This turns that into a
+	# failure the moment the directory appears.
+	var dirs := _top_level_dirs()
+	# An instrument that cannot fail is not a check: if res:// listed nothing, every
+	# assertion below would pass having examined no directories at all.
+	assert_bool(dirs.is_empty()).is_false()
+	var missed: Array[String] = []
+	for name in dirs:
+		var root := "res://" + name
+		if not ContentScan.files_of(root, "gd").is_empty() and not LintCore.SOURCE_ROOTS.has(root):
+			missed.append(root)
+	assert_array(missed).is_empty()
+
+func test_every_source_root_exists() -> void:
+	# The mirror failure: a directory renamed out from under the list. The tools would walk
+	# nothing there and report success on what remained.
+	var missing: Array[String] = []
+	for root in LintCore.SOURCE_ROOTS:
+		if not DirAccess.dir_exists_absolute(root):
+			missing.append(root)
+	assert_array(missing).is_empty()
+
+func test_the_suite_is_compiled_but_not_linted() -> void:
+	# An asymmetry that is invisible at the point it matters: tests/ must be parsed and
+	# compiled like everything else, but cannot be linted, because proving a rule fires
+	# means writing the very string the rule bans - this file contains "left" on purpose.
+	assert_bool(LintCore.SOURCE_ROOTS.has("res://tests")).is_true()
+	assert_bool(LintCore.lint_roots().has("res://tests")).is_false()
+	assert_array(LintCore.lint_roots()).contains(["res://scripts", "res://tools"])
+
 func test_every_rule_has_a_fixture_that_proves_it_fires() -> void:
 	# The structural guard: adding a rule without a known-bad input leaves it unproven, and
 	# this fails the moment rule_names() grows past the fixtures.

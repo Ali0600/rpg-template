@@ -90,22 +90,4 @@ func _has_id(res: Resource) -> bool:
 
 
 func _all_resources(root: String) -> Array[String]:
-	var out: Array[String] = []
-	var dir := DirAccess.open(root)
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		var full := root.path_join(name)
-		if dir.current_is_dir():
-			if not name.begins_with("."):
-				out.append_array(_all_resources(full))
-		else:
-			# Exported projects rename .tres to .remap; strip it before testing the type.
-			var check := name.trim_suffix(".remap")
-			if RESOURCE_EXTS.has(check.get_extension()):
-				out.append(root.path_join(check))
-		name = dir.get_next()
-	dir.list_dir_end()
-	return out
+	return ContentScan.files(root, RESOURCE_EXTS)

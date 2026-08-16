@@ -1,0 +1,7 @@
+{
+	"_readme": [
+		"A content-scan fixture. Its contents do not matter - what matters is that it sits at",
+		"the top of the fixture directory while nested/deep.json sits one level down, so a",
+		"walk that finds only this one is provably flat."
+	]
+}

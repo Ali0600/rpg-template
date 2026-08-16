@@ -14,7 +14,10 @@ extends SceneTree
 ##
 ##     Godot --headless --path . -s tools/compile_all.gd
 
-const ROOTS: Array[String] = ["res://scripts", "res://tools", "res://tests"]
+## The roots come from LintCore.SOURCE_ROOTS rather than a copy here, for the same reason the
+## autoload list below is read from project.godot: a second hand-maintained copy of "what
+## this project contains" goes stale the day a directory is added, and the file that stopped
+## being compiled says nothing about it.
 
 
 func _init() -> void:
@@ -30,7 +33,7 @@ func _init() -> void:
 	var skipped_self := false
 	var self_path: String = (get_script() as Script).resource_path
 
-	for root: String in ROOTS:
+	for root: String in LintCore.SOURCE_ROOTS:
 		for path: String in _all_gd(root):
 			if _names_an_autoload(path, autoloads):
 				skipped += 1

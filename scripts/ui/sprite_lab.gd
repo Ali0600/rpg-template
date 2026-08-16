@@ -51,19 +51,10 @@ func _ready() -> void:
 
 func _discover_styles() -> Array[StringName]:
 	var out: Array[StringName] = []
-	var dir := DirAccess.open("res://data/styles")
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		var check := name.trim_suffix(".remap")
-		if not dir.current_is_dir() and check.get_extension() == "tres":
-			var style := load("res://data/styles/" + check) as SpriteStyle
-			if style != null:
-				out.append(style.id)
-		name = dir.get_next()
-	dir.list_dir_end()
+	for res in ContentScan.resources("res://data/styles"):
+		var style := res as SpriteStyle
+		if style != null:
+			out.append(style.id)
 	out.sort()
 	return out
 
@@ -187,19 +178,10 @@ func _rebuild_contact() -> void:
 
 func _characters_of(style_id: StringName) -> Array[CharacterSpec]:
 	var out: Array[CharacterSpec] = []
-	var dir := DirAccess.open("res://data/characters")
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		var check := name.trim_suffix(".remap")
-		if not dir.current_is_dir() and check.get_extension() == "tres":
-			var spec := load("res://data/characters/" + check) as CharacterSpec
-			if spec != null and spec.style_id == style_id:
-				out.append(spec)
-		name = dir.get_next()
-	dir.list_dir_end()
+	for res in ContentScan.resources("res://data/characters"):
+		var spec := res as CharacterSpec
+		if spec != null and spec.style_id == style_id:
+			out.append(spec)
 	out.sort_custom(func(a: CharacterSpec, b: CharacterSpec) -> bool: return String(a.id) < String(b.id))
 	return out
 
