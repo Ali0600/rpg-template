@@ -32,7 +32,7 @@ scripts/util/       dir, json_file, seeded_rng, hashing, lint_core
 scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData…)
 scripts/world/      Locomotion (pure) + the nodes that apply it
 scripts/ui/         DialogRunner (pure) + its view
-scripts/autoload/   singletons holding state
+scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
 data/               all content: styles, rigs, characters, maps, dialog
 assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
@@ -75,6 +75,13 @@ validator that has only ever passed is decoration.
 - Use `Image.create_empty`, `set_pixel`, and compare colours as `to_rgba32()` ints.
   `blit_rect` overwrites alpha; `blend_rect` blends floats and produces off-palette values.
 - JSON has no integers. Cast every number you read, and `Array.assign()` into typed arrays.
+- Adding an autoload changes what the parse gate skips: `check.sh` and `compile_all.gd` both
+  derive that list from `project.godot`, so add the singleton there and cover it in
+  `smoke_boot.gd` — never by editing a list in a tool.
+- **The deployed web build cannot be driven by browser automation.** Godot maps web input
+  from `KeyboardEvent.code`; the automation available here sends trusted events with an empty
+  `code`, and hand-built events with a correct `code` arrive untrusted and are ignored. A
+  screenshot proves it renders and the console proves it booted — playability needs a human.
 
 ## 4. Commands
 

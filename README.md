@@ -14,8 +14,8 @@ It ships two halves:
    composed from shared parts, one palette and one outline rule, so a whole cast is visually
    coherent *by construction* rather than by discipline. Same seed, same pixels, every run.
 2. **The generic systems** — four-direction movement with tile collision, camera, data-driven
-   maps, NPCs and branching dialog, game-flow states, saves with migrations, a seeded RNG, an
-   audio seam, a headless QA harness, and CI that runs all of it.
+   maps with warps between them, NPCs and branching dialog, game-flow states, saves with
+   migrations, a seeded RNG, an audio seam, a headless QA harness, and CI that runs all of it.
 
 ## Why it looks the way it looks
 
