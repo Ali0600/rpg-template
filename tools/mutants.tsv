@@ -67,3 +67,6 @@ scripts/data/migrations.gd	s|var version := int\(d.get\(\"version\", 1\)\)|var v
 scripts/data/migrations.gd	s|var d := raw.duplicate\(true\)|var d := raw|	tests/unit/test_saves.gd	migrating edits the file it was handed
 scripts/data/save_data.gd	s|if version != VERSION:|if false:|	tests/unit/test_saves.gd	a save from a future version is read anyway
 scripts/util/json_file.gd	s|out.append\(float\(v\)\)|out.append(float(int(v)))|	tests/unit/test_saves.gd	a fractional saved position is truncated
+
+# --- M6: warps between maps ---
+scripts/world/map_data.gd	s|if raw.size\(\) == 2 and Vector2i\(raw\[0\], raw\[1\]\) == at:|if false:|	tests/unit/test_map_data.gd	a warp tile stops being found

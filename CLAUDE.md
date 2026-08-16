@@ -79,7 +79,7 @@ validator that has only ever passed is decoration.
 ## 4. Commands
 
 ```bash
-tools/check.sh                 # the gate: import, lint, parse, compile, tests, boot, art sync
+tools/check.sh                 # import, lint, parse, compile, tests, boot, art drift, play
 MUTANTS=1 tools/check.sh       # + prove every gate bites (milestone close)
 tools/mutate_check.sh --list   # what each mutant claims to cover
 ```
@@ -88,10 +88,21 @@ tools/mutate_check.sh --list   # what each mutant claims to cover
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
 ```
 
+Drive the real game from a script, or photograph it:
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/talk_to_npc.json
+```
+
 Other headless tools: `setup_input_map.gd` (rewrites the input map — re-run after changing
-bindings), `lint_rules.gd`, `compile_all.gd`, `smoke_boot.gd`. `tools/_engine.sh` resolves
-the engine; `GODOT_BIN` overrides it. The Godot MCP is an accelerator for interactive work,
-**never** a dependency of the build.
+bindings), `lint_rules.gd`, `compile_all.gd`, `smoke_boot.gd`, `screenshot.gd` (needs a real
+rendering driver, so not headless and not in CI). `tools/_engine.sh` resolves the engine;
+`GODOT_BIN` overrides it. The Godot MCP is an accelerator for interactive work, **never** a
+dependency of the build.
+
+Anything that needs the running game — the world, the player, the router — must be driven by
+a `Qa` script rather than by `-s tools/x.gd`: in `-s` mode the autoload singletons are not
+registered as identifiers, so a scene whose script names one will not even load.
 
 ## 5. Generated art
 

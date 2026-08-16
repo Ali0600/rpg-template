@@ -76,15 +76,38 @@ jobs:
 
       - name: Export the web build
         run: |
-          set -euo pipefail
+          # Deliberately not `set -e`: the exit code of the export is checked by hand below,
+          # for the reason spelled out there.
+          set -uo pipefail
           mkdir -p build/web
           ~/godot-bin/godot --headless --path . --import >/dev/null 2>&1 || true
+
           ~/godot-bin/godot --headless --path . --export-release "Web" build/web/index.html
-          # An export that "succeeds" without producing a runnable page is the failure this
-          # catches: the command can report success while the templates were missing.
-          test -s build/web/index.html
-          test -s build/web/index.wasm
-          test -s build/web/index.pck
+          status=$?
+          echo "godot --export-release exited ${status}"
+
+          # Godot's headless exporter writes the complete package and THEN aborts during
+          # shutdown (SIGABRT, exit 134) on this platform - the log ends with "DONE savepack"
+          # and dies cleaning up. So the exit code is not evidence in either direction, and
+          # the artifacts are: every file the page needs must exist, and the package must be
+          # big enough to be a real one rather than a truncated stub.
+          missing=0
+          for f in index.html index.js index.wasm index.pck; do
+            if [ ! -s "build/web/${f}" ]; then
+              echo "MISSING or empty: build/web/${f}"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "the export did not produce a runnable page (exit was ${status})"
+            exit 1
+          fi
+          pck_bytes=$(stat -c%s build/web/index.pck)
+          if [ "$pck_bytes" -lt 100000 ]; then
+            echo "build/web/index.pck is only ${pck_bytes} bytes - the package is truncated"
+            exit 1
+          fi
+
           # GitHub Pages runs Jekyll over the artifact unless told not to, and Jekyll drops
           # files beginning with an underscore - which is most of an Emscripten build.
           touch build/web/.nojekyll

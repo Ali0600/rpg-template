@@ -20,6 +20,9 @@ var _dialog := DialogBox.new()
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
 var _hint := ControlsHint.new()
+## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
+## on every frame spent standing there.
+var _last_tile := Vector2i(-9999, -9999)
 
 
 func _ready() -> void:
@@ -60,6 +63,11 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	_built = built
 	add_child(built.root)
 
+	# Anything outside the map - the letterbox on a map smaller than the viewport - is painted
+	# with the style's own panel colour rather than the engine's default grey, so a small area
+	# reads as framed rather than as unfinished. Style-driven, like every other colour.
+	RenderingServer.set_default_clear_color(_style.ui_color("panel"))
+
 	_source = FileSpriteSource.create(_style.id)
 	# The dialog box takes its colours from the map's style, so a map in a different style
 	# arrives with matching chrome rather than the previous map's.
@@ -94,6 +102,9 @@ func _spawn_player(data: MapData, spawn_id: StringName) -> void:
 	_built.sorted.add_child(_player)
 	_player.global_position = at
 	_player.halt(GameState.player_facing)
+	# Seeded with the spawn tile so a spawn placed ON a warp does not immediately re-trigger
+	# it - which is exactly what a two-way door between maps looks like.
+	_last_tile = MapData.world_to_tile(at, _built.tile_size)
 
 
 func _spawn_npcs(data: MapData) -> void:
@@ -154,6 +165,28 @@ func _physics_process(_delta: float) -> void:
 		_hint.dismiss()
 	var step := _player.apply(input)
 	GameState.set_player(_player.global_position, step.facing)
+	_check_warp()
+
+
+## Moves the player to another map when they stand on a warp tile.
+##
+## Guarded by the tile they were on last frame: without it, arriving on the destination map
+## next to a warp back would immediately send them home again, and the two maps would bounce
+## the player between them forever.
+func _check_warp() -> void:
+	if _built == null:
+		return
+	var tile := _player.tile(_built.tile_size)
+	if tile == _last_tile:
+		return
+	_last_tile = tile
+	var warp := _built.data.warp_at(tile)
+	if warp.is_empty():
+		return
+	var destination: StringName = warp["map"]
+	if String(destination).is_empty():
+		return
+	enter_map(destination, warp["spawn"])
 
 
 func _unhandled_input(event: InputEvent) -> void:

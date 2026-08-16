@@ -121,6 +121,8 @@ step "7/7 play the game"
 result $? "the player walks, and a wall stops them"
 "$GODOT" --headless --path . -- --qa-script=res://tests/fixtures/qa/talk_to_npc.json
 result $? "talking to an NPC takes control, and gives it back"
+"$GODOT" --headless --path . -- --qa-script=res://tests/fixtures/qa/warp_between_maps.json
+result $? "a warp moves between maps, both ways, without bouncing"
 
 # Opt-in because it re-runs a suite per mutant. It is the gate that proves the OTHER gates
 # bite, so it runs before a milestone is called done, not on every save:

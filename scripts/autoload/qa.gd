@@ -104,6 +104,12 @@ func _run(step: Dictionary) -> void:
 			var wanted := str(step.get("state", ""))
 			if Router.state_name() != wanted:
 				_fail("expected flow state '%s', found '%s'" % [wanted, Router.state_name()])
+		"assert_map":
+			var wanted_map := str(step.get("map", ""))
+			if String(GameState.current_map) != wanted_map:
+				_fail("expected to be in map '%s', found '%s'" % [wanted_map, GameState.current_map])
+			else:
+				_log.append("in map '%s'" % wanted_map)
 		"assert_position":
 			_assert_position(step)
 		"mark":
