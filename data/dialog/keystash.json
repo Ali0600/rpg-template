@@ -1,0 +1,20 @@
+{
+	"_readme": [
+		"The object that carries the quest. It says a line and sets has_gate_key, and both",
+		"happen because the map data says so - Interaction.decide owns 'a thing that opens",
+		"once', which is a verb every RPG wants and no game should have to write."
+	],
+	"id": "keystash",
+	"start": "find",
+	"nodes": {
+		"find": {
+			"speaker": "The hollow",
+			"text": "Something under the roots, wrapped in cloth that has mostly stopped being cloth.",
+			"next": "key"
+		},
+		"key": {
+			"speaker": "The hollow",
+			"text": "A gate key. Heavy, cold, and unmistakably the right shape."
+		}
+	}
+}

@@ -1,0 +1,51 @@
+{
+	"columns": 6,
+	"rows": 1,
+	"style": "dusk16",
+	"tile_size": 16,
+	"tiles": [
+		{
+			"decor": false,
+			"id": "grass",
+			"index": 0,
+			"ramp": "terrain_grass",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "grass_alt",
+			"index": 1,
+			"ramp": "terrain_grass",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "path",
+			"index": 2,
+			"ramp": "terrain_path",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "water",
+			"index": 3,
+			"ramp": "terrain_water",
+			"solid": true
+		},
+		{
+			"decor": false,
+			"id": "wall",
+			"index": 4,
+			"ramp": "stone",
+			"solid": true
+		},
+		{
+			"decor": true,
+			"id": "bush",
+			"index": 5,
+			"ramp": "terrain_bush",
+			"solid": true
+		}
+	],
+	"version": 1
+}

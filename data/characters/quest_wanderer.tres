@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; The Barred Gate's player. Everything but the coat is left to the seed - a whole character
+; from four lines is the point of the generator.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_wanderer"
+style_id = &"dusk16"
+seed = 31
+ramps = {
+"body": "cloth_rust"
+}

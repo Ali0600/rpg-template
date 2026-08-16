@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; The warden of the gate. Given a long robe and ash hair explicitly so she reads as older
+; than the wanderer at a glance - which is all a 16x24 sprite can say about anyone.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_warden"
+style_id = &"dusk16"
+seed = 74
+parts = {
+"body": "body_robe",
+"hair": "hair_long"
+}
+ramps = {
+"body": "cloth_moss",
+"hair": "hair_ash"
+}

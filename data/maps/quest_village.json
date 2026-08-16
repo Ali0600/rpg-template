@@ -1,0 +1,77 @@
+{
+	"_readme": [
+		"The Barred Gate opens here. Two doorways, both in walls rather than on the map's edge:",
+		"a locked warp does NOT move the player, so a gate on an open edge would leave them",
+		"standing on the last tile of the world with nothing beyond it to stop them walking off.",
+		"",
+		"The east third of the map is the keep's outer wall, with the barred gate cut into it at",
+		"[11,5]. Walking into that tile while you have no key says a line and goes nowhere.",
+		"",
+		"Nothing here knows what a key is. The gate names a flag, the stash in the hollow sets",
+		"one, and the only code this game has is three lines deciding which of the warden's",
+		"three lines to say."
+	],
+	"id": "quest_village",
+	"style": "dusk16",
+	"legend": {
+		".": "grass",
+		",": "grass_alt",
+		"-": "path",
+		"#": "wall",
+		"~": "water",
+		"*": "bush"
+	},
+	"ground": [
+		"################",
+		"#..,.......#####",
+		"#..........#####",
+		"#..........#####",
+		"#..........#####",
+		"#-.........-####",
+		"#..........#####",
+		"#....~~~...#####",
+		"#..........#####",
+		"#..,.......#####",
+		"################"
+	],
+	"decor": [
+		"                ",
+		"                ",
+		"  *             ",
+		"                ",
+		"                ",
+		"                ",
+		"                ",
+		"                ",
+		"  *             ",
+		"                ",
+		"                "
+	],
+	"spawns": {
+		"start": [5, 5],
+		"from_hollow": [2, 5],
+		"from_keep": [10, 5]
+	},
+	"npcs": [
+		{
+			"id": "warden",
+			"character": "quest_warden",
+			"tile": [5, 3],
+			"facing": "down",
+			"dialog": "warden_asks"
+		}
+	],
+	"objects": [
+		{ "id": "village_well", "tile": [6, 7], "kind": "sign", "dialog": "village_well" }
+	],
+	"warps": [
+		{ "tile": [1, 5], "map": "quest_hollow", "spawn": "from_village" },
+		{
+			"tile": [11, 5],
+			"map": "quest_keep",
+			"spawn": "from_village",
+			"requires_flag": "has_gate_key",
+			"locked_dialog": "gate_barred"
+		}
+	]
+}

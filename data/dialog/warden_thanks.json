@@ -1,0 +1,20 @@
+{
+	"_readme": [
+		"The ending, said back in the village. The lantern is lit inside the keep, and the only",
+		"thing that makes it an ENDING is that the warden reads the flag it set - so the last",
+		"beat of the game changes someone the player already walked past twice."
+	],
+	"id": "warden_thanks",
+	"start": "see",
+	"nodes": {
+		"see": {
+			"speaker": "Warden",
+			"text": "There is a light in the keep. I can see it from here.",
+			"next": "done"
+		},
+		"done": {
+			"speaker": "Warden",
+			"text": "I have been the warden of a dark building for eleven years. Thank you for making it a lit one."
+		}
+	}
+}

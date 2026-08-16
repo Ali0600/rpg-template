@@ -1,0 +1,10 @@
+{
+	"id": "village_well",
+	"start": "look",
+	"nodes": {
+		"look": {
+			"speaker": "The well",
+			"text": "Still water, and the keep's wall upside-down in it. No lights in any of the windows."
+		}
+	}
+}

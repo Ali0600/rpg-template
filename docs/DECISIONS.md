@@ -240,3 +240,28 @@ work now:
 - *`SaveData`* — a quest is expressible in `flags` and `seen`, both already typed, persisted
   and migrated. Adding a per-game dictionary is purely additive later and does not re-cut
   this seam. `deferred`; trigger: the first game that needs a count rather than a boolean.
+
+## The second game lives in this repo rather than in one that consumes the template
+
+The fork: the template's claim needed testing by building something else on it. Where should
+that something else live?
+
+- **Chosen: `data/games/quest.tres` plus `games/quest/`, beside the demo, in this repo.** CI
+  runs both games' play sessions on every push, the gates cover the second game's content the
+  same way they cover the first, and the acceptance criterion is checkable — the commit that
+  adds the game must not touch `scripts/`, `tools/` or `scenes/`, which `git diff --stat`
+  answers. It also makes the repo a worked example rather than a description of one.
+- *A separate repo that pulls the template in* — `deferred — worth trying`, and it tests
+  something this cannot: **starting from the template**, which is the actual use case. Cloning,
+  renaming, deleting the demo, and finding out what breaks is a different question from
+  "can a second game coexist". Not done now because template fixes would have to be ported
+  back by hand, and CI could not see the result. Revisit hook: `data/games/` — a game is
+  already a self-contained set of files, so lifting one out is a copy rather than a surgery.
+- *A branch, or a throwaway spike* — rejected: a spike answers the question once and then
+  rots, and nothing keeps the answer true. The point of the exercise is a claim that stays
+  checked, which needs the second game in CI.
+
+What it found, which is the argument for having done it at all: three template defects that
+six milestones of unit tests, mutants and gates had not — a QA op that raced the steps after
+it, an art gate that walked a different set of directories than the game did, and three
+disagreeing lists of "which directories does this project own".
