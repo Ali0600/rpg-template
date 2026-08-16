@@ -48,6 +48,11 @@ enum Outline {
 ## Terrain colours, keyed by tile id, as ramp names.
 @export var tile_ramps: Dictionary = {}
 
+## Interface colours (text, dim text, panel), as hex strings. Deliberately NOT part of
+## `ramps`: chrome re-skins with the style, but a UI colour must never become legal inside a
+## sprite, and everything in `ramps` is exactly what the palette gate permits there.
+@export var ui_colors: Dictionary = {}
+
 @export var walk_frames: int = 4
 @export var walk_fps: int = 8
 @export var idle_fps: int = 4
@@ -77,6 +82,14 @@ func ramp(name: String) -> PackedColorArray:
 	for hex: Variant in ramps[name]:
 		out.append(Color(str(hex)))
 	return out
+
+
+## An interface colour by role ("text", "dim", "panel"). Falls back to a legible neutral so
+## a style that has not defined chrome still renders readable text rather than black on black.
+func ui_color(role: String, fallback: Color = Color(1, 1, 1, 1)) -> Color:
+	if not ui_colors.has(role):
+		return fallback
+	return Color(str(ui_colors[role]))
 
 
 func ramp_names() -> Array[String]:

@@ -29,3 +29,9 @@ scripts/spritegen/rig.gd	s|if row.length\(\) != width:|if false:|	tests/unit/tes
 scripts/data/character_spec.gd	s|chosen_ramps\[slot\] = chosen_ramps\[source\]|pass|	tests/unit/test_rig_and_style.gd	hands and sleeves stop matching skin and cloth
 scripts/data/character_spec.gd	s|part_id = str\(rng.derive\("part:" \+ slot\).pick\(options, ""\)\)|part_id = str(rng.derive("part").pick(options, ""))|	tests/unit/test_determinism.gd	every slot draws from one shared stream
 scripts/spritegen/tile_set_factory.gd	s|if not bool\(e.get\(\"solid\", false\)\):|if true:|	tests/unit/test_tiles.gd	solid tiles stop blocking movement
+
+# --- M2: the scene layer that consumes the contract ---
+scripts/world/sprite_view.gd	s|_sprite.centered = false|_sprite.centered = true|	tests/integration/test_sprite_view_scene.gd	the sprite origin stops being the character's feet
+scripts/world/sprite_view.gd	s|_sprite.offset = -Vector2\(meta.anchor\)|_sprite.offset = Vector2.ZERO|	tests/integration/test_sprite_view_scene.gd	the measured anchor stops positioning the sprite
+scripts/world/sprite_view.gd	s|if clip_name == _clip and dir == _facing:|if false:|	tests/integration/test_sprite_view_scene.gd	an unchanged pose is re-issued every frame
+scripts/ui/sprite_lab.gd	s|if event == _last_event:|if false:|	tests/integration/test_sprite_view_scene.gd	one input event is acted on twice

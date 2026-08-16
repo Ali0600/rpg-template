@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3 uid="uid://c4xk1lab2v7ne"]
+
+; The scene holds a node and a script, nothing else. Its children are built in code because
+; they are generated from data - how many characters exist, how many directions the rig
+; draws - and a .tscn cannot express "one view per direction the style declares".
+
+[ext_resource type="Script" path="res://scripts/ui/sprite_lab.gd" id="1_lab"]
+
+[node name="SpriteLab" type="Node2D"]
+script = ExtResource("1_lab")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 180.0
+color = Color(0.10196, 0.10980, 0.17255, 1)
+z_index = -10

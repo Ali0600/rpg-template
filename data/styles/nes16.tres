@@ -66,6 +66,11 @@ tile_ramps = {
 "wall": "stone",
 "water": "terrain_water"
 }
+ui_colors = {
+"dim": "#787878",
+"panel": "#000000",
+"text": "#fcfcfc"
+}
 walk_frames = 4
 walk_fps = 6
 idle_fps = 3
