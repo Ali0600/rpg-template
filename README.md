@@ -12,8 +12,8 @@ It ships two halves:
    maps, NPCs and dialog, game-flow states, saves with migrations, a seeded RNG, an audio
    bus, a headless QA harness, and a CI gate that runs all of it.
 
-> **Status:** the generator, the world, movement and conversations are in (M0–M4). Saves and
-> the web demo land next — see [the milestone list](#milestones).
+> **Status:** every system is in (M0–M5); the web demo is the last step — see
+> [the milestone list](#milestones).
 
 ![The demo town](docs/images/world.png)
 
@@ -84,7 +84,7 @@ backlog are in [docs/DECISIONS.md](docs/DECISIONS.md).
 - [ ] **M2** — the sprite view scene and Sprite Lab preview
 - [x] **M3** — movement, collision, camera, data maps, game-flow states, QA harness
 - [x] **M4** — NPCs, interaction, dialog
-- [ ] **M5** — saves with migrations, audio, content registry
+- [x] **M5** — saves with migrations, audio, content registry
 - [ ] **M6** — web export and a live demo
 
 ## Experience Gained

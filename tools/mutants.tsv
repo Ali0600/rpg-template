@@ -59,3 +59,11 @@ scripts/ui/dialog_runner.gd	s|if not _visible_choices\(node\).is_empty\(\):|if f
 scripts/ui/dialog_runner.gd	s|if not requires.is_empty\(\) and not bool\(_known_flags.get\(requires, false\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice the player cannot take is offered anyway
 scripts/world/interactor.gd	s|if to_target.dot\(forward\) <= 0.0:|if false:|	tests/unit/test_interactor.gd	you can talk to someone standing behind you
 scripts/world/interactor.gd	s|if d > config.interact_reach \+ config.body_size.x:|if false:|	tests/unit/test_interactor.gd	interaction reaches across the whole map
+
+# --- M5: saves, migrations and audio ---
+scripts/autoload/save_manager.gd	s|backup.store_string\(text\)|pass|	tests/unit/test_saves.gd	an unreadable save is preserved as an empty file
+scripts/data/migrations.gd	s|while version < SaveData.VERSION:|while false:|	tests/unit/test_saves.gd	old saves are handed on without being migrated
+scripts/data/migrations.gd	s|var version := int\(d.get\(\"version\", 1\)\)|var version := int(d.get(\"version\", SaveData.VERSION))|	tests/unit/test_saves.gd	a save predating versioning is treated as current
+scripts/data/migrations.gd	s|var d := raw.duplicate\(true\)|var d := raw|	tests/unit/test_saves.gd	migrating edits the file it was handed
+scripts/data/save_data.gd	s|if version != VERSION:|if false:|	tests/unit/test_saves.gd	a save from a future version is read anyway
+scripts/util/json_file.gd	s|out.append\(float\(v\)\)|out.append(float(int(v)))|	tests/unit/test_saves.gd	a fractional saved position is truncated
