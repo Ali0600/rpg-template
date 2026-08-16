@@ -9,7 +9,14 @@ extends Node
 ## has to be driven from inside it, which is what this is.
 ##
 ## It is also the headless smoke gate in tools/check.sh, and the way screenshots of the
-## world get taken.
+## world get taken. Scripts live in tests/fixtures/qa/<game>/ and check.sh runs each with
+## `--game=<that directory>`, so a game's scripts drive that game and adding one needs no
+## edit to the gate.
+##
+## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
+## assert_map · assert_flag · assert_position · mark · assert_moved · screenshot · note.
+## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
+## a passing check that never ran.
 ##
 ## Everything is measured in PHYSICS frames, never seconds and never idle frames. A
 ## wall-clock wait is slow when it passes and flaky when it fails; and headless, with no
@@ -110,6 +117,17 @@ func _run(step: Dictionary) -> void:
 				_fail("expected to be in map '%s', found '%s'" % [wanted_map, GameState.current_map])
 			else:
 				_log.append("in map '%s'" % wanted_map)
+		"assert_flag":
+			# The one assertion that can tell "the quest advanced" from "something moved the
+			# player". A gate opening is evidence a warp fired; the flag is evidence the
+			# chest is what opened it.
+			var key := StringName(str(step.get("key", "")))
+			var wanted := bool(step.get("expect", true))
+			var actual := GameState.has_flag(key)
+			if actual != wanted:
+				_fail("expected flag '%s' to be %s, it is %s" % [key, wanted, actual])
+			else:
+				_log.append("flag '%s' is %s" % [key, actual])
 		"assert_position":
 			_assert_position(step)
 		"mark":

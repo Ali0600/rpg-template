@@ -16,6 +16,8 @@
 	"steps": [
 		{ "op": "wait", "frames": 10 },
 		{ "op": "assert_state", "state": "world" },
+		{ "op": "note", "text": "a new game starts with nothing promised to anyone" },
+		{ "op": "assert_flag", "key": "promised_elder", "expect": false },
 
 		{ "op": "note", "text": "spawn is tile (4,6); the kid stands at (8,8)" },
 		{ "op": "hold", "action": "move_down", "frames": 40 },
