@@ -1,0 +1,20 @@
+{
+	"_readme": [
+		"Said only when the player is carrying the key. Chosen by games/quest/quest_hooks.gd,",
+		"not by anything in the dialog format - a node cannot be conditional, and deliberately",
+		"so: three lines of game code beat a mini-language every dialog file has to learn."
+	],
+	"id": "warden_has_key",
+	"start": "notice",
+	"nodes": {
+		"notice": {
+			"speaker": "Warden",
+			"text": "That is the key. You found it in an afternoon.",
+			"next": "shrug"
+		},
+		"shrug": {
+			"speaker": "Warden",
+			"text": "Go on, then. The gate is that way, and it has been that way a long time."
+		}
+	}
+}

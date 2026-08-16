@@ -1,0 +1,54 @@
+{
+	"_readme": [
+		"Behind the gate. Small on purpose: the reward for a fetch quest is being let in, and a",
+		"large empty room would read as an unfinished level rather than as an ending.",
+		"",
+		"The lantern sets a flag and says a line. What makes it an ending is that the warden's",
+		"hook reads that flag - so the last thing the game does is change something the player",
+		"already walked past."
+	],
+	"id": "quest_keep",
+	"style": "dusk16",
+	"legend": {
+		".": "grass",
+		",": "grass_alt",
+		"-": "path",
+		"#": "wall",
+		"~": "water",
+		"*": "bush"
+	},
+	"ground": [
+		"##########",
+		"#........#",
+		"#........#",
+		"#-.......#",
+		"#........#",
+		"#...,,...#",
+		"##########"
+	],
+	"decor": [
+		"          ",
+		"          ",
+		"     *    ",
+		"          ",
+		"          ",
+		"          ",
+		"          "
+	],
+	"spawns": {
+		"from_village": [2, 3]
+	},
+	"objects": [
+		{
+			"id": "lantern",
+			"tile": [5, 2],
+			"kind": "lantern",
+			"dialog": "lantern",
+			"set_flag": "lit_the_lantern",
+			"once": true
+		}
+	],
+	"warps": [
+		{ "tile": [1, 3], "map": "quest_village", "spawn": "from_keep" }
+	]
+}

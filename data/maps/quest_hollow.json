@@ -1,0 +1,59 @@
+{
+	"_readme": [
+		"Where the key is. The stash is an object standing on a bush - there is no chest sprite",
+		"and there does not need to be one: an object is an interaction POINT, and what the",
+		"player sees is the decor tile that was already on the map.",
+		"",
+		"It carries once:true, so the memory of having opened it lives in GameState.seen and",
+		"survives a save. Keyed by map and id, so the keep could have its own 'stash' without",
+		"finding it already emptied."
+	],
+	"id": "quest_hollow",
+	"style": "dusk16",
+	"legend": {
+		".": "grass",
+		",": "grass_alt",
+		"-": "path",
+		"#": "wall",
+		"~": "water",
+		"*": "bush"
+	},
+	"ground": [
+		"############",
+		"#..........#",
+		"#..~~~~~~..#",
+		"#..........#",
+		"#.........-#",
+		"#..........#",
+		"#...,,,,...#",
+		"#..........#",
+		"############"
+	],
+	"decor": [
+		"            ",
+		"            ",
+		"            ",
+		"            ",
+		"            ",
+		"            ",
+		"    *  *    ",
+		"            ",
+		"            "
+	],
+	"spawns": {
+		"from_village": [9, 4]
+	},
+	"objects": [
+		{
+			"id": "keystash",
+			"tile": [4, 6],
+			"kind": "chest",
+			"dialog": "keystash",
+			"set_flag": "has_gate_key",
+			"once": true
+		}
+	],
+	"warps": [
+		{ "tile": [10, 4], "map": "quest_village", "spawn": "from_hollow" }
+	]
+}

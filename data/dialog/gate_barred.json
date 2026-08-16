@@ -1,0 +1,15 @@
+{
+	"_readme": [
+		"What a locked warp says when it refuses. A locked door with nothing to say is a",
+		"validation error in this template, because a door that ignores you reads as a broken",
+		"warp rather than as a shut gate."
+	],
+	"id": "gate_barred",
+	"start": "locked",
+	"nodes": {
+		"locked": {
+			"speaker": "The gate",
+			"text": "Barred, and heavier than it looks. The keyhole is the shape of something you do not have."
+		}
+	}
+}

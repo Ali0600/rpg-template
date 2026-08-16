@@ -1,0 +1,26 @@
+{
+	"_readme": [
+		"The warden's default line, named by the NPC in the map. The game's hooks return false",
+		"when they have nothing better to say, and this is what runs then - which is the whole",
+		"shape of the seam: a game takes the cases it cares about and leaves the rest to data."
+	],
+	"id": "warden_asks",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Warden",
+			"text": "The gate is barred, and I am the one who barred it. Nothing personal.",
+			"next": "why"
+		},
+		"why": {
+			"speaker": "Warden",
+			"text": "The key went into the hollow, west of here, some years ago. I did not put it there and I am not going to fetch it.",
+			"choices": [
+				{ "text": "I'll go and look.", "next": "good", "set_flag": "told_warden_yes" },
+				{ "text": "Sounds like your problem.", "next": "fair" }
+			]
+		},
+		"good": { "speaker": "Warden", "text": "Then you are already doing more than I have in a decade." },
+		"fair": { "speaker": "Warden", "text": "It is. And it will still be my problem tomorrow." }
+	}
+}

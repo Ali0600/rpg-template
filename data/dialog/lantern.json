@@ -1,0 +1,15 @@
+{
+	"id": "lantern",
+	"start": "find",
+	"nodes": {
+		"find": {
+			"speaker": "The keep",
+			"text": "A lantern on a hook, with oil still in it. Someone left it ready and never came back.",
+			"next": "light"
+		},
+		"light": {
+			"speaker": "The keep",
+			"text": "It catches on the second try. The room is suddenly a room, rather than a shape in the dark."
+		}
+	}
+}
