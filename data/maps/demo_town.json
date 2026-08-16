@@ -1,0 +1,82 @@
+{
+	"_readme": [
+		"A map is ASCII rows plus a legend. Two layers share one grid: 'ground' is what you",
+		"walk on, 'decor' is what stands on top of it (a space means nothing there).",
+		"",
+		"Whether a tile blocks movement is NOT decided here - it comes from the tiles' own",
+		"data, so making cliffs solid is an art decision and the movement code never learns",
+		"the word 'cliff'.",
+		"",
+		"Coordinates in spawns, npcs and warps are [column, row], zero-based, matching the",
+		"rows below."
+	],
+	"id": "demo_town",
+	"style": "gb16",
+	"legend": {
+		".": "grass",
+		",": "grass_alt",
+		"-": "path",
+		"#": "wall",
+		"~": "water",
+		"*": "bush"
+	},
+	"ground": [
+		"####################",
+		"#..,.....------....#",
+		"#....,...------..,.#",
+		"#........--..--....#",
+		"#..,.....--..--....#",
+		"#--------------.,..#",
+		"#--------------....#",
+		"#..,.....--..--..,.#",
+		"#........--..--....#",
+		"#..~~~...------....#",
+		"#..~~~...------..,.#",
+		"####################"
+	],
+	"decor": [
+		"                    ",
+		"  *              *  ",
+		"                    ",
+		"     *        *     ",
+		"                    ",
+		"                    ",
+		"                    ",
+		"     *        *     ",
+		"                    ",
+		"                    ",
+		"  *              *  ",
+		"                    "
+	],
+	"spawns": {
+		"start": [4, 6],
+		"east_gate": [18, 6]
+	},
+	"npcs": [
+		{
+			"id": "elder",
+			"character": "npc_elder",
+			"tile": [11, 2],
+			"facing": "down",
+			"dialog": "elder",
+			"behavior": "static"
+		},
+		{
+			"id": "kid",
+			"character": "npc_kid",
+			"tile": [8, 8],
+			"facing": "right",
+			"dialog": "kid",
+			"behavior": "static"
+		},
+		{
+			"id": "smith",
+			"character": "npc_smith",
+			"tile": [15, 4],
+			"facing": "left",
+			"dialog": "smith",
+			"behavior": "static"
+		}
+	],
+	"warps": []
+}

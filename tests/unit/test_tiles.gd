@@ -35,13 +35,27 @@ func test_no_tile_is_a_flat_block_of_one_colour() -> void:
 		assert_int(seen.size()).override_failure_message(
 			"tile '%s' uses only %d colour(s)" % [TileGen.ids()[i], seen.size()]).is_greater(1)
 
-func test_every_tile_is_fully_opaque() -> void:
-	# A transparent hole in terrain shows the background colour through the floor.
-	var built := TileGen.build(ArtFixtures.style(&"gb16"))
+func test_ground_tiles_are_fully_opaque_and_decor_tiles_are_not() -> void:
+	# A transparent hole in the FLOOR shows the background colour through the world. A decor
+	# tile is the opposite case: it stands on the floor, so anything outside its shape must
+	# stay clear or the bush arrives as a dark square cut into the grass.
+	var style := ArtFixtures.style(&"gb16")
+	var built := TileGen.build(style)
 	var image: Image = built["image"]
-	for y in image.get_height():
-		for x in image.get_width():
-			assert_float(image.get_pixel(x, y).a).is_equal(1.0)
+	var decor := TileGen.decor_ids()
+	for i in TileGen.ids().size():
+		var id := TileGen.ids()[i]
+		var clear := 0
+		for y in style.tile_size:
+			for x in style.tile_size:
+				if image.get_pixel(i * style.tile_size + x, y).a == 0.0:
+					clear += 1
+		if decor.has(id):
+			assert_int(clear).override_failure_message(
+				"decor tile '%s' is a solid block; it would cut a square into the ground" % id).is_greater(0)
+		else:
+			assert_int(clear).override_failure_message(
+				"ground tile '%s' has %d transparent pixels" % [id, clear]).is_equal(0)
 
 func test_the_tileset_gives_collision_to_exactly_the_solid_tiles() -> void:
 	var style := ArtFixtures.style(&"gb16")

@@ -1,0 +1,5 @@
+{ "_readme": "Deliberately broken: row 1 is a character short. Builds a map with a notch and no error.",
+  "id": "ragged", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["####", "#..", "####"],
+  "spawns": { "start": [1, 1] } }

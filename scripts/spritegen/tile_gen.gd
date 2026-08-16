@@ -11,14 +11,16 @@ extends RefCounted
 ## tile id, so regenerating produces identical bytes and the drift gate stays meaningful.
 
 ## Tiles this generator knows how to draw, in sheet order. `solid` becomes a collision shape
-## in TileSetFactory - the one property the world actually needs from art.
+## in TileSetFactory - the one property the world actually needs from art. `decor` marks a
+## tile that sits ON another one: it keeps transparency outside its shape, so a bush reads as
+## a bush standing in grass rather than as a dark square cut into it.
 const TILES: Array[Dictionary] = [
 	{"id": "grass", "kind": "scatter", "solid": false, "seed": 101},
 	{"id": "grass_alt", "kind": "scatter", "solid": false, "seed": 202},
 	{"id": "path", "kind": "speckle", "solid": false, "seed": 303},
 	{"id": "water", "kind": "ripple", "solid": true, "seed": 404},
 	{"id": "wall", "kind": "brick", "solid": true, "seed": 505},
-	{"id": "bush", "kind": "blob", "solid": true, "seed": 606},
+	{"id": "bush", "kind": "blob", "solid": true, "seed": 606, "decor": true},
 ]
 
 
@@ -37,7 +39,13 @@ static func build(style: SpriteStyle) -> Dictionary:
 			continue
 		var tile := _draw(def, tones, size)
 		strip.blit_rect(tile, Rect2i(0, 0, size, size), Vector2i(i * size, 0))
-		entries.append({"id": def["id"], "index": i, "solid": def["solid"], "ramp": ramp_name})
+		entries.append({
+			"id": def["id"],
+			"index": i,
+			"solid": def["solid"],
+			"decor": bool(def.get("decor", false)),
+			"ramp": ramp_name,
+		})
 
 	return {
 		"image": strip,
@@ -54,7 +62,8 @@ static func build(style: SpriteStyle) -> Dictionary:
 
 static func _draw(def: Dictionary, tones: PackedColorArray, size: int) -> Image:
 	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-	img.fill(tones[1])
+	if not bool(def.get("decor", false)):
+		img.fill(tones[1])
 	var rng := SeededRng.new(int(def["seed"]))
 	match str(def["kind"]):
 		"scatter":
@@ -101,14 +110,27 @@ static func _draw(def: Dictionary, tones: PackedColorArray, size: int) -> Image:
 			for y in size:
 				for x in size:
 					var d := Vector2(x - c, y - c).length() / (size / 2.0)
-					if d > 0.98:
+					if d > 0.94:
+						continue
+					if d > 0.72:
 						img.set_pixel(x, y, tones[0])
 					elif Vector2(x - lit.x, y - lit.y).length() < size * 0.22:
 						img.set_pixel(x, y, tones[2])
+					else:
+						img.set_pixel(x, y, tones[1])
 			# A few dark flecks so a field of bushes does not read as a field of buttons.
 			for i in 5:
 				img.set_pixel(rng.next_int(3, size - 4), rng.next_int(3, size - 4), tones[0])
 	return img
+
+
+## Tiles that sit on top of another tile and keep their transparency.
+static func decor_ids() -> Array[String]:
+	var out: Array[String] = []
+	for def in TILES:
+		if bool(def.get("decor", false)):
+			out.append(str(def["id"]))
+	return out
 
 
 static func solid_ids() -> Array[String]:

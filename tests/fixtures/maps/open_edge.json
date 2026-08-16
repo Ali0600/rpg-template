@@ -1,0 +1,5 @@
+{ "_readme": "Deliberately broken: the east edge of the middle row is walkable with nothing beyond it, so the player walks off the map. This is the real bug the demo map shipped with.",
+  "id": "open_edge", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["####", "#...", "####"],
+  "spawns": { "start": [1, 1] } }

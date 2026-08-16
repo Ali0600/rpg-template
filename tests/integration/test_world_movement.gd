@@ -1,0 +1,165 @@
+extends GdUnitTestSuite
+## Movement against real physics: a built map, a real collider, real physics ticks.
+##
+## The pure Locomotion tests prove what the rules decide. They cannot prove that the tiles
+## grew collision shapes, that the player's box is where it should be, or that a wall
+## actually stops anything - and those need the physics server, which does run headless.
+##
+## Two things this suite is careful about. Collision bodies for a TileMapLayer appear on its
+## first physics update, so nothing is asserted before a couple of ticks have passed. And
+## everything advances in PHYSICS frames, never wall-clock time.
+
+const FIXTURE_MAP := "res://tests/fixtures/maps/wall_east.json"
+const TICKS_TO_SETTLE := 3
+
+var _config: GameConfig
+var _style: SpriteStyle
+var _built: MapBuilder.Built
+var _root: Node2D
+
+func before_test() -> void:
+	Router.reset()
+	_config = load("res://data/game_config.tres").duplicate() as GameConfig
+	_style = load("res://data/styles/gb16.tres") as SpriteStyle
+	var meta := JsonFile.read("res://assets/generated/gb16/tiles.json")
+	assert_bool(meta.ok).override_failure_message(meta.error).is_true()
+	var texture := load("res://assets/generated/gb16/tiles.png") as Texture2D
+	var data := MapData.load_from(FIXTURE_MAP)
+	_built = MapBuilder.build(data, _style, texture, meta.data)
+	assert_array(_built.problems).override_failure_message(str(_built.problems)).is_empty()
+	_root = _built.root
+	add_child(_root)
+
+func after_test() -> void:
+	Router.reset()
+	if is_instance_valid(_root):
+		_root.queue_free()
+
+func _spawn_player() -> ActorBody:
+	var body := ActorBody.new()
+	body.setup(_config, FileSpriteSource.create(&"gb16"), &"hero")
+	_built.sorted.add_child(body)
+	body.global_position = MapBuilder.spawn_position(_built.data, &"start", _built.tile_size)
+	return body
+
+func _tick(body: ActorBody, input: Vector2, ticks: int) -> void:
+	for i in ticks:
+		body.apply(input)
+		await await_millis(1)
+
+
+## Walks until the body stops making progress, and asserts it actually arrived somewhere
+## rather than running out of attempts. Counting ticks instead would bake in the physics
+## delta and the walk speed - two numbers that are meant to be tunable - so the loop watches
+## the OUTCOME and is merely bounded, never unbounded.
+func _walk_until_blocked(body: ActorBody, input: Vector2, max_ticks: int = 600) -> Vector2:
+	var last := body.global_position
+	var still := 0
+	for i in max_ticks:
+		body.apply(input)
+		await await_millis(1)
+		if body.global_position.distance_to(last) < 0.01:
+			still += 1
+			if still >= 3:
+				return body.global_position
+		else:
+			still = 0
+		last = body.global_position
+	assert_bool(false).override_failure_message(
+		"walked %d ticks without ever being blocked (ended at %s)" % [max_ticks, body.global_position]) \
+		.is_true()
+	return body.global_position
+
+func test_the_map_builds_tile_layers_with_a_y_sorted_parent() -> void:
+	# Decor and actors must share ONE y-sorted parent or a character is permanently in front
+	# of, or behind, every bush - two sorted layers each sort internally and then stack whole.
+	assert_bool(_built.sorted.y_sort_enabled).is_true()
+	assert_object(_built.ground).is_not_null()
+	assert_bool(_built.decor.get_parent() == _built.sorted).override_failure_message(
+		"decor is not inside the y-sorted layer, so actors cannot sort against it").is_true()
+
+func test_the_players_collision_box_sits_on_its_feet() -> void:
+	# A top-down character occupies the FLOOR it stands on. A box the size of the drawing
+	# would stop its head against a wall the feet are nowhere near.
+	var body := _spawn_player()
+	await await_idle_frame()
+	var shape := SceneHelpers.find_by_class(body, "CollisionShape2D") as CollisionShape2D
+	assert_object(shape).is_not_null()
+	var rect := shape.shape as RectangleShape2D
+	assert_vector(rect.size).is_equal(_config.body_size)
+	# Above the origin, not centred on it: the origin is the feet, so a centred box would put
+	# half the collider through the floor.
+	assert_float(shape.position.y).is_less(0.0)
+	assert_float(absf(shape.position.y)).is_equal_approx(_config.body_size.y / 2.0, 0.01)
+
+func test_the_player_moves_when_told_to() -> void:
+	var body := _spawn_player()
+	await await_idle_frame()
+	var before := body.global_position
+	await _tick(body, Vector2(1.0, 0.0), 5)
+	assert_float(body.global_position.x).override_failure_message(
+		"the player did not move east").is_greater(before.x)
+	assert_float(body.global_position.y).is_equal_approx(before.y, 0.01)
+
+func test_a_wall_stops_the_player() -> void:
+	# The whole reason tiles carry collision. Nothing here knows which tile is a wall - that
+	# came from the tiles' own data, through the TileSet, into the physics server.
+	var body := _spawn_player()
+	await await_idle_frame()
+	await _tick(body, Vector2.ZERO, TICKS_TO_SETTLE)
+	var blocked: Vector2 = await _walk_until_blocked(body, Vector2(1.0, 0.0))
+	var at_wall := blocked.x
+	await _tick(body, Vector2(1.0, 0.0), 30)
+	assert_float(body.global_position.x).override_failure_message(
+		"the player pushed through the wall (%.1f -> %.1f)" % [at_wall, body.global_position.x]) \
+		.is_equal_approx(at_wall, 0.01)
+	# And it is stopped INSIDE the map, not at some arbitrary distance beyond it.
+	var bounds := _built.data.size()
+	assert_float(at_wall).is_less(float(bounds.x * _built.tile_size))
+
+func test_a_wall_does_not_trap_the_player() -> void:
+	# Sliding into a wall must not stick: the failure mode of a badly-shaped collider is a
+	# character who arrives and can never leave.
+	var body := _spawn_player()
+	await await_idle_frame()
+	var blocked: Vector2 = await _walk_until_blocked(body, Vector2(1.0, 0.0))
+	await _tick(body, Vector2(-1.0, 0.0), 10)
+	assert_float(body.global_position.x).is_less(blocked.x)
+
+func test_walking_into_a_wall_diagonally_slides_along_it() -> void:
+	# Axis-separated resolution is what makes a top-down game feel good: pressing into a
+	# corner should still move you along the wall rather than stopping you dead.
+	var body := _spawn_player()
+	await await_idle_frame()
+	var against_top: Vector2 = await _walk_until_blocked(body, Vector2(0.0, -1.0))
+	await _tick(body, Vector2(1.0, -1.0), 20)
+	assert_float(body.global_position.x).override_failure_message(
+		"pressing into the top wall stopped all movement instead of sliding").is_greater(against_top.x)
+
+func test_the_player_faces_the_way_it_walks() -> void:
+	var body := _spawn_player()
+	await await_idle_frame()
+	await _tick(body, Vector2(0.0, 1.0), 2)
+	assert_int(body.facing).is_equal(Dir.D.DOWN)
+	assert_str(String(body.view.current_animation())).is_equal("walk_down")
+	await _tick(body, Vector2.ZERO, 2)
+	# Standing still keeps the facing, and only the clip changes.
+	assert_int(body.facing).is_equal(Dir.D.DOWN)
+	assert_str(String(body.view.current_animation())).is_equal("idle_down")
+
+func test_halting_stops_the_body_dead() -> void:
+	# Used whenever control is taken away. Without it the character slides on through the
+	# frames where nobody is driving it.
+	var body := _spawn_player()
+	await await_idle_frame()
+	await _tick(body, Vector2(1.0, 0.0), 5)
+	body.halt()
+	assert_vector(body.velocity).is_equal(Vector2.ZERO)
+	assert_str(String(body.view.current_animation())).is_equal("idle_right")
+
+func test_an_actor_stands_on_the_centre_of_its_spawn_tile() -> void:
+	var body := _spawn_player()
+	await await_idle_frame()
+	var tile := _built.data.spawn(&"start")
+	assert_vector(body.global_position).is_equal(MapData.tile_to_world(tile, _built.tile_size))
+	assert_vector(body.tile(_built.tile_size)).is_equal(tile)

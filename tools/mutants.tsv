@@ -35,3 +35,17 @@ scripts/world/sprite_view.gd	s|_sprite.centered = false|_sprite.centered = true|
 scripts/world/sprite_view.gd	s|_sprite.offset = -Vector2\(meta.anchor\)|_sprite.offset = Vector2.ZERO|	tests/integration/test_sprite_view_scene.gd	the measured anchor stops positioning the sprite
 scripts/world/sprite_view.gd	s|if clip_name == _clip and dir == _facing:|if false:|	tests/integration/test_sprite_view_scene.gd	an unchanged pose is re-issued every frame
 scripts/ui/sprite_lab.gd	s|if event == _last_event:|if false:|	tests/integration/test_sprite_view_scene.gd	one input event is acted on twice
+
+# --- M3: movement, maps and game flow ---
+scripts/world/locomotion.gd	s|move = move.normalized\(\)|pass|	tests/unit/test_locomotion.gd	walking diagonally is 41% faster than walking straight
+scripts/world/locomotion.gd	s|if absf\(move.x\) >= absf\(move.y\):|if absf(move.x) > absf(move.y):|	tests/unit/test_locomotion.gd	a four-way tie stops going sideways
+scripts/world/locomotion.gd	s|var moving := velocity.length\(\) > config.idle_speed_epsilon|var moving := velocity.length() > 0.0|	tests/unit/test_locomotion.gd	drift below the idle threshold keeps the walk animation twitching
+scripts/autoload/router.gd	s|return _state == State.WORLD|return true|	tests/unit/test_router.gd	the player can move while a dialog is open
+scripts/autoload/router.gd	s|set_state\(_stack.pop_back\(\)\)|set_state(State.WORLD)|	tests/unit/test_router.gd	closing an overlay forgets what it covered
+scripts/autoload/router.gd	s|_stack.clear\(\)|pass|	tests/unit/test_router.gd	reset leaves the overlay stack behind
+scripts/world/map_data.gd	s|if warp_tiles.has\(at\):|if false:|	tests/unit/test_map_data.gd	a declared exit is reported as a hole in the wall
+scripts/world/map_data.gd	s|return Vector2i\(floori\(at.x / tile_size\), floori\(at.y / tile_size\)\)|return Vector2i(int(at.x / tile_size), int(at.y / tile_size))|	tests/unit/test_map_data.gd	a negative coordinate rounds toward zero and lands back on the map
+scripts/world/map_data.gd	s|if solid_tiles.has\(ground_at\(at\)\) or solid_tiles.has\(decor_at\(at\)\):|if true:|	tests/unit/test_map_data.gd	an unwalled map edge stops being reported
+scripts/world/actor_body.gd	s|_shape.position = Vector2\(0.0, -config.body_size.y / 2.0\)|_shape.position = Vector2.ZERO|	tests/integration/test_world_movement.gd	the collision box sinks through the floor line
+scripts/world/map_builder.gd	s|built.sorted.y_sort_enabled = true|built.sorted.y_sort_enabled = false|	tests/integration/test_world_movement.gd	actors stop sorting against the scenery
+scripts/spritegen/tile_gen.gd	s|if not bool\(def.get\(\"decor\", false\)\):|if false:|	tests/unit/test_tiles.gd	a decor tile becomes a solid square cut into the ground

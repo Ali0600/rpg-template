@@ -1,0 +1,6 @@
+{ "_readme": "The same open edge, declared: a warp on that tile states that leaving is intended, so it is not a fault.",
+  "id": "open_edge_with_warp", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["####", "#...", "####"],
+  "spawns": { "start": [1, 1] },
+  "warps": [ { "tile": [3, 1], "map": "elsewhere", "spawn": "west_gate" } ] }
