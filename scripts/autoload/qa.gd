@@ -98,6 +98,8 @@ func _run(step: Dictionary) -> void:
 			_press(action)
 			_frames_left = 1
 			_steps.insert(_index, {"op": "release", "action": String(action)})
+		"press_until_state":
+			_press_until_state(step)
 		"assert_state":
 			var wanted := str(step.get("state", ""))
 			if Router.state_name() != wanted:
@@ -115,6 +117,30 @@ func _run(step: Dictionary) -> void:
 			_log.append(str(step.get("text", "")))
 		_:
 			_fail("unknown step '%s'" % op)
+
+
+## Presses an action until the flow state changes, up to a limit.
+##
+## The alternative - counting presses - ties the gate to how many LINES a writer happened to
+## put in the conversation, so adding a sentence breaks a test about control handover. Worse,
+## over-pressing re-opens the dialog the moment it closes and the gate reports the state it
+## was trying to leave. Bounded, never unbounded: an unreachable state must fail loudly
+## rather than spin.
+func _press_until_state(step: Dictionary) -> void:
+	var action := StringName(str(step.get("action", "interact")))
+	var wanted := str(step.get("state", "world"))
+	var limit := int(step.get("limit", 40))
+	for i in limit:
+		if Router.state_name() == wanted:
+			_log.append("reached '%s' after %d press(es)" % [wanted, i])
+			return
+		_press(action)
+		await get_tree().process_frame
+		_release(action)
+		await get_tree().process_frame
+	if Router.state_name() != wanted:
+		_fail("pressed '%s' %d times and never reached state '%s' (still '%s')"
+			% [action, limit, wanted, Router.state_name()])
 
 
 func _assert_position(step: Dictionary) -> void:
@@ -176,18 +202,32 @@ func _player_position() -> Vector2:
 	return GameState.player_position
 
 
+## Presses through parse_input_event, not action_press.
+##
+## They are not interchangeable: action_press only sets the Input singleton's STATE, which is
+## enough for code that polls (Input.get_axis, which is how movement reads) and invisible to
+## code that handles EVENTS (_unhandled_input, which is how interacting and menus read). A
+## harness that only did the first would move the player around perfectly and never be able
+## to press a button - and the failure looks like the button being broken, not like the
+## harness being half-connected.
 func _press(action: StringName) -> void:
 	if String(action).is_empty() or not InputMap.has_action(action):
 		_fail("no such input action '%s'" % action)
 		return
-	Input.action_press(action)
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	Input.parse_input_event(event)
 	if not _held.has(action):
 		_held.append(action)
 
 
 func _release(action: StringName) -> void:
 	if InputMap.has_action(action):
-		Input.action_release(action)
+		var event := InputEventAction.new()
+		event.action = action
+		event.pressed = false
+		Input.parse_input_event(event)
 	_held.erase(action)
 
 

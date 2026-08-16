@@ -1,0 +1,15 @@
+{
+	"id": "smith",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Smith",
+			"text": "Every one of us was drawn by the same hand. Same palette, same outline, same ground under our feet.",
+			"next": "point"
+		},
+		"point": {
+			"speaker": "Smith",
+			"text": "Change the style and we all change together. That's the trick of it."
+		}
+	}
+}

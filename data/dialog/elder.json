@@ -1,0 +1,39 @@
+{
+	"_readme": "A conversation is nodes with a 'next', or a node with 'choices'. A node that continues nowhere ends the talk. 'set_flag' is collected by the runner and applied by the caller once the line has actually been shown.",
+	"id": "elder",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Elder",
+			"text": "You have the look of someone who builds things and then walks away from them.",
+			"next": "ask"
+		},
+		"ask": {
+			"speaker": "Elder",
+			"text": "Will you finish this one?",
+			"choices": [
+				{ "text": "I will.", "next": "promised", "set_flag": "promised_elder" },
+				{ "text": "Ask me tomorrow.", "next": "deferred" },
+				{ "text": "(say nothing)", "next": "silence" }
+			]
+		},
+		"promised": {
+			"speaker": "Elder",
+			"text": "Then the town is yours to fill. Start with the smith - she has been waiting.",
+			"next": "farewell"
+		},
+		"deferred": {
+			"speaker": "Elder",
+			"text": "Tomorrow is a fine place to keep things.",
+			"next": "farewell"
+		},
+		"silence": {
+			"speaker": "Elder",
+			"text": "An honest answer, at least."
+		},
+		"farewell": {
+			"speaker": "Elder",
+			"text": "Go on, then."
+		}
+	}
+}
