@@ -11,7 +11,13 @@
 		"presses. Counting presses would tie this gate to how many LINES the writer put in the",
 		"dialog, so adding a sentence would break a test about control handover - and pressing",
 		"one time too many simply re-opens the conversation, leaving the gate reporting the",
-		"very state it was trying to leave."
+		"very state it was trying to leave.",
+		"",
+		"The assertion directly below press_until_state has NO wait in front of it, and that is",
+		"deliberate. press_until_state used to await inside a step while the step machine did",
+		"not await it, so the next step ran a frame later against a conversation that was still",
+		"open - and a race reports a pass as readily as a failure. This is the line that would",
+		"go red if it ever went back to being a coroutine."
 	],
 	"steps": [
 		{ "op": "wait", "frames": 10 },
@@ -42,7 +48,6 @@
 
 		{ "op": "note", "text": "press through the conversation until control comes back" },
 		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
-		{ "op": "wait", "frames": 5 },
 		{ "op": "assert_state", "state": "world" },
 
 		{ "op": "note", "text": "and the player can walk again" },

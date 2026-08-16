@@ -243,3 +243,25 @@ different OS than the laptop.
 (directory order, hash order, clock, locale), move the contract into a pure function over
 input you *can* set, and point the mutant at that. "It kills locally" is not the claim you
 need; "it kills where the gate runs" is.
+
+## An `await` inside a step machine that does not await is a race, not a wait
+
+The QA harness runs one step per physics frame from `_physics_process`. One op,
+`press_until_state`, was written as a coroutine: it `await`ed idle frames in a loop while
+pressing a button. But the function that dispatches steps is not `async` and did not await it,
+so calling it returned immediately and the *next* step ran a frame later while the presses were
+still going.
+
+**Why it came up:** building a second game on the template. Its script asserted a state
+directly after a `press_until_state` and got the state from before it. The demo's own scripts
+all happened to have a `wait` in exactly that spot, so nothing had ever exercised the bug.
+
+The dangerous half is that the race is symmetric. A false *failure* is what surfaced here and
+it cost an hour of looking at the wrong file — but `assert_state world` written in the same
+place would have *passed*, because the conversation had not opened yet. A check that resolves
+before the thing it is checking has started is a green light wired to nothing.
+
+**Takeaway:** in a frame-driven state machine, never mix in a coroutine unless every caller
+awaits it — prefer expressing the wait in the machine's own currency (a flag the tick loop
+honours). And when you find such a race, pin it: the regression test here is a shipped script
+with the `wait` deliberately *removed*, so the assertion sits exactly where the race was.

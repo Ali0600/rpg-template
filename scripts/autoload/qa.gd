@@ -35,6 +35,15 @@ var _log: Array[String] = []
 var _marks: Dictionary = {}
 var _frames_left := 0
 var _active := false
+
+## A running press_until_state. It owns the step machine until it resolves, so that an
+## assertion written after it observes the state it was waiting for rather than racing it.
+var _until_active := false
+var _until_holding := false
+var _until_action: StringName = &""
+var _until_state := ""
+var _until_limit := 0
+var _until_presses := 0
 var _finished := false
 
 
@@ -75,6 +84,11 @@ func _physics_process(_delta: float) -> void:
 		return
 	if _frames_left > 0:
 		_frames_left -= 1
+		return
+	# A press_until_state in flight holds the machine here. Without this the step after it
+	# runs immediately and asserts against a state its own presses have not produced yet.
+	if _until_active:
+		_tick_press_until()
 		return
 	if _index >= _steps.size():
 		_finish()
@@ -150,21 +164,45 @@ func _run(step: Dictionary) -> void:
 ## over-pressing re-opens the dialog the moment it closes and the gate reports the state it
 ## was trying to leave. Bounded, never unbounded: an unreachable state must fail loudly
 ## rather than spin.
+## Starts a press_until_state. It runs as FRAMES, not as a coroutine, and that is the whole
+## point of the rewrite.
+##
+## It used to `await` inside the step - but the step machine that called it does not await, so
+## the next step ran on the very next frame while the presses were still going. Every
+## assertion written directly after a press_until_state was therefore racing it, and a race
+## reports a PASS as readily as a failure: `assert_state world` immediately afterwards passed
+## because the conversation had not opened yet. The demo's scripts happened to have a `wait`
+## in that spot, which is why nothing noticed until a second game did not.
+##
+## It also awaited idle frames while everything else here counts physics frames.
 func _press_until_state(step: Dictionary) -> void:
-	var action := StringName(str(step.get("action", "interact")))
-	var wanted := str(step.get("state", "world"))
-	var limit := int(step.get("limit", 40))
-	for i in limit:
-		if Router.state_name() == wanted:
-			_log.append("reached '%s' after %d press(es)" % [wanted, i])
-			return
-		_press(action)
-		await get_tree().process_frame
-		_release(action)
-		await get_tree().process_frame
-	if Router.state_name() != wanted:
+	_until_action = StringName(str(step.get("action", "interact")))
+	_until_state = str(step.get("state", "world"))
+	_until_limit = int(step.get("limit", 40))
+	_until_presses = 0
+	_until_holding = false
+	_until_active = true
+
+
+## One frame of a running press_until_state: release what was pressed last frame, otherwise
+## check the state and press again. Returns while it still owns the step machine.
+func _tick_press_until() -> void:
+	if _until_holding:
+		_release(_until_action)
+		_until_holding = false
+		return
+	if Router.state_name() == _until_state:
+		_log.append("reached '%s' after %d press(es)" % [_until_state, _until_presses])
+		_until_active = false
+		return
+	if _until_presses >= _until_limit:
 		_fail("pressed '%s' %d times and never reached state '%s' (still '%s')"
-			% [action, limit, wanted, Router.state_name()])
+			% [_until_action, _until_limit, _until_state, Router.state_name()])
+		_until_active = false
+		return
+	_press(_until_action)
+	_until_presses += 1
+	_until_holding = true
 
 
 func _assert_position(step: Dictionary) -> void:
