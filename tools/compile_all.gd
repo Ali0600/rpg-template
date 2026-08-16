@@ -65,15 +65,11 @@ func _init() -> void:
 	quit(1)
 
 
-## Autoload singleton names, read from the live ProjectSettings. Shared with smoke_boot so
-## both gates agree on what exists.
+## Autoload singleton names, from the one place they are derived. The linter needs the same
+## list - it bans naming a singleton in game code precisely because doing so removes the file
+## from THIS gate - so two derivations would be two ideas of what a singleton is.
 static func autoload_names() -> Array[String]:
-	var out: Array[String] = []
-	for prop: Dictionary in ProjectSettings.get_property_list():
-		var name := str(prop.get("name", ""))
-		if name.begins_with("autoload/"):
-			out.append(name.trim_prefix("autoload/"))
-	return out
+	return LintCore.autoload_names()
 
 
 ## True only if the script actually *uses* a singleton (`GameState.foo`), not merely

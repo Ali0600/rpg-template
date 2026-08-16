@@ -32,6 +32,7 @@ const SOURCE_ROOTS: Array[String] = [
 	"res://scripts",
 	"res://tools",
 	"res://tests",
+	"res://games",
 ]
 
 ## The suite is compiled and parsed like everything else, but it is NOT linted: proving that
@@ -42,6 +43,12 @@ const LINT_EXCLUDED_ROOTS: Array[String] = ["res://tests"]
 const RULE_RNG := "unseeded_rng"
 const RULE_DIRECTION := "direction_text"
 const RULE_COLOR := "color_literal"
+const RULE_AUTOLOAD := "autoload_in_game_code"
+
+## Where a game's own code lives. Everything under here is subject to every rule - "art is
+## data", "directions come from Dir", "randomness is seeded" are promises the whole repo
+## makes - plus one rule that applies ONLY here: it may not name an autoload.
+const GAME_ROOT := "res://games/"
 
 ## Global-generator calls. They are only a hit when NOT preceded by a dot: `rng.randf_range`
 ## is a method on a seeded RandomNumberGenerator, `randf_range` on its own is the process
@@ -68,7 +75,21 @@ const RULE_EXEMPT: Dictionary = {
 		"res://tools/lint_rules.gd",
 	],
 	RULE_COLOR: ["res://scripts/util/lint_core.gd", "res://tools/lint_rules.gd"],
+	RULE_AUTOLOAD: ["res://scripts/util/lint_core.gd", "res://tools/lint_rules.gd"],
 }
+
+
+## The project's autoload singleton names, read live rather than typed. Both the linter and
+## tools/compile_all.gd need them and a second hand-written copy is a list that goes stale
+## the day a singleton is added - at which point the file that uses it silently stops being
+## covered by the gate that skips such files.
+static func autoload_names() -> Array[String]:
+	var out: Array[String] = []
+	for prop: Dictionary in ProjectSettings.get_property_list():
+		var name := str(prop.get("name", ""))
+		if name.begins_with("autoload/"):
+			out.append(name.trim_prefix("autoload/"))
+	return out
 
 ## Colour is allowed to be written down where art is generated and where art data is
 ## typed; everywhere else a colour belongs in a SpriteStyle resource.
@@ -82,7 +103,7 @@ const COLOR_ALLOWED_PREFIXES: Array[String] = [
 ## tests/unit/test_lint_core.gd asserts each one has a fixture - a rule with no known-bad
 ## input is a rule nobody has proven fires.
 static func rule_names() -> Array[String]:
-	return [RULE_RNG, RULE_DIRECTION, RULE_COLOR]
+	return [RULE_RNG, RULE_DIRECTION, RULE_COLOR, RULE_AUTOLOAD]
 
 
 ## The roots tools/lint_rules.gd walks: everything this project owns, minus the suite.
@@ -95,11 +116,15 @@ static func lint_roots() -> Array[String]:
 
 
 ## Returns one string per violation: "<path>:<line>: <rule>: <detail>". Empty means clean.
-static func scan_text(path: String, text: String) -> Array[String]:
+##
+## `autoloads` is passed in rather than read from ProjectSettings so the rule stays a pure
+## function over text; tools/lint_rules.gd supplies the live list, never a typed copy.
+static func scan_text(path: String, text: String, autoloads: Array[String] = []) -> Array[String]:
 	var hits: Array[String] = []
 	var check_rng := not _is_exempt(path, RULE_RNG)
 	var check_direction := not _is_exempt(path, RULE_DIRECTION)
 	var check_color := not _is_exempt(path, RULE_COLOR) and not _color_allowed(path)
+	var check_autoload := path.begins_with(GAME_ROOT) and not autoloads.is_empty()
 
 	var line_no := 0
 	for raw_line in text.split("\n"):
@@ -136,6 +161,12 @@ static func scan_text(path: String, text: String) -> Array[String]:
 				if _looks_like_hex_color(literal):
 					hits.append(_hit(path, line_no, RULE_COLOR,
 						"\"%s\" is a hex colour; colours belong in a SpriteStyle" % literal))
+
+		if check_autoload:
+			for name: String in autoloads:
+				if code.contains(name + "."):
+					hits.append(_hit(path, line_no, RULE_AUTOLOAD,
+						"%s is a singleton; game code reads a GameContext instead - naming one here also drops this file from the parse and compile gates" % name))
 
 	return hits
 

@@ -195,3 +195,48 @@ between two games?
   version of the same choice and needs `Router.State.TITLE` to actually be entered, which
   nothing does yet. Revisit hook: `scripts/data/game_select.gd::ids()` already returns
   exactly the menu such a screen would show.
+
+## Game code lives in `games/`, is reached through `GameHooks`, and never names an autoload
+
+The fork: the template had nowhere to put gameplay. Every new mechanic landed in
+`world_scene.gd` — the file whose entire job is to be game-agnostic — and `ARCHITECTURE.md`
+said so out loud ("new mechanics → new files under `scripts/`").
+
+- **Chosen: a `GameHooks` subclass under `games/<id>/`, named by the game's manifest, handed
+  a `GameContext` rather than the autoloads.** One name in data resolves to one object with
+  one lifecycle, it is a `RefCounted` testable with no scene tree, and `on_interact`'s
+  return-`bool` shape is what a battle or a shop would need later without re-cutting the seam.
+- *A per-kind handler registry that game code registers into* — rejected: something has to
+  run before anything can register, and the only "runs at boot" slots are autoloads or
+  `world_scene._ready`, so it needs the hooks seam as its bootstrap and you end up with two
+  mechanisms. `deferred — worth trying` as an internal shape once a game outgrows a `match`;
+  hooks can hold one privately. Revisit hook: `GameHooks.on_interact`.
+- *A script path per map or per object in the map JSON* — `deferred — worth trying` as an
+  escape hatch, rejected as the primary seam: the interesting state is cross-cutting ("she
+  reacts because you opened the chest"), so it routes through flags anyway and the flag
+  vocabulary ends up spread across a dozen files with nowhere to validate it. It is also the
+  hardest to gate — there is no single function whose absence a mutant can prove.
+  Revisit hook: `Interaction.resolve`, which already takes hooks as a parameter.
+
+The **no-autoload** rule is the load-bearing half, and it is mechanical rather than stylistic.
+`--check-only` and `tools/compile_all.gd` both skip any script naming a singleton, so game
+code reaching for `GameState` would leave two of the four gates without saying anything.
+`GameContext` is therefore a snapshot plus an effect list — the `DialogRunner` pattern, which
+collects flags and lets the caller apply them — and `LintCore.RULE_AUTOLOAD` fails the build
+rather than a doc paragraph asking nicely.
+
+Three things stayed deliberately untouched, each with the reason it would have been the wrong
+work now:
+
+- *`Router`* — it owns input, not scenes, and does that correctly. `TITLE` and `PAUSED` are
+  unreachable because no title screen or pause menu exists: a missing feature, not a broken
+  router. (Its `state_name()` is a positional array literal that would mis-name every state
+  if a member were ever inserted — `deferred — worth fixing`, revisit hook `router.gd:27`.)
+- *Dialog effects* — conditional nodes, `clear_flag`, item/warp/sound nodes. An NPC reacting
+  to what you carry is three lines of game code (`ctx.say(a if ctx.has_flag(k) else b)`), and
+  `set_flag(key, false)` gives clearing for free. Inventing a mini-language instead would
+  have proven nothing about whether the hooks seam works, which is the point of the milestone.
+  `deferred — worth trying`; revisit hook `dialog_runner.gd::_go_to`.
+- *`SaveData`* — a quest is expressible in `flags` and `seen`, both already typed, persisted
+  and migrated. Adding a per-game dictionary is purely additive later and does not re-cut
+  this seam. `deferred`; trigger: the first game that needs a count rather than a boolean.

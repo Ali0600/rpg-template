@@ -1,0 +1,23 @@
+# A game's own hooks. Two violations and four near-misses.
+#
+# Naming a singleton here is banned for a mechanical reason, not a stylistic one: both the
+# per-file parse gate and tools/compile_all.gd SKIP any script that names one, so this file
+# would stop being compiled by anything and could only fail in front of a player.
+extends GameHooks
+
+
+func on_interact(ctx: GameContext, target: Interactor.Target) -> bool:
+	# VIOLATION 1 - the singleton, read directly.
+	if GameState.has_flag(&"has_gate_key"):
+		return false
+	# VIOLATION 2 - a different singleton, still a singleton.
+	Router.open_overlay(0)
+
+	# Near miss: a local whose name merely resembles one.
+	var game_state := ctx.has_flag(&"has_gate_key")
+	# Near miss: the name inside a string, which is text and not a call.
+	var note := "GameState.has_flag is what this used to do"
+	# Near miss: GameState. and Router. appear in this comment and must stay quiet.
+	# Near miss: the sanctioned way to ask for the same thing.
+	ctx.set_flag(&"looked_at_thing")
+	return game_state and note.is_empty() and target != null

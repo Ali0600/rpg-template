@@ -36,6 +36,29 @@ extends Resource
 ## "E or space to talk" is wrong for a game whose button does anything else.
 @export var controls_hint: String = ""
 
+## This game's own code: a GameHooks subclass, living under games/<id>/. Null is normal - a
+## game whose whole design is expressible in maps and dialog has none, as the demo does not.
+##
+## A Script rather than a path string so the reference is real: the exporter follows it, and
+## a rename fails at load rather than at the moment a player presses the button on a chest.
+@export var hooks: Script
+
+
+## A fresh instance of this game's hooks, or null if it has none. Fresh rather than shared
+## because a hook holding state across two runs of the same game is a save bug waiting to
+## happen, and there is exactly one caller.
+func new_hooks() -> GameHooks:
+	if hooks == null:
+		return null
+	if not hooks.can_instantiate():
+		push_error("game '%s': hooks script cannot be instantiated" % id)
+		return null
+	var made: Variant = hooks.new()
+	var typed := made as GameHooks
+	if typed == null:
+		push_error("game '%s': hooks script is not a GameHooks" % id)
+	return typed
+
 
 ## Everything wrong with this manifest, in the idiom of every other problems() here: all of
 ## them, not the first, so "what is broken about this game" is one read rather than five runs.
@@ -68,4 +91,12 @@ func problems() -> Array[String]:
 	else:
 		for p in config.problems():
 			out.append("config: " + p)
+
+	if hooks != null:
+		var made := new_hooks()
+		if made == null:
+			out.append("hooks script %s is not a GameHooks" % hooks.resource_path)
+		else:
+			for p in made.problems():
+				out.append("hooks: " + p)
 	return out
