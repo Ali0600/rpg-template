@@ -1,0 +1,17 @@
+# Fixture: deliberately violates the direction_text rule.
+extends RefCounted
+
+const FACING_DEFAULT := "down"
+
+func anim_for(facing: String) -> String:
+	if facing == "left":
+		return "walk_left"
+	# A compass spelling is the same mistake in a different vocabulary.
+	if facing == "north":
+		return "walk_up"
+	return "idle_down"
+
+func not_a_violation() -> String:
+	# "walk_left" and "walk_down" above are compound names, not bare directions, and this
+	# comment mentions left and up without either being a string literal.
+	return "portrait_left_eye"

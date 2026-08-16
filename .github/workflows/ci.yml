@@ -1,0 +1,72 @@
+name: check
+
+# Every push and pull request runs the same gate a developer runs locally, on a machine
+# that has never seen this project before. That is the point: tools/check.sh passing on the
+# laptop that wrote the code proves less than it appears to.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: this job only reads the repo. The Pages deploy lives in its own
+# workflow with its own, narrower grants.
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.1-stable
+  # Pinned here rather than fetched from the release's own SHA512-SUMS.txt: a checksum
+  # served by the same host as the file it describes cannot detect that host serving a
+  # different file. To update, bump GODOT_VERSION and paste the new sum from
+  # https://github.com/godotengine/godot-builds/releases/download/<version>/SHA512-SUMS.txt
+  GODOT_SHA512: 4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Cache the Godot binary
+        id: godot-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download and verify Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/${zip}"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$zip" "$url"
+          echo "${GODOT_SHA512}  ${zip}" | sha512sum --check --strict
+          mkdir -p ~/godot-bin
+          unzip -q "$zip" -d ~/godot-bin
+          mv ~/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot-bin/godot
+          chmod +x ~/godot-bin/godot
+
+      - name: Report the engine version
+        run: ~/godot-bin/godot --version
+
+      - name: Run the gate
+        env:
+          # tools/_engine.sh honours GODOT_BIN before any of its search paths, so CI and a
+          # laptop run the identical script against different engines.
+          GODOT_BIN: /home/runner/godot-bin/godot
+        run: tools/check.sh
+
+      - name: Prove the mutants still bite
+        env:
+          GODOT_BIN: /home/runner/godot-bin/godot
+        # The gate that proves the OTHER gates are real. A mutant that stops applying is a
+        # hard failure here, so a rename that silently drops coverage cannot merge.
+        run: tools/mutate_check.sh --all

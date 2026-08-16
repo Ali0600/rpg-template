@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://bq8xk2yv1n3ta"]
+
+; Placeholder main scene. A project with no main scene refuses to run, and the world is
+; built in M3 - this keeps `Godot --path .` launchable until then.
+
+[node name="Title" type="Node2D"]
+
+[node name="Label" type="Label" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 312.0
+offset_bottom = 40.0
+text = "2D RPG TEMPLATE
+sprite generator + generic systems"

@@ -1,0 +1,20 @@
+# Godot 4 editor/import cache
+.godot/
+.import/
+
+# Builds. export_presets.cfg is deliberately NOT ignored: CI exports the web build from
+# it, so an ignored preset would mean the deploy job has no preset to use.
+export/
+build/
+*.pck
+*.zip
+*.dmg
+*.exe
+
+# Test output
+reports/
+
+# OS / editor
+.DS_Store
+*.tmp
+*.log

@@ -1,0 +1,15 @@
+# Fixture: deliberately violates the unseeded_rng rule. Not a .gd file, so the repo's own
+# gates never compile or scan it - only tests/unit/test_lint_core.gd feeds it in.
+extends RefCounted
+
+func pick_hair_color(options: Array) -> String:
+	# Three violations: a global call, a global call as an argument, and a global method.
+	var roll := randi() % 3
+	var tint := randf_range(0.0, 1.0)
+	return str(options.pick_random(), roll, tint)
+
+func seeded_is_fine(rng: RandomNumberGenerator) -> int:
+	# Must NOT be reported: these are methods on a seeded generator.
+	var a := rng.randi_range(0, 3)
+	var b := rng.randf()
+	return a + int(b)

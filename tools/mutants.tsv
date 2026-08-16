@@ -1,0 +1,17 @@
+# One mutant per line: file <TAB> sed expression <TAB> suite that must notice <TAB> label.
+#
+# Run with tools/mutate_check.sh --all. Every expression must match EXACTLY ONE line; a
+# pattern that stops matching (a rename, or a long line re-wrapped) is a hard failure, not
+# a skip, because a mutant that silently stops applying reports a coverage it is no longer
+# providing.
+#
+# The sed delimiter is | so no pattern may contain one. A literal & in the REPLACEMENT
+# means "the whole match" to sed and has to be written \&.
+#
+# The rule: every gate ships with a mutant proving it bites. A rule with no mutant is a
+# rule nobody has proven is tested.
+scripts/util/lint_core.gd	s|hits.append\(_hit\(path, line_no, RULE_DIRECTION,|if false: hits.append(_hit(path, line_no, RULE_DIRECTION,|	tests/unit/test_lint_core.gd	a raw direction string stops being reported
+scripts/util/lint_core.gd	s|return at > 0 and code\[at - 1\] == "."|return false|	tests/unit/test_lint_core.gd	a seeded rng method call is reported as a global one
+scripts/util/dir.gd	s|if absf\(v.x\) >= absf\(v.y\):|if absf(v.x) > absf(v.y):|	tests/unit/test_dir.gd	a diagonal tie stops facing sideways
+scripts/util/dir.gd	s|const ALL: Array\[D\] = \[D.DOWN, D.LEFT, D.RIGHT, D.UP\]|const ALL: Array[D] = [D.DOWN, D.RIGHT, D.LEFT, D.UP]|	tests/unit/test_dir.gd	the canonical row order silently swaps left and right
+scripts/util/json_file.gd	s|if not \(parsed is Dictionary\):|if false:|	tests/unit/test_json_file.gd	a JSON array is accepted where an object is required

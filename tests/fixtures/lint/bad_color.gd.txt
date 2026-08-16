@@ -1,0 +1,13 @@
+# Fixture: deliberately violates the color_literal rule.
+extends Node
+
+func paint() -> void:
+	var box := ColorRect.new()
+	box.color = Color(0.1, 0.2, 0.3)
+	box.self_modulate = Color.RED
+	var accent := "#a7f070"
+	print(accent)
+
+func not_a_violation(style: Resource) -> Variant:
+	# Reading a colour out of style data is the supported way to have one.
+	return style.get("outline_color")

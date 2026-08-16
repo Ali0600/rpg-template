@@ -1,0 +1,13 @@
+# Fixture: obeys every rule, including the near-misses that must NOT fire.
+extends RefCounted
+
+const SPEED := 48.0
+
+func step(rng: SeededRng, facing: int) -> Dictionary:
+	# Directions come from Dir, randomness from a seeded generator, and the only string
+	# with a direction inside it is a compound animation name built by Dir.anim_name.
+	var jitter := rng.next_float(0.0, 1.0)
+	var anim := Dir.anim_name(&"walk", facing)
+	# A '#' inside a string must not truncate the line: the scanner tracks quotes.
+	var note := "not a comment # and not a colour"
+	return {"anim": anim, "jitter": jitter, "note": note, "speed": SPEED}

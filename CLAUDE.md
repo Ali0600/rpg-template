@@ -1,0 +1,100 @@
+# RPG template — engineering rules
+
+**This file is the contract.** If a rule here conflicts with your instinct, the rule wins.
+
+This repo is a *template*, not a game. Everything in it exists so that building a new RPG
+means editing `data/` and writing gameplay — never rewriting movement, sprites, saves or
+the boot sequence. A change that makes the template more specific to one game is a
+regression, however good that game looks.
+
+## 1. Hard rules
+
+- **Typed GDScript everywhere.** `untyped_declaration` and `unsafe_method_access` warnings
+  are on. No C#.
+- **Art is data.** Colours, palettes, cell sizes, frame counts and outline rules live in a
+  `SpriteStyle` resource under `data/styles/`. A colour literal in `scripts/world/` or
+  `scripts/ui/` is a build failure (`tools/lint_rules.gd`).
+- **Numbers live in data, not code.** A literal in a script that a designer would want to
+  change is a bug. Speeds, reaches and timings come from `data/game_config.tres`.
+- **Randomness is seeded.** `SeededRng` only. `randi()`, `randf()`, `Array.pick_random()`
+  and `Array.shuffle()` draw from a global generator nobody seeded, which silently breaks
+  every "same seed, same sprite" guarantee. The linter fails the build on them.
+- **Directions come from `Dir`.** Canonical order is `down, left, right, up`, everywhere,
+  forever: sheet rows, animation names, facing values. A raw `"left"` in a script is a
+  build failure.
+- **No logic in `.tscn`.** Scenes hold views.
+
+## 2. Architecture
+
+```
+scripts/spritegen/  pure RefCounted, deterministic, NO node access — the generator
+scripts/util/       dir, json_file, seeded_rng, hashing, lint_core
+scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData…)
+scripts/world/      Locomotion (pure) + the nodes that apply it
+scripts/ui/         DialogRunner (pure) + its view
+scripts/autoload/   singletons holding state
+scenes/             views only
+data/               all content: styles, rigs, characters, maps, dialog
+assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
+```
+
+Signals up, calls down, through `EventBus`. Autoloads hold state, scenes hold views; a view
+never assigns `GameState.x` — it emits and the owner responds. One writer per piece of
+state.
+
+**The sprite contract is PNG + `<name>.sheet.json`.** Nothing engine-specific is committed
+as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the
+seam that lets a procedural rig, a downloaded pack or an AI generator feed the same game.
+
+## 3. Testing
+
+**Every gate ships with a proof that it fails on the input it exists to catch.** A
+validator that has only ever passed is decoration.
+
+- Pure logic (`spritegen/`, `Locomotion`, `DialogRunner`, `MapData`) is `RefCounted` and
+  tested with no scene tree. Node behaviour uses gdUnit4's `scene_runner`.
+- Mutants are mandatory: a rule with no row in `tools/mutants.tsv` is a rule nobody has
+  proven is tested. `NOT APPLIED` means fix the pattern, never delete the row.
+- Gates run **unpiped** — `cmd | tail` exits with `tail`'s status, so a failing gate
+  reports success.
+- Autoloads outlive a suite: call `GameState.reset()` in `before_test`.
+- Assert on simulated frames, never wall-clock time.
+
+### GDScript rules that are not optional here
+
+- `--check-only -s <file>` is a parse, not a compile: it cannot resolve types from other
+  scripts, and it cannot run at all for a script naming an autoload. `tools/compile_all.gd`
+  and `tools/smoke_boot.gd` cover those two holes.
+- gdUnit4 exits **100** on a failed assertion, and **0** when a discovery-time parse error
+  crashes it — so `check.sh` greps for `handle_crash` and compares suites-ran against
+  suites-on-disk.
+- Never alias a project class in a `const` inside a test suite; it crashes the scanner.
+  Aliasing an **enum** (`const D := Dir.D`) is fine. Typed helpers live in `tests/helpers/`.
+- `Image.flip_x()` returns nothing and mutates in place. `var left = right.flip_x()` binds
+  null and mirrors the original.
+- Use `Image.create_empty`, `set_pixel`, and compare colours as `to_rgba32()` ints.
+  `blit_rect` overwrites alpha; `blend_rect` blends floats and produces off-palette values.
+- JSON has no integers. Cast every number you read, and `Array.assign()` into typed arrays.
+
+## 4. Commands
+
+```bash
+tools/check.sh                 # the gate: import, lint, parse, compile, tests, boot, art sync
+MUTANTS=1 tools/check.sh       # + prove every gate bites (milestone close)
+tools/mutate_check.sh --list   # what each mutant claims to cover
+```
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
+```
+
+Other headless tools: `setup_input_map.gd` (rewrites the input map — re-run after changing
+bindings), `lint_rules.gd`, `compile_all.gd`, `smoke_boot.gd`. `tools/_engine.sh` resolves
+the engine; `GODOT_BIN` overrides it. The Godot MCP is an accelerator for interactive work,
+**never** a dependency of the build.
+
+## 5. Generated art
+
+`assets/generated/**` is output. Edit the rig (`data/rigs/*.json`) or the style
+(`data/styles/*.tres`), re-run `gen_sprites.gd`, and commit both together — `check.sh`
+regenerates and fails if the committed PNGs disagree with what the generator now produces.
