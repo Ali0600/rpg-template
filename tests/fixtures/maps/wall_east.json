@@ -1,0 +1,5 @@
+{ "_readme": "A tiny corridor for the movement integration test: open floor with a wall at the east end, nothing else to interfere.",
+  "id": "wall_east", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["########", "#......#", "#......#", "#......#", "########"],
+  "spawns": { "start": [1, 2] } }

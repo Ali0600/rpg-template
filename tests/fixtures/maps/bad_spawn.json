@@ -1,0 +1,5 @@
+{ "_readme": "Deliberately broken: the spawn is outside the map, which drops the player into empty space.",
+  "id": "bad_spawn", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["####", "#..#", "####"],
+  "spawns": { "start": [9, 9] } }

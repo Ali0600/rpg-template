@@ -1,0 +1,5 @@
+{ "_readme": "Deliberately broken twice: the legend names a tile that does not exist, and row 1 uses a character the legend never defines. Both draw nothing.",
+  "id": "bad_legend", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall", "%": "lava" },
+  "ground": ["####", "#.?#", "####"],
+  "spawns": { "start": [1, 1] } }

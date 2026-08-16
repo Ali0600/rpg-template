@@ -1,0 +1,5 @@
+{ "_readme": "Deliberately broken: no spawns at all, so nothing can enter the map.",
+  "id": "no_spawn", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["####", "#..#", "####"],
+  "spawns": {} }

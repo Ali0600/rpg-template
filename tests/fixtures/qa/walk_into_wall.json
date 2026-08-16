@@ -1,0 +1,38 @@
+{
+	"_readme": [
+		"The headless smoke gate: does the game boot, does the player move, does a wall stop",
+		"it? Three things no unit test can answer, because all three need the real physics",
+		"server, the real input map and the real map data at once.",
+		"",
+		"Nothing here names a coordinate. Asserting 'x increased' survives someone tuning",
+		"walk_speed; asserting 'x == 104.0' does not, and a test that breaks on a tuning",
+		"change is a test people learn to edit rather than read."
+	],
+	"steps": [
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "world" },
+		{ "op": "note", "text": "walk east across open ground" },
+		{ "op": "mark", "name": "start" },
+		{ "op": "hold", "action": "move_right", "frames": 30 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 2 },
+		{ "op": "assert_moved", "axis": "x", "expect": "increase", "since": "start" },
+
+		{ "op": "note", "text": "keep going until the east wall stops us" },
+		{ "op": "hold", "action": "move_right", "frames": 420 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 2 },
+		{ "op": "mark", "name": "at_wall" },
+		{ "op": "hold", "action": "move_right", "frames": 60 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 2 },
+		{ "op": "assert_moved", "axis": "x", "expect": "unchanged", "since": "at_wall" },
+
+		{ "op": "note", "text": "and the wall does not trap us - we can walk back" },
+		{ "op": "mark", "name": "leaving" },
+		{ "op": "hold", "action": "move_left", "frames": 30 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 2 },
+		{ "op": "assert_moved", "axis": "x", "expect": "decrease", "since": "leaving" }
+	]
+}

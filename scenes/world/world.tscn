@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://dw0rld2vn8xqa"]
+
+; Views only. The map, its actors and the camera are all built from data at runtime, so a
+; new game changes data/maps and data/characters and never opens this file.
+
+[ext_resource type="Script" path="res://scripts/world/world_scene.gd" id="1_world"]
+
+[node name="World" type="Node2D"]
+script = ExtResource("1_world")
