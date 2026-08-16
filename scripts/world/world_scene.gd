@@ -19,6 +19,7 @@ var _dialog := DialogBox.new()
 ## npc id -> {"body": ActorBody, "dialog": String}
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
+var _hint := ControlsHint.new()
 
 
 func _ready() -> void:
@@ -28,6 +29,7 @@ func _ready() -> void:
 		return
 	add_child(_dialog)
 	_dialog.closed.connect(_on_dialog_closed)
+	add_child(_hint)
 	enter_map(DEFAULT_MAP, DEFAULT_SPAWN)
 
 
@@ -63,6 +65,8 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	# arrives with matching chrome rather than the previous map's.
 	if _dialog.get_child_count() == 0:
 		_dialog.setup(_style, get_viewport_rect().size)
+	if _hint.get_child_count() == 0:
+		_hint.setup(_style, get_viewport_rect().size, "WASD / arrows to walk    E or space to talk")
 	_spawn_player(data, spawn_id)
 	_spawn_npcs(data)
 	_configure_camera(data)
@@ -145,7 +149,10 @@ func _physics_process(_delta: float) -> void:
 	if not Router.player_can_move():
 		_player.halt()
 		return
-	var step := _player.apply(Locomotion.read_input())
+	var input := Locomotion.read_input()
+	if input != Vector2.ZERO:
+		_hint.dismiss()
+	var step := _player.apply(input)
 	GameState.set_player(_player.global_position, step.facing)
 
 
