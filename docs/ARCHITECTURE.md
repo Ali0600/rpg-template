@@ -103,7 +103,9 @@ has proven is tested — and three times during this build a mutant proved a tes
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
 - **Writing** → files in `data/dialog/`.
-- **Feel** → `data/game_config.tres`, or a config of the game's own.
+- **Feel** → `data/game_config.tres`. A game *may* bring its own config, and should only do so
+  when its design demands it: a second game that varies a knob for no reason turns every
+  difference a player feels into a suspected defect. Both shipped games share one.
 - **New mechanics** → a `GameHooks` subclass under `games/<id>/`, named by the manifest.
   Never under `scripts/`: that tree is the template, and every mechanic added to it makes
   the template more specific to one game.

@@ -9,6 +9,11 @@
 ; lantern are the only warm things on screen. The outline is SOLID and very dark, which
 ; closes the shapes up in low light - a tinted outline disappears when every material is
 ; already dark.
+;
+; The timings below MATCH gb16 exactly, and that is the point rather than an oversight. A
+; style may move its own way - nes16 does - but the game wearing this one is the template's
+; control instance, so the only axis it varies is colour. A gait that differs for no reason
+; the design asked for makes every difference a player feels read as a bug.
 
 [ext_resource type="Script" path="res://scripts/data/sprite_style.gd" id="1_style"]
 
@@ -73,7 +78,7 @@ ui_colors = {
 "text": "#e8e0d0"
 }
 walk_frames = 4
-walk_fps = 7
-idle_fps = 2
-bob_offsets = Array[int]([0, -1, 0, 0])
+walk_fps = 8
+idle_fps = 4
+bob_offsets = Array[int]([0, -1, 0, -1])
 mirror_left_from_right = true

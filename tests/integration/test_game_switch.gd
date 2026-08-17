@@ -32,6 +32,18 @@ func after_test() -> void:
 ## Boots the world and puts a named game in it. start_game is called explicitly rather than
 ## leaning on _ready, so this suite says what it is testing regardless of what the project
 ## setting happens to say about which game boots.
+## The quest in every way except that its config is distinguishable. The two shipped games
+## deliberately share one config now - a second instance that varies a knob its design never
+## asked for turns every difference a player feels into a suspected defect - so "the player was
+## rebuilt with the config from the manifest we handed over" needs a config only this test
+## hands over. Stronger than the old assertion too: it no longer depends on what ships.
+func _quest_with_its_own_config() -> GameManifest:
+	var manifest := (load(QUEST) as GameManifest).duplicate() as GameManifest
+	var config := (manifest.config as GameConfig).duplicate() as GameConfig
+	config.id = &"switched"
+	manifest.config = config
+	return manifest
+
 func _boot(manifest_path: String) -> Node2D:
 	var scene := load("res://scenes/world/world.tscn") as PackedScene
 	_world = scene.instantiate() as Node2D
@@ -57,12 +69,12 @@ func test_the_player_is_rebuilt_with_the_new_games_config() -> void:
 	var before: ActorBody = _world.player()
 	assert_str(String(before.config.id)).is_equal("default")
 
-	_world.start_game(load(QUEST) as GameManifest)
+	_world.start_game(_quest_with_its_own_config())
 	assert_bool(is_instance_valid(before)).override_failure_message(
 		"the first game's player is still alive after the switch").is_false()
 	assert_object(_world.player()).is_not_null()
 	var after: ActorBody = _world.player()
-	assert_str(String(after.config.id)).is_equal("quest")
+	assert_str(String(after.config.id)).is_equal("switched")
 
 func test_the_flags_of_the_game_before_do_not_carry_over() -> void:
 	# GameState.reset() has existed since M3 with no caller. A switch is what it was for:
