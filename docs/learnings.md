@@ -310,3 +310,26 @@ var, the command line, the clock) is a test whose meaning changes when that stat
 the change is silent, because the assertion still passes. When a mutant starts surviving after
 a config change, the config was propping the test up. And when a guard's mutant survives, ask
 which input it is really for; usually there is an edge case nobody wrote down.
+
+## A control instance must hold constant everything the experiment does not vary
+
+The second game shipped with `allow_diagonal = false` and a slower walk cycle. Both were
+deliberate, both were reasonable in isolation, and both were wrong — because that game's job
+is to be the template's control instance. It exists to answer "what does building a game
+actually change?", and every knob it varies for its own reasons is noise in that answer.
+
+**Why it came up:** the user played it, could not walk diagonally, and asked what *else* was
+missing. That question is the whole cost. One unexplained difference converts every future
+difference into a suspected defect, and there is no cheap way to win that trust back — you
+have to go and prove the negative for every other knob.
+
+The gates could not have caught it, and that part is instructive too. All seven scripted play
+sessions hold a single direction at a time, so `allow_diagonal` is invisible to every one of
+them; the shipped-with-the-bug config passes `finish_the_quest.json` cleanly. A feature can be
+absent for a whole milestone while every gate stays green, if no gate ever exercises the axis
+it lives on.
+
+**Takeaway:** when you build a second instance to validate an abstraction, hold every variable
+the design does not demand — same config, same timings, same everything — and vary only what
+you are trying to prove is variable. And a difference chosen *on someone's behalf* is a
+decision to surface, not a detail to write into a file comment.

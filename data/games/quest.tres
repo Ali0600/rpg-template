@@ -2,9 +2,14 @@
 
 ; The second game, and the point of the exercise: it exists entirely as files ADDED beside
 ; the template. Nothing under scripts/, tools/ or scenes/ changed to make it run.
+;
+; It shares the template's game_config.tres ON PURPOSE. A game may bring its own config when
+; its design demands one; this game's design does not, and a second instance that varies a
+; knob it has no reason to vary turns every difference a player feels into a suspected
+; defect. Same feel, different game - stated as a file reference rather than a promise.
 
 [ext_resource type="Script" path="res://scripts/data/game_manifest.gd" id="1_manifest"]
-[ext_resource type="Resource" path="res://data/quest_config.tres" id="2_config"]
+[ext_resource type="Resource" path="res://data/game_config.tres" id="2_config"]
 [ext_resource type="Script" path="res://games/quest/quest_hooks.gd" id="3_hooks"]
 
 [resource]

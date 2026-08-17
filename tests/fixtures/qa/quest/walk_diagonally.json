@@ -1,0 +1,38 @@
+{
+	"_readme": [
+		"The Barred Gate moves exactly like the demo, and this is the assertion that says so.",
+		"",
+		"It exists because it did not, and a player found out before any gate did. The second",
+		"game shipped with allow_diagonal = false in a config of its own - a deliberate choice,",
+		"made on the player's behalf, buried in a file comment. Seven scripted play sessions all",
+		"passed, because every one of them holds a single direction at a time.",
+		"",
+		"So: hold two directions at once and require BOTH axes to move. With diagonals off the",
+		"dominant axis wins and ties go horizontal, which means y would sit perfectly still -",
+		"and that is exactly what this catches."
+	],
+	"steps": [
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "world" },
+		{ "op": "assert_map", "map": "quest_village" },
+		{ "op": "assert_position", "tile": [5, 5] },
+
+		{ "op": "note", "text": "south-east across open ground: both keys down together" },
+		{ "op": "mark", "name": "corner" },
+		{ "op": "hold", "action": "move_right", "frames": 1 },
+		{ "op": "hold", "action": "move_down", "frames": 30 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "assert_moved", "axis": "x", "expect": "increase", "since": "corner" },
+		{ "op": "assert_moved", "axis": "y", "expect": "increase", "since": "corner" },
+
+		{ "op": "note", "text": "and back north-west, so it is not one lucky direction" },
+		{ "op": "mark", "name": "away" },
+		{ "op": "hold", "action": "move_left", "frames": 1 },
+		{ "op": "hold", "action": "move_up", "frames": 30 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "assert_moved", "axis": "x", "expect": "decrease", "since": "away" },
+		{ "op": "assert_moved", "axis": "y", "expect": "decrease", "since": "away" }
+	]
+}

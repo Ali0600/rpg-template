@@ -5,14 +5,14 @@
 	],
 	"animations": {
 		"idle": {
-			"fps": 2,
+			"fps": 4,
 			"frames": [
 				0
 			],
 			"loop": true
 		},
 		"walk": {
-			"fps": 7,
+			"fps": 8,
 			"frames": [
 				0,
 				1,

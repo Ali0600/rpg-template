@@ -299,3 +299,33 @@ project either boots a game or offers one, which is the real property.
 
 Closing the M7 note that pointed at `GameSelect.ids()` as the revisit hook: a menu needs
 titles, start maps and characters, so it is built on `manifests()` and `unresolved()` instead.
+
+## A second game varies only what its design demands
+
+The Barred Gate shipped with a `GameConfig` of its own, whose only difference from the
+template's was `allow_diagonal = false` — "the pure four-direction feel of the earliest
+top-down RPGs". The reasoning was fine. The decision was not mine to make quietly.
+
+The user found it in the first minute of playing and asked the right question: *what else is
+missing?* That is the real cost. A second game exists to **isolate** what building a game
+actually changes, and every gratuitous difference destroys that: once one thing differs for no
+reason the design asked for, the player cannot tell a deliberate choice from a defect, and the
+control instance has stopped being a control.
+
+- **Chosen: The Barred Gate shares `data/game_config.tres`, and `dusk16` matches `gb16`'s
+  animation timing exactly.** The only axis the second game moves is colour — palette and
+  outline. Anything that feels different from now on is a bug, by construction.
+- *Keep the four-direction feel as a shipped design choice* — rejected. It is a good idea for
+  some game; it is a bad idea for the one whose job is to hold everything else constant.
+  A game that wants it sets one field, and `GameConfig.allow_diagonal` is still there for it.
+- *Keep `dusk16`'s slower gait* — rejected for the same reason, though it was the more
+  defensible of the two: `STYLE_GUIDE` does list timing as a style axis and `nes16` varies it.
+  But the game wearing `dusk16` is the control, so its style is a control too.
+
+The rule this leaves: **a game brings its own config when its design needs one, not to have
+one.** `GameManifest.config` is still per-game — the capability is the point of the seam — and
+`docs/ARCHITECTURE.md` now says when to use it.
+
+`tests/fixtures/qa/quest/walk_diagonally.json` is the gate. Every one of the seven play
+sessions that existed held a single direction at a time, so none of them could see this — the
+new one holds two and requires both axes to move.
