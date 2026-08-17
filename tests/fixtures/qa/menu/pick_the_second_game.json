@@ -1,0 +1,33 @@
+{
+	"_readme": [
+		"The picker, chosen from. This is the only script check.sh runs with NO --game= flag:",
+		"the directory it sits in is not the name of a game, so the gate passes nothing, and",
+		"with two games shipped and the boot setting empty the picker is what comes up.",
+		"",
+		"It moves the cursor before confirming ON PURPOSE. Confirming the first row would pass",
+		"just as well if the picker were ignored entirely and the world fell through to some",
+		"default - the whole assertion is that the SECOND game boots, which nothing but a real",
+		"choice can produce."
+	],
+	"steps": [
+		{ "op": "wait", "frames": 10 },
+		{ "op": "note", "text": "nothing chose, so a human is asked" },
+		{ "op": "assert_state", "state": "title" },
+		{ "op": "assert_map", "map": "" },
+
+		{ "op": "note", "text": "move off the first row, then play" },
+		{ "op": "press", "action": "move_down" },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 20 },
+
+		{ "op": "assert_state", "state": "world" },
+		{ "op": "assert_map", "map": "quest_village" },
+		{ "op": "note", "text": "and it is a real world, not a still frame" },
+		{ "op": "mark", "name": "spawned" },
+		{ "op": "hold", "action": "move_up", "frames": 30 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "assert_moved", "axis": "y", "expect": "decrease", "since": "spawned" }
+	]
+}

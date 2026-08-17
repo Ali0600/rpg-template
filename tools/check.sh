@@ -133,12 +133,20 @@ play_ran=0
 for game_dir in tests/fixtures/qa/*/; do
   [ -d "$game_dir" ] || continue
   game_id="$(basename "$game_dir")"
+  # A directory named after a game drives that game. One that is NOT the name of a game runs
+  # with no --game= at all, which is how a script gets to meet the picker: the flag is exactly
+  # what makes the picker stay out of the way. Derived from what is in data/games rather than
+  # from a list here, so it cannot go stale.
+  game_flag="--game=$game_id"
+  if [ ! -f "data/games/$game_id.tres" ]; then
+    game_flag=""
+  fi
   for script in "$game_dir"*.json; do
     [ -f "$script" ] || continue
     play_ran=$((play_ran + 1))
-    "$GODOT" --headless --path . -- --qa-script="res://$script" --game="$game_id"
+    "$GODOT" --headless --path . -- --qa-script="res://$script" $game_flag
     if [ $? -ne 0 ]; then
-      echo "  FAILED: $script (--game=$game_id)"
+      echo "  FAILED: $script ${game_flag:-(no game chosen: the picker decides)}"
       play_fail=1
     fi
   done

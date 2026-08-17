@@ -82,7 +82,7 @@
 		}
 	],
 	"objects": [
-		{ "id": "well_sign", "tile": [4, 9], "kind": "sign", "dialog": "well_sign" }
+		{ "id": "well_sign", "tile": [4, 9], "kind": "sign", "dialog": "well_sign", "set_flag": "read_the_notice" }
 	],
 	"warps": [
 		{ "tile": [19, 6], "map": "demo_cave", "spawn": "west_gate" }

@@ -82,9 +82,8 @@ Regenerate the art after editing a rig or a style:
 If changing any of the first six needs a code edit, that's a bug in the template.
 
 A **game** is one `data/games/<id>.tres`: its first map and spawn, the character the player
-wears, the tuning it uses, the line of on-screen help. More than one can live side by side —
-`config/game` in `project.godot` picks the one that boots, and `--game=<id>` overrides it for
-a headless run. With exactly one game, neither is needed.
+wears, the tuning it uses, the line of on-screen help, and the one script it is allowed to
+have. More than one can live side by side, and the next section is what happens when they do.
 
 ## Two games, one template
 
@@ -97,8 +96,12 @@ The repo ships **two** games, which is the only honest way to claim the template
 | Verbs | walk, talk, read a well | …plus a stash that opens once, and a gate that stays shut |
 | Code | none | one file: which of the warden's three lines to say |
 
-`config/game` in `project.godot` chooses the one that boots; `--game=<id>` overrides it for a
-headless run. Both are driven end to end by scripted play sessions in CI.
+**Launch it and it asks which one.** With more than one game and nothing choosing between
+them, you get a picker: the cursor recolours the screen to that game's palette and stands its
+own player character next to the list. Tab reopens it mid-play, so switching is a keypress
+rather than an edit. Set `config/game` in `project.godot` to boot straight into one, or pass
+`--game=<id>`; either skips the picker, which is how the scripted play sessions in CI drive
+each game directly.
 
 The second game was added **without editing a single file under `scripts/`, `tools/` or
 `scenes/`** — 31 files, all of them new. That is the template's claim, stated as something
@@ -122,9 +125,10 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 | --- | --- |
 | `scripts/spritegen/` | The generator. Pure, deterministic, no node access. |
 | `scripts/world/` | Movement, collision, maps, camera, interaction. |
-| `scripts/ui/` | Dialog runner and its view, Sprite Lab. |
+| `scripts/ui/` | Dialog runner and its view, the game picker, Sprite Lab. |
 | `scripts/autoload/` | EventBus, Registry, GameState, SaveManager, Router, AudioBus, Qa. |
-| `data/` | All content: styles, rigs, characters, maps, dialog, config. |
+| `data/` | All content: games, styles, rigs, characters, maps, dialog, config. |
+| `games/<id>/` | A game's own code, if it has any. |
 | `assets/generated/` | Build output of `tools/gen_sprites.gd` — never hand-edited. |
 | `tools/` | Headless scripts and the gate. |
 | `tests/` | gdUnit4 suites, fixtures, and the mutation harness's targets. |
@@ -145,6 +149,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M5** — saves with migrations, audio seam, content registry
 - [x] **M6** — web export and a live demo
 - [x] **M7** — a second game, built to find out whether the first six were true
+- [x] **M8** — a game picker, so switching is a keypress rather than an edit
 
 ## Experience Gained
 

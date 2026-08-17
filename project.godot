@@ -13,10 +13,11 @@ config_version=5
 config/name="Sprite Generator RPG Template"
 config/description="A reusable 2D top-down RPG template: a deterministic procedural sprite generator plus the generic systems, so only art style and gameplay design change per game."
 run/main_scene="res://scenes/world/world.tscn"
-; Which game the world boots. It sits beside main_scene because it is the same kind of fact,
-; and it rides in the exported .pck, so the editor, CI and the web build all read one value.
-; `--game=<id>` overrides it for a QA run. See scripts/data/game_select.gd.
-config/game="demo"
+; Which game the world boots, and EMPTY on purpose: with two games shipped and nothing
+; choosing between them, the player is asked. Set it to an id to skip the picker and boot
+; straight into that game; `--game=<id>` overrides it either way, which is how every scripted
+; play session gets a world rather than a menu. See scripts/data/game_select.gd.
+config/game=""
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 

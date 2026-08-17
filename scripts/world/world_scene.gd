@@ -25,6 +25,9 @@ var _dialog: DialogBox
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
 var _hint: ControlsHint
+## The game-select screen, when it is up. It belongs to the World rather than to a game:
+## _teardown_game must never touch it, because it is the thing that asked for the teardown.
+var _picker: GamePicker
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
 ## on every frame spent standing there.
 var _last_tile := Vector2i(-9999, -9999)
@@ -37,12 +40,83 @@ var _entry_depth := 0
 func _ready() -> void:
 	# Resolution happens here and exactly once per process; construction is start_game's job,
 	# so booting and switching cannot drift into two different ideas of what starting means.
+	var undecided := GameSelect.unresolved()
+	if not undecided.is_empty():
+		# The one refusal a human standing in front of the screen can actually settle. Every
+		# OTHER way GameSelect fails - no manifests at all, a --game= naming a game that does
+		# not exist - stays an error, because a menu of one entry or none is a worse answer
+		# than the message.
+		_open_picker(undecided)
+		return
 	var game := GameSelect.resolve()
 	if game == null:
 		# GameSelect has already said which of the three ways it failed. There is no default
 		# to fall back to: picking a game is exactly what it refused to guess at.
 		return
 	start_game(game)
+
+
+## Puts the game-select screen up, if there is anything worth choosing between.
+func _open_picker(choices: Array[GameManifest]) -> bool:
+	if _picker != null or choices.size() < 2:
+		return false
+	_picker = GamePicker.new()
+	_picker.chosen.connect(_on_game_chosen)
+	_picker.cancelled.connect(_on_picker_cancelled)
+	add_child(_picker)
+	# _game is null at boot and the running manifest mid-play. Null IS "nothing is running",
+	# so the menu needs no flag telling it which situation it is in - and the same field gives
+	# it the right starting cursor position.
+	_picker.setup(GameMenu.of(choices, _game), get_viewport_rect().size)
+	if _game == null:
+		Router.set_state(Router.State.TITLE)
+	else:
+		# Pushed rather than set, so cancelling knows what it was covering.
+		Router.open_overlay(Router.State.TITLE)
+	return true
+
+
+func _close_picker() -> void:
+	if _picker == null:
+		return
+	_picker.queue_free()
+	_picker = null
+	# The picker repainted the clear colour in whichever palette the cursor ended on. Put the
+	# running map's back; at boot there is nothing behind it to restore it for.
+	if _style != null:
+		RenderingServer.set_default_clear_color(_style.ui_color("panel"))
+
+
+func _on_game_chosen(manifest: GameManifest) -> void:
+	# Deferred, and not as a precaution. free() inside an input callback frees nodes while the
+	# tree is still dispatching to them; and the `interact` press that confirmed this choice is
+	# still in flight, so a world built in this same frame would meet it through its own
+	# InputGate, which knows nothing of the picker's.
+	_commit_choice.call_deferred(manifest)
+
+
+func _commit_choice(manifest: GameManifest) -> void:
+	if _game != null and manifest.id == _game.id:
+		# Re-picking what is already running IS cancelling. Restarting instead would throw away
+		# the player's flags because the cursor happened not to move, which is a worse surprise
+		# than nothing happening.
+		_on_picker_cancelled(manifest)
+		return
+	_close_picker()
+	if start_game(manifest):
+		return
+	# enter_map failed - a bad map, a missing style, ungenerated tiles. Router.reset() inside
+	# enter_map never ran, so we are in TITLE with no world and no menu: a frozen screen with
+	# an error in a log nobody is reading. Put the menu back.
+	push_error("World: game '%s' would not start" % manifest.id)
+	_open_picker(GameSelect.manifests())
+
+
+func _on_picker_cancelled(_back_to: GameManifest) -> void:
+	_close_picker()
+	# The state the picker covered, restored. Only reachable mid-play: at boot the menu has
+	# nothing behind it and refuses to be cancelled at all.
+	Router.close_overlay()
 
 
 ## Boots a game from scratch: tears down whatever was running, then builds the new one.
@@ -326,7 +400,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	# handled twice opens a conversation and immediately advances past its first line.
 	if not _gate.accept(event):
 		return
-	if not Router.accepts_world_input() or not event.is_action(&"interact"):
+	if not Router.accepts_world_input():
+		return
+	# Inside the same guard as interacting, so the picker cannot be opened from inside a
+	# conversation - Router already refuses world input while one is on screen.
+	if event.is_action(&"menu"):
+		if _open_picker(GameSelect.switchable()):
+			get_viewport().set_input_as_handled()
+		return
+	if not event.is_action(&"interact"):
 		return
 	if try_interact():
 		get_viewport().set_input_as_handled()

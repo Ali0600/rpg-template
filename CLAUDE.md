@@ -46,9 +46,15 @@ state.
 **Which game runs is data, not code.** `data/games/<id>.tres` (`GameManifest`) holds the first
 map, the spawn, the player's character, the config and the controls hint. `GameSelect` picks
 one: `--game=<id>` beats the `application/config/game` project setting, which beats "there is
-only one game", and two games with nothing choosing is a **refusal** — a guessed game presents
-as the game you meant to run behaving strangely. Nothing in `scripts/world/` may name a map,
-a spawn or a character again.
+only one game". Nothing in `scripts/world/` may name a map, a spawn or a character again.
+
+**When nothing chooses, ask — never guess.** With more than one game and no explicit choice,
+`GameSelect.should_ask()` is true and the world puts up `GamePicker` rather than booting one.
+That is not a softening of the old refusal, it is the same rule with someone to ask: a guessed
+game presents as the game you meant to run behaving strangely. The shipped `config/game` is
+**empty on purpose**. Tab reopens the picker mid-play, and `start_game()` - never `enter_map` -
+is what switches, because `enter_map`'s four build-once guards are right for a warp and wrong
+across games.
 
 **Gameplay goes in `games/<id>/`, never in `scripts/`.** A game's code is a `GameHooks`
 subclass named by its manifest. It is handed a `GameContext` and **may not name an autoload** —

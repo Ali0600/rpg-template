@@ -65,15 +65,22 @@ static func ids() -> Array[String]:
 ## same file, so the two cannot drift - which is the whole reason this file exists.
 static func unresolved() -> Array[GameManifest]:
 	var all := manifests()
-	if all.size() < 2:
-		return []
 	var available: Array[String] = []
 	for manifest in all:
 		available.append(String(manifest.id))
-	var chosen := choose(available, args(), str(ProjectSettings.get_setting(SETTING, "")))
-	if not chosen.is_empty():
+	if not should_ask(available, args(), str(ProjectSettings.get_setting(SETTING, ""))):
 		return []
 	return all
+
+
+## Whether a human still has to choose, as a pure function over the same three inputs choose()
+## takes - because the process a test runs in has its own command line and its own setting, and
+## neither can be staged. The rule they share can be, and this is it: more than one game, and
+## nothing else having chosen.
+static func should_ask(game_ids: Array[String], args_in: PackedStringArray, setting: String) -> bool:
+	if game_ids.size() < 2:
+		return false
+	return choose(game_ids, args_in, setting).is_empty()
 
 
 ## What a mid-play switch may offer: every game, when there is more than one. Unlike
