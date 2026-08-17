@@ -55,6 +55,38 @@ static func ids() -> Array[String]:
 	return out
 
 
+## The games a human still has to choose between: every manifest on disk, but ONLY when the
+## precedence chose nothing AND there is more than one. Empty otherwise - including for the two
+## failures a menu cannot fix (no manifests at all, or a --game= naming a game that does not
+## exist), which resolve() still reports as errors. A menu with one entry, or none, is a worse
+## answer than the message.
+##
+## This is NOT a second precedence. It asks choose() the same question resolve() asks, in the
+## same file, so the two cannot drift - which is the whole reason this file exists.
+static func unresolved() -> Array[GameManifest]:
+	var all := manifests()
+	if all.size() < 2:
+		return []
+	var available: Array[String] = []
+	for manifest in all:
+		available.append(String(manifest.id))
+	var chosen := choose(available, args(), str(ProjectSettings.get_setting(SETTING, "")))
+	if not chosen.is_empty():
+		return []
+	return all
+
+
+## What a mid-play switch may offer: every game, when there is more than one. Unlike
+## unresolved() the precedence is irrelevant here - the player has already overruled it by
+## asking. A separate function rather than a flag, so the two questions cannot be confused at a
+## call site.
+static func switchable() -> Array[GameManifest]:
+	var all := manifests()
+	if all.size() < 2:
+		return []
+	return all
+
+
 ## The command line, from both halves of it. `-s tools/x.gd --game=quest` lands in
 ## get_cmdline_args; `-- --qa-script=... --game=quest` lands in get_cmdline_user_args. One
 ## flag name has to work in both or the QA harness cannot reach a second game at all.
