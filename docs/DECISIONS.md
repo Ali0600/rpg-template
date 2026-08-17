@@ -265,3 +265,37 @@ What it found, which is the argument for having done it at all: three template d
 six milestones of unit tests, mutants and gates had not — a QA op that raced the steps after
 it, an art gate that walked a different set of directories than the game did, and three
 disagreeing lists of "which directories does this project own".
+
+## Nothing choosing a game asks a human, rather than refusing
+
+M7 decided that two games with nothing choosing between them is a **refusal**, because a
+guessed game presents as the game you meant to run behaving strangely. That was right, and it
+was right for a reason with an expiry date: there was nobody to ask. This is that entry
+landing, and it does not overturn the decision so much as finish it.
+
+- **Chosen: the picker is what happens when `GameSelect.should_ask()` is true** — more than
+  one game, and neither `--game=` nor the project setting nor "there is only one" having
+  answered. `choose()` is untouched, so the precedence stays one pure function in one file,
+  and the picker is a new *consumer* of its "nothing chose" answer rather than a competing
+  rule. Everything that already chose still skips the menu, which is why all seven scripted
+  play sessions run unchanged.
+- *A picker that always appears at boot, with `--game=` skipping it* — rejected: it makes the
+  project setting mean "preselected row" instead of "the game that boots", and a template
+  cloned down to one game would show a menu with one entry in it.
+- *Reaching the picker only through Tab, leaving boot alone* — rejected: the deployed page has
+  no command line and no Tab-before-you-start, so the one surface where choosing matters most
+  would be the one surface that could not.
+- *A separate title scene, swapped to with `change_scene_to_file`* — `rejected — for now`. It
+  would fix the four build-once guards for free by rebuilding the world from scratch, but it
+  is the repo's first ever scene change, `Router` deliberately owns input rather than scenes,
+  autoloads survive a swap so `GameState.reset()` is still needed, and the deferred-frame
+  timing is a new source of races for a QA harness that steps in physics frames. The overlay
+  costs one `CanvasLayer` and a teardown that is testable in one file.
+
+**The setting ships empty**, which turned two gates red and both fixes were improvements:
+`smoke_boot` now validates *every* shipped manifest rather than only the one that boots — with
+a picker, every game is reachable from the first screen — and `test_game_select` asserts the
+project either boots a game or offers one, which is the real property.
+
+Closing the M7 note that pointed at `GameSelect.ids()` as the revisit hook: a menu needs
+titles, start maps and characters, so it is built on `manifests()` and `unresolved()` instead.

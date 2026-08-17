@@ -287,3 +287,26 @@ above and silently misses a warp one row down.
 rather than counting frames to a coordinate: a collider lands on the same pixel every run,
 while a count lands wherever the tuning happens to be today. And never let a hold span a
 transition unless the far side also ends against something solid.
+
+## Clearing a default can make a mutant survivable, because a test's inputs came from the process
+
+Enabling the game picker meant emptying `config/game` so that nothing chooses at boot. One
+test then failed — expected — but fixing it exposed something worse: a mutant that had been
+killing happily started to **survive**. The test had been asserting `unresolved()` is empty
+"when something already chose", and what made that true was the project setting, read out of
+the running process. With the setting gone, the assertion was true for a different reason, and
+the branch the mutant broke was no longer reachable from any test.
+
+The fix was to make the decision pure — `should_ask(ids, args, setting)` — so a test supplies
+all three inputs instead of inheriting two of them from whichever process it happens to run in.
+That is the same shape as `choose()`, which was already written that way for the same reason.
+
+A second mutant on the new function then survived too, and it was also right: the
+`ids.size() < 2` guard is redundant for **one** game, because `choose()` already answers with
+that game. It only earns its keep at **zero**, which nothing had asserted.
+
+**Takeaway:** a test whose inputs come from ambient process state (a project setting, an env
+var, the command line, the clock) is a test whose meaning changes when that state does — and
+the change is silent, because the assertion still passes. When a mutant starts surviving after
+a config change, the config was propping the test up. And when a guard's mutant survives, ask
+which input it is really for; usually there is an edge case nobody wrote down.

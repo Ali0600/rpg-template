@@ -56,20 +56,48 @@ func test_an_unknown_name_is_returned_so_the_error_can_name_it() -> void:
 	assert_str(GameSelect.choose(TWO, args, "demo")).is_equal("typo")
 
 
-func test_the_shipped_project_resolves_to_a_game() -> void:
-	# The four pure cases above say nothing about whether this project is wired up. If the
-	# setting were misspelt or the manifest missing, every test above would still pass.
-	var game := GameSelect.resolve()
-	assert_object(game).is_not_null()
+func test_the_shipped_project_either_boots_a_game_or_offers_a_menu() -> void:
+	# The four pure cases above say nothing about whether this project is wired up: if every
+	# manifest were missing, all of them would still pass. Since the boot setting is empty on
+	# purpose, "resolves" is no longer the whole of being wired up - offering a choice is the
+	# other half, and exactly one of the two must be true.
 	assert_bool(GameSelect.ids().is_empty()).is_false()
+	var boots := GameSelect.resolve() != null
+	var asks := not GameSelect.unresolved().is_empty()
+	assert_bool(boots or asks).override_failure_message(
+		"the project neither boots a game nor offers one to choose").is_true()
 
 func test_an_explicit_choice_leaves_nothing_for_a_human_to_resolve() -> void:
-	# unresolved() is what the picker is built on, and it must stay OUT of the way whenever
-	# the precedence already answered - which is what keeps every scripted play session, all
-	# of which pass --game=, running straight into a world.
+	# The rule the picker is built on, over literal inputs: the process a test runs in has its
+	# own command line and its own project setting and neither can be staged, but the rule they
+	# feed can be. This is what keeps every scripted play session - all of which pass --game= -
+	# running straight into a world instead of into a menu.
+	assert_bool(GameSelect.should_ask(TWO, PackedStringArray(["--game=quest"]), "")).is_false()
+	assert_bool(GameSelect.should_ask(TWO, _no_args(), "demo")).is_false()
+
+func test_nothing_choosing_between_two_games_is_what_summons_the_picker() -> void:
+	assert_bool(GameSelect.should_ask(TWO, _no_args(), "")).is_true()
+
+func test_a_single_game_never_stops_to_ask() -> void:
+	# A freshly cloned template has one game and should simply run. A picker with one row is a
+	# worse answer than no picker at all.
+	assert_bool(GameSelect.should_ask(ONE, _no_args(), "")).is_false()
+
+func test_no_games_at_all_is_an_error_rather_than_an_empty_menu() -> void:
+	# The case the size guard is actually for, and the reason a mutant caught that the ONE-game
+	# case does not need it: choose() already answers "demo" when there is only demo. With no
+	# games there is nothing for it to answer, and a picker showing an empty list would be a
+	# worse report of "this project has no games" than the error resolve() raises.
+	var none: Array[String] = []
+	assert_bool(GameSelect.should_ask(none, _no_args(), "")).is_false()
+
+func test_the_shipped_project_asks_rather_than_guesses() -> void:
+	# The wiring, as opposed to the rule: the boot setting is empty on purpose and two games
+	# ship, so this repo really does put a human in front of the choice. If the setting were
+	# ever filled in again the picker would stop appearing, and this is what would say so.
 	assert_bool(GameSelect.ids().size() > 1).override_failure_message(
 		"this test needs the repo to ship more than one game").is_true()
-	assert_array(GameSelect.unresolved()).is_empty()
+	assert_int(GameSelect.unresolved().size()).is_equal(GameSelect.ids().size())
 
 func test_a_switch_is_offered_whenever_there_is_more_than_one_game() -> void:
 	# Unlike unresolved(), the precedence is irrelevant here: the player asked, which overrules

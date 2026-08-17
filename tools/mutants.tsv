@@ -108,7 +108,8 @@ scripts/world/map_data.gd	s|map.objects = file.get_array\("objects"\)|map.object
 scripts/ui/game_menu.gd	s|if at < 0 or at >= _items.size\(\):|if false:|	tests/unit/test_game_menu.gd	an out-of-range selection is clamped instead of refused
 scripts/ui/game_menu.gd	s|return _opened_on|return _items[0]|	tests/unit/test_game_menu.gd	cancelling at boot returns a game nobody chose
 scripts/ui/game_menu.gd	s|_index = posmod\(_index \+ delta, _items.size\(\)\)|_index += delta|	tests/unit/test_game_menu.gd	the cursor stops dead at the ends instead of wrapping
-scripts/data/game_select.gd	s|if not chosen.is_empty\(\):|if false:|	tests/unit/test_game_select.gd	a game chosen on the command line still stops to ask a human
 scripts/world/world_scene.gd	s|box.closed.connect\(_on_dialog_closed\)|pass|	tests/integration/test_game_switch.gd	a rebuilt dialog box is never heard, so the player freezes after one conversation
 scripts/world/world_scene.gd	s|GameState.reset\(\)|pass|	tests/integration/test_game_switch.gd	one game quest flags carry into the next and unlock its gates
 scripts/world/world_scene.gd	s|_built.root.free\(\)|pass|	tests/integration/test_game_switch.gd	the previous game map and player survive the switch
+scripts/data/game_select.gd	s|return choose\(game_ids, args_in, setting\).is_empty\(\)|return true|	tests/unit/test_game_select.gd	a game chosen on the command line still stops to ask a human
+scripts/data/game_select.gd	s|if game_ids.size\(\) < 2:|if false:|	tests/unit/test_game_select.gd	a template with one game stops to ask which one
