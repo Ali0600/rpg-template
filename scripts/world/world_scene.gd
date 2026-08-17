@@ -17,12 +17,14 @@ var _style: SpriteStyle
 var _source: SpriteSource
 var _built: MapBuilder.Built
 var _player: ActorBody
-var _camera := Camera2D.new()
-var _dialog := DialogBox.new()
+## Created by start_game, freed by _teardown_game. They used to be built at the declaration,
+## which is the same as "built once per process" - correct while one game ran forever.
+var _camera: Camera2D
+var _dialog: DialogBox
 ## npc id -> {"body": ActorBody, "dialog": String}
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
-var _hint := ControlsHint.new()
+var _hint: ControlsHint
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
 ## on every frame spent standing there.
 var _last_tile := Vector2i(-9999, -9999)
@@ -33,22 +35,104 @@ var _entry_depth := 0
 
 
 func _ready() -> void:
-	_game = GameSelect.resolve()
-	if _game == null:
+	# Resolution happens here and exactly once per process; construction is start_game's job,
+	# so booting and switching cannot drift into two different ideas of what starting means.
+	var game := GameSelect.resolve()
+	if game == null:
 		# GameSelect has already said which of the three ways it failed. There is no default
 		# to fall back to: picking a game is exactly what it refused to guess at.
 		return
+	start_game(game)
+
+
+## Boots a game from scratch: tears down whatever was running, then builds the new one.
+##
+## Deliberately NOT enter_map with looser guards. enter_map is idempotent WITHIN a game, and
+## the four guards that make it so - the player, the dialog box, the hint, the camera's parent
+## - are right for a warp: rebuilding the player on every warp would re-run setup and lose its
+## facing for no reason. Loosening them would be fixing the wrong thing. This restores the
+## precondition each guard was written against instead, so the warp path is untouched.
+func start_game(manifest: GameManifest) -> bool:
+	_teardown_game()
+	_game = manifest
 	for p in _game.problems():
 		push_error("World: game '%s': %s" % [_game.id, p])
 	_config = _game.config
 	if _config == null:
 		push_error("World: game '%s' has no config" % _game.id)
-		return
+		return false
 	_hooks = _game.new_hooks()
-	add_child(_dialog)
-	_dialog.closed.connect(_on_dialog_closed)
+	_camera = Camera2D.new()
+	_dialog = _new_dialog()
+	_hint = ControlsHint.new()
 	add_child(_hint)
-	enter_map(_game.start_map, _game.start_spawn)
+	return enter_map(_game.start_map, _game.start_spawn)
+
+
+## Building the box and hearing its one signal are ONE statement, because they were two and
+## the second is the easy one to forget. A DialogBox whose `closed` nobody hears leaves Router
+## in DIALOG after the first conversation and the player never moves again - and the box hides
+## itself, so on screen the conversation looks like it ended normally.
+func _new_dialog() -> DialogBox:
+	var box := DialogBox.new()
+	box.closed.connect(_on_dialog_closed)
+	add_child(box)
+	return box
+
+
+## Everything a game owns, gone, and every member back to what it was before _ready ran.
+##
+## free(), not queue_free(): start_game builds the replacement in this same call, and a
+## queue_freed node is alive for the rest of the frame - still drawing, still handling input,
+## and still found by a depth-first search for an ActorBody, which is how a scene test locates
+## the player. The warp inside enter_map uses queue_free for the OPPOSITE reason and must keep
+## it: it rescues the player out of the dying root a few lines later, which only works while
+## the old tree is still standing.
+func _teardown_game() -> void:
+	# The map root owns the player (it lives under _built.sorted) and the player owns the
+	# camera, so this one free takes all three. Freeing the player separately reads as thorough
+	# and is not: it is redundant by construction, and a mutant proved no test could tell.
+	if _built != null and _built.root != null and is_instance_valid(_built.root):
+		_built.root.free()
+	_built = null
+	# Nulled by hand because a freed instance does NOT become null on its own - it becomes a
+	# reference that every `!= null` check still passes and every use of which is an error.
+	_player = null
+	# Almost always freed as the player's child above. Not always: a start_game whose enter_map
+	# failed before _configure_camera leaves one parented to nothing, which would leak.
+	if _camera != null and is_instance_valid(_camera):
+		_camera.free()
+	_camera = null
+	# These bodies were inside the root just freed. _spawn_npcs clears this too, but only if
+	# the next enter_map gets that far, and _targets() iterates it unguarded.
+	_npcs.clear()
+
+	if _dialog != null and is_instance_valid(_dialog):
+		_dialog.closed.disconnect(_on_dialog_closed)
+		_dialog.free()
+	_dialog = null
+	if _hint != null and is_instance_valid(_hint):
+		_hint.free()
+	_hint = null
+
+	_game = null
+	_hooks = null
+	_config = null
+	_style = null
+	_source = null
+	# The sentinel, not the tile the player left the last game standing on: _check_warp compares
+	# against this on the first frame of the next one, and a coincidental match would silently
+	# skip the first warp walked onto - which reads as a broken door, not as stale state.
+	_last_tile = Vector2i(-9999, -9999)
+	# A hook that warped on entry and errored can leave this above zero, starting the next game
+	# that much closer to the chained-entry ceiling.
+	_entry_depth = 0
+
+	# One game's flags must not unlock another's gate, and `seen` is keyed "<map>/<object>",
+	# which two games are free to collide on. Both have existed since M3 and M5 with no caller;
+	# a switch is what they were written for.
+	GameState.reset()
+	AudioBus.stop_music()
 
 
 ## Loads a map and puts the player on a named spawn. The one entry point, so a warp, a load
