@@ -8,6 +8,11 @@
 # The sed delimiter is | so no pattern may contain one. A literal & in the REPLACEMENT
 # means "the whole match" to sed and has to be written \&.
 #
+# Patterns are EXTENDED regexes, so + is a quantifier: `_index + delta` matches "_index"
+# followed by two-or-more spaces and never the code you meant. Escape it as \+. This one
+# fails as PATTERN-NOT-FOUND rather than as a wrong match, so it is loud - but it costs a
+# round trip, and every other metacharacter in ( ) [ ] . ? * has the same trap.
+#
 # The rule: every gate ships with a mutant proving it bites. A rule with no mutant is a
 # rule nobody has proven is tested.
 scripts/util/lint_core.gd	s|hits.append\(_hit\(path, line_no, RULE_DIRECTION,|if false: hits.append(_hit(path, line_no, RULE_DIRECTION,|	tests/unit/test_lint_core.gd	a raw direction string stops being reported
@@ -98,3 +103,9 @@ scripts/world/map_data.gd	s|return bool\(flags.get\(requires, false\)\)|return t
 scripts/world/map_data.gd	s|if taken.has\(object_id\):|if false:|	tests/unit/test_map_data.gd	two objects share an id, so the second is found already opened
 scripts/world/map_data.gd	s|if says.is_empty\(\) and sets.is_empty\(\) and kind.is_empty\(\):|if false:|	tests/unit/test_map_data.gd	an object nobody can interact with ships as a dead button
 scripts/world/map_data.gd	s|map.objects = file.get_array\("objects"\)|map.objects = []|	tests/unit/test_map_data.gd	a map stops carrying its objects at all
+
+# --- M8: choosing a game from a screen ---
+scripts/ui/game_menu.gd	s|if at < 0 or at >= _items.size\(\):|if false:|	tests/unit/test_game_menu.gd	an out-of-range selection is clamped instead of refused
+scripts/ui/game_menu.gd	s|return _opened_on|return _items[0]|	tests/unit/test_game_menu.gd	cancelling at boot returns a game nobody chose
+scripts/ui/game_menu.gd	s|_index = posmod\(_index \+ delta, _items.size\(\)\)|_index += delta|	tests/unit/test_game_menu.gd	the cursor stops dead at the ends instead of wrapping
+scripts/data/game_select.gd	s|if not chosen.is_empty\(\):|if false:|	tests/unit/test_game_select.gd	a game chosen on the command line still stops to ask a human

@@ -62,3 +62,16 @@ func test_the_shipped_project_resolves_to_a_game() -> void:
 	var game := GameSelect.resolve()
 	assert_object(game).is_not_null()
 	assert_bool(GameSelect.ids().is_empty()).is_false()
+
+func test_an_explicit_choice_leaves_nothing_for_a_human_to_resolve() -> void:
+	# unresolved() is what the picker is built on, and it must stay OUT of the way whenever
+	# the precedence already answered - which is what keeps every scripted play session, all
+	# of which pass --game=, running straight into a world.
+	assert_bool(GameSelect.ids().size() > 1).override_failure_message(
+		"this test needs the repo to ship more than one game").is_true()
+	assert_array(GameSelect.unresolved()).is_empty()
+
+func test_a_switch_is_offered_whenever_there_is_more_than_one_game() -> void:
+	# Unlike unresolved(), the precedence is irrelevant here: the player asked, which overrules
+	# whatever the command line or the setting said at boot.
+	assert_int(GameSelect.switchable().size()).is_equal(GameSelect.ids().size())
