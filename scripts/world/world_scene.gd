@@ -289,8 +289,9 @@ func _spawn_player(data: MapData, spawn_id: StringName) -> void:
 	# The player joins the y-sorted layer, not the map root: it has to sort against the decor
 	# tiles, or it is permanently in front of or behind every bush in the map.
 	_built.sorted.add_child(_player)
-	_player.global_position = at
-	_player.halt(GameState.player_facing)
+	# place(), not assign-then-halt. With a grid step in flight the halt would resolve it
+	# against the cell the player left, in the map they left, and teleport them back there.
+	_player.place(at, GameState.player_facing)
 	# Seeded with the spawn tile so a spawn placed ON a warp does not immediately re-trigger
 	# it - which is exactly what a two-way door between maps looks like.
 	_last_tile = MapData.world_to_tile(at, _built.tile_size)
@@ -308,11 +309,11 @@ func _spawn_npcs(data: MapData) -> void:
 		body.name = "Npc_" + String(npc_id)
 		body.setup(_config, _source, StringName(str(npc.get("character", ""))))
 		_built.sorted.add_child(body)
-		body.global_position = MapData.tile_to_world(Vector2i(raw[0], raw[1]), _built.tile_size)
 		# An unreadable or absent facing falls back to front-facing rather than erroring: a
 		# map is data, and the worst case here is an NPC looking the wrong way.
 		var facing := Dir.from_name(str(npc.get("facing", "")))
-		body.halt(facing if facing >= 0 else Dir.D.DOWN)
+		body.place(MapData.tile_to_world(Vector2i(raw[0], raw[1]), _built.tile_size),
+			facing if facing >= 0 else Dir.D.DOWN)
 		# The whole entry is kept, not just the two fields the template reads. It is what a
 		# game's hook is handed, so a key the template has no opinion about ("behavior",
 		# whatever a game invents) survives the trip instead of being quietly dropped here.
@@ -355,6 +356,10 @@ func _physics_process(_delta: float) -> void:
 		return
 	if not Router.player_can_move():
 		_player.halt()
+		# The halt may have put a grid step back on its cell, and this is the write that gets
+		# saved and that the QA harness reads. Without it, state would disagree with where the
+		# player is actually standing for the whole conversation. A no-op in free movement.
+		GameState.set_player(_player.global_position, _player.facing)
 		return
 	var input := Locomotion.read_input()
 	if input != Vector2.ZERO:
