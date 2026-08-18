@@ -113,3 +113,15 @@ scripts/world/world_scene.gd	s|GameState.reset\(\)|pass|	tests/integration/test_
 scripts/world/world_scene.gd	s|_built.root.free\(\)|pass|	tests/integration/test_game_switch.gd	the previous game map and player survive the switch
 scripts/data/game_select.gd	s|return choose\(game_ids, args_in, setting\).is_empty\(\)|return true|	tests/unit/test_game_select.gd	a game chosen on the command line still stops to ask a human
 scripts/data/game_select.gd	s|if game_ids.size\(\) < 2:|if false:|	tests/unit/test_game_select.gd	a template with one game stops to ask which one
+
+# --- M9: grid-step movement ---
+scripts/world/grid_walker.gd	s|if residual.dot\(_heading\) <= 0.0:|if false:|	tests/unit/test_grid_walker.gd	a step never notices it arrived and walks straight past the centre
+scripts/world/grid_walker.gd	s|return _target$|return at|	tests/unit/test_grid_walker.gd	a step lands near the cell centre rather than exactly on it
+scripts/world/grid_walker.gd	s|if residual.length\(\) > _planned - PROGRESS_EPSILON:|if false:|	tests/unit/test_grid_walker.gd	a step stopped by something never ends and the actor accepts no more input
+scripts/world/grid_walker.gd	s|return abandon\(at\)|return at|	tests/unit/test_grid_walker.gd	a step stopped by a wall leaves the actor standing between cells
+scripts/world/grid_walker.gd	s|out.y = _target.y|pass|	tests/unit/test_grid_walker.gd	a diagonal that slid along a wall is dragged back to the cell it started in
+scripts/world/grid_walker.gd	s|tries.append\(Vector2i\(0, want.y\)\)|pass|	tests/unit/test_grid_walker.gd	a diagonal with one axis walled stops dead instead of taking the free one
+scripts/world/grid_walker.gd	s|tries.append\(Vector2i\(want.x, 0\)\)|pass|	tests/unit/test_grid_walker.gd	a blocked diagonal breaks its tie vertically, against the rule Dir sets
+scripts/world/grid_walker.gd	s|if not bool\(is_free.call\(to - at\)\):|if false:|	tests/unit/test_grid_walker.gd	a step is committed into a wall instead of being refused
+scripts/world/grid_walker.gd	s|Dir.facing_from_vector\(residual, facing_now\)|free.facing|	tests/unit/test_grid_walker.gd	a key pressed mid-step turns the character while it walks the other way
+scripts/data/game_config.gd	s|if grid_step_pixels < 0:|if false:|	tests/unit/test_grid_walker.gd	a negative grid step passes the config validator
