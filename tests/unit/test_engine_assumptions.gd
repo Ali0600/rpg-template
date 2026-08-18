@@ -110,3 +110,33 @@ func test_typed_array_needs_assign_not_direct_cast() -> void:
 	var typed: Array[int] = []
 	typed.assign(untyped)
 	assert_array(typed).is_equal([1, 2, 3])
+
+func test_move_and_slide_picks_its_own_delta_rather_than_one_you_pass() -> void:
+	# The assumption the whole grid-step design rests on, so it is pinned rather than trusted.
+	#
+	# move_and_slide() takes no delta. It chooses one itself - the PHYSICS delta when called
+	# during a physics frame, the IDLE delta otherwise - so the distance one call covers is
+	# not something a caller can predict or control. That is why a grid step ends by noticing
+	# it has arrived rather than by computing which frame it will arrive on: a step that
+	# predicted the landing frame from a delta it passed in would overshoot in exactly the
+	# harness tests/integration/test_world_movement.gd uses, which drives apply() by hand from
+	# a coroutine and is therefore NOT in a physics frame.
+	var body := CharacterBody2D.new()
+	add_child(body)
+	auto_free(body)
+	body.velocity = Vector2(100.0, 0.0)
+
+	# Called from a test coroutine: not a physics frame.
+	assert_bool(Engine.is_in_physics_frame()).override_failure_message(
+		"this suite is running inside a physics frame, so the case below proves nothing").is_false()
+	var before := body.global_position.x
+	body.move_and_slide()
+	var moved := body.global_position.x - before
+
+	# It moved SOMETHING - the call is not inert outside a physics frame, which is what makes
+	# the hand-driven integration harness work at all.
+	assert_float(moved).is_greater(0.0)
+	# And it is the idle delta, not the physics one. If these ever coincide the assertion
+	# below is vacuous, so the guard above states the frame kind explicitly.
+	var idle_step := 100.0 * get_process_delta_time()
+	assert_float(moved).is_equal_approx(idle_step, 0.001)

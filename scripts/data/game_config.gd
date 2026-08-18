@@ -31,6 +31,22 @@ extends Resource
 ## keys are released.
 @export var idle_speed_epsilon: float = 1.0
 
+## The distance one grid step covers, in pixels. Zero is off, and off is free movement: the
+## character slides a pixel at a time wherever the keys point. Set it to the map's tile_size
+## and a press buys exactly one tile - the stiffer, more deterministic feel of the earliest
+## top-down RPGs, where a trigger tile is either stood on or it is not.
+##
+## It is the step DISTANCE rather than a mode flag because those are the same fact, and a flag
+## would still need the tile size from somewhere: an actor holds this config and never the
+## map's SpriteStyle. GameManifest.problems() checks the two agree.
+@export var grid_step_pixels: int = 0
+
+## How long one grid step takes, in seconds. Zero derives it from walk_speed, so both movement
+## modes cross a tile at the same rate unless you say otherwise - the same "zero means off"
+## shape camera_smoothing uses. A diagonal keeps the speed and so takes 1.41x this, because it
+## covers 22.6px rather than 16.
+@export var grid_step_seconds: float = 0.0
+
 ## Camera pixels per second toward the player. Zero snaps. Any smoothing at all fights pixel
 ## snapping, so this is deliberately off by default.
 @export var camera_smoothing: float = 0.0
@@ -46,4 +62,8 @@ func problems() -> Array[String]:
 		out.append("body_size must be positive, got %s" % body_size)
 	if idle_speed_epsilon < 0.0:
 		out.append("idle_speed_epsilon cannot be negative, got %f" % idle_speed_epsilon)
+	if grid_step_pixels < 0:
+		out.append("grid_step_pixels cannot be negative, got %d" % grid_step_pixels)
+	if grid_step_seconds < 0.0:
+		out.append("grid_step_seconds cannot be negative, got %f" % grid_step_seconds)
 	return out
