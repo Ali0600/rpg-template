@@ -5,10 +5,6 @@ one-glance menu of things still worth trying.
 
 ## Backlog — alternatives worth trying later
 
-- **Grid-step movement** (one press = exactly one tile, tweened). Makes NPC pathing,
-  triggers and tests exact. Revisit hook: `scripts/world/locomotion.gd` — it is already a
-  pure function from input to velocity/facing, so a second mode is a sibling implementation
-  plus a `movement_mode` field on `GameConfig`.
 - **An AI sprite source** (PixelLab or similar) for higher-fidelity art. Revisit hook:
   `scripts/spritegen/sprite_source.gd` — implement the interface, emit PNG + sheet.json,
   and the game does not change. Direction aliases for compass-named rows already exist in
@@ -329,3 +325,46 @@ one.** `GameManifest.config` is still per-game — the capability is the point o
 `tests/fixtures/qa/quest/walk_diagonally.json` is the gate. Every one of the seven play
 sessions that existed held a single direction at a time, so none of them could see this — the
 new one holds two and requires both axes to move.
+
+## Grid stepping is a distance in the config, and it has no clock
+
+One press = exactly one tile, tweened, instead of free pixel movement. The first item in this
+file's backlog, now built.
+
+- **Chosen: a pure `GridWalker` beside `Locomotion`, one per actor, selected by
+  `GameConfig.grid_step_pixels > 0`.** The direction still comes from `Locomotion.step()`, so
+  `allow_diagonal` and the ties-go-horizontal rule have one implementation between the two
+  modes rather than two that drift.
+- *A second implementation of `Locomotion.step()`* — which the backlog entry and
+  `locomotion.gd`'s own comment both promised — **rejected once it was looked at.** `Locomotion`
+  is static and an actor holds only its facing, so there is nowhere to keep how far through a
+  step it is. The per-actor state was the entire cost, and the comment has been corrected.
+- *A `movement_mode` enum* — rejected: no enum exists in any `scripts/data/` resource,
+  `camera_smoothing > 0.0` sets the "zero means off" precedent, and an enum would leave the
+  step *distance* homeless. An actor holds a `GameConfig` and never the map's `SpriteStyle`, so
+  the distance has to live with the selector or be plumbed through `setup()`.
+  `GameManifest.problems()` checks the step against the start map's tile size, which is the one
+  place both facts are in scope.
+- *Landing the step by predicting distance-per-frame* — rejected on measurement.
+  `move_and_slide()` picks its own delta (physics inside a physics frame, idle otherwise), so a
+  prediction overshoots in exactly the hand-driven loop the integration tests use. A step ends
+  when its target stops being *ahead*. `test_engine_assumptions.gd` pins that engine fact.
+  The cost is that a step's duration quantises to whole frames — up to one frame per cell,
+  invisible and consistent, where a mispredicted landing would be neither.
+- *A pause between steps* — `rejected — not built`. Continuous walking under a held key is the
+  expected feel, and a pause of three frames or more makes any "N still ticks means blocked"
+  helper report blocked in open ground.
+- *Input buffering* (a direction tapped mid-step being remembered) — `deferred — worth trying`.
+  Today a tap during a step is lost and a direction still held when one ends is picked up on
+  that same call, so there is never an idle frame between steps. Revisit hook: `GridWalker.plan`,
+  which already sees the input every frame and could latch it.
+
+**No shipped game uses it.** `data/game_config.tres` keeps free movement, both manifests keep
+sharing it, and not one of the 8 QA fixtures changed — about 10 of their steps encode
+"N frames = M tiles" arithmetic that grid mode would void. The honest gap: the scripted play
+gate never exercises the mode. It is covered by 21 unit cases and 8 integration cases driving a
+real body into real walls, plus 15 mutants.
+
+A blocked diagonal **slides** along its free axis rather than stopping dead, matching
+`move_and_slide` and the existing diagonal-slide gate. It is free here: the grid is
+axis-aligned, so the slid-to position is itself a cell centre.

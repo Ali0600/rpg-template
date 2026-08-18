@@ -103,7 +103,9 @@ has proven is tested — and three times during this build a mutant proved a tes
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
 - **Writing** → files in `data/dialog/`.
-- **Feel** → `data/game_config.tres`. A game *may* bring its own config, and should only do so
+- **Feel** → `data/game_config.tres`, including which of the two movement modes runs:
+  `grid_step_pixels` at zero is free pixel movement, or set to the map's tile size for one
+  press = one tile. A game *may* bring its own config, and should only do so
   when its design demands it: a second game that varies a knob for no reason turns every
   difference a player feels into a suspected defect. Both shipped games share one.
 - **New mechanics** → a `GameHooks` subclass under `games/<id>/`, named by the manifest.

@@ -7,8 +7,12 @@ extends RefCounted
 ## whether releasing the keys spins the character back to front. The node that applies it
 ## (Player, NPCs) contributes only `move_and_slide`.
 ##
-## Keeping it pure is also what makes the grid-step alternative in the backlog cheap: a
-## second implementation of `step` is the whole job.
+## Keeping it pure is what let grid stepping be added beside this rather than inside it. Note
+## that "a second implementation of step is the whole job" - which this comment used to claim -
+## was wrong: this class is static and an actor holds only its facing, so there was nowhere to
+## keep how far through a step it is. That state lives in GridWalker, which asks this function
+## for the DIRECTION so both modes share one answer about diagonals and about which way a tie
+## faces.
 
 ## What one step of input decides. Everything downstream reads these three fields and
 ## nothing else.

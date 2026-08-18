@@ -333,3 +333,26 @@ it lives on.
 the design does not demand — same config, same timings, same everything — and vary only what
 you are trying to prove is variable. And a difference chosen *on someone's behalf* is a
 decision to surface, not a detail to write into a file comment.
+
+## An API that takes no delta is picking one for you
+
+`move_and_slide()` has no delta parameter. It chooses one internally: the physics delta when
+called during a physics frame, the *idle* delta otherwise. So how far one call moves a body is
+not something the caller controls or can predict.
+
+**Why it came up:** designing grid stepping, the obvious implementation lands the step by
+scaling the last frame's velocity to cover exactly the residual distance — which needs to know
+how far a frame covers. That works right up until the call happens outside a physics frame,
+which is exactly what this project's integration tests do: they drive `apply()` by hand from a
+coroutine so the whole movement path can be tested without a running game. The prediction would
+have overshot in the one harness the design was being careful for.
+
+The fix was to stop predicting. A step ends when its target stops being *ahead* — a fact about
+position, needing no clock at all — and the last fraction of a pixel is handed back. The design
+got smaller, and gained a documented cost instead of a hidden one: duration quantises to whole
+frames.
+
+**Takeaway:** when an API takes no clock parameter, find out which clock it uses before building
+arithmetic on top of it — and prefer ending an operation by *observing that it finished* over
+computing when it will. Pin the answer as a test: this one lives in `test_engine_assumptions.gd`
+and asserts it is not running in a physics frame first, so it cannot quietly become vacuous.

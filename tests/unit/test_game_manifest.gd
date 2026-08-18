@@ -97,3 +97,22 @@ func test_a_script_that_is_not_a_gamehooks_is_reported() -> void:
 	var manifest := _valid()
 	manifest.hooks = load("res://scripts/util/content_scan.gd") as Script
 	assert_str("\n".join(manifest.problems())).contains("GameHooks")
+
+
+func test_a_grid_step_that_is_not_the_maps_tile_size_is_reported() -> void:
+	# The one genuinely wrong value this mode can be given, and it is invisible from either
+	# side alone: the config knows the step and the map knows the tile, and only a manifest
+	# holds both. Left unchecked it lands the player between tiles, increasingly, forever.
+	var manifest := _valid()
+	var config := (manifest.config as GameConfig).duplicate() as GameConfig
+	config.grid_step_pixels = 24
+	manifest.config = config
+	assert_str("\n".join(manifest.problems())).contains("lands the player between them")
+
+func test_a_grid_step_matching_the_maps_tiles_is_accepted() -> void:
+	# The control: without it, a check that complained about every grid step would pass above.
+	var manifest := _valid()
+	var config := (manifest.config as GameConfig).duplicate() as GameConfig
+	config.grid_step_pixels = 16
+	manifest.config = config
+	assert_array(manifest.problems()).is_empty()

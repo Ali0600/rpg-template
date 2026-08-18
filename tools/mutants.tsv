@@ -125,3 +125,8 @@ scripts/world/grid_walker.gd	s|tries.append\(Vector2i\(want.x, 0\)\)|pass|	tests
 scripts/world/grid_walker.gd	s|if not bool\(is_free.call\(to - at\)\):|if false:|	tests/unit/test_grid_walker.gd	a step is committed into a wall instead of being refused
 scripts/world/grid_walker.gd	s|Dir.facing_from_vector\(residual, facing_now\)|free.facing|	tests/unit/test_grid_walker.gd	a key pressed mid-step turns the character while it walks the other way
 scripts/data/game_config.gd	s|if grid_step_pixels < 0:|if false:|	tests/unit/test_grid_walker.gd	a negative grid step passes the config validator
+scripts/world/actor_body.gd	s|GridWalker.new\(config\) if config.grid_step_pixels > 0 else null|null|	tests/integration/test_grid_movement.gd	grid movement never engages and the config field does nothing
+scripts/world/actor_body.gd	s|global_position = _walker.settle\(global_position\)|pass|	tests/integration/test_grid_movement.gd	a step never lands, so the actor drifts past every cell centre
+scripts/world/actor_body.gd	s|global_position = _walker.abandon\(global_position\)|pass|	tests/integration/test_grid_movement.gd	a dialog opening mid-step leaves the player standing between tiles
+scripts/world/actor_body.gd	s|_walker.cancel\(\)|pass|	tests/integration/test_grid_movement.gd	a warp mid-step resolves it against the map the player just left
+scripts/data/game_manifest.gd	s|style != null and config.grid_step_pixels != style.tile_size|false|	tests/unit/test_game_manifest.gd	a grid step that is not the map tile size is accepted

@@ -16,6 +16,9 @@ var config: GameConfig
 var facing: int = Dir.D.DOWN
 
 var _shape := CollisionShape2D.new()
+## Built by setup() when the config asks for grid movement, null otherwise. Null IS free
+## movement - there is no mode flag to keep in sync with it.
+var _walker: GridWalker
 
 
 func _ready() -> void:
@@ -28,6 +31,7 @@ func _ready() -> void:
 
 func setup(config_value: GameConfig, source: SpriteSource, character_id: StringName) -> bool:
 	config = config_value
+	_walker = GridWalker.new(config) if config.grid_step_pixels > 0 else null
 	if view.get_parent() == null:
 		add_child(view)
 	if _shape.get_parent() == null:
@@ -50,12 +54,50 @@ func _apply_shape() -> void:
 ## One step of movement from an input vector. Returns the Locomotion step so a caller can
 ## see what was decided without recomputing it.
 func apply(input: Vector2) -> Locomotion.Step:
-	var step := Locomotion.step(input, facing, config)
+	# Both modes produce the same three fields and both move through move_and_slide, so
+	# nothing downstream - the camera, y-sorting, the warp check, the QA harness - can tell
+	# which one is running.
+	var step := _walker.plan(input, global_position, facing, _reachable) if _walker != null \
+		else Locomotion.step(input, facing, config)
 	facing = step.facing
 	velocity = step.velocity
 	move_and_slide()
+	if _walker != null:
+		# Where move_and_slide actually left us decides whether the step arrived, and the last
+		# fraction of a pixel is given back here rather than predicted before the move.
+		global_position = _walker.settle(global_position)
 	view.set_pose(step.clip, step.facing)
 	return step
+
+
+## Whether a grid step is in flight. The invariant a caller can rely on: false means this
+## actor is standing on a cell centre.
+func stepping() -> bool:
+	return _walker != null and _walker.stepping()
+
+
+## Would this actor survive moving by `motion` from where it stands? Handed to GridWalker as a
+## Callable so the walker stays a pure object with no node in it.
+##
+## test_move rather than a look-up in the map data: what is in front of you is as likely to be
+## an NPC as a wall, and an NPC is a body in the physics server and nothing at all in MapData.
+## The QA script that walks north into the warden until her body stops it would sail through a
+## map look-up and fail the game.
+func _reachable(motion: Vector2) -> bool:
+	if not is_inside_tree():
+		return true
+	return not test_move(global_transform, motion)
+
+
+## Puts the actor down somewhere, with no step in flight and nothing carried over from wherever
+## it was. The ONE way an actor is teleported - a spawn, a warp, a load - because the order
+## matters: abandoning a grid step AFTER the position has been assigned would resolve it
+## against the cell it left, in the map it left, and teleport the actor back there.
+func place(at: Vector2, new_facing: int = -1) -> void:
+	if _walker != null:
+		_walker.cancel()
+	global_position = at
+	halt(new_facing)
 
 
 ## Where this actor's interaction reaches, in world coordinates.
@@ -72,6 +114,12 @@ func tile(tile_size: int) -> Vector2i:
 ## driving it.
 func halt(new_facing: int = -1) -> void:
 	velocity = Vector2.ZERO
+	if _walker != null:
+		# A step in flight is abandoned where it stands, back onto a cell centre. halt is what
+		# a dialog opening calls EVERY frame it is open: a step that insisted on finishing
+		# would walk the player out from under the conversation, and one left in flight would
+		# resume the moment the box closed, from input nobody is holding any more.
+		global_position = _walker.abandon(global_position)
 	if new_facing >= 0:
 		facing = new_facing
 	view.set_pose(&"idle", facing)
