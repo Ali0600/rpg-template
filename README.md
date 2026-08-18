@@ -75,7 +75,7 @@ Regenerate the art after editing a rig or a style:
 | Who the characters are | files in `data/characters/` | no |
 | The world | `data/maps/*.json` — ASCII rows plus a legend | no |
 | What people say | `data/dialog/*.json` | no |
-| How it feels to move | `data/game_config.tres` | no |
+| How it feels to move, incl. free vs grid movement | `data/game_config.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts, new tiles | `data/rigs/*.json`, `TileGen.TILES` | one file |
 
@@ -150,6 +150,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M6** — web export and a live demo
 - [x] **M7** — a second game, built to find out whether the first six were true
 - [x] **M8** — a game picker, so switching is a keypress rather than an edit
+- [x] **M9** — grid-step movement as a second mode, off by default
 
 ## Experience Gained
 

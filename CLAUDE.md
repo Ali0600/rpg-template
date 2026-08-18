@@ -30,7 +30,7 @@ regression, however good that game looks.
 scripts/spritegen/  pure RefCounted, deterministic, NO node access — the generator
 scripts/util/       dir, json_file, seeded_rng, hashing, lint_core, content_scan
 scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData…)
-scripts/world/      Locomotion (pure) + the nodes that apply it
+scripts/world/      Locomotion + GridWalker (both pure) + the nodes that apply them
 scripts/ui/         DialogRunner (pure) + its view
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
@@ -63,6 +63,18 @@ two of the four gates silently; `LintCore.RULE_AUTOLOAD` fails the build on it. 
 snapshot and append effects; `world_scene._apply` is the single place any of it reaches live
 state. `on_interact` returning `false` means "not mine" and the data's own behaviour runs — a
 game is additive or it is not using this seam.
+
+**Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step_pixels` at
+zero is free pixel movement; set to the map's tile size it is one press = one tile. Both go
+through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so nothing
+downstream can tell which is running. `ActorBody.place(at, facing)` is the ONE way an actor is
+teleported — it cancels a step in flight *before* assigning the position, because abandoning
+one afterwards resolves it against the cell the actor left, in the map it left.
+
+**`move_and_slide()` picks its own delta** — the physics one inside a physics frame, the idle
+one otherwise (pinned in `test_engine_assumptions.gd`). So never compute how far a call will
+move something: end an operation by observing that it finished. This is also why the
+integration suites can drive `apply()` by hand from a coroutine at all.
 
 **The sprite contract is PNG + `<name>.sheet.json`.** Nothing engine-specific is committed
 as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the
@@ -100,6 +112,13 @@ validator that has only ever passed is decoration.
 - Adding an autoload changes what the parse gate skips: `check.sh` and `compile_all.gd` both
   derive that list from `project.godot`, so add the singleton there and cover it in
   `smoke_boot.gd` — never by editing a list in a tool.
+- A new `class_name` script is invisible to gdUnit4 until `--import` has run — the failure is
+  `Could not find type "X" in the current scope` at discovery, which reads as a typo. Run
+  `Godot --headless --path . --import` after adding one. `check.sh` does this as step 1.
+- Running gdUnit4 by hand needs `--ignoreHeadlessMode -c`, or it refuses with `Abnormal exit
+  with 103` and no test output at all.
+- `mutants.tsv` patterns are EXTENDED regexes, so `+` is a quantifier: `_index + delta` matches
+  nothing and fails as `PATTERN-NOT-FOUND`. Escape it.
 - **`LintCore.SOURCE_ROOTS` is the one list of directories this project owns.** The linter
   and `compile_all.gd` read it; `check.sh`'s parse gate keeps no list at all and excludes
   what is not ours. A new top-level source directory goes there and nowhere else, and
