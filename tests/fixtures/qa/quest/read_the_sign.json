@@ -1,0 +1,115 @@
+{
+	"_readme": [
+		"Pressing into an OBJECT rather than a person. The village well is not an NPC and not a",
+		"sprite: it is the water tiles you can already see, plus four lines saying what happens",
+		"when you press into them.",
+		"",
+		"It is here so every CI run exercises the object path. An interaction verb that only one",
+		"kind of target uses is a verb half the code is never proven on."
+	],
+	"steps": [
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "spawn is (5,5); the well is the water at (6,7)"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				6,
+				6
+			]
+		},
+		{
+			"op": "note",
+			"text": "press into the well - it is an object, not an NPC"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "note",
+			"text": "and it gives control back like any other conversation"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "mark",
+			"name": "freed"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "decrease",
+			"since": "freed"
+		}
+	]
+}

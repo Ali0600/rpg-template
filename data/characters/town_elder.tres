@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"town_elder"
+style_id = &"dusk16"
+seed = 2
+parts = {
+"body": "body_robe",
+"hair": "hair_long"
+}
+ramps = {
+"body": "cloth_moss",
+"hair": "hair_ash",
+"head": "skin_dark"
+}

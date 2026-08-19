@@ -14,7 +14,7 @@
 	"steps": [
 		{ "op": "wait", "frames": 10 },
 		{ "op": "assert_state", "state": "world" },
-		{ "op": "assert_map", "map": "demo_town" },
+		{ "op": "assert_map", "map": "quest_village" },
 
 		{ "op": "note", "text": "esc pauses" },
 		{ "op": "press", "action": "cancel" },
@@ -31,7 +31,7 @@
 		{ "op": "press", "action": "interact" },
 		{ "op": "wait", "frames": 10 },
 		{ "op": "assert_state", "state": "paused" },
-		{ "op": "assert_map", "map": "demo_town" },
+		{ "op": "assert_map", "map": "quest_village" },
 
 		{ "op": "note", "text": "esc leaves the slot list, esc again leaves the menu" },
 		{ "op": "press", "action": "cancel" },
@@ -80,7 +80,7 @@
 		{ "op": "press", "action": "interact" },
 		{ "op": "wait", "frames": 20 },
 		{ "op": "assert_state", "state": "world" },
-		{ "op": "assert_map", "map": "demo_town" },
+		{ "op": "assert_map", "map": "quest_village" },
 		{ "op": "assert_moved", "axis": "x", "expect": "unchanged", "since": "saved_here" }
 	]
 }

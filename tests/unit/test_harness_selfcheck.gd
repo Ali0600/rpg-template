@@ -11,4 +11,4 @@ func test_runner_reports_success() -> void:
 func test_runner_evaluates_assertions() -> void:
 	# If assertions were being skipped, this negative check would also "pass" silently.
 	assert_bool(1 == 2).is_false()
-	assert_str("sprite-generator").contains("sprite")
+	assert_str("rpg-template").contains("template")

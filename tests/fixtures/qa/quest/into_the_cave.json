@@ -1,0 +1,159 @@
+{
+	"_readme": [
+		"The far end of the world, reached the way a player reaches it: village, town, cave.",
+		"",
+		"The cave is two warps from where the game starts, so nothing else in this suite would",
+		"ever enter it - and a map no scripted session visits is a map whose tiles, spawns and",
+		"doors are only ever validated on paper.",
+		"",
+		"Every leg ends against a wall rather than after a counted number of tiles. The last one leans on that hardest: held into the east wall AND upward, the player slides along the wall until the one row that has a gate in it, and walks out through it."
+	],
+	"steps": [
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "north wall, east wall, then south onto the road"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "down to the south wall, east to the east wall"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "note",
+			"text": "now up along that wall, still pushing east: the gate is the row that gives"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 1
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 240
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_cave"
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "and it is a real place: standing here does not send us back"
+		},
+		{
+			"op": "wait",
+			"frames": 60
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_cave"
+		},
+		{
+			"op": "note",
+			"text": "and back out the same way: west into the wall, sliding down to the row that gives"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 1
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 240
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		}
+	]
+}

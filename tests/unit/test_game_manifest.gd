@@ -12,9 +12,9 @@ const CONFIG := "res://data/game_config.tres"
 func _valid() -> GameManifest:
 	var manifest := GameManifest.new()
 	manifest.id = &"fixture"
-	manifest.start_map = &"demo_town"
+	manifest.start_map = &"quest_village"
 	manifest.start_spawn = &"start"
-	manifest.player_character = &"hero"
+	manifest.player_character = &"quest_wanderer"
 	manifest.config = load(CONFIG) as GameConfig
 	return manifest
 
@@ -67,7 +67,7 @@ func test_a_missing_config_is_reported() -> void:
 
 
 func test_a_game_without_hooks_is_normal() -> void:
-	# Most games are expressible in maps and dialog. The shipped demo has no code at all,
+	# Most games are expressible in maps and dialog, with no code at all,
 	# and "no hooks" must not read as "broken game".
 	var manifest := _valid()
 	assert_object(manifest.new_hooks()).is_null()

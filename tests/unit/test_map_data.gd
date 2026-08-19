@@ -15,16 +15,16 @@ func _solid_tiles() -> Array[String]:
 	return TileGen.solid_ids()
 
 func test_the_shipped_map_is_valid() -> void:
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_bool(map.ok).override_failure_message(map.error).is_true()
 	assert_array(map.problems(_known_tiles(), _solid_tiles())).override_failure_message(
 		str(map.problems(_known_tiles(), _solid_tiles()))).is_empty()
 
 func test_the_shipped_map_is_walled_in() -> void:
-	# The bug this caught for real: one row of the demo map was a character short of its east
+	# The bug this caught for real: one row of the town map was a character short of its east
 	# wall, and the player simply walked out of the world. Nothing errored - the smoke test
 	# reported the player still moving where it should have stopped.
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_array(map.open_edges(_solid_tiles())).is_empty()
 
 func test_a_ragged_row_is_reported_with_its_row_number() -> void:
@@ -84,29 +84,29 @@ func test_world_positions_convert_back_to_the_tile_they_are_in() -> void:
 
 func test_reading_a_tile_outside_the_map_is_empty_not_an_error() -> void:
 	# Callers ask about neighbours at the edges constantly.
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_str(map.ground_at(Vector2i(-1, 0))).is_equal("")
 	assert_str(map.ground_at(Vector2i(9999, 0))).is_equal("")
 
 func test_an_unknown_spawn_returns_a_sentinel_rather_than_the_origin() -> void:
 	# Returning (0,0) would drop the player in the map's corner, which looks like a movement
 	# bug rather than a missing data entry.
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_vector(map.spawn(&"nowhere")).is_equal(Vector2i(-1, -1))
 	assert_vector(map.spawn(&"start")).is_not_equal(Vector2i(-1, -1))
 
 func test_a_warp_is_found_by_the_tile_it_sits_on() -> void:
 	# Looked up by tile rather than by proximity, so stepping ONTO the door is the whole
 	# rule - a radius would fire while the player is still visibly beside it.
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	var warp := map.warp_at(Vector2i(19, 6))
 	assert_bool(warp.is_empty()).override_failure_message(
 		"the town's east gate has no warp on it").is_false()
-	assert_str(String(warp["map"])).is_equal("demo_cave")
+	assert_str(String(warp["map"])).is_equal("quest_cave")
 	assert_str(String(warp["spawn"])).is_equal("west_gate")
 
 func test_a_tile_with_no_warp_reports_none() -> void:
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_bool(map.warp_at(Vector2i(4, 6)).is_empty()).is_true()
 
 func test_every_shipped_map_is_valid_and_its_doors_line_up() -> void:
@@ -132,9 +132,9 @@ func test_every_shipped_map_is_valid_and_its_doors_line_up() -> void:
 					% [map_id, warp["spawn"], warp["map"]]).is_not_equal(Vector2i(-1, -1))
 
 func test_the_shipped_map_declares_an_object_the_gates_will_exercise() -> void:
-	# An interaction verb that only a second game uses is a verb the demo's own gates never
-	# touch. The well is here so every CI run presses something that is not a person.
-	var map := MapData.load_from("res://data/maps/demo_town.json")
+	# An interaction verb no scripted session touches is a verb nothing proves works. The well
+	# is here so every CI run presses something that is not a person.
+	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_int(map.objects.size()).is_greater(0)
 
 func test_every_object_fault_is_reported_not_just_the_first() -> void:

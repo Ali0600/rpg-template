@@ -3,10 +3,10 @@
 A reusable top-down RPG starting point for **Godot 4.7**, built so that *art style* and
 *gameplay design* are the only things a new game has to change.
 
-🎮 **[Play the demo](https://ali0600.github.io/sprite-generator/)** — walk around, talk to the
-villagers.
+🎮 **[Play it](https://ali0600.github.io/rpg-template/)** — walk around, talk to the villagers,
+find the key, open the gate.
 
-![The demo town](docs/images/world.png)
+![The town](docs/images/world.png)
 
 It ships two halves:
 
@@ -41,7 +41,7 @@ The output tier is honest GB/SNES-era chibi, not hand-painted art. Higher fideli
 *source swap*, not a rewrite: `SpriteSource` is an interface, and anything that writes the
 `PNG + <name>.sheet.json` pair — a bought pack, an AI generator — feeds the game unchanged.
 
-![Talking to an NPC](docs/images/dialog.png)
+![The warden, at the gate](docs/images/dialog.png)
 
 ## Quick start
 
@@ -85,38 +85,33 @@ If changing any of the first six needs a code edit, that's a bug in the template
 
 A **game** is one `data/games/<id>.tres`: its first map and spawn, the character the player
 wears, the tuning it uses, the line of on-screen help, and the one script it is allowed to
-have. More than one can live side by side, and the next section is what happens when they do.
+have. More than one can live side by side; with more than one and nothing choosing between
+them the boot **refuses** rather than guessing, because a guessed game does not present as a
+selection bug — it presents as the game you meant to run behaving strangely.
 
-## Two games, one template
+## The game it ships with
 
-The repo ships **two** games, which is the only honest way to claim the template is one.
+**The Barred Gate** — five maps on one palette. A town with a well and three people who have
+something to say, a cave east of it, a village up the north road, a hollow west of that, and a
+keep behind a gate that stays shut until you find the key.
 
-| | The demo | The Barred Gate |
-| --- | --- | --- |
-| Look | `gb16` / `nes16` | `dusk16` — a third palette on the *same rig* |
-| World | a town and a cave | a village, a hollow, a keep |
-| Verbs | walk, talk, read a well | …plus a stash that opens once, and a gate that stays shut |
-| Code | none | one file: which of the warden's three lines to say |
+| | |
+| --- | --- |
+| World | town, cave, village, hollow, keep — joined by five doors |
+| Verbs | walk, talk, read a well, open a stash once, unlock a gate, light a lantern |
+| Code | **one file**: which of the warden's three lines to say |
+| Look | `dusk16`, one of three palettes that share a single rig |
 
-Escape pauses either of them, and the same menu saves and loads. Slots belong to the game
-that wrote them — `user://saves/<game>/slot_N.json` — and each save names its own game, so a
-file that ends up in the wrong directory is refused and preserved rather than loaded.
+That one file is the point. Everything else — every map, every conversation, every flag, the
+gate that needs a key — is data, and the template never learns a word of it. The game was built
+**without editing a single file under `scripts/`, `tools/` or `scenes/`**, and building it found
+three real defects in the template, which is what building on it is for: a QA op that raced the
+steps written after it, an art-drift gate that walked a different set of directories than the
+game did, and three separate lists of "which directories does this project own" that disagreed.
 
-**Launch it and it asks which one.** With more than one game and nothing choosing between
-them, you get a picker: the cursor recolours the screen to that game's palette and stands its
-own player character next to the list. Tab reopens it mid-play, so switching is a keypress
-rather than an edit. Set `config/game` in `project.godot` to boot straight into one, or pass
-`--game=<id>`; either skips the picker, which is how the scripted play sessions in CI drive
-each game directly.
-
-The second game was added **without editing a single file under `scripts/`, `tools/` or
-`scenes/`** — 31 files, all of them new. That is the template's claim, stated as something
-`git diff --stat` can check rather than something the README asserts.
-
-Building it found three real defects in the template, which is what a second game is for: a
-QA op that raced the steps written after it, an art-drift gate that walked a different set of
-directories than the game did, and three separate lists of "which directories does this
-project own" that disagreed.
+Escape pauses, and the same menu saves and loads. Slots belong to the game that wrote them —
+`user://saves/<game>/slot_N.json` — and each save names its own game, so a file that ends up in
+the wrong directory is refused and preserved rather than loaded.
 
 ## Sprite Lab
 
@@ -131,7 +126,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 | --- | --- |
 | `scripts/spritegen/` | The generator. Pure, deterministic, no node access. |
 | `scripts/world/` | Movement, collision, maps, camera, interaction. |
-| `scripts/ui/` | Dialog runner and its view, the game picker, Sprite Lab. |
+| `scripts/ui/` | Dialog runner and its view, the pause menu, Sprite Lab. |
 | `scripts/autoload/` | EventBus, Registry, GameState, SaveManager, Router, AudioBus, Qa. |
 | `data/` | All content: games, styles, rigs, characters, maps, dialog, config. |
 | `games/<id>/` | A game's own code, if it has any. |
@@ -155,9 +150,10 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M5** — saves with migrations, audio seam, content registry
 - [x] **M6** — web export and a live demo
 - [x] **M7** — a second game, built to find out whether the first six were true
-- [x] **M8** — a game picker, so switching is a keypress rather than an edit
+- [x] **M8** — a game picker, so switching is a keypress rather than an edit *(retired in M11)*
 - [x] **M9** — grid-step movement as a second mode, off by default
 - [x] **M10** — a pause menu, and save slots that belong to one game
+- [x] **M11** — one game, one world, and the name this repo should have had
 
 ## Experience Gained
 
@@ -188,4 +184,4 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 
 ---
 
-🔗 **Live:** https://ali0600.github.io/sprite-generator/ · **Repo:** https://github.com/Ali0600/sprite-generator
+🔗 **Live:** https://ali0600.github.io/rpg-template/ · **Repo:** https://github.com/Ali0600/rpg-template

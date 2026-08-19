@@ -6,9 +6,8 @@ extends CanvasLayer
 ## a .tscn would hold a colour, and a colour outside the style is how a game's chrome stops
 ## re-skinning with the rest of it.
 ##
-## It sits ABOVE the dialog box and BELOW the game picker. That order is the input order too -
-## a dialog cannot open while paused, and the picker is a different screen entirely - so the
-## one case it decides is a picker opened over a pause, which must be on top.
+## It sits ABOVE the dialog box, which is the input order too: a dialog cannot open while
+## paused, and a pause must cover a conversation rather than appear behind one.
 signal resumed
 signal save_requested(slot: int)
 signal load_requested(slot: int)
@@ -34,7 +33,7 @@ var _title := Label.new()
 var _help := Label.new()
 var _rows: Array[Label] = []
 
-## The same duplicate-event guard the picker has: this TOGGLES a screen, and acting twice on
+## The duplicate-event guard every view here has: this TOGGLES a screen, and acting twice on
 ## one press puts it back where it started, which reads as a dead key.
 var _gate := InputGate.new()
 
@@ -96,7 +95,7 @@ func _paint() -> void:
 	var dim := _style.ui_color("dim")
 
 	# Translucent, so the world stays visible underneath. The clear colour is left alone on
-	# purpose - unlike the picker, this is a pause over a place, not a different screen.
+	# purpose: this is a pause over a place, not a different screen.
 	panel.a = BACKDROP_ALPHA
 	_backdrop.color = panel
 	_title.add_theme_color_override("font_color", text)
