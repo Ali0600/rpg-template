@@ -51,6 +51,11 @@ extends Resource
 ## snapping, so this is deliberately off by default.
 @export var camera_smoothing: float = 0.0
 
+## How many save slots the pause menu offers. One is a perfectly good answer - it makes the
+## menu a single "continue" - which is why this is a number a designer sets rather than a
+## constant in the view.
+@export var save_slots: int = 3
+
 
 func problems() -> Array[String]:
 	var out: Array[String] = []
@@ -66,4 +71,6 @@ func problems() -> Array[String]:
 		out.append("grid_step_pixels cannot be negative, got %d" % grid_step_pixels)
 	if grid_step_seconds < 0.0:
 		out.append("grid_step_seconds cannot be negative, got %f" % grid_step_seconds)
+	if save_slots < 1:
+		out.append("save_slots must be at least 1, got %d" % save_slots)
 	return out

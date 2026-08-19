@@ -8,6 +8,10 @@ extends Node
 ## Serialization lands in M5 (SaveData + migrations). Until then this holds the same fields
 ## a save will, so adding persistence is a mapping rather than a redesign.
 
+## Which game is being played. Written by the world when a game starts and by nothing else;
+## a save carries it so that loading one into a different game is a refusal rather than a
+## silently wrong world.
+var game: StringName = &""
 var current_map: StringName = &""
 var player_position: Vector2 = Vector2.ZERO
 var player_facing: int = 0  # Dir.D value; DOWN is 0.
@@ -31,6 +35,7 @@ func _process(delta: float) -> void:
 ## outlives every suite in the run, so state set by one test is present in the next unless
 ## something resets it.
 func reset() -> void:
+	game = &""
 	current_map = &""
 	player_position = Vector2.ZERO
 	player_facing = 0
@@ -39,8 +44,9 @@ func reset() -> void:
 	play_seconds = 0.0
 
 
-func new_game(start_map: StringName, start_position: Vector2, facing: int) -> void:
+func new_game(game_id: StringName, start_map: StringName, start_position: Vector2, facing: int) -> void:
 	reset()
+	game = game_id
 	current_map = start_map
 	player_position = start_position
 	player_facing = facing
@@ -72,6 +78,7 @@ func set_player(position: Vector2, facing: int) -> void:
 ## that has to learn about every new one.
 func to_save() -> SaveData:
 	var out := SaveData.new()
+	out.game = game
 	out.map = current_map
 	out.position = player_position
 	out.facing = player_facing
@@ -84,6 +91,7 @@ func to_save() -> SaveData:
 ## Replaces the live state wholesale. Duplicated on the way in, so a loaded save cannot be
 ## mutated from underneath by whoever still holds the SaveData.
 func from_save(data: SaveData) -> void:
+	game = data.game
 	current_map = data.map
 	player_position = data.position
 	player_facing = data.facing

@@ -25,7 +25,8 @@ signal dialog_changed(info: Dictionary)
 ## Game flow state changed. { "from": int, "to": int } - Router.State values.
 signal flow_changed(info: Dictionary)
 
-## A save slot was written or loaded. { "slot": int, "action": StringName, "ok": bool }
+## A save slot was written or loaded.
+## { "game": StringName, "slot": int, "action": StringName, "ok": bool }
 signal save_changed(info: Dictionary)
 
 ## Something wants a sound. { "id": StringName, "kind": StringName }

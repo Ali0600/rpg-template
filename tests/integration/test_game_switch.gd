@@ -55,9 +55,14 @@ func _boot(manifest_path: String) -> Node2D:
 func test_the_game_that_was_asked_for_is_the_one_running() -> void:
 	_boot(DEMO)
 	assert_str(String(GameState.current_map)).is_equal("demo_town")
+	# Which game is running is state, not just a private field on the world: a save has to
+	# name the game it belongs to, and this is where that name comes from.
+	assert_str(String(GameState.game)).is_equal("demo")
 	_world.start_game(load(QUEST) as GameManifest)
 	assert_str(String(GameState.current_map)).is_equal("quest_village")
 	assert_str(String(_world.map_data().id)).is_equal("quest_village")
+	assert_str(String(GameState.game)).override_failure_message(
+		"the world still says the previous game is running").is_equal("quest")
 
 func test_the_player_is_rebuilt_with_the_new_games_config() -> void:
 	# The sharpest of the four. `if _player == null:` means setup() runs once ever, so without

@@ -129,6 +129,10 @@ func _on_picker_cancelled(_back_to: GameManifest) -> void:
 func start_game(manifest: GameManifest) -> bool:
 	_teardown_game()
 	_game = manifest
+	# The one fact a save carries that no map can supply. Set here because this is where "a
+	# game is running" becomes true, and by nothing else: a view that assigned it would be a
+	# second writer for the one field that decides which slots a player is looking at.
+	GameState.game = _game.id
 	for p in _game.problems():
 		push_error("World: game '%s': %s" % [_game.id, p])
 	_config = _game.config

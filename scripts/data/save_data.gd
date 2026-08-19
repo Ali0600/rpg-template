@@ -10,9 +10,14 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 2
+const VERSION := 3
 
 var version: int = VERSION
+## Which game wrote this. Added in v3, and the one fact a save carries that no map can
+## supply: two games share this build, this save format and these field names, so without it
+## a save from one loads into the other and reads as a corrupt world rather than as a
+## mismatched file.
+var game: StringName = &""
 var map: StringName = &""
 var position: Vector2 = Vector2.ZERO
 var facing: int = Dir.D.DOWN
@@ -25,6 +30,7 @@ var play_seconds: float = 0.0
 func to_dict() -> Dictionary:
 	return {
 		"version": version,
+		"game": String(game),
 		"map": String(map),
 		"position": [position.x, position.y],
 		"facing": facing,
@@ -40,6 +46,7 @@ func to_dict() -> Dictionary:
 static func from_dict(d: Dictionary) -> SaveData:
 	var out := SaveData.new()
 	out.version = int(d.get("version", VERSION))
+	out.game = StringName(str(d.get("game", "")))
 	out.map = StringName(str(d.get("map", "")))
 	var raw := JsonFile.to_float_array(d.get("position", []))
 	if raw.size() == 2:
@@ -57,6 +64,8 @@ func problems() -> Array[String]:
 	var out: Array[String] = []
 	if version != VERSION:
 		out.append("save is version %d, this build reads %d" % [version, VERSION])
+	if String(game).is_empty():
+		out.append("save names no game")
 	if String(map).is_empty():
 		out.append("save names no map")
 	if facing < 0 or facing >= Dir.ALL.size():

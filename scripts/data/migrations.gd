@@ -13,7 +13,12 @@ extends RefCounted
 
 ## Applies every step needed to bring `raw` up to SaveData.VERSION. Returns the migrated
 ## dictionary; the caller then builds a SaveData from it.
-static func apply(raw: Dictionary) -> Dictionary:
+##
+## `game` is an INPUT rather than something read out of the file, because a file older than
+## v3 cannot say which game it belongs to - the slot's directory is the only evidence there
+## is. Passing it in keeps every step a pure function of (file, game), which is what makes a
+## migration reproducible; reading it from a live lookup would not be.
+static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 	# The caller's dictionary is never touched: it is usually the parsed contents of a file
 	# someone still holds, and a migration that edits it means the "original" no longer is one.
 	var d := raw.duplicate(true)
@@ -28,6 +33,8 @@ static func apply(raw: Dictionary) -> Dictionary:
 		match version:
 			1:
 				d = _v1_to_v2(d)
+			2:
+				d = _v2_to_v3(d, game)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -50,7 +57,19 @@ static func _v1_to_v2(d: Dictionary) -> Dictionary:
 	return d
 
 
+## v2 -> v3: the game id was not recorded before v3.
+##
+## It comes from the slot the file was found in, which is the only thing that knows. That is
+## an assumption, and it is the safe one: a save sitting in a game's directory either belongs
+## to that game or was put there by hand, and the second case now announces itself the moment
+## the file is re-read rather than loading a stranger's world.
+static func _v2_to_v3(d: Dictionary, game: StringName) -> Dictionary:
+	d["game"] = String(game)
+	d["version"] = 3
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2]
+	return [1, 2, 3]

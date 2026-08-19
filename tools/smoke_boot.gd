@@ -37,7 +37,7 @@ func _init() -> void:
 
 	if root.get_node_or_null(^"GameState") != null:
 		var state := root.get_node(^"GameState")
-		state.call(&"new_game", &"smoke", Vector2(8.0, 8.0), 0)
+		state.call(&"new_game", &"smoke_game", &"smoke", Vector2(8.0, 8.0), 0)
 		state.call(&"set_flag", &"smoke_flag", true)
 		if not bool(state.call(&"has_flag", &"smoke_flag")):
 			failures.append("GameState did not keep a flag it was just given")

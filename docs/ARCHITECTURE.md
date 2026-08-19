@@ -73,7 +73,7 @@ that ignores you reads as a broken warp rather than as a shut gate.
 | `Registry` | loads every `.tres` under `data/`, indexed by type and id, duplicates reported |
 | — | *(`GameSelect` is not an autoload: it must answer in `-s` tool runs, where singletons do not exist)* |
 | `GameState` | the live state, and the only thing that mutates it |
-| `SaveManager` | JSON slots; an unreadable save is preserved before anything else |
+| `SaveManager` | JSON slots under `user://saves/<game>/`; a save that is unreadable, or that names a different game than its directory, is preserved before anything else |
 | `Router` | game-flow states; the single owner of input ownership |
 | `AudioBus` | play by name; an unknown id warns once |
 | `Qa` | inert unless `--qa-script=` is passed |

@@ -23,8 +23,11 @@ func state() -> State:
 	return _state
 
 
+## Derived from the enum rather than from a list beside it: a hand-kept array of names is a
+## second source of truth that an inserted member silently shifts, renaming every state after
+## it. find_key rather than keys()[_state], so it survives non-sequential values too.
 func state_name() -> String:
-	return ["title", "world", "dialog", "paused"][_state]
+	return str(State.find_key(_state)).to_lower()
 
 
 ## The one question. Everything that moves the player asks this; nothing keeps its own copy.

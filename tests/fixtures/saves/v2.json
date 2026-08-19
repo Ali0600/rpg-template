@@ -1,0 +1,10 @@
+{
+	"_readme": "A real save in the version 2 shape - play_seconds present, no game id - pinned so the v2->v3 step is tested against a FILE rather than against a dictionary a test just built. The game it belongs to is not in the file and cannot be: the slot it was found in is the only evidence there is, which is why Migrations.apply takes it as an argument.",
+	"version": 2,
+	"map": "quest_village",
+	"position": [88.0, 104.0],
+	"facing": 1,
+	"flags": { "found_key": true },
+	"seen": { "quest_village/stash": true },
+	"play_seconds": 42.5
+}
