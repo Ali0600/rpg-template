@@ -18,7 +18,7 @@ mostly a set of decisions about where things are allowed to touch.
                     │
                     ▼
    scripts/world/              Locomotion (pure) → ActorBody → MapBuilder
-   scripts/ui/                 DialogRunner (pure) → DialogBox
+   scripts/ui/                 DialogRunner → DialogBox · GameMenu → GamePicker · PauseMenu → PauseScreen
    scripts/autoload/           EventBus · Registry · GameState · SaveManager · Router · AudioBus · Qa
 ```
 
@@ -74,7 +74,7 @@ that ignores you reads as a broken warp rather than as a shut gate.
 | — | *(`GameSelect` is not an autoload: it must answer in `-s` tool runs, where singletons do not exist)* |
 | `GameState` | the live state, and the only thing that mutates it |
 | `SaveManager` | JSON slots under `user://saves/<game>/`; a save that is unreadable, or that names a different game than its directory, is preserved before anything else |
-| `Router` | game-flow states; the single owner of input ownership |
+| `Router` | game-flow states; the single owner of input ownership. `PAUSED` is the pause menu |
 | `AudioBus` | play by name; an unknown id warns once |
 | `Qa` | inert unless `--qa-script=` is passed |
 

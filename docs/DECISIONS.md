@@ -433,3 +433,47 @@ damaged one but could silently save over it.
   tri-state return where there is currently a nullable one. Revisit hook: `SaveManager._read`
   already computes exactly that distinction and throws it away at the boundary.
 
+## The pause menu is Resume / Save / Load, and Escape is what opens it
+
+The fork: a pause menu is where a game puts everything that is not playing. What goes on it?
+
+- **Chosen: three rows, and Escape opens it from the world.** Save and Load are the reason it
+  exists; everything else on a typical pause menu is either already a keypress here or is a
+  feature this template does not have yet. Escape (`cancel`) was the one bound action the world
+  did not handle — Tab still opens the game picker directly, so nothing about switching games
+  changed and the picker's own play script needed no edit.
+- *A "Switch game" row* — `deferred`: Tab already is one, and a row that duplicates a key
+  makes the menu longer without making anything reachable that was not.
+- *Settings (volume, window, bindings)* — `deferred — worth trying`: none of the three have
+  anywhere to be stored yet. `AudioBus` is the seam a volume row would use.
+- *Quit* — rejected: the web build cannot honour it, and a menu row that does nothing on one
+  of two shipped platforms is worse than no row.
+
+The pure/view split is `GameMenu`/`GamePicker`'s exactly: `PauseMenu` is a cursor over pages
+and slots with no nodes in it, `PauseScreen` paints it from a `SpriteStyle`. Opening a slot
+page returns `NONE` — changing what is on screen is not something the world has to act on —
+which is what keeps "arriving at the save list" from writing slot 0.
+
+### Loading an empty slot is refused, not clamped
+
+`PauseMenu.confirm()` on an empty LOAD row returns `NONE`. The precedent is
+`GameMenu.select()`: clamping to the nearest filled slot turns a UI mistake into a
+plausible-looking wrong answer, and here the wrong answer is loading a game the player did not
+ask for. Saving is not symmetric — an empty slot is exactly where a save goes.
+
+That refusal is also the first of two fail-closed layers for a misfiled save, and it fires
+first: a save that does not read back reads as **empty**, so the menu never offers it. The
+loader's own check is the second, and the only way to reach it through the menu is for a slot
+to go bad between the frame that drew it and the frame that loaded it. That is the case the
+integration suite stages, because it is the only one that exercises the screen's latch.
+
+### The screen latches when it answers, and a refusal has to un-latch it
+
+`PauseScreen` stops accepting input the moment it has emitted `resumed` or `load_requested`,
+because a load rebuilds the world one frame later and a second press in that window would
+answer a question already settled. The cost is that a load which comes back *refused* must
+clear the latch — otherwise the menu sits there looking perfectly normal with every key dead,
+and the only way out is killing the game. A mutant covers exactly that line, and it survived
+the first time it was run: the test drove the refusal through the signal, which skips the
+latch entirely. Driving it through real keypresses is what made the rule real.
+

@@ -71,6 +71,16 @@ downstream can tell which is running. `ActorBody.place(at, facing)` is the ONE w
 teleported — it cancels a step in flight *before* assigning the position, because abandoning
 one afterwards resolves it against the cell the actor left, in the map it left.
 
+**Saves are per game, and `restore()` is the one way back in.** Slots live at
+`user://saves/<game>/slot_N.json` and each save NAMES its game; the two are cross-checked on
+every read and a file that disagrees is parked, never loaded. `peek()` is the slot list's
+silent read - drawing a menu must not park files or announce loads - which makes an unreadable
+slot look *empty*, which is why `save()` parks whatever it is about to overwrite. Escape opens
+`PauseMenu`/`PauseScreen` from `WORLD` only; Tab still opens the picker. `restore()` is the
+single path from a save into a world (`from_save` then `enter_map`), and `enter_map`'s third
+argument is a restored position that nothing else passes. A `--qa-script=` run saves under
+`user://qa_saves`, wiped at boot, so a play script neither reads nor overwrites real progress.
+
 **`move_and_slide()` picks its own delta** — the physics one inside a physics frame, the idle
 one otherwise (pinned in `test_engine_assumptions.gd`). So never compute how far a call will
 move something: end an operation by observing that it finished. This is also why the
@@ -92,7 +102,12 @@ validator that has only ever passed is decoration.
 - Gates run **unpiped** — `cmd | tail` exits with `tail`'s status, so a failing gate
   reports success.
 - Autoloads outlive a suite: call `GameState.reset()` in `before_test`.
-- Assert on simulated frames, never wall-clock time.
+- Assert on simulated frames, never wall-clock time. In a suite with no `scene_runner` that
+  means `await get_tree().physics_frame`, not `await_millis()`: under load a millisecond
+  spans no physics frame at all, and "the player did not move" becomes a fact about how busy
+  the machine is. It fails as a mutation BASELINE FAILURE, which reads like a broken test.
+- A simulated `InputEventAction` needs its matching RELEASE, the way `Qa.press` inserts one.
+  An action left held is still held at the next press, and the engine sees no change.
 
 ### GDScript rules that are not optional here
 

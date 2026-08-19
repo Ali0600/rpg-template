@@ -143,3 +143,13 @@ scripts/autoload/game_state.gd	s|out.game = game|pass|	tests/unit/test_saves.gd	
 scripts/world/world_scene.gd	s|GameState.game = _game.id|pass|	tests/integration/test_game_switch.gd	nothing says which game is running, so no save can name one
 scripts/autoload/router.gd	s|return str\(State.find_key\(_state\)\).to_lower\(\)|return "world"|	tests/unit/test_router.gd	every flow state reports itself as the world
 scripts/data/game_config.gd	s|if save_slots < 1:|if false:|	tests/unit/test_game_config.gd	a game with no save slots passes the config validator
+
+# --- M10: the pause menu ---
+scripts/ui/pause_menu.gd	s|_index = posmod\(_index \+ delta, size\(\)\)|_index += delta|	tests/unit/test_pause_menu.gd	the pause cursor stops dead at the ends instead of wrapping
+scripts/ui/pause_menu.gd	s|if _page == Page.LOAD and slot\(_index\) == null:|if false:|	tests/unit/test_pause_menu.gd	an empty slot offers to load, so confirming it loads nothing
+scripts/ui/pause_menu.gd	s|if _page != Page.TOP:|if true:|	tests/unit/test_pause_menu.gd	backing out of the top page no longer resumes
+scripts/world/world_scene.gd	s|Router.open_overlay\(Router.State.PAUSED\)|pass|	tests/integration/test_pause_and_saves.gd	pausing never takes control away from the player
+scripts/world/world_scene.gd	s|if not at.is_finite\(\):|if true:|	tests/integration/test_pause_and_saves.gd	a load drops the player on the spawn instead of where they saved
+scripts/world/world_scene.gd	s|^\t_close_pause\(\)$|\tpass|	tests/integration/test_pause_and_saves.gd	the pause menu survives the load it asked for
+scripts/world/world_scene.gd	s|_pause.free\(\)|pass|	tests/integration/test_pause_and_saves.gd	the pause menu outlives the game it was opened over
+scripts/ui/pause_screen.gd	s|_committed = false|pass|	tests/integration/test_pause_and_saves.gd	a refused load leaves the menu on screen and deaf to every key
