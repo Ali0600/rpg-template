@@ -2,7 +2,7 @@ class_name PauseMenu
 extends RefCounted
 ## What a paused player is pointing at. No nodes, no autoloads, no files.
 ##
-## Split from PauseScreen for the reason GameMenu is split from GamePicker: "loading an empty
+## Split from PauseScreen for the reason DialogRunner is split from DialogBox: "loading an empty
 ## slot is refused" and "backing out of the top page resumes" are rules, and a rule tested
 ## through a scene is a rule tested through three other things at once.
 ##
@@ -79,7 +79,7 @@ func slot(at: int) -> SaveData:
 	return _slots[at]
 
 
-## Moves the cursor by whole steps, WRAPPING - the GameMenu rule, for the same reason: a list
+## Moves the cursor by whole steps, WRAPPING, for the reason every cursor here does: a list
 ## this short is navigated by tapping one key, and a cursor that stops dead reads as a dropped
 ## input rather than as an end.
 func move(delta: int) -> bool:
@@ -105,7 +105,7 @@ func confirm() -> Pick:
 		_index = 0
 		return Pick.of(Kind.NONE)
 	# Loading nothing is REFUSED, never nudged to a neighbouring slot. The precedent is
-	# GameMenu.select(): clamping turns a UI mistake into a plausible-looking wrong answer,
+	# DialogRunner.choose(): clamping turns a UI mistake into a plausible-looking wrong answer,
 	# and here the wrong answer would be loading a game the player did not ask for.
 	if _page == Page.LOAD and slot(_index) == null:
 		return Pick.of(Kind.NONE)

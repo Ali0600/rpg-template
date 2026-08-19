@@ -14,8 +14,8 @@ func _slots(filled: Array[int], count := 3) -> Array[SaveData]:
 			out.append(null)
 			continue
 		var data := SaveData.new()
-		data.game = &"demo"
-		data.map = &"demo_town"
+		data.game = &"quest"
+		data.map = &"quest_village"
 		data.play_seconds = 754.0
 		out.append(data)
 	return out
@@ -132,4 +132,4 @@ func test_a_clock_reads_as_minutes_until_it_reads_as_hours() -> void:
 func test_a_slot_label_names_the_map_and_the_time_or_says_empty() -> void:
 	var filled := _slots([0])
 	assert_str(PauseMenu.slot_label(0, null)).is_equal("Slot 1: empty")
-	assert_str(PauseMenu.slot_label(1, filled[0])).is_equal("Slot 2: demo_town  12:34")
+	assert_str(PauseMenu.slot_label(1, filled[0])).is_equal("Slot 2: quest_village  12:34")

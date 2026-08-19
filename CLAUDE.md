@@ -31,7 +31,7 @@ scripts/spritegen/  pure RefCounted, deterministic, NO node access — the gener
 scripts/util/       dir, json_file, seeded_rng, hashing, lint_core, content_scan
 scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData…)
 scripts/world/      Locomotion + GridWalker (both pure) + the nodes that apply them
-scripts/ui/         DialogRunner (pure) + its view
+scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen (pure + view)
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
 data/               all content: games, styles, rigs, characters, maps, dialog
@@ -48,13 +48,13 @@ map, the spawn, the player's character, the config and the controls hint. `GameS
 one: `--game=<id>` beats the `application/config/game` project setting, which beats "there is
 only one game". Nothing in `scripts/world/` may name a map, a spawn or a character again.
 
-**When nothing chooses, ask — never guess.** With more than one game and no explicit choice,
-`GameSelect.should_ask()` is true and the world puts up `GamePicker` rather than booting one.
-That is not a softening of the old refusal, it is the same rule with someone to ask: a guessed
-game presents as the game you meant to run behaving strangely. The shipped `config/game` is
-**empty on purpose**. Tab reopens the picker mid-play, and `start_game()` - never `enter_map` -
-is what switches, because `enter_map`'s four build-once guards are right for a warp and wrong
-across games.
+**When nothing chooses, refuse — never guess.** `GameSelect.choose()` returns `""` when there
+is more than one game and nothing picked between them, and the boot stops there with an error
+naming them. One game ships, so the single-game fallthrough is the live path and the refusal is
+unreachable — it is kept armed because the day a second game is added is exactly the day a
+guessed game starts presenting as the game you meant to run behaving strangely. The shipped
+`config/game` is empty for that reason: with one game it needs no answer, and with two it must
+be given one.
 
 **Gameplay goes in `games/<id>/`, never in `scripts/`.** A game's code is a `GameHooks`
 subclass named by its manifest. It is handed a `GameContext` and **may not name an autoload** —
@@ -76,7 +76,7 @@ one afterwards resolves it against the cell the actor left, in the map it left.
 every read and a file that disagrees is parked, never loaded. `peek()` is the slot list's
 silent read - drawing a menu must not park files or announce loads - which makes an unreadable
 slot look *empty*, which is why `save()` parks whatever it is about to overwrite. Escape opens
-`PauseMenu`/`PauseScreen` from `WORLD` only; Tab still opens the picker. `restore()` is the
+`PauseMenu`/`PauseScreen` from `WORLD` only. `restore()` is the
 single path from a save into a world (`from_save` then `enter_map`), and `enter_map`'s third
 argument is a restored position that nothing else passes. A `--qa-script=` run saves under
 `user://qa_saves`, wiped at boot, so a play script neither reads nor overwrites real progress.
@@ -165,7 +165,7 @@ Drive the real game from a script, or photograph it. QA scripts live under
 a new script needs no edit to the gate:
 
 ```bash
-/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/demo/talk_to_npc.json --game=demo
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/quest/talk_to_npc.json --game=quest
 ```
 
 Other headless tools: `setup_input_map.gd` (rewrites the input map — re-run after changing

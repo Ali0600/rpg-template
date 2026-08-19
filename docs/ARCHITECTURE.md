@@ -18,7 +18,7 @@ mostly a set of decisions about where things are allowed to touch.
                     │
                     ▼
    scripts/world/              Locomotion (pure) → ActorBody → MapBuilder
-   scripts/ui/                 DialogRunner → DialogBox · GameMenu → GamePicker · PauseMenu → PauseScreen
+   scripts/ui/                 DialogRunner → DialogBox · PauseMenu → PauseScreen
    scripts/autoload/           EventBus · Registry · GameState · SaveManager · Router · AudioBus · Qa
 ```
 
@@ -98,7 +98,8 @@ has proven is tested — and three times during this build a mutant proved a tes
 - **Which game runs** → a manifest in `data/games/`: start map, spawn, player character,
   config, controls hint. `--game=<id>` beats `config/game` in `project.godot`, which beats
   "there is only one game" — and when nothing chooses, the player is asked rather than guessed
-  at. `GamePicker` is the view; `GameMenu` is the cursor, pure and tested without a screen.
+  at. One game ships, so nothing has to choose today; the refusal is what keeps the second
+  one honest when it arrives.
 - **Art style** → a new file in `data/styles/`. Nothing else.
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
@@ -106,8 +107,8 @@ has proven is tested — and three times during this build a mutant proved a tes
 - **Feel** → `data/game_config.tres`, including which of the two movement modes runs:
   `grid_step_pixels` at zero is free pixel movement, or set to the map's tile size for one
   press = one tile. A game *may* bring its own config, and should only do so
-  when its design demands it: a second game that varies a knob for no reason turns every
-  difference a player feels into a suspected defect. Both shipped games share one.
+  when its design demands it: a game that varies a knob for no reason turns every difference
+  a player feels into a suspected defect.
 - **New mechanics** → a `GameHooks` subclass under `games/<id>/`, named by the manifest.
   Never under `scripts/`: that tree is the template, and every mechanic added to it makes
   the template more specific to one game.

@@ -31,7 +31,7 @@
 		"#..........#####",
 		"#....~~~...#####",
 		"#..........#####",
-		"#..,.......#####",
+		"#..,......-#####",
 		"################"
 	],
 	"decor": [
@@ -50,7 +50,8 @@
 	"spawns": {
 		"start": [5, 5],
 		"from_hollow": [2, 5],
-		"from_keep": [10, 5]
+		"from_keep": [10, 5],
+		"from_town": [10, 8]
 	},
 	"npcs": [
 		{
@@ -65,6 +66,7 @@
 		{ "id": "village_well", "tile": [6, 7], "kind": "sign", "dialog": "village_well" }
 	],
 	"warps": [
+		{ "tile": [10, 9], "map": "quest_town", "spawn": "north_gate" },
 		{ "tile": [1, 5], "map": "quest_hollow", "spawn": "from_village" },
 		{
 			"tile": [11, 5],

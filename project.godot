@@ -10,13 +10,14 @@ config_version=5
 
 [application]
 
-config/name="Sprite Generator RPG Template"
-config/description="A reusable 2D top-down RPG template: a deterministic procedural sprite generator plus the generic systems, so only art style and gameplay design change per game."
+config/name="RPG Template"
+config/description="A reusable 2D top-down RPG template for Godot 4: a deterministic procedural sprite generator plus the generic systems, so building a new game means editing data/ and writing gameplay."
 run/main_scene="res://scenes/world/world.tscn"
-; Which game the world boots, and EMPTY on purpose: with two games shipped and nothing
-; choosing between them, the player is asked. Set it to an id to skip the picker and boot
-; straight into that game; `--game=<id>` overrides it either way, which is how every scripted
-; play session gets a world rather than a menu. See scripts/data/game_select.gd.
+; Which game the world boots. EMPTY is correct while one game ships: GameSelect answers with
+; the only one there is. Add a second and this must name the one that boots, or the boot
+; REFUSES rather than guessing - a guessed game presents as the game you meant to run behaving
+; strangely. `--game=<id>` overrides it either way, which is how every scripted play session
+; names its game. See scripts/data/game_select.gd.
 config/game=""
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"

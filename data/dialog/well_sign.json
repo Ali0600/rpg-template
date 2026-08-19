@@ -1,8 +1,8 @@
 {
 	"_readme": [
-		"The demo's one non-NPC interaction. It exists so the shipped game exercises the",
-		"object path on every CI run - an interaction verb that only appears in a second",
-		"game is a verb the demo's own gates never touch."
+		"The town's non-NPC interaction, and one of two in the game. It exists so the",
+		"object path is exercised on every CI run - an interaction verb no scripted session",
+		"touches is a verb nothing proves works."
 	],
 	"id": "well_sign",
 	"start": "read",

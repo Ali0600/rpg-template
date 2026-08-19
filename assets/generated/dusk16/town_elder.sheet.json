@@ -1,0 +1,42 @@
+{
+	"anchor": [
+		8,
+		23
+	],
+	"animations": {
+		"idle": {
+			"fps": 4,
+			"frames": [
+				0
+			],
+			"loop": true
+		},
+		"walk": {
+			"fps": 8,
+			"frames": [
+				0,
+				1,
+				2,
+				3
+			],
+			"loop": true
+		}
+	},
+	"cell": [
+		16,
+		24
+	],
+	"character": "town_elder",
+	"columns": 4,
+	"directions": [
+		"down",
+		"left",
+		"right",
+		"up"
+	],
+	"rows": 4,
+	"seed": 2,
+	"source": "procedural",
+	"style": "dusk16",
+	"version": 1
+}

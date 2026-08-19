@@ -1,7 +1,7 @@
 {
 	"_readme": "A real save in the version 1 shape, pinned so the migration is tested against a FILE rather than against a dictionary a test just built. A migration is a historical fact: given this file it must produce the same result forever.",
 	"version": 1,
-	"map": "demo_town",
+	"map": "quest_town",
 	"position": [120.8, 136.8],
 	"facing": 2,
 	"flags": { "promised_elder": true },

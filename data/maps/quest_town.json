@@ -11,10 +11,14 @@
 		"matching the rows below.",
 		"",
 		"An 'object' is an interaction point, not a sprite: the well below is the water tiles",
-		"you can already see, plus four lines saying what happens when you press into them."
+		"you can already see, plus four lines saying what happens when you press into them.",
+		"",
+		"The gap in the north wall is the road to the village. It is the one tile of that",
+		"wall a character may stand on, and it is a warp, which is the only reason the map",
+		"validator allows an opening in an outer edge at all."
 	],
-	"id": "demo_town",
-	"style": "gb16",
+	"id": "quest_town",
+	"style": "dusk16",
 	"legend": {
 		".": "grass",
 		",": "grass_alt",
@@ -24,7 +28,7 @@
 		"*": "bush"
 	},
 	"ground": [
-		"####################",
+		"##########-#########",
 		"#..,.....------....#",
 		"#....,...------..,.#",
 		"#........--..--....#",
@@ -53,12 +57,13 @@
 	],
 	"spawns": {
 		"start": [4, 6],
-		"east_gate": [18, 6]
+		"east_gate": [18, 6],
+		"north_gate": [10, 1]
 	},
 	"npcs": [
 		{
 			"id": "elder",
-			"character": "npc_elder",
+			"character": "town_elder",
 			"tile": [11, 2],
 			"facing": "down",
 			"dialog": "elder",
@@ -66,7 +71,7 @@
 		},
 		{
 			"id": "kid",
-			"character": "npc_kid",
+			"character": "town_kid",
 			"tile": [8, 8],
 			"facing": "right",
 			"dialog": "kid",
@@ -74,7 +79,7 @@
 		},
 		{
 			"id": "smith",
-			"character": "npc_smith",
+			"character": "town_smith",
 			"tile": [15, 4],
 			"facing": "left",
 			"dialog": "smith",
@@ -85,6 +90,7 @@
 		{ "id": "well_sign", "tile": [4, 9], "kind": "sign", "dialog": "well_sign", "set_flag": "read_the_notice" }
 	],
 	"warps": [
-		{ "tile": [19, 6], "map": "demo_cave", "spawn": "west_gate" }
+		{ "tile": [19, 6], "map": "quest_cave", "spawn": "west_gate" },
+		{ "tile": [10, 0], "map": "quest_village", "spawn": "from_town" }
 	]
 }

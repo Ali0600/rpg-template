@@ -1,0 +1,130 @@
+{
+	"_readme": [
+		"The road between the village and the town: walk south out of the village, arrive in the",
+		"town, and walk back north.",
+		"",
+		"It asserts which MAP the player is in rather than which tile. A tile assertion would be",
+		"pinned to how far a held key carried them after the transition - which is a fact about",
+		"the test's timing, not about warping.",
+		"",
+		"The round trip is the point. A one-way test would pass with a warp that fires on every",
+		"frame the player stands on it - which, with a door at each end, bounces them between two",
+		"maps forever and looks like a freeze.",
+		"",
+		"Every leg is held until a WALL stops it, so nothing here depends on counting tiles: the",
+		"north wall, then the east wall, then the road in the south-east corner."
+	],
+	"steps": [
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				5,
+				5
+			]
+		},
+		{
+			"op": "note",
+			"text": "north wall, then east wall: two walls to stand on a known column"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "note",
+			"text": "and south down that column, onto the road out of the village"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "standing still must NOT send us straight back"
+		},
+		{
+			"op": "wait",
+			"frames": 90
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "and north again through the town's own gate"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "and the village has not sent us straight back either"
+		},
+		{
+			"op": "wait",
+			"frames": 90
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		}
+	]
+}

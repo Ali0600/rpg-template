@@ -243,7 +243,7 @@ work now:
   (A `game` FIELD landed in M10 for a different reason — see below — but the per-game
   dictionary is still deferred on the same terms.)
 
-## The second game lives in this repo rather than in one that consumes the template
+## The second game lives in this repo rather than in one that consumes the template — *superseded in M11*
 
 The fork: the template's claim needed testing by building something else on it. Where should
 that something else live?
@@ -268,12 +268,17 @@ six milestones of unit tests, mutants and gates had not — a QA op that raced t
 it, an art gate that walked a different set of directories than the game did, and three
 disagreeing lists of "which directories does this project own".
 
-## Nothing choosing a game asks a human, rather than refusing
+## Nothing choosing a game asks a human, rather than refusing — *superseded in M11*
 
 M7 decided that two games with nothing choosing between them is a **refusal**, because a
 guessed game presents as the game you meant to run behaving strangely. That was right, and it
 was right for a reason with an expiry date: there was nobody to ask. This is that entry
 landing, and it does not overturn the decision so much as finish it.
+
+> **Superseded.** One game ships as of M11, so there is nothing to choose between and the
+> picker was deleted with the second game. The precedence it consumed is unchanged, and the
+> refusal below is what a second game would meet again. Kept for the reasoning, not as
+> current behaviour.
 
 - **Chosen: the picker is what happens when `GameSelect.should_ask()` is true** — more than
   one game, and neither `--game=` nor the project setting nor "there is only one" having
@@ -440,16 +445,15 @@ The fork: a pause menu is where a game puts everything that is not playing. What
 - **Chosen: three rows, and Escape opens it from the world.** Save and Load are the reason it
   exists; everything else on a typical pause menu is either already a keypress here or is a
   feature this template does not have yet. Escape (`cancel`) was the one bound action the world
-  did not handle — Tab still opens the game picker directly, so nothing about switching games
-  changed and the picker's own play script needed no edit.
-- *A "Switch game" row* — `deferred`: Tab already is one, and a row that duplicates a key
-  makes the menu longer without making anything reachable that was not.
+  did not handle.
+- *A "Switch game" row* — `deferred`: with one game there is nothing to switch to, and the
+  row would come back with the second game rather than before it.
 - *Settings (volume, window, bindings)* — `deferred — worth trying`: none of the three have
   anywhere to be stored yet. `AudioBus` is the seam a volume row would use.
 - *Quit* — rejected: the web build cannot honour it, and a menu row that does nothing on one
   of two shipped platforms is worse than no row.
 
-The pure/view split is `GameMenu`/`GamePicker`'s exactly: `PauseMenu` is a cursor over pages
+The pure/view split is `DialogRunner`/`DialogBox`'s exactly: `PauseMenu` is a cursor over pages
 and slots with no nodes in it, `PauseScreen` paints it from a `SpriteStyle`. Opening a slot
 page returns `NONE` — changing what is on screen is not something the world has to act on —
 which is what keeps "arriving at the save list" from writing slot 0.
@@ -457,7 +461,7 @@ which is what keeps "arriving at the save list" from writing slot 0.
 ### Loading an empty slot is refused, not clamped
 
 `PauseMenu.confirm()` on an empty LOAD row returns `NONE`. The precedent is
-`GameMenu.select()`: clamping to the nearest filled slot turns a UI mistake into a
+`DialogRunner.choose()`: clamping to the nearest filled slot turns a UI mistake into a
 plausible-looking wrong answer, and here the wrong answer is loading a game the player did not
 ask for. Saving is not symmetric — an empty slot is exactly where a save goes.
 
@@ -476,4 +480,48 @@ clear the latch — otherwise the menu sits there looking perfectly normal with 
 and the only way out is killing the game. A mutant covers exactly that line, and it survived
 the first time it was run: the test drove the refusal through the signal, which skips the
 latch entirely. Driving it through real keypresses is what made the rule real.
+
+## One game ships, and the picker went with the second one
+
+The fork: the repo was called `sprite-generator` and shipped two games — a demo town and a
+quest — with a picker to choose between them. The name described one feature of a project that
+had become something else, and the second game had done its job.
+
+- **Chosen: merge both worlds into one game, delete the picker, rename to `rpg-template`.**
+  The demo's town and cave became the road into *The Barred Gate*, re-styled to `dusk16` with
+  three new character specs; `data/games/demo.tres`, `GamePicker`, `GameMenu` and
+  `GameSelect.should_ask/unresolved/switchable` are gone. What a visitor now meets is a game,
+  not a menu asking which demo they would like.
+- *Keep both games* — rejected: the second game was **proof**, not content, and it had already
+  produced its findings (three template defects, plus the feel-parity correction). Kept, it is
+  two worlds to maintain, two art sets to regenerate, and a first screen that asks a question
+  nobody visiting a template wants to answer.
+- *Keep the picker for a future second game* — `deferred — worth trying`: it is a real feature
+  and it worked. It is deleted rather than left dormant because an unreachable screen rots
+  quietly. **Revisit hook:** `GameSelect.choose()` still returns `""` for "more than one game
+  and nothing chose", and `world_scene._ready()` is where a picker would consume that answer
+  again — the seam it plugged into is intact, only the consumer is gone.
+
+**What was given up, stated plainly.** The template's claim used to be checkable: *a second
+game was added without touching `scripts/`, `tools/` or `scenes/`*, provable with
+`git diff --stat`. That proof is now history rather than something CI re-runs. The seams it
+tested are all still exercised — `GameHooks` by the warden, `GameManifest` by the boot,
+`start_game`/`_teardown_game` by `restore()` and by `test_game_switch` — but nothing standing
+in the repo re-proves the claim end to end. The honest replacement is the deferred item that
+was always the stronger test: **a separate repo that consumes this one.**
+
+### The road between the two worlds
+
+The town and the village are joined by one door each, both anchored on a wall rather than on a
+tile count: the village's is the south-east corner of its own east wall, the town's is the one
+gap in its north wall. Every QA script that crosses them holds a direction into a wall and lets
+the geometry stop it, so the scripts say "walk until something stops you" rather than "walk
+4.5 tiles" — which is the difference between a fixture that survives a map edit and one that
+does not.
+
+The demo's NPCs needed `dusk16` art, and a character exists for exactly one style
+(`CharacterSpec.style_id`). So `town_elder`, `town_kid` and `town_smith` are new specs with the
+same seeds as their `gb16` originals — same parts, new palette, which is the style-swap the
+generator exists to make free. `gb16` and `nes16` and their eight specs stay: they are what
+`test_gates_consistency` compares styles across, and what Sprite Lab shows.
 

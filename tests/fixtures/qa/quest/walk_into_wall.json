@@ -1,0 +1,124 @@
+{
+	"_readme": [
+		"The headless smoke gate: does the game boot, does the player move, does a wall stop",
+		"it? Three things no unit test can answer, because all three need the real physics",
+		"server, the real input map and the real map data at once.",
+		"",
+		"It walks NORTH rather than east: the town's east side is a gate to another map now,",
+		"and a test that walks into it would be testing the warp instead. Worth noting how",
+		"that surfaced - opening the gate broke this gate, loudly, on the run after the map",
+		"changed. A smoke test pinned to level content will keep doing that.",
+		"",
+		"Nothing here names a coordinate. Asserting 'y decreased' survives someone tuning",
+		"walk_speed; asserting 'y == 24.0' does not, and a test that breaks on a tuning",
+		"change is a test people learn to edit rather than read."
+	],
+	"steps": [
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "walk north across open ground"
+		},
+		{
+			"op": "mark",
+			"name": "start"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 2
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "decrease",
+			"since": "start"
+		},
+		{
+			"op": "note",
+			"text": "keep going until the north wall stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 2
+		},
+		{
+			"op": "mark",
+			"name": "at_wall"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 2
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "unchanged",
+			"since": "at_wall"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "and the wall does not trap us - we can walk back"
+		},
+		{
+			"op": "mark",
+			"name": "leaving"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 2
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "increase",
+			"since": "leaving"
+		}
+	]
+}

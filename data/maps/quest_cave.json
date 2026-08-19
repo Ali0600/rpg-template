@@ -7,8 +7,8 @@
 		"It also uses a different mix of tiles from the same style - stone underfoot rather",
 		"than grass - which is what a second area looks like when the palette is shared."
 	],
-	"id": "demo_cave",
-	"style": "gb16",
+	"id": "quest_cave",
+	"style": "dusk16",
 	"legend": {
 		".": "path",
 		"#": "wall",
@@ -44,7 +44,7 @@
 	"npcs": [
 		{
 			"id": "hermit",
-			"character": "npc_smith",
+			"character": "town_smith",
 			"tile": [8, 2],
 			"facing": "down",
 			"dialog": "smith",
@@ -52,6 +52,6 @@
 		}
 	],
 	"warps": [
-		{ "tile": [0, 6], "map": "demo_town", "spawn": "east_gate" }
+		{ "tile": [0, 6], "map": "quest_town", "spawn": "east_gate" }
 	]
 }

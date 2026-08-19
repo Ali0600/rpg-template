@@ -47,14 +47,10 @@ func _init() -> void:
 
 	# Which game boots is data, and the resolution runs before anything is on screen - so when
 	# it fails, it fails as an empty window rather than as an error anyone reads.
-	#
-	# Null means two different things now. Two games and nothing choosing is the picker's case
-	# and is fine; no manifests at all, or a --game= naming one that does not exist, is still
-	# the failure this check was written for.
-	if GameSelect.resolve() == null and GameSelect.unresolved().is_empty():
-		failures.append("GameSelect resolved no game and offers no menu either (%s)" % GameSelect.SETTING)
-	# EVERY shipped game, not just the one that boots. With a picker, every game is reachable
-	# from the first screen, so a broken second game is a broken game the player can reach.
+	if GameSelect.resolve() == null:
+		failures.append("GameSelect resolved no game to boot (%s)" % GameSelect.SETTING)
+	# EVERY shipped game, not just the one that boots - `--game=` reaches any of them, and a
+	# game nothing validates is a game that breaks the day someone runs it.
 	for manifest in GameSelect.manifests():
 		for p in manifest.problems():
 			failures.append("game '%s': %s" % [manifest.id, p])
