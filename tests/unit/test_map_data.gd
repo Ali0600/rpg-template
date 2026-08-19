@@ -172,3 +172,67 @@ func test_a_locked_warp_with_nothing_to_say_is_reported() -> void:
 	# nothing happens, and it reads as the warp being broken rather than as the gate being shut.
 	var map := MapData.load_from(FIXTURES + "locked_warp.json")
 	assert_str("\n".join(map.problems(_known_tiles(), _solid_tiles()))).contains("says nothing when refused")
+
+
+func test_a_door_locked_behind_an_item_does_not_open_empty_handed() -> void:
+	var warp := {"map": "quest_keep", "requires_item": "gate_key", "locked_dialog": "gate_barred"}
+	assert_bool(MapData.warp_allowed(warp, {}, {})).is_false()
+	assert_bool(MapData.warp_allowed(warp, {}, {&"gate_key": 1})).override_failure_message(
+		"the door stayed shut for a player holding its key").is_true()
+
+
+func test_a_door_wanting_a_flag_and_an_item_wants_both() -> void:
+	var warp := {"map": "quest_keep", "requires_flag": "promised", "requires_item": "gate_key",
+		"locked_dialog": "gate_barred"}
+	assert_bool(MapData.warp_allowed(warp, {"promised": true}, {})).is_false()
+	assert_bool(MapData.warp_allowed(warp, {}, {&"gate_key": 1})).is_false()
+	assert_bool(MapData.warp_allowed(warp, {"promised": true}, {&"gate_key": 1})).is_true()
+
+
+func test_a_door_with_neither_requirement_is_open() -> void:
+	# Every warp written before locks existed says nothing about either; adding the fields
+	# must not quietly shut the doors that already work.
+	assert_bool(MapData.warp_allowed({"map": "quest_town"}, {}, {})).is_true()
+
+
+func test_a_door_carries_its_item_requirement_out_of_the_map_file() -> void:
+	# warp_at's dictionary is the ONLY thing the live world sees. A requirement dropped in
+	# that projection passes every test written from a literal warp and opens in the game.
+	var map := MapData.load_from(FIXTURES + "item_warp.json")
+	var warp := map.warp_at(Vector2i(6, 1))
+	assert_str(String(warp.get("requires_item", ""))).override_failure_message(
+		"warp_at dropped the item requirement, so nothing in play would ever check it").is_equal("gate_key")
+	assert_bool(MapData.warp_allowed(warp, {}, {})).is_false()
+	assert_bool(MapData.warp_allowed(warp, {}, {&"gate_key": 1})).is_true()
+
+
+func test_a_door_locked_behind_an_item_with_nothing_to_say_is_reported() -> void:
+	var map := MapData.load_from(FIXTURES + "item_warp.json")
+	assert_str(", ".join(map.problems(_known_tiles(), _solid_tiles()))).contains("says nothing when refused")
+
+
+func test_an_object_that_can_refuse_and_says_nothing_is_reported() -> void:
+	var map := MapData.load_from(FIXTURES + "bad_objects.json")
+	assert_str(", ".join(map.problems(_known_tiles(), _solid_tiles()))).contains("mute_lock")
+
+
+func test_an_object_that_only_gives_is_not_reported_as_doing_nothing() -> void:
+	# The control for the does-nothing guard: a chest with something in it says nothing and
+	# sets no flag, and is a perfectly good chest.
+	var map := MapData.load_from(FIXTURES + "item_warp.json")
+	assert_str(", ".join(map.problems(_known_tiles(), _solid_tiles()))).not_contains("giver")
+
+
+func test_a_map_lists_every_item_it_names() -> void:
+	# Objects, people and doors alike - the content gate reads this, so anything it misses is
+	# an item id nothing ever checks the spelling of.
+	var map := MapData.load_from(FIXTURES + "item_warp.json")
+	var refs := map.item_refs()
+	assert_bool(refs.has(&"gate_key")).is_true()
+	assert_bool(refs.has(&"lamp_oil")).is_true()
+	# toll_coin is named on a DOOR and nowhere else in that file, so a lister that walked only
+	# objects would still pass every assertion above it.
+	assert_bool(refs.has(&"toll_coin")).override_failure_message(
+		"a door's key went unlisted, so a misspelt item on a warp would ship").is_true()
+	assert_int(refs.size()).override_failure_message("an item was listed twice").is_equal(3)
+

@@ -1,0 +1,17 @@
+{ "_readme": "Doors and objects that want ITEMS. It ships one deliberate fault - the warp at [6,2] is locked behind an item and says nothing when it refuses - so problems() has something to find here; do not use this file where an empty problems() is the assertion. The toll_coin on the last warp is named NOWHERE else, so a lister that skipped warps would lose it.",
+  "id": "item_warp", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["########", "#......#", "#......#", "#......#", "#......#", "########"],
+  "spawns": { "start": [1, 1] },
+  "objects": [
+    { "id": "giver", "tile": [1, 3], "give_item": "gate_key" },
+    { "id": "lamp", "tile": [2, 3], "dialog": "lantern", "requires_item": "lamp_oil",
+      "take_item": "lamp_oil", "locked_dialog": "gate_barred", "set_flag": "lit", "once": true }
+  ],
+  "warps": [
+    { "tile": [6, 1], "map": "quest_town", "spawn": "start", "requires_item": "gate_key",
+      "locked_dialog": "gate_barred" },
+    { "tile": [6, 2], "map": "quest_town", "spawn": "start", "requires_item": "gate_key" },
+    { "tile": [6, 3], "map": "quest_town", "spawn": "start", "requires_flag": "promised",
+      "requires_item": "toll_coin", "locked_dialog": "gate_barred" }
+  ] }

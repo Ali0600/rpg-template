@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 3
+const VERSION := 4
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -23,6 +23,10 @@ var position: Vector2 = Vector2.ZERO
 var facing: int = Dir.D.DOWN
 var flags: Dictionary = {}
 var seen: Dictionary = {}
+## Carried items as id -> count. Added in v4. Kept as the raw dictionary rather than an
+## Inventory: this class describes the FILE, and a file may say things an Inventory would
+## refuse - which is what problems() is for.
+var items: Dictionary = {}
 ## Seconds of play. Added in v2, which is what the v1 migration exists to demonstrate.
 var play_seconds: float = 0.0
 
@@ -36,6 +40,7 @@ func to_dict() -> Dictionary:
 		"facing": facing,
 		"flags": flags,
 		"seen": seen,
+		"items": items,
 		"play_seconds": play_seconds,
 	}
 
@@ -54,6 +59,9 @@ static func from_dict(d: Dictionary) -> SaveData:
 	out.facing = int(d.get("facing", Dir.D.DOWN))
 	out.flags = d.get("flags", {}) if d.get("flags", {}) is Dictionary else {}
 	out.seen = d.get("seen", {}) if d.get("seen", {}) is Dictionary else {}
+	# Copied, not sanitised: a count of zero is a FAULT to report, not something to quietly
+	# tidy away. Inventory.from_dict does the tidying, once the file has been accepted.
+	out.items = d.get("items", {}) if d.get("items", {}) is Dictionary else {}
 	out.play_seconds = float(d.get("play_seconds", 0.0))
 	return out
 
@@ -72,4 +80,9 @@ func problems() -> Array[String]:
 		out.append("save has facing %d, which is not a direction" % facing)
 	if play_seconds < 0.0:
 		out.append("save has negative play time")
+	for key: Variant in items.keys():
+		# A zero or negative count is a file that has been edited by hand or written by a
+		# broken build. Carrying "minus one key" is not a state the game can be in.
+		if int(items[key]) <= 0:
+			out.append("save carries %s of item '%s'" % [items[key], key])
 	return out

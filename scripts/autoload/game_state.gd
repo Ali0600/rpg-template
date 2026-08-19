@@ -17,6 +17,10 @@ var player_position: Vector2 = Vector2.ZERO
 var player_facing: int = 0  # Dir.D value; DOWN is 0.
 var flags: Dictionary = {}
 var seen: Dictionary = {}
+## What the player is carrying. An object rather than a Dictionary because the rules - a take
+## is all or nothing, a count of zero forgets the item - belong with the data they govern, and
+## every other layer is handed a snapshot rather than this.
+var inventory: Inventory = Inventory.new()
 var play_seconds: float = 0.0
 
 
@@ -41,6 +45,7 @@ func reset() -> void:
 	player_facing = 0
 	flags = {}
 	seen = {}
+	inventory = Inventory.new()
 	play_seconds = 0.0
 
 
@@ -73,6 +78,25 @@ func set_player(position: Vector2, facing: int) -> void:
 	player_facing = facing
 
 
+## The inventory, through the one writer. A view or a hook never reaches `inventory` directly:
+## these four are the whole vocabulary, and give/take report whether they happened so a caller
+## cannot assume a take that could not be covered.
+func give_item(id: StringName, n: int = 1) -> bool:
+	return inventory.add(id, n)
+
+
+func take_item(id: StringName, n: int = 1) -> bool:
+	return inventory.remove(id, n)
+
+
+func has_item(id: StringName, n: int = 1) -> bool:
+	return inventory.has(id, n)
+
+
+func item_count(id: StringName) -> int:
+	return inventory.count(id)
+
+
 ## The live state as a save. Kept here rather than in SaveManager because this is the object
 ## that OWNS the state - a writer that reached in and read the fields would be a second place
 ## that has to learn about every new one.
@@ -84,6 +108,7 @@ func to_save() -> SaveData:
 	out.facing = player_facing
 	out.flags = flags.duplicate(true)
 	out.seen = seen.duplicate(true)
+	out.items = inventory.to_dict()
 	out.play_seconds = play_seconds
 	return out
 
@@ -97,4 +122,5 @@ func from_save(data: SaveData) -> void:
 	player_facing = data.facing
 	flags = data.flags.duplicate(true)
 	seen = data.seen.duplicate(true)
+	inventory = Inventory.from_dict(data.items)
 	play_seconds = data.play_seconds

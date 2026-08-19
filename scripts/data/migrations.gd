@@ -35,6 +35,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v1_to_v2(d)
 			2:
 				d = _v2_to_v3(d, game)
+			3:
+				d = _v3_to_v4(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -69,7 +71,18 @@ static func _v2_to_v3(d: Dictionary, game: StringName) -> Dictionary:
 	return d
 
 
+## v3 -> v4: nothing was carried before v4.
+##
+## An empty bag rather than a guess. Every item in this game is picked up somewhere the player
+## can go back to, so a save from before items existed loses nothing by starting empty - and
+## inventing a key they never found would open a door the game meant to make them earn.
+static func _v3_to_v4(d: Dictionary) -> Dictionary:
+	d["items"] = {}
+	d["version"] = 4
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3]
+	return [1, 2, 3, 4]

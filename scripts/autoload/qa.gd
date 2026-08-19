@@ -14,7 +14,8 @@ extends Node
 ## edit to the gate.
 ##
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
-## assert_map · assert_flag · assert_position · mark · assert_moved · screenshot · note.
+## assert_map · assert_flag · assert_item · assert_position · mark · assert_moved ·
+## screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
 ##
@@ -142,6 +143,16 @@ func _run(step: Dictionary) -> void:
 				_fail("expected flag '%s' to be %s, it is %s" % [key, wanted, actual])
 			else:
 				_log.append("flag '%s' is %s" % [key, actual])
+		"assert_item":
+			# An EXACT count, not "at least": a lantern that drank the oil and a lantern that
+			# did not are one and zero, and "at least zero" cannot tell them apart.
+			var item := StringName(str(step.get("id", "")))
+			var expected := int(step.get("count", 1))
+			var carried := GameState.item_count(item)
+			if carried != expected:
+				_fail("expected %d of item '%s', found %d" % [expected, item, carried])
+			else:
+				_log.append("carrying %d of '%s'" % [carried, item])
 		"assert_position":
 			_assert_position(step)
 		"mark":

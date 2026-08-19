@@ -18,6 +18,7 @@ mostly a set of decisions about where things are allowed to touch.
                     │
                     ▼
    scripts/world/              Locomotion (pure) → ActorBody → MapBuilder
+   scripts/data/               SpriteStyle · GameConfig · SaveData · ItemDef · Inventory (pure)
    scripts/ui/                 DialogRunner → DialogBox · PauseMenu → PauseScreen
    scripts/autoload/           EventBus · Registry · GameState · SaveManager · Router · AudioBus · Qa
 ```
@@ -104,6 +105,9 @@ has proven is tested — and three times during this build a mutant proved a tes
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
 - **Writing** → files in `data/dialog/`.
+- **What can be carried** → files in `data/items/`. A map hands one over with `give_item`,
+  a lock wants one with `requires_item`, a lantern drinks one with `take_item`, and a dialog
+  choice can do any of the three.
 - **Feel** → `data/game_config.tres`, including which of the two movement modes runs:
   `grid_step_pixels` at zero is free pixel movement, or set to the map's tile size for one
   press = one tile. A game *may* bring its own config, and should only do so

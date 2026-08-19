@@ -11,8 +11,8 @@ const MAP := &"quest_hollow"
 const OTHER_MAP := &"quest_keep"
 
 
-func _ctx(flags: Dictionary = {}, seen: Dictionary = {}) -> GameContext:
-	return GameContext.create(MAP, Vector2i(3, 4), flags, seen)
+func _ctx(flags: Dictionary = {}, seen: Dictionary = {}, items: Dictionary = {}) -> GameContext:
+	return GameContext.create(MAP, Vector2i(3, 4), flags, seen, null, items)
 
 
 func _target(id: StringName, record: Dictionary) -> Interactor.Target:
@@ -125,3 +125,81 @@ func test_a_flag_can_be_cleared_even_though_dialog_can_only_set_one() -> void:
 	var ctx := _ctx()
 	ctx.set_flag(&"has_gate_key", false)
 	assert_bool(bool(ctx.effects()[0].get("value", true))).is_false()
+
+
+func test_a_chest_hands_over_what_is_in_it() -> void:
+	var ctx := _ctx()
+	assert_bool(Interaction.decide({"id": "keystash", "dialog": "keystash",
+		"give_item": "gate_key", "once": true}, ctx)).is_true()
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG), str(GameContext.OP_GIVE_ITEM),
+		str(GameContext.OP_SEEN)])
+	assert_str(String(ctx.effects()[1]["id"])).is_equal("gate_key")
+	assert_int(int(ctx.effects()[1]["count"])).is_equal(1)
+
+
+func test_an_object_that_only_hands_something_over_is_not_a_dead_button() -> void:
+	# Nothing to say and no flag: without give_item counting as a verb, decide() would return
+	# false and the player would press a chest that does nothing.
+	var ctx := _ctx()
+	assert_bool(Interaction.decide({"id": "cache", "give_item": "gate_key"}, ctx)).is_true()
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_GIVE_ITEM)])
+
+
+func test_a_lock_refuses_without_the_item_and_says_so() -> void:
+	# HANDLED, not ignored - the player pressed a real thing. And nothing else may land: a
+	# lock that set its flag on the way to refusing would open the door it just refused.
+	var ctx := _ctx()
+	assert_bool(Interaction.decide({"id": "lantern", "dialog": "lantern", "set_flag": "lit",
+		"requires_item": "lamp_oil", "take_item": "lamp_oil", "locked_dialog": "lantern_dry",
+		"once": true}, ctx)).is_true()
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG)])
+	assert_str(String(ctx.effects()[0]["dialog"])).is_equal("lantern_dry")
+
+
+func test_with_the_item_it_works_and_the_item_goes() -> void:
+	# The control for the refusal above, and the proof a consumable is consumed.
+	var ctx := _ctx({}, {}, {&"lamp_oil": 1})
+	assert_bool(Interaction.decide({"id": "lantern", "dialog": "lantern", "set_flag": "lit",
+		"requires_item": "lamp_oil", "take_item": "lamp_oil", "locked_dialog": "lantern_dry",
+		"once": true}, ctx)).is_true()
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG), str(GameContext.OP_FLAG),
+		str(GameContext.OP_TAKE_ITEM), str(GameContext.OP_SEEN)])
+
+
+func test_a_take_implies_carrying_it() -> void:
+	# No requires_item at all, just a take. It must still refuse: an emitted take that fails
+	# later would leave `once` recorded, so the object is spent and nothing was handed over.
+	var ctx := _ctx()
+	assert_bool(Interaction.decide({"id": "lamp", "take_item": "lamp_oil",
+		"locked_dialog": "lantern_dry", "once": true}, ctx)).is_true()
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG)])
+
+
+func test_a_refusal_with_nothing_to_say_is_still_handled() -> void:
+	# The map validator forbids shipping this, but decide() must not fall through to "keep
+	# looking for another target" - the player is standing at a lock, not at nothing.
+	var ctx := _ctx()
+	assert_bool(Interaction.decide({"id": "lamp", "dialog": "lantern",
+		"requires_item": "lamp_oil"}, ctx)).is_true()
+	assert_array(_ops(ctx)).is_empty()
+
+
+func test_a_lock_wanting_several_counts_them() -> void:
+	var record := {"id": "toll", "dialog": "gate_barred", "requires_item": "coin",
+		"requires_count": 3, "locked_dialog": "gate_barred"}
+	var short := _ctx({}, {}, {&"coin": 2})
+	Interaction.decide(record, short)
+	assert_str(String(short.effects()[0]["dialog"])).is_equal("gate_barred")
+	var enough := _ctx({}, {}, {&"coin": 3})
+	Interaction.decide(record, enough)
+	assert_array(_ops(enough)).is_equal([str(GameContext.OP_DIALOG)])
+
+
+func test_what_a_hook_is_carrying_is_a_snapshot() -> void:
+	# A hook reads what the player has; it cannot reach in and change it. Giving is an effect
+	# like everything else, which is what keeps one sink honest.
+	var carried := {&"gate_key": 1}
+	var ctx := _ctx({}, {}, carried)
+	carried[&"gate_key"] = 99
+	assert_int(ctx.item_count(&"gate_key")).is_equal(1)
+

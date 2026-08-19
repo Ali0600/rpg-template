@@ -155,3 +155,80 @@ func test_a_missing_dialog_file_is_an_error() -> void:
 	var runner := DialogRunner.load_from("res://data/dialog/nope.json")
 	assert_bool(runner.ok).is_false()
 	assert_str(str(runner.problems())).contains("did not load")
+
+
+## A conversation that loops: the gift node returns to the greeting, which is exactly the
+## shape that hands over a second key on the second pass if nothing stops it.
+func _hermit() -> Dictionary:
+	return {
+		"id": "hermit",
+		"start": "greet",
+		"nodes": {
+			"greet": {
+				"speaker": "Hermit", "text": "Oil?",
+				"choices": [
+					{ "text": "Please.", "next": "gave", "give_item": "lamp_oil",
+						"set_flag": "took_oil", "hidden_if_flag": "took_oil" },
+					{ "text": "Just passing.", "next": "greet" },
+				],
+			},
+			"gave": { "speaker": "Hermit", "text": "Mind the wick.", "next": "greet" },
+		},
+	}
+
+
+func test_a_gift_on_a_choice_is_collected_as_an_effect_not_written() -> void:
+	var runner := DialogRunner.from_dict(_hermit())
+	runner.begin()
+	runner.choose(0)
+	var ops: Array[String] = []
+	for effect in runner.effects():
+		ops.append(str(effect.get("op", "")))
+	assert_array(ops).is_equal([str(GameContext.OP_FLAG), str(GameContext.OP_GIVE_ITEM)])
+	assert_str(String(runner.effects()[1]["id"])).is_equal("lamp_oil")
+	# flags_to_set is derived from the same list, so the two cannot disagree.
+	assert_array(runner.flags_to_set()).is_equal([&"took_oil"])
+
+
+func test_a_gift_hidden_behind_the_flag_it_sets_cannot_be_taken_twice() -> void:
+	# Nothing has been written to the game state yet - the flag exists only inside this
+	# conversation - so without counting flags earned here, the loop hands over a second one.
+	var runner := DialogRunner.from_dict(_hermit())
+	runner.begin()
+	assert_int(runner.line().choices.size()).is_equal(2)
+	runner.choose(0)
+	runner.advance()
+	assert_int(runner.line().choices.size()).override_failure_message(
+		"the gift was offered again on the second pass through the same node").is_equal(1)
+
+
+func test_a_choice_needing_an_item_the_player_lacks_is_hidden() -> void:
+	var data := {"id": "gate", "start": "ask", "nodes": {"ask": {"speaker": "Gate", "text": "?",
+		"choices": [{"text": "Unlock it.", "next": "ask", "requires_item": "gate_key"},
+			{"text": "Leave.", "next": "ask"}]}}}
+	var without := DialogRunner.from_dict(data)
+	without.begin()
+	assert_int(without.line().choices.size()).is_equal(1)
+	var with_key := DialogRunner.from_dict(data, {}, {&"gate_key": 1})
+	with_key.begin()
+	assert_int(with_key.line().choices.size()).override_failure_message(
+		"the choice stayed hidden from a player holding the key").is_equal(2)
+
+
+func test_a_choice_that_takes_an_item_waits_until_the_player_has_it() -> void:
+	# A take implies a requires here too: offering to hand over something you are not
+	# carrying is a choice that can only go wrong once taken.
+	var data := {"id": "toll", "start": "ask", "nodes": {"ask": {"speaker": "Toll", "text": "?",
+		"choices": [{"text": "Pay.", "next": "ask", "take_item": "coin", "take_count": 2}]}}}
+	var broke := DialogRunner.from_dict(data, {}, {&"coin": 1})
+	broke.begin()
+	assert_int(broke.line().choices.size()).is_equal(0)
+	var flush := DialogRunner.from_dict(data, {}, {&"coin": 2})
+	flush.begin()
+	assert_int(flush.line().choices.size()).is_equal(1)
+
+
+func test_a_conversation_lists_every_item_it_names() -> void:
+	var refs := DialogRunner.from_dict(_hermit()).item_refs()
+	assert_array(refs).is_equal([&"lamp_oil"])
+

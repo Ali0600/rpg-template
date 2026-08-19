@@ -37,6 +37,8 @@ func test_a_save_round_trips_through_disk() -> void:
 	GameState.new_game(&"quest", &"quest_village", Vector2(120.5, 88.25), Dir.D.LEFT)
 	GameState.set_flag(&"promised_elder", true)
 	GameState.mark_seen(&"intro")
+	GameState.give_item(&"gate_key")
+	GameState.give_item(&"lamp_oil", 2)
 	GameState.play_seconds = 42.5
 
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
@@ -52,6 +54,10 @@ func test_a_save_round_trips_through_disk() -> void:
 	assert_bool(GameState.has_flag(&"promised_elder")).is_true()
 	assert_bool(GameState.was_seen(&"intro")).is_true()
 	assert_float(GameState.play_seconds).is_equal_approx(42.5, 0.001)
+	# What the player carries survives with its COUNTS: an inventory that round-tripped as a
+	# set of booleans would reload two flasks of oil as one.
+	assert_int(GameState.item_count(&"gate_key")).is_equal(1)
+	assert_int(GameState.item_count(&"lamp_oil")).is_equal(2)
 
 func test_a_save_is_filed_under_its_game() -> void:
 	# The game comes from the SAVE, not from an argument: one source for the fact means a file
@@ -158,7 +164,7 @@ func test_a_structurally_wrong_save_is_also_preserved() -> void:
 	# Readable JSON, impossible contents. "The save loaded and the player was nowhere" is a
 	# bug report that needs the original file just as much as a parse failure does. Written at
 	# the current version with the right game, so the faults under test are the only ones.
-	SaveDirs.write_raw(&"quest", 0, '{"version": 3, "game": "quest", "map": "", "facing": 99}')
+	SaveDirs.write_raw(&"quest", 0, '{"version": 4, "game": "quest", "map": "", "facing": 99}')
 	assert_object(SaveManager.load_slot(&"quest", 0)).is_null()
 	assert_bool(FileAccess.file_exists(SaveManager.corrupt_path(&"quest", 0))).is_true()
 
@@ -274,3 +280,40 @@ func test_a_scripted_session_gets_its_own_save_directory() -> void:
 		.is_equal(SaveManager.QA_DIR)
 	assert_str(SaveManager.dir_for(PackedStringArray(["--game=quest"]))).is_equal(SaveManager.DEFAULT_DIR)
 	assert_str(SaveManager.dir_for(PackedStringArray([]))).is_equal(SaveManager.DEFAULT_DIR)
+
+
+func test_a_version_3_save_is_carried_forward() -> void:
+	var file := JsonFile.read(FIXTURES + "v3.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	assert_bool(migrated.has("items")).override_failure_message(
+		"a migrated save arrived with no inventory field at all").is_true()
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# An empty bag rather than a guess: inventing an item the player never found would open a
+	# door the game meant to make them earn.
+	assert_dict(data.items).is_empty()
+	assert_str(String(data.game)).is_equal("quest")
+	assert_str(String(data.map)).is_equal("quest_keep")
+	assert_bool(bool(data.flags.get("has_gate_key", false))).is_true()
+
+
+func test_a_save_carrying_none_of_something_is_refused_and_preserved() -> void:
+	# A file edited by hand, or written by a broken build. "Minus one key" is not a state the
+	# game can be in, so it is parked like any other unreadable save rather than tidied away.
+	SaveDirs.write_raw(&"quest", 0, '{"version": 4, "game": "quest", "map": "quest_village",'
+		+ ' "facing": 0, "items": {"gate_key": 0}}')
+	assert_object(SaveManager.load_slot(&"quest", 0)).override_failure_message(
+		"a save carrying zero of an item was accepted").is_null()
+	assert_bool(FileAccess.file_exists(SaveManager.corrupt_path(&"quest", 0))).is_true()
+
+
+func test_a_save_carrying_a_real_count_loads() -> void:
+	# The control: a validator that refused every inventory would pass the test above.
+	SaveDirs.write_raw(&"quest", 1, '{"version": 4, "game": "quest", "map": "quest_village",'
+		+ ' "facing": 0, "items": {"gate_key": 2}}')
+	var loaded := SaveManager.load_slot(&"quest", 1)
+	assert_object(loaded).is_not_null()
+	assert_int(int(loaded.items["gate_key"])).is_equal(2)
+

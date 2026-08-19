@@ -7,9 +7,18 @@ extends RefCounted
 ## and watching. It also means the box can be replaced - a different layout, a comic bubble,
 ## a text log - without touching a single rule about what happens next.
 ##
-## Flags are COLLECTED rather than written. A pure runner cannot reach GameState, and that
+## Effects are COLLECTED rather than written. A pure runner cannot reach GameState, and that
 ## turns out to be the right shape anyway: the caller applies them once the line has actually
-## been shown, so a dialog abandoned mid-sentence does not leave its promises behind.
+## been shown, so a dialog abandoned mid-sentence does not leave its promises behind. They are
+## the same effect dictionaries a hook produces, so a conversation and a chest hand a gift over
+## through one sink rather than two.
+##
+## Items may be given or taken on a CHOICE, never on a node. A node has no condition and no
+## memory, so a conversation that loops back through one would hand over a second key every
+## time it passed - and there is no `once` here to stop it. The idiom is a choice carrying
+## `set_flag` plus `hidden_if_flag` naming that same flag: taken once, offered never again.
+## `_visible_choices` counts flags earned earlier in this conversation, which is what makes
+## that work before anything has been written to the game state.
 
 ## What the view needs to draw right now.
 class Line:
@@ -29,12 +38,15 @@ var _nodes: Dictionary = {}
 var _start: String = ""
 var _current: String = ""
 var _finished := false
-var _flags_to_set: Array[StringName] = []
+var _effects: Array[Dictionary] = []
 ## Flags the player already has, used to filter choices. Read-only to this class.
 var _known_flags: Dictionary = {}
+## What the player is carrying, used the same way. A choice asking for something they do not
+## have is hidden rather than shown-and-refused.
+var _known_items: Dictionary = {}
 
 
-static func load_from(path: String, known_flags: Dictionary = {}) -> DialogRunner:
+static func load_from(path: String, known_flags: Dictionary = {}, known_items: Dictionary = {}) -> DialogRunner:
 	var runner := DialogRunner.new()
 	var file := JsonFile.read(path)
 	if not file.ok:
@@ -44,16 +56,18 @@ static func load_from(path: String, known_flags: Dictionary = {}) -> DialogRunne
 	runner._nodes = file.get_dict("nodes")
 	runner._start = file.get_string("start", "")
 	runner._known_flags = known_flags
+	runner._known_items = known_items
 	runner.ok = true
 	return runner
 
 
-static func from_dict(data: Dictionary, known_flags: Dictionary = {}) -> DialogRunner:
+static func from_dict(data: Dictionary, known_flags: Dictionary = {}, known_items: Dictionary = {}) -> DialogRunner:
 	var runner := DialogRunner.new()
 	runner.id = StringName(str(data.get("id", "inline")))
 	runner._nodes = data.get("nodes", {})
 	runner._start = str(data.get("start", ""))
 	runner._known_flags = known_flags
+	runner._known_items = known_items
 	runner.ok = true
 	return runner
 
@@ -62,7 +76,7 @@ static func from_dict(data: Dictionary, known_flags: Dictionary = {}) -> DialogR
 ## content bug the caller should report rather than silently showing an empty box.
 func begin() -> bool:
 	_finished = false
-	_flags_to_set.clear()
+	_effects.clear()
 	_current = _start
 	if not _nodes.has(_current):
 		_finished = true
@@ -116,16 +130,24 @@ func choose(index: int) -> bool:
 	if index < 0 or index >= choices.size():
 		return false
 	var choice: Dictionary = choices[index]
-	var flag := str(choice.get("set_flag", ""))
-	if not flag.is_empty():
-		_flags_to_set.append(StringName(flag))
+	_collect(choice)
 	return _go_to(str(choice.get("next", "")))
 
 
-## Flags the conversation has earned so far. The caller writes them to the game state; this
-## class never does.
+## Everything the conversation has earned so far, in the same shape a hook produces. The
+## caller carries it out; this class never does.
+func effects() -> Array[Dictionary]:
+	return _effects.duplicate(true)
+
+
+## The flags among those effects. Derived rather than stored, so there is one list and it
+## cannot disagree with itself.
 func flags_to_set() -> Array[StringName]:
-	return _flags_to_set.duplicate()
+	var out: Array[StringName] = []
+	for effect in _effects:
+		if str(effect.get("op", "")) == str(GameContext.OP_FLAG):
+			out.append(StringName(str(effect.get("key", ""))))
+	return out
 
 
 func _go_to(next_id: String) -> bool:
@@ -138,11 +160,54 @@ func _go_to(next_id: String) -> bool:
 	return true
 
 
+## A node sets its flag on arrival, deduped by value: a conversation that loops back through
+## the same node has not promised twice. Items are deliberately not read here - see the class
+## comment; a node cannot express "only the first time".
 func _enter(node_id: String) -> void:
 	var node: Dictionary = _nodes[node_id]
 	var flag := str(node.get("set_flag", ""))
-	if not flag.is_empty() and not _flags_to_set.has(StringName(flag)):
-		_flags_to_set.append(StringName(flag))
+	if not flag.is_empty() and not flags_to_set().has(StringName(flag)):
+		_effects.append({"op": GameContext.OP_FLAG, "key": StringName(flag), "value": true})
+
+
+## The effects a chosen choice earns: a flag, and anything it hands over or takes away.
+func _collect(choice: Dictionary) -> void:
+	var flag := str(choice.get("set_flag", ""))
+	if not flag.is_empty():
+		_effects.append({"op": GameContext.OP_FLAG, "key": StringName(flag), "value": true})
+	var gives := str(choice.get("give_item", ""))
+	if not gives.is_empty():
+		_effects.append({"op": GameContext.OP_GIVE_ITEM, "id": StringName(gives),
+			"count": int(choice.get("give_count", 1))})
+	var takes := str(choice.get("take_item", ""))
+	if not takes.is_empty():
+		_effects.append({"op": GameContext.OP_TAKE_ITEM, "id": StringName(takes),
+			"count": int(choice.get("take_count", 1))})
+
+
+## A flag the player already had, OR one this conversation has just earned. The second half is
+## what lets a choice hide behind the flag it sets: without it, the gift is offered again on
+## the next pass through the same node, because nothing has been written to the game state yet.
+func _flag_known(name: String) -> bool:
+	return bool(_known_flags.get(name, false)) or flags_to_set().has(StringName(name))
+
+
+## Every item id this conversation names. Read by the content gate, like a map's.
+func item_refs() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for node_id: Variant in _nodes.keys():
+		var node: Dictionary = _nodes[node_id]
+		for entry: Variant in node.get("choices", []) as Array:
+			var choice: Dictionary = entry
+			for key in ["give_item", "take_item", "requires_item"]:
+				_add_ref(out, choice.get(key, ""))
+	return out
+
+
+static func _add_ref(out: Array[StringName], raw: Variant) -> void:
+	var id := StringName(str(raw))
+	if not String(id).is_empty() and not out.has(id):
+		out.append(id)
 
 
 ## Choices whose requirements the player meets. A choice referring to a flag they do not have
@@ -152,10 +217,18 @@ func _visible_choices(node: Dictionary) -> Array:
 	for entry: Variant in node.get("choices", []) as Array:
 		var choice: Dictionary = entry
 		var requires := str(choice.get("requires_flag", ""))
-		if not requires.is_empty() and not bool(_known_flags.get(requires, false)):
+		if not requires.is_empty() and not _flag_known(requires):
 			continue
 		var forbids := str(choice.get("hidden_if_flag", ""))
-		if not forbids.is_empty() and bool(_known_flags.get(forbids, false)):
+		if not forbids.is_empty() and _flag_known(forbids):
+			continue
+		var needs := str(choice.get("requires_item", ""))
+		if not needs.is_empty() and not Inventory.has_in(_known_items, StringName(needs), int(choice.get("requires_count", 1))):
+			continue
+		# A take implies a requires, the same rule objects follow: offering to hand over
+		# something you are not carrying is a choice that can only go wrong when taken.
+		var takes := str(choice.get("take_item", ""))
+		if not takes.is_empty() and not Inventory.has_in(_known_items, StringName(takes), int(choice.get("take_count", 1))):
 			continue
 		out.append(choice)
 	return out
