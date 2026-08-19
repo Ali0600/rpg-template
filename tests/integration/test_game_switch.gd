@@ -109,10 +109,11 @@ func test_the_rebuilt_dialog_box_is_still_listened_to() -> void:
 		"closing a conversation in the restarted game did not give control back").is_equal("world")
 
 func test_a_conversations_flags_still_land_after_a_restart() -> void:
-	# The same connection, carrying its payload rather than just firing.
+	# The same connection, carrying its payload rather than just firing. The payload is an
+	# effect dictionary now, the same shape a chest or a hook produces - one sink, one vocabulary.
 	_boot(QUEST)
 	_world.start_game(_other_game())
-	_world.dialog_box().closed.emit(["promised_after_switch"])
+	_world.dialog_box().closed.emit([{"op": GameContext.OP_FLAG, "key": &"promised_after_switch", "value": true}])
 	assert_bool(GameState.has_flag(&"promised_after_switch")).is_true()
 
 func test_starting_back_and_forth_stays_correct() -> void:

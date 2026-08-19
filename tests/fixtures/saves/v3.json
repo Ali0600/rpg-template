@@ -1,0 +1,11 @@
+{
+	"_readme": "A real save in the version 3 shape - a game id, no items - pinned so the v3->v4 step is tested against a FILE rather than against a dictionary a test just built. A migration is a historical fact: given this file it must produce the same result forever.",
+	"version": 3,
+	"game": "quest",
+	"map": "quest_keep",
+	"position": [88.0, 40.0],
+	"facing": 0,
+	"flags": { "has_gate_key": true },
+	"seen": { "quest_hollow/keystash": true },
+	"play_seconds": 12.0
+}

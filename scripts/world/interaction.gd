@@ -10,17 +10,30 @@ extends RefCounted
 ## data lacks, a chest cannot acquire one the hook lacks, and there is one place where any of
 ## it reaches the autoloads.
 
-## The verbs the template owns, and the line it does not cross. Each one is a composition of
-## nouns the template already has - a dialog, a flag, the memory of having done it - so
-## extending them from NPCs to any tile finishes a job rather than starting a new one:
+## The verbs the template owns, and the line it does not cross:
 ##
-##   dialog             a sign, or a conversation
-##   set_flag           a lever
-##   once               a chest, remembered in GameState.seen across saves
+##   dialog                     a sign, or a conversation
+##   set_flag                   a lever
+##   once                       a chest, remembered in GameState.seen across saves
+##   give_item / give_count     a chest with something in it
+##   take_item / take_count     a lantern that drinks the oil
+##   requires_item / _count     a lock, with locked_dialog for what it says when it refuses
 ##
-## Items with names and counts, currency, prices, hit points, turn order: those need nouns
-## the template does not have, and they belong in a game's own hooks. The moment a map file
-## needs a type system, the template has started designing somebody's game.
+## Items were a game's own business until M12 and are now the template's, because "a count
+## rather than a boolean" turned out to be the one noun every game re-invents: a key, a coin,
+## a potion and a quest token are one mechanism wearing four names. Prices, hit points and
+## turn order are still over the line - the moment a map file needs a type system, the
+## template has started designing somebody's game.
+##
+## Two rules here are invisible at the point they matter:
+##
+## A TAKE IMPLIES A REQUIRES. A record that takes what the player does not have refuses
+## outright rather than emitting a take that fails later - otherwise `once` lands, the chest
+## remembers being opened, and the thing inside is gone with nothing on screen having said so.
+##
+## `once` ON AN NPC MUTES THEM. decide() returns false for a record it has already seen, so a
+## person who hands something over needs a dialog choice with `set_flag` + `hidden_if_flag`,
+## not `once` - which would leave them standing there with nothing to say ever again.
 static func resolve(hooks: GameHooks, ctx: GameContext, target: Interactor.Target) -> bool:
 	if hooks != null and hooks.on_interact(ctx, target):
 		return true
@@ -38,9 +51,24 @@ static func decide(record: Dictionary, ctx: GameContext) -> bool:
 
 	var dialog_id := str(record.get("dialog", ""))
 	var flag := str(record.get("set_flag", ""))
-	if dialog_id.is_empty() and flag.is_empty():
+	var gives := str(record.get("give_item", ""))
+	var takes := str(record.get("take_item", ""))
+	if dialog_id.is_empty() and flag.is_empty() and gives.is_empty() and takes.is_empty():
 		return false
 
+	# Both refusals happen BEFORE anything is appended, so the effect list is all or nothing.
+	# A lock that emitted half its effects and then refused would set the flag on a door it
+	# did not open.
+	var needs := str(record.get("requires_item", ""))
+	if not needs.is_empty() and not ctx.has_item(StringName(needs), int(record.get("requires_count", 1))):
+		return _refuse(record, ctx)
+	var take_count := int(record.get("take_count", 1))
+	if not takes.is_empty() and not ctx.has_item(StringName(takes), take_count):
+		return _refuse(record, ctx)
+
+	# Said first, and that is a contract: a dialog opened by an interaction reads the state as
+	# it was BEFORE this interaction's own flag and items land. A conversation that needs to
+	# see them is a hook's job, where the order is the game's to choose.
 	if not dialog_id.is_empty():
 		ctx.say(StringName(dialog_id))
 	# Applied on the interaction itself, unlike a flag inside a conversation, which lands
@@ -48,8 +76,22 @@ static func decide(record: Dictionary, ctx: GameContext) -> bool:
 	# not un-open it.
 	if not flag.is_empty():
 		ctx.set_flag(StringName(flag))
+	if not gives.is_empty():
+		ctx.give_item(StringName(gives), int(record.get("give_count", 1)))
+	if not takes.is_empty():
+		ctx.take_item(StringName(takes), take_count)
 	if once:
 		ctx.mark_seen(key)
+	return true
+
+
+## A lock that will not open. HANDLED, not ignored: the player pressed a real thing and it
+## answered, so the caller must stop looking for another target - and `once` deliberately does
+## not fire, or a chest would remember being opened by someone who could not open it.
+static func _refuse(record: Dictionary, ctx: GameContext) -> bool:
+	var locked := str(record.get("locked_dialog", ""))
+	if not locked.is_empty():
+		ctx.say(StringName(locked))
 	return true
 
 

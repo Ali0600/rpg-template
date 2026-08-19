@@ -8,7 +8,7 @@ extends CanvasLayer
 ## do on a first press. Pressing confirm mid-reveal completes the line rather than skipping
 ## it, which is the behaviour every player expects and the one that is easy to get wrong.
 
-signal closed(flags_to_set: Array)
+signal closed(effects: Array)
 
 const BOX_HEIGHT := 54
 const MARGIN := 6
@@ -173,6 +173,6 @@ func _choice_input(event: InputEvent, line: DialogRunner.Line) -> void:
 
 func _close() -> void:
 	visible = false
-	var flags := _runner.flags_to_set()
+	var earned := _runner.effects()
 	_runner = null
-	closed.emit(flags)
+	closed.emit(earned)

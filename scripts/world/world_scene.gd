@@ -342,7 +342,7 @@ func _check_warp() -> void:
 	if String(destination).is_empty():
 		return
 
-	if not MapData.warp_allowed(warp, GameState.flags):
+	if not MapData.warp_allowed(warp, GameState.flags, GameState.inventory.to_dict()):
 		# Once per arrival, not once per frame: _last_tile is already updated above, so
 		# standing against a locked gate says its line once rather than every tick.
 		var locked: StringName = warp.get("locked_dialog", &"")
@@ -397,11 +397,11 @@ func try_interact() -> bool:
 	return _apply(ctx)
 
 
-func _on_dialog_closed(flags: Array) -> void:
-	# Flags are applied HERE, once the conversation actually reached them - the runner
-	# collects them and never writes, so an abandoned dialog leaves no promises behind.
-	for flag: Variant in flags:
-		GameState.set_flag(StringName(str(flag)), true)
+func _on_dialog_closed(effects: Array) -> void:
+	# Applied HERE, once the conversation actually reached them - the runner collects and never
+	# writes, so an abandoned dialog leaves no promises behind. Through the same sink as
+	# everything else: a gift from a conversation and a gift from a chest are one code path.
+	_apply_effects(effects)
 	Router.close_overlay()
 	EventBus.dialog_changed.emit({"dialog_id": &"", "open": false})
 
@@ -436,7 +436,8 @@ func _targets() -> Array[Interactor.Target]:
 ## the autoloads; nothing under games/ may.
 func _context() -> GameContext:
 	var tile := MapData.world_to_tile(_player.global_position, _built.tile_size) if _player != null else Vector2i.ZERO
-	return GameContext.create(GameState.current_map, tile, GameState.flags, GameState.seen, self)
+	return GameContext.create(GameState.current_map, tile, GameState.flags, GameState.seen, self,
+		GameState.inventory.to_dict())
 
 
 ## The one place an effect reaches live state. Everything - the template's own verbs and a
@@ -446,8 +447,15 @@ func _context() -> GameContext:
 ## A failing effect logs and the rest still run: the flag on a chest is the durable half and
 ## the line of text is presentation, so a broken dialog file must not also swallow the pickup.
 func _apply(ctx: GameContext) -> bool:
+	return _apply_effects(ctx.effects())
+
+
+## The one place any effect reaches live state - a hook's, an object's, or a conversation's.
+## Two sinks would mean two places to look for "what does this actually do", and the second one
+## is always the one that forgets to learn a new op.
+func _apply_effects(effects: Array) -> bool:
 	var did := false
-	for effect: Dictionary in ctx.effects():
+	for effect: Dictionary in effects:
 		var op := StringName(str(effect.get("op", "")))
 		match op:
 			GameContext.OP_FLAG:
@@ -461,6 +469,21 @@ func _apply(ctx: GameContext) -> bool:
 				did = true
 			GameContext.OP_DIALOG:
 				did = _open_dialog(StringName(str(effect.get("dialog", "")))) or did
+			GameContext.OP_GIVE_ITEM:
+				var item_id := StringName(str(effect.get("id", "")))
+				# An item nothing describes cannot be drawn in a list or named to a player, so
+				# it is refused here rather than carried invisibly.
+				if Registry.get_resource(&"ItemDef", item_id) == null:
+					push_error("World: nothing describes item '%s'" % item_id)
+				elif GameState.give_item(item_id, int(effect.get("count", 1))):
+					did = true
+			GameContext.OP_TAKE_ITEM:
+				# decide() and the dialog runner both refuse before emitting a take they cannot
+				# cover, so reaching this and failing is a bug, said out loud.
+				if GameState.take_item(StringName(str(effect.get("id", ""))), int(effect.get("count", 1))):
+					did = true
+				else:
+					push_error("World: took '%s' the player is not carrying" % effect.get("id", ""))
 			GameContext.OP_WARP:
 				did = enter_map(StringName(str(effect.get("map", ""))),
 					StringName(str(effect.get("spawn", "start")))) or did
@@ -470,7 +493,8 @@ func _apply(ctx: GameContext) -> bool:
 
 
 func _open_dialog(dialog_id: StringName) -> bool:
-	var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, GameState.flags)
+	var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, GameState.flags,
+		GameState.inventory.to_dict())
 	if not runner.ok:
 		push_error("World: %s" % runner.error)
 		return false

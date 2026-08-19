@@ -115,6 +115,11 @@ func warp_at(at: Vector2i) -> Dictionary:
 				"map": StringName(str(warp.get("map", ""))),
 				"spawn": StringName(str(warp.get("spawn", "start"))),
 				"requires_flag": StringName(str(warp.get("requires_flag", ""))),
+				# Projected, not read from the raw entry later: this dictionary is the ONLY
+				# thing _check_warp sees, so a requirement missing here is a lock that passes
+				# every test built from a literal warp and opens in the live game.
+				"requires_item": StringName(str(warp.get("requires_item", ""))),
+				"requires_count": int(warp.get("requires_count", 1)),
 				"locked_dialog": StringName(str(warp.get("locked_dialog", ""))),
 			}
 	return {}
@@ -123,13 +128,17 @@ func warp_at(at: Vector2i) -> Dictionary:
 ## Whether a warp will actually fire. Pure, so "a locked door needs its key" is a test that
 ## reads a result rather than one that walks a player into a wall for 300 frames.
 ##
-## A warp with no requires_flag is open, which is what every warp written before this existed
-## means - adding the field must not quietly lock the doors that already work.
-static func warp_allowed(warp: Dictionary, flags: Dictionary) -> bool:
+## A warp with neither requirement is open, which is what every warp written before these
+## existed means - adding a field must not quietly lock the doors that already work. With both,
+## both must pass: a door wanting a key AND a promise is one door, not two.
+static func warp_allowed(warp: Dictionary, flags: Dictionary, items: Dictionary = {}) -> bool:
 	var requires := StringName(str(warp.get("requires_flag", "")))
-	if String(requires).is_empty():
-		return true
-	return bool(flags.get(requires, false))
+	if not String(requires).is_empty() and not bool(flags.get(requires, false)):
+		return false
+	var item := StringName(str(warp.get("requires_item", "")))
+	if not String(item).is_empty() and not Inventory.has_in(items, item, int(warp.get("requires_count", 1))):
+		return false
+	return true
 
 
 ## The world position of a tile's CENTRE, in pixels. Actors stand on tile centres, so this
@@ -241,6 +250,9 @@ func problems(known_tiles: Array[String], solid_tiles: Array[String] = []) -> Ar
 		if not str(warp.get("requires_flag", "")).is_empty() and str(warp.get("locked_dialog", "")).is_empty():
 			out.append("warp at %s is locked behind '%s' but says nothing when refused"
 				% [at, warp.get("requires_flag", "")])
+		if not str(warp.get("requires_item", "")).is_empty() and str(warp.get("locked_dialog", "")).is_empty():
+			out.append("warp at %s needs item '%s' but says nothing when refused"
+				% [at, warp.get("requires_item", "")])
 
 	out.append_array(_object_problems(bounds))
 
@@ -293,10 +305,43 @@ func _object_problems(bounds: Vector2i) -> Array[String]:
 		# a dead button: the player walks up, presses, and nothing happens.
 		var says := str(object.get("dialog", ""))
 		var sets := str(object.get("set_flag", ""))
+		var gives := str(object.get("give_item", ""))
+		var takes := str(object.get("take_item", ""))
 		var kind := str(object.get("kind", ""))
-		if says.is_empty() and sets.is_empty() and kind.is_empty():
-			out.append("object '%s' does nothing - give it a dialog, a set_flag, or a kind its game handles" % object_id)
+		if says.is_empty() and sets.is_empty() and gives.is_empty() and takes.is_empty() and kind.is_empty():
+			out.append("object '%s' does nothing - give it a dialog, a set_flag, an item to give or take, or a kind its game handles" % object_id)
+		# The same rule as a locked door, for the same reason: an object that can refuse and
+		# has no line to refuse with is a button that does nothing on the one press that
+		# matters most - the one before you have found the thing it wants.
+		var needs := str(object.get("requires_item", ""))
+		if (not needs.is_empty() or not takes.is_empty()) and str(object.get("locked_dialog", "")).is_empty():
+			out.append("object '%s' needs an item but says nothing when refused" % object_id)
 	return out
+
+
+## Every item id this map names, from its objects, its people and its doors. The content gate
+## reads this: an item named nowhere on disk is a lock that can never open or a chest that
+## hands over nothing, and both look like level-design mistakes rather than typos.
+func item_refs() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for entry: Variant in objects:
+		_collect_items(out, entry as Dictionary)
+	for entry: Variant in npcs:
+		_collect_items(out, entry as Dictionary)
+	for entry: Variant in warps:
+		_add_ref(out, (entry as Dictionary).get("requires_item", ""))
+	return out
+
+
+static func _collect_items(out: Array[StringName], record: Dictionary) -> void:
+	for key in ["give_item", "take_item", "requires_item"]:
+		_add_ref(out, record.get(key, ""))
+
+
+static func _add_ref(out: Array[StringName], raw: Variant) -> void:
+	var id := StringName(str(raw))
+	if not String(id).is_empty() and not out.has(id):
+		out.append(id)
 
 
 func _unknown_characters(layer: Array[String], label: String, width: int) -> Array[String]:

@@ -18,6 +18,8 @@ one-glance menu of things still worth trying.
   `sprite_compositor.gd`.
 - **Slots that say WHY they cannot be loaded** ("unreadable" rather than "empty"). Revisit
   hook: `SaveManager._read` already computes the distinction and `peek()` discards it.
+- **Using an item from the bag** (a "Use" verb on the pause menu's item list). Revisit hook:
+  `PauseMenu.confirm()` on the ITEMS page already returns `NONE` where the answer would go.
 
 ---
 
@@ -240,6 +242,7 @@ work now:
 - *`SaveData`* — a quest is expressible in `flags` and `seen`, both already typed, persisted
   and migrated. Adding a per-game dictionary is purely additive later and does not re-cut
   this seam. `deferred`; trigger: the first game that needs a count rather than a boolean.
+  **That trigger fired in M12** — see "Items are the template's business after all".
   (A `game` FIELD landed in M10 for a different reason — see below — but the per-game
   dictionary is still deferred on the same terms.)
 
@@ -524,4 +527,60 @@ The demo's NPCs needed `dusk16` art, and a character exists for exactly one styl
 same seeds as their `gb16` originals — same parts, new palette, which is the style-swap the
 generator exists to make free. `gb16` and `nes16` and their eight specs stay: they are what
 `test_gates_consistency` compares styles across, and what Sprite Lab shows.
+
+## Items are the template's business after all
+
+The fork: the quest's key was a boolean flag, and `interaction.gd` said in as many words that
+"items with names and counts… belong in a game's own hooks". Making the quest about *carrying*
+things meant either building an inventory inside `games/quest/` or reversing that.
+
+- **Chosen: items are a template noun.** `ItemDef` + a pure `Inventory`, `give_item`/`take_item`
+  as effects, and `requires_item` beside `requires_flag` on objects, warps and dialog choices.
+  The reversal is honest rather than reluctant: a key, a coin, a potion and a quest token are one
+  mechanism wearing four names, and `docs/DECISIONS.md` had already written down the trigger for
+  this — "the first game that needs a count rather than a boolean". Every game re-inventing the
+  same dictionary-of-counts is exactly what the template exists to stop.
+- *Keep it in the game's hooks* — rejected: it works, and the second game to want items writes it
+  again, differently, with its own save-migration bug. The line the template still does not cross
+  is prices, hit points and turn order — the moment a map file needs a type system, the template
+  has started designing somebody's game.
+- *A `kind` on an object plus game code* — rejected: it moves the vocabulary into a string the
+  template cannot validate, so a typo becomes a silent no-op instead of a content error.
+
+### No stack limit, and no "use" yet
+
+A cap would let a pickup FAIL, and a chest marked `once` has already recorded being opened by the
+time the give is applied — so a full bag eats the key and the door stays shut with nothing on
+screen saying why. Unbounded counts cannot produce that; a game needing a cap enforces it in its
+own hooks, where it can also say so. "Use" is `deferred — worth trying`: it needs a verb per item
+and an effect vocabulary for what using does, which is a design decision no shipped item needs
+yet. Revisit hook: `PauseMenu.confirm()` on the ITEMS page returns `NONE` where that answer goes.
+
+### A take implies a requires
+
+`Interaction.decide` and `DialogRunner._visible_choices` both refuse *before* appending any
+effect when a `take_item` cannot be covered. Without that rule the take is emitted, fails at the
+sink, and the `mark_seen` beside it still lands — a chest that is spent and gave nothing, which
+looks like a lost item rather than a bug. It also makes an effect list all-or-nothing, so a
+failure at the sink means a hook is wrong rather than a player being unlucky.
+
+### Gifts live on choices, never on nodes
+
+A dialog node has no condition and no memory of having been entered, so a conversation that loops
+back through a gift node hands over a second key every pass. A choice can carry `set_flag X` and
+`hidden_if_flag X` naming the same flag, which is "taken once, offered never again" — and
+`_visible_choices` counts flags earned *earlier in this conversation*, because nothing has been
+written to the game state until the box closes.
+
+- *Node-level `give_item`* — rejected: it reads as the obvious place to put it and is a
+  duplication bug waiting for the first looping conversation.
+- *A `once` on a dialog node* — `deferred`: it is a second memory to persist and migrate, for a
+  case the flag pair already covers.
+
+### The dialog's second sink is gone
+
+`_on_dialog_closed` used to write flags to `GameState` directly, which was fine while a
+conversation could only earn flags. It now emits the same effect dictionaries a hook does and
+goes through `_apply_effects` — one vocabulary, one place to look for "what does this actually
+do", and one place that has to learn a new op.
 

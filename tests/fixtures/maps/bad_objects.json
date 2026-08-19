@@ -1,4 +1,4 @@
-{ "_readme": "Four object faults at once, plus one object that is fine. Several in one file so the scan is proven to report all of them rather than the first: a validator that stops at the first fault sends you round the loop once per typo.",
+{ "_readme": "Five object faults at once, plus one object that is fine. Several in one file so the scan is proven to report all of them rather than the first: a validator that stops at the first fault sends you round the loop once per typo.",
   "id": "bad_objects", "style": "gb16",
   "legend": { ".": "grass", "#": "wall" },
   "ground": ["########", "#......#", "#......#", "#......#", "########"],
@@ -12,6 +12,7 @@
     { "id": "twice", "tile": [3, 1], "dialog": "well_sign" },
     { "id": "twice", "tile": [4, 1], "dialog": "well_sign" },
     { "id": "silent", "tile": [5, 1] },
+    { "id": "mute_lock", "tile": [5, 3], "dialog": "well_sign", "requires_item": "gate_key" },
     { "id": "off_the_map", "tile": [99, 1], "dialog": "well_sign" },
     { "tile": [6, 3], "dialog": "well_sign" }
   ] }

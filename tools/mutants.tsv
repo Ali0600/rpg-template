@@ -61,7 +61,7 @@ scripts/util/input_gate.gd	s|if event == _last and frame == _frame:|if false:|	t
 scripts/ui/dialog_runner.gd	s|if index < 0 or index >= choices.size\(\):|if false:|	tests/unit/test_dialog_runner.gd	an out-of-range choice is clamped instead of refused
 scripts/ui/dialog_runner.gd	s|if not flag.is_empty\(\):|if false:|	tests/unit/test_dialog_runner.gd	a choice stops earning its flag
 scripts/ui/dialog_runner.gd	s|if not _visible_choices\(node\).is_empty\(\):|if false:|	tests/unit/test_dialog_runner.gd	a line with choices advances and picks for the player
-scripts/ui/dialog_runner.gd	s|if not requires.is_empty\(\) and not bool\(_known_flags.get\(requires, false\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice the player cannot take is offered anyway
+scripts/ui/dialog_runner.gd	s|if not requires.is_empty\(\) and not _flag_known\(requires\):|if false:|	tests/unit/test_dialog_runner.gd	a choice the player cannot take is offered anyway
 scripts/world/interactor.gd	s|if to_target.dot\(forward\) <= 0.0:|if false:|	tests/unit/test_interactor.gd	you can talk to someone standing behind you
 scripts/world/interactor.gd	s|if d > config.interact_reach \+ config.body_size.x:|if false:|	tests/unit/test_interactor.gd	interaction reaches across the whole map
 
@@ -99,9 +99,9 @@ scripts/util/lint_core.gd	s|if check_autoload:|if false:|	tests/unit/test_lint_c
 scripts/data/game_manifest.gd	s|out.append\("hooks script %s is not a GameHooks" % hooks.resource_path\)|pass|	tests/unit/test_game_manifest.gd	a hooks script that is not a GameHooks is accepted and never called
 
 # --- M7: objects and locked doors ---
-scripts/world/map_data.gd	s|return bool\(flags.get\(requires, false\)\)|return true|	tests/unit/test_map_data.gd	a locked door opens without its key
+scripts/world/map_data.gd	s|if not String\(requires\).is_empty\(\) and not bool\(flags.get\(requires, false\)\):|if false:|	tests/unit/test_map_data.gd	a locked door opens without its key
 scripts/world/map_data.gd	s|if taken.has\(object_id\):|if false:|	tests/unit/test_map_data.gd	two objects share an id, so the second is found already opened
-scripts/world/map_data.gd	s|if says.is_empty\(\) and sets.is_empty\(\) and kind.is_empty\(\):|if false:|	tests/unit/test_map_data.gd	an object nobody can interact with ships as a dead button
+scripts/world/map_data.gd	s|if says.is_empty\(\) and sets.is_empty\(\) and gives.is_empty\(\) and takes.is_empty\(\) and kind.is_empty\(\):|if false:|	tests/unit/test_map_data.gd	an object nobody can interact with ships as a dead button
 scripts/world/map_data.gd	s|map.objects = file.get_array\("objects"\)|map.objects = []|	tests/unit/test_map_data.gd	a map stops carrying its objects at all
 
 # --- M8: starting, tearing down and re-starting a game ---
@@ -148,3 +148,36 @@ scripts/world/world_scene.gd	s|if not at.is_finite\(\):|if true:|	tests/integrat
 scripts/world/world_scene.gd	s|^\t_close_pause\(\)$|\tpass|	tests/integration/test_pause_and_saves.gd	the pause menu survives the load it asked for
 scripts/world/world_scene.gd	s|_pause.free\(\)|pass|	tests/integration/test_pause_and_saves.gd	the pause menu outlives the game it was opened over
 scripts/ui/pause_screen.gd	s|_committed = false|pass|	tests/integration/test_pause_and_saves.gd	a refused load leaves the menu on screen and deaf to every key
+
+# --- M12: items and inventory ---
+scripts/data/inventory.gd	s|if n <= 0 or count\(id\) < n:|if n <= 0:|	tests/unit/test_items.gd	a take bigger than the bag takes what it can and the count goes negative
+scripts/data/inventory.gd	s|_counts.erase\(id\)|_counts[id] = 0|	tests/unit/test_items.gd	an item taken down to nothing is still listed as carried
+scripts/data/inventory.gd	s|if n <= 0 or String\(id\).is_empty\(\):|if false:|	tests/unit/test_items.gd	giving zero of something, or an item with no id, is recorded
+scripts/data/inventory.gd	s|return int\(d.get\(id, 0\)\) >= n|return int(d.get(id, 0)) > 0|	tests/unit/test_items.gd	a lock wanting three coins opens for one
+scripts/data/item_def.gd	s|if String\(id\).is_empty\(\):|if false:|	tests/unit/test_items.gd	an item with no id passes validation and can never be looked up
+scripts/data/item_def.gd	s|if name.is_empty\(\):|if false:|	tests/unit/test_items.gd	an item with no name draws as a blank row in the bag
+scripts/autoload/game_state.gd	s|^\tinventory = Inventory.new\(\)$|\tpass|	tests/unit/test_items.gd	a new game starts holding the last one's items
+scripts/autoload/game_state.gd	s|out.items = inventory.to_dict\(\)|pass|	tests/unit/test_saves.gd	a save forgets everything the player was carrying
+scripts/data/save_data.gd	s|if int\(items\[key\]\) <= 0:|if false:|	tests/unit/test_saves.gd	a save carrying zero of an item is accepted rather than parked
+scripts/data/migrations.gd	s|d\["items"\] = \{\}|pass|	tests/unit/test_saves.gd	a migrated save arrives with no inventory field at all
+scripts/data/migrations.gd	s|d = _v3_to_v4\(d\)|break|	tests/unit/test_saves.gd	a v3 save is handed on unmigrated
+scripts/world/game_context.gd	s|ctx._items = items.duplicate\(\)|ctx._items = items|	tests/unit/test_interaction.gd	a hook reads the live inventory instead of a snapshot of it
+scripts/world/interaction.gd	s|if not needs.is_empty\(\) and not ctx.has_item\(StringName\(needs\), int\(record.get\("requires_count", 1\)\)\):|if false:|	tests/unit/test_interaction.gd	a lantern lights with no oil in it
+scripts/world/interaction.gd	s|if not takes.is_empty\(\) and not ctx.has_item\(StringName\(takes\), take_count\):|if false:|	tests/unit/test_interaction.gd	an object consumes what the player has not got and is marked opened anyway
+scripts/world/interaction.gd	s|ctx.say\(StringName\(locked\)\)|pass|	tests/unit/test_interaction.gd	a refused lock says nothing, so it reads as a dead button
+scripts/world/interaction.gd	s|ctx.give_item\(StringName\(gives\), int\(record.get\("give_count", 1\)\)\)|pass|	tests/unit/test_interaction.gd	a chest with something in it hands over nothing
+scripts/world/interaction.gd	s|ctx.take_item\(StringName\(takes\), take_count\)|pass|	tests/unit/test_interaction.gd	a consumable is never consumed
+scripts/world/map_data.gd	s|if not String\(item\).is_empty\(\) and not Inventory.has_in\(items, item, int\(warp.get\("requires_count", 1\)\)\):|if false:|	tests/unit/test_map_data.gd	a door locked behind an item opens empty-handed
+scripts/world/map_data.gd	s|"requires_item": StringName\(str\(warp.get\("requires_item", ""\)\)\),|"requires_item": \&"",|	tests/unit/test_map_data.gd	warp_at drops the item requirement, so nothing in play ever checks it
+scripts/world/map_data.gd	s|if not str\(warp.get\("requires_item", ""\)\).is_empty\(\) and str\(warp.get\("locked_dialog", ""\)\).is_empty\(\):|if false:|	tests/unit/test_map_data.gd	a door locked behind an item with nothing to say ships
+scripts/world/map_data.gd	s|if \(not needs.is_empty\(\) or not takes.is_empty\(\)\) and str\(object.get\("locked_dialog", ""\)\).is_empty\(\):|if false:|	tests/unit/test_map_data.gd	an object that can refuse and says nothing when it does ships
+scripts/world/map_data.gd	s|_add_ref\(out, \(entry as Dictionary\).get\("requires_item", ""\)\)|pass|	tests/unit/test_map_data.gd	a door's key goes unlisted, so a misspelt item on a warp ships
+scripts/ui/dialog_runner.gd	s|if not needs.is_empty\(\) and not Inventory.has_in\(_known_items, StringName\(needs\), int\(choice.get\("requires_count", 1\)\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice needing an item is offered to a player without it
+scripts/ui/dialog_runner.gd	s|if not takes.is_empty\(\) and not Inventory.has_in\(_known_items, StringName\(takes\), int\(choice.get\("take_count", 1\)\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice that pays is offered to a player who cannot pay
+scripts/ui/dialog_runner.gd	s| or flags_to_set\(\).has\(StringName\(name\)\)||	tests/unit/test_dialog_runner.gd	a gift hidden behind the flag it sets is handed over again on the next pass
+scripts/ui/dialog_runner.gd	s|_effects.append\(\{"op": GameContext.OP_GIVE_ITEM, "id": StringName\(gives\),|_effects.append({"op": GameContext.OP_FLAG, "id": StringName(gives),|	tests/unit/test_dialog_runner.gd	a gift from a conversation is collected as something else entirely
+scripts/ui/dialog_box.gd	s|var earned := _runner.effects\(\)|var earned := []|	tests/integration/test_world_items.gd	a conversation's promises and gifts are dropped as it closes
+scripts/world/world_scene.gd	s|if Registry.get_resource\(&"ItemDef", item_id\) == null:|if false:|	tests/integration/test_world_items.gd	an item no data file describes is carried invisibly
+scripts/world/world_scene.gd	s|elif GameState.give_item\(item_id, int\(effect.get\("count", 1\)\)\):|elif false:|	tests/integration/test_world_items.gd	a gift reaches the sink and nothing is given
+scripts/world/world_scene.gd	s|if GameState.take_item\(StringName\(str\(effect.get\("id", ""\)\)\), int\(effect.get\("count", 1\)\)\):|if false:|	tests/integration/test_world_items.gd	a take never reaches the inventory
+scripts/world/world_scene.gd	s|^\t_apply_effects\(effects\)$|\tpass|	tests/integration/test_world_items.gd	a closed conversation's effects never reach the one sink

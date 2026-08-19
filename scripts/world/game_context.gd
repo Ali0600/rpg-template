@@ -21,6 +21,8 @@ const OP_SEEN := &"seen"
 const OP_DIALOG := &"dialog"
 const OP_WARP := &"warp"
 const OP_SOUND := &"sound"
+const OP_GIVE_ITEM := &"give_item"
+const OP_TAKE_ITEM := &"take_item"
 
 ## Where the player is, at the moment the hook was called.
 var map_id: StringName = &""
@@ -32,11 +34,14 @@ var world: Node = null
 
 var _flags: Dictionary = {}
 var _seen: Dictionary = {}
+## What the player is carrying, as a snapshot. A hook asks "do I have the key" and cannot
+## reach in and take it: giving and taking are effects like everything else.
+var _items: Dictionary = {}
 var _effects: Array[Dictionary] = []
 
 
 static func create(in_map: StringName, at_tile: Vector2i, flags: Dictionary, seen: Dictionary,
-		world_node: Node = null) -> GameContext:
+		world_node: Node = null, items: Dictionary = {}) -> GameContext:
 	var ctx := GameContext.new()
 	ctx.map_id = in_map
 	ctx.player_tile = at_tile
@@ -44,6 +49,7 @@ static func create(in_map: StringName, at_tile: Vector2i, flags: Dictionary, see
 	# reads inside one interaction are consistent with each other.
 	ctx._flags = flags.duplicate()
 	ctx._seen = seen.duplicate()
+	ctx._items = items.duplicate()
 	ctx.world = world_node
 	return ctx
 
@@ -71,6 +77,27 @@ func say(dialog_id: StringName) -> void:
 
 func warp_to(to_map: StringName, to_spawn: StringName) -> void:
 	_effects.append({"op": OP_WARP, "map": to_map, "spawn": to_spawn})
+
+
+## Whether the player is carrying at least n of an item.
+func has_item(id: StringName, n: int = 1) -> bool:
+	return Inventory.has_in(_items, id, n)
+
+
+func item_count(id: StringName) -> int:
+	return int(_items.get(id, 0))
+
+
+## Asks for an item to be handed over. Like every other effect it is COLLECTED, so a hook
+## cannot half-give a thing and the one sink is still the only place an inventory changes.
+func give_item(id: StringName, n: int = 1) -> void:
+	_effects.append({"op": OP_GIVE_ITEM, "id": id, "count": n})
+
+
+## Asks for an item to be consumed. Check has_item() first: the sink logs a take it cannot
+## cover rather than going negative, which is a bug report, not a game rule.
+func take_item(id: StringName, n: int = 1) -> void:
+	_effects.append({"op": OP_TAKE_ITEM, "id": id, "count": n})
 
 
 func play(sound_id: StringName) -> void:

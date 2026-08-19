@@ -71,6 +71,17 @@ downstream can tell which is running. `ActorBody.place(at, facing)` is the ONE w
 teleported — it cancels a step in flight *before* assigning the position, because abandoning
 one afterwards resolves it against the cell the actor left, in the map it left.
 
+**Items are a template noun, and every effect has ONE sink.** `ItemDef` under `data/items/`
+(picked up by `Registry` from its `class_name`), `Inventory` pure beside it, and a snapshot
+`Dictionary` at every seam - a hook, a save, a map file. `requires_item` sits beside
+`requires_flag` on objects, warps and dialog choices, and wherever a refusal can happen a
+`locked_dialog` is required. **A take implies a requires**: `Interaction.decide` and the runner
+both refuse before appending anything, so an effect list is all-or-nothing and `once` never
+records a chest that gave nothing. Gifts go on dialog CHOICES, never nodes (a node has no
+condition and no memory, so a loop hands over a second key); the once-idiom is `set_flag X` +
+`hidden_if_flag X` on the same choice. `world_scene._apply_effects()` is the only place any of
+it reaches live state - `_on_dialog_closed` goes through it too.
+
 **Saves are per game, and `restore()` is the one way back in.** Slots live at
 `user://saves/<game>/slot_N.json` and each save NAMES its game; the two are cross-checked on
 every read and a file that disagrees is parked, never loaded. `peek()` is the slot list's
