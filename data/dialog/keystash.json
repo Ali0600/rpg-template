@@ -1,8 +1,9 @@
 {
 	"_readme": [
-		"The object that carries the quest. It says a line and sets has_gate_key, and both",
-		"happen because the map data says so - Interaction.decide owns 'a thing that opens",
-		"once', which is a verb every RPG wants and no game should have to write."
+		"The object that carries the quest. It says a line and hands over the gate key, and",
+		"both happen because the map data says so - Interaction.decide owns 'a thing that",
+		"opens once and has something in it', which is a verb every RPG wants and no game",
+		"should have to write."
 	],
 	"id": "keystash",
 	"start": "find",

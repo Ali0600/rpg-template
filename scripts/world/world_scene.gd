@@ -522,7 +522,7 @@ func open_pause() -> bool:
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
 	add_child(_pause)
-	_pause.setup(PauseMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
+	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows()), _style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
 
@@ -535,6 +535,20 @@ func _slot_summaries() -> Array[SaveData]:
 		return out
 	for slot in _config.save_slots:
 		out.append(SaveManager.peek(_game.id, slot))
+	return out
+
+
+## What the player is carrying, resolved into rows a menu can draw. The Registry lookup lives
+## here because PauseMenu may not touch an autoload - and an item with no data file still gets
+## a row, named by its id: a bag that silently hides something is worse than one that shows a
+## name nobody wrote.
+func _item_rows() -> Array:
+	var out: Array = []
+	for item_id in GameState.inventory.ids():
+		var def := Registry.get_resource(&"ItemDef", item_id) as ItemDef
+		var item_name := def.name if def != null else String(item_id)
+		var description := def.description if def != null else ""
+		out.append(PauseMenu.ItemRow.of(item_id, item_name, GameState.item_count(item_id), description))
 	return out
 
 
@@ -554,7 +568,7 @@ func _on_save_requested(slot: int) -> void:
 	# at shows what they just wrote. A save whose only feedback is the screen closing is
 	# indistinguishable from one that failed.
 	if _pause != null:
-		_pause.refresh(_slot_summaries())
+		_pause.refresh(_slot_summaries(), _item_rows())
 
 
 func _on_load_requested(slot: int) -> void:
@@ -572,7 +586,7 @@ func _commit_load(slot: int) -> void:
 	if data == null:
 		# load_slot has parked the bytes and said so. The menu stays up showing what the slots
 		# hold now - which is one fewer, and that is the honest thing for it to show.
-		_pause.refresh(_slot_summaries())
+		_pause.refresh(_slot_summaries(), _item_rows())
 		return
 	_close_pause()
 	restore(data)

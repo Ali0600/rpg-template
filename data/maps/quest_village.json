@@ -72,7 +72,7 @@
 			"tile": [11, 5],
 			"map": "quest_keep",
 			"spawn": "from_village",
-			"requires_flag": "has_gate_key",
+			"requires_item": "gate_key",
 			"locked_dialog": "gate_barred"
 		}
 	]

@@ -49,7 +49,7 @@
 			"tile": [4, 6],
 			"kind": "chest",
 			"dialog": "keystash",
-			"set_flag": "has_gate_key",
+			"give_item": "gate_key",
 			"once": true
 		}
 	],

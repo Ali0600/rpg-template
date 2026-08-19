@@ -18,8 +18,8 @@ func _hooks() -> GameHooks:
 	return manifest.new_hooks()
 
 
-func _ctx(flags: Dictionary) -> GameContext:
-	return GameContext.create(MAP, Vector2i(5, 4), flags, {})
+func _ctx(flags: Dictionary, items: Dictionary = {}) -> GameContext:
+	return GameContext.create(MAP, Vector2i(5, 4), flags, {}, null, items)
 
 
 func _warden() -> Interactor.Target:
@@ -49,7 +49,7 @@ func test_with_nothing_yet_the_warden_uses_her_line_from_the_map() -> void:
 
 
 func test_carrying_the_key_she_says_something_else() -> void:
-	var ctx := _ctx({&"has_gate_key": true})
+	var ctx := _ctx({}, {&"gate_key": 1})
 	assert_bool(_hooks().on_interact(ctx, _warden())).is_true()
 	assert_str(_said(ctx)).is_equal("warden_has_key")
 
@@ -57,7 +57,7 @@ func test_carrying_the_key_she_says_something_else() -> void:
 func test_once_the_lantern_is_lit_that_wins_over_the_key() -> void:
 	# Order matters and is invisible at the point it is written: the player still has the key
 	# after lighting the lantern, so checking the key first would make the ending unreachable.
-	var ctx := _ctx({&"has_gate_key": true, &"lit_the_lantern": true})
+	var ctx := _ctx({&"lit_the_lantern": true}, {&"gate_key": 1})
 	assert_bool(_hooks().on_interact(ctx, _warden())).is_true()
 	assert_str(_said(ctx)).is_equal("warden_thanks")
 

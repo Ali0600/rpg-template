@@ -14,7 +14,12 @@
 		},
 		"shrug": {
 			"speaker": "Warden",
-			"text": "Go on, then. The gate is that way, and it has been that way a long time."
+			"text": "Go on, then. The gate is that way, and it has been that way a long time.",
+			"next": "light"
+		},
+		"light": {
+			"speaker": "Warden",
+			"text": "Take a light with you. The lantern in there ran dry years ago - the hermit in the cave east of the town hoards oil by the flask."
 		}
 	}
 }

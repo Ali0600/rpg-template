@@ -14,9 +14,9 @@ It ships two halves:
    composed from shared parts, one palette and one outline rule, so a whole cast is visually
    coherent *by construction* rather than by discipline. Same seed, same pixels, every run.
 2. **The generic systems** — four-direction movement with tile collision, camera, data-driven
-   maps with warps between them, NPCs and branching dialog, game-flow states, a pause menu
-   with per-game save slots, saves with migrations, a seeded RNG, an audio seam, a headless QA
-   harness, and CI that runs all of it.
+   maps with warps between them, NPCs and branching dialog, items you pick up and carry,
+   game-flow states, a pause menu with per-game save slots, saves with migrations, a seeded
+   RNG, an audio seam, a headless QA harness, and CI that runs all of it.
 
 ## Why it looks the way it looks
 
@@ -78,6 +78,7 @@ Regenerate the art after editing a rig or a style:
 | What people say | `data/dialog/*.json` | no |
 | How it feels to move, incl. free vs grid movement | `data/game_config.tres` | no |
 | How many save slots there are | `data/game_config.tres` | no |
+| What can be picked up and carried | `data/items/*.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts, new tiles | `data/rigs/*.json`, `TileGen.TILES` | one file |
 
@@ -98,12 +99,15 @@ keep behind a gate that stays shut until you find the key.
 | | |
 | --- | --- |
 | World | town, cave, village, hollow, keep — joined by five doors |
-| Verbs | walk, talk, read a well, open a stash once, unlock a gate, light a lantern |
+| Verbs | walk, talk, read a well, open a stash once, carry a key, unlock a gate with it, trade a word for a flask of oil, burn the oil lighting a lantern |
 | Code | **one file**: which of the warden's three lines to say |
 | Look | `dusk16`, one of three palettes that share a single rig |
 
 That one file is the point. Everything else — every map, every conversation, every flag, the
-gate that needs a key — is data, and the template never learns a word of it. The game was built
+gate that wants a key and the lantern that drinks the oil — is data, and the template never
+learns a word of it. A chest hands something over with `give_item`, a door reads what you are
+carrying with `requires_item`, and a lantern consumes it with `take_item`; each of those is a
+line of JSON, and none of them is code. The game was built
 **without editing a single file under `scripts/`, `tools/` or `scenes/`**, and building it found
 three real defects in the template, which is what building on it is for: a QA op that raced the
 steps written after it, an art-drift gate that walked a different set of directories than the
@@ -154,6 +158,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M9** — grid-step movement as a second mode, off by default
 - [x] **M10** — a pause menu, and save slots that belong to one game
 - [x] **M11** — one game, one world, and the name this repo should have had
+- [x] **M12** — items and an inventory, and a quest that runs on them
 
 ## Experience Gained
 

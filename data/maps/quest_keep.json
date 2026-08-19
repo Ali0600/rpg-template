@@ -44,6 +44,9 @@
 			"tile": [5, 2],
 			"kind": "lantern",
 			"dialog": "lantern",
+			"requires_item": "lamp_oil",
+			"take_item": "lamp_oil",
+			"locked_dialog": "lantern_dry",
 			"set_flag": "lit_the_lantern",
 			"once": true
 		}

@@ -1,10 +1,14 @@
 {
+	"_readme": [
+		"Said only once the oil is in hand: the map's object requires lamp_oil and consumes",
+		"it, so reaching this line is itself the proof the player found the hermit."
+	],
 	"id": "lantern",
-	"start": "find",
+	"start": "pour",
 	"nodes": {
-		"find": {
+		"pour": {
 			"speaker": "The keep",
-			"text": "A lantern on a hook, with oil still in it. Someone left it ready and never came back.",
+			"text": "You pour the flask in. The wick drinks it and stiffens.",
 			"next": "light"
 		},
 		"light": {
