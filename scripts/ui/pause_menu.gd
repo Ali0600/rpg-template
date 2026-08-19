@@ -12,12 +12,12 @@ extends RefCounted
 ## another game's is deliberately not a question this can ask, and not one a menu should
 ## answer differently.
 
-## The pages. TOP is the menu itself; the other two are the slot list, entered from a row.
-enum Page { TOP, SAVE, LOAD }
+## The pages. TOP is the menu itself; the rest are lists entered from one of its rows.
+enum Page { TOP, ITEMS, SAVE, LOAD }
 
 ## The TOP page's rows, in the order they are drawn. The view indexes its labels by this, so
 ## the order lives in one place rather than in a list beside a list.
-enum Row { RESUME, SAVE, LOAD }
+enum Row { RESUME, ITEMS, SAVE, LOAD }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
@@ -38,16 +38,39 @@ class Pick:
 		return out
 
 
+## One line of the bag, already resolved. The menu is handed these rather than an inventory
+## and a Registry, because looking an item's name up is a job for the layer that may touch
+## autoloads - and this class may not.
+class ItemRow:
+	var id: StringName = &""
+	var name: String = ""
+	var count: int = 0
+	var description: String = ""
+
+	static func of(item_id: StringName, item_name: String, item_count: int,
+			item_description: String = "") -> ItemRow:
+		var out := ItemRow.new()
+		out.id = item_id
+		out.name = item_name
+		out.count = item_count
+		out.description = item_description
+		return out
+
+
 ## Indexed by slot id, which is 0-based like SaveManager's. Only the LABEL says "Slot 1" - a
 ## menu that renumbered would make a bug report and a filename disagree.
 var _slots: Array[SaveData] = []
+## One ItemRow per thing carried, in pickup order. Untyped Array because a typed default
+## for a nested class is not a constant expression.
+var _items: Array = []
 var _page := Page.TOP
 var _index := 0
 
 
-static func of(slots: Array[SaveData]) -> PauseMenu:
+static func of(slots: Array[SaveData], items: Array = []) -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
+	menu._items = items.duplicate()
 	return menu
 
 
@@ -63,12 +86,29 @@ func slot_count() -> int:
 	return _slots.size()
 
 
+func item_count() -> int:
+	return _items.size()
+
+
+## The nth thing carried, or null when the bag is empty or the index is past its end.
+func item(at: int) -> ItemRow:
+	if at < 0 or at >= _items.size():
+		return null
+	return _items[at]
+
+
 ## How many rows the CURRENT page has. The cursor wraps over this, so it is one function
 ## rather than a branch at every call site.
 func size() -> int:
-	if _page == Page.TOP:
-		return Row.size()
-	return _slots.size()
+	match _page:
+		Page.TOP:
+			return Row.size()
+		Page.ITEMS:
+			# An empty bag still has one row - the line that says it is empty. A page with no
+			# rows at all is one the cursor cannot stand on and the player cannot escape from.
+			return maxi(_items.size(), 1)
+		_:
+			return _slots.size()
 
 
 ## What is in a slot, or null for an empty one. Out of range is null too rather than an error:
@@ -97,12 +137,20 @@ func confirm() -> Pick:
 	if _page == Page.TOP:
 		if _index == Row.RESUME:
 			return Pick.of(Kind.RESUME)
-		# A game configured with no slots has nowhere to go. Opening an empty page would be a
-		# screen that answers nothing and has to be backed out of.
-		if _slots.is_empty():
+		# A game configured with no slots has nowhere to go. The item page is exempt: an empty
+		# bag is a fact worth showing, where an empty slot list is a menu with nothing in it.
+		if _index != Row.ITEMS and _slots.is_empty():
+			return Pick.of(Kind.NONE)
+		if _index == Row.ITEMS:
+			_page = Page.ITEMS
+			_index = 0
 			return Pick.of(Kind.NONE)
 		_page = Page.SAVE if _index == Row.SAVE else Page.LOAD
 		_index = 0
+		return Pick.of(Kind.NONE)
+	# Looking at a thing is not doing anything with it. There is no "use" yet, and a confirm
+	# that silently did nothing would be indistinguishable from one that failed.
+	if _page == Page.ITEMS:
 		return Pick.of(Kind.NONE)
 	# Loading nothing is REFUSED, never nudged to a neighbouring slot. The precedent is
 	# DialogRunner.choose(): clamping turns a UI mistake into a plausible-looking wrong answer,
@@ -117,7 +165,7 @@ func confirm() -> Pick:
 ## On the top page there is nothing left to back out of, and backing out of a pause IS resuming.
 func cancel() -> Pick:
 	if _page != Page.TOP:
-		_index = Row.SAVE if _page == Page.SAVE else Row.LOAD
+		_index = _opened_from(_page)
 		_page = Page.TOP
 		return Pick.of(Kind.NONE)
 	return Pick.of(Kind.RESUME)
@@ -126,10 +174,23 @@ func cancel() -> Pick:
 ## New slot contents, same cursor. Called after a save so the row the player is looking at
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
-func refresh(slots: Array[SaveData]) -> void:
+func refresh(slots: Array[SaveData], items: Array = []) -> void:
 	_slots = slots.duplicate()
+	_items = items.duplicate()
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
+
+
+## The row a page was opened from, so backing out lands the cursor where the player left it
+## rather than at the top of a menu they were halfway down.
+static func _opened_from(page: Page) -> Row:
+	match page:
+		Page.ITEMS:
+			return Row.ITEMS
+		Page.SAVE:
+			return Row.SAVE
+		_:
+			return Row.LOAD
 
 
 ## Play time as a clock. Minutes and seconds until an hour, because a two-digit hour on a save
@@ -142,6 +203,16 @@ static func clock(seconds: float) -> String:
 	if hours > 0:
 		return "%d:%02d:%02d" % [hours, minutes, rest]
 	return "%02d:%02d" % [minutes, rest]
+
+
+## One row of the bag. Null is the empty-bag line rather than a blank: a row that says nothing
+## reads as a menu that failed to draw.
+static func item_label(row: ItemRow) -> String:
+	if row == null:
+		return "(nothing carried)"
+	if row.count <= 1:
+		return row.name
+	return "%s x%d" % [row.name, row.count]
 
 
 ## One row of the slot list. The slot is displayed one-based because a player counts from one;

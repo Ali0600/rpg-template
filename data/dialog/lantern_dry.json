@@ -1,0 +1,16 @@
+{
+	"_readme": [
+		"What the lantern says with nothing to burn. A lock with no line to say is a button",
+		"that does nothing on the one press that matters most - the one before you have found",
+		"the thing it wants - which is why MapData refuses to ship an object that can refuse",
+		"and has no locked_dialog."
+	],
+	"id": "lantern_dry",
+	"start": "dry",
+	"nodes": {
+		"dry": {
+			"speaker": "The keep",
+			"text": "A lantern on a hook. The reservoir is dry, and has been for a long time."
+		}
+	}
+}

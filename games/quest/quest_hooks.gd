@@ -1,9 +1,10 @@
 extends GameHooks
 ## The Barred Gate's entire code.
 ##
-## Everything else this game is - three maps, a locked gate, a stash that opens once, seven
-## conversations, its own palette - is data. What is left is the one thing data cannot say:
-## the warden has three lines and which one she uses depends on what the player is carrying.
+## Everything else this game is - five maps, a gate that wants a key, a lantern that wants
+## oil, nine conversations, its own palette - is data. What is left is the one thing data
+## cannot say: the warden has three lines, and which one she uses depends on what the player
+## is carrying and what they have done with it.
 ##
 ## Note what is NOT here. No autoload is named: this file reads the GameContext it is handed,
 ## which is what keeps it inside the per-file parse gate and the whole-project compile (both
@@ -14,9 +15,9 @@ extends GameHooks
 ## two cases it has something to say about and lets the map's own `dialog` handle the rest,
 ## so adding a line to the warden's opening never touches this file.
 
-## Set by the stash in quest_hollow, read by the gate in quest_village. The map declares both
-## halves; nothing here has to know a key exists.
-const FLAG_HAS_KEY := &"has_gate_key"
+## Handed over by the stash in quest_hollow, wanted by the gate in quest_village. The map
+## declares both halves; this file reads it only to choose which line the warden says.
+const ITEM_KEY := &"gate_key"
 ## Set by the lantern in quest_keep. This is the only flag the game reads rather than just
 ## carrying, because it is the one the ending is made of.
 const FLAG_LIT := &"lit_the_lantern"
@@ -30,7 +31,7 @@ func on_interact(ctx: GameContext, target: Interactor.Target) -> bool:
 	if ctx.has_flag(FLAG_LIT):
 		ctx.say(&"warden_thanks")
 		return true
-	if ctx.has_flag(FLAG_HAS_KEY):
+	if ctx.has_item(ITEM_KEY):
 		ctx.say(&"warden_has_key")
 		return true
 	# She has nothing new to say, and the map already names the line she opens with.
@@ -48,4 +49,8 @@ func problems() -> Array[String]:
 		# something to say, which reads as the quest not having advanced.
 		if not FileAccess.file_exists("res://data/dialog/%s.json" % dialog_id):
 			out.append("hooks name dialog '%s', which does not exist" % dialog_id)
+	# Same reasoning for the item: it is named here as a bare id, so a rename in data/items
+	# would leave this file asking about something nobody carries, and the warden goes quiet.
+	if not FileAccess.file_exists("res://data/items/%s.tres" % ITEM_KEY):
+		out.append("hooks name item '%s', which does not exist" % ITEM_KEY)
 	return out

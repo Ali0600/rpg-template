@@ -1,0 +1,48 @@
+{
+	"_readme": [
+		"The one conversation in this game that hands something over, and the shape every",
+		"such conversation should copy: the gift sits on a CHOICE carrying `set_flag`, and",
+		"`hidden_if_flag` names that same flag.",
+		"",
+		"A node cannot do this. It has no condition and no memory of having been entered, so",
+		"a conversation looping back through it gives a second flask every pass. The pair",
+		"below is 'taken once, offered never again' - and it works on the FIRST pass too,",
+		"because the runner counts flags earned earlier in the same conversation, not just",
+		"the ones already written to the game state.",
+		"",
+		"Both replies END the conversation rather than looping back to the greeting. A choice",
+		"line cannot be escaped with cancel - the whole point of a choice is that one is",
+		"picked - so a loop through a choice is a conversation with no way out of it."
+	],
+	"id": "hermit",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Hermit",
+			"text": "Nobody comes down here for the view.",
+			"next": "ask"
+		},
+		"ask": {
+			"speaker": "Hermit",
+			"text": "There is oil on the shelf. More than one person needs.",
+			"choices": [
+				{
+					"text": "Could I have some of that oil?",
+					"next": "gave",
+					"give_item": "lamp_oil",
+					"set_flag": "took_oil",
+					"hidden_if_flag": "took_oil"
+				},
+				{ "text": "Just passing through.", "next": "passing" }
+			]
+		},
+		"gave": {
+			"speaker": "Hermit",
+			"text": "Take a flask. Mind the wick - it catches faster than you expect."
+		},
+		"passing": {
+			"speaker": "Hermit",
+			"text": "Everyone is, eventually."
+		}
+	}
+}

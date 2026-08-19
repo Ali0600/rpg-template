@@ -45,9 +45,9 @@
 		{
 			"id": "hermit",
 			"character": "town_smith",
-			"tile": [8, 2],
+			"tile": [10, 2],
 			"facing": "down",
-			"dialog": "smith",
+			"dialog": "hermit",
 			"behavior": "static"
 		}
 	],

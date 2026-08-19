@@ -24,7 +24,7 @@ const ROW_PITCH := 11
 const BACKDROP_ALPHA := 0.85
 
 ## Indexed by PauseMenu.Row, so the order is the enum's rather than a second list's.
-const TOP_LABELS: Array[String] = ["Resume", "Save", "Load"]
+const TOP_LABELS: Array[String] = ["Resume", "Items", "Save", "Load"]
 
 var _menu: PauseMenu = null
 var _style: SpriteStyle = null
@@ -56,10 +56,10 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 
 ## New slot contents from the world, cursor untouched. After a save that is what makes the row
 ## the player is looking at show what they just wrote.
-func refresh(slots: Array[SaveData]) -> void:
+func refresh(slots: Array[SaveData], items: Array = []) -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots)
+	_menu.refresh(slots, items)
 	_committed = false
 	_paint()
 
@@ -75,7 +75,7 @@ func _build(viewport_size: Vector2i) -> void:
 
 	# Enough rows for the widest page, built once. A page change repaints them rather than
 	# rebuilding the tree, so there is no frame on which the screen is half-built.
-	for i in maxi(TOP_LABELS.size(), _menu.slot_count()):
+	for i in maxi(TOP_LABELS.size(), maxi(_menu.slot_count(), _menu.item_count())):
 		var row := Label.new()
 		row.position = Vector2(MARGIN, MARGIN + 22 + i * ROW_PITCH)
 		row.add_theme_font_size_override("font_size", ROW_SIZE)
@@ -111,15 +111,28 @@ func _paint() -> void:
 		row.visible = i < _menu.size()
 		if not row.visible:
 			continue
-		var label := TOP_LABELS[i] if _menu.page() == PauseMenu.Page.TOP \
-			else PauseMenu.slot_label(i, _menu.slot(i))
+		var label := _label_for(i)
 		var selected := i == _menu.index()
 		row.text = ("> " if selected else "  ") + label
 		row.add_theme_color_override("font_color", text if selected else dim)
 
 
+## The row's text on whichever page is up. One function, so the three sources cannot drift
+## out of step with the three pages.
+func _label_for(at: int) -> String:
+	match _menu.page():
+		PauseMenu.Page.TOP:
+			return TOP_LABELS[at]
+		PauseMenu.Page.ITEMS:
+			return PauseMenu.item_label(_menu.item(at))
+		_:
+			return PauseMenu.slot_label(at, _menu.slot(at))
+
+
 func _title_for(page: PauseMenu.Page) -> String:
 	match page:
+		PauseMenu.Page.ITEMS:
+			return "CARRYING"
 		PauseMenu.Page.SAVE:
 			return "SAVE TO"
 		PauseMenu.Page.LOAD:
@@ -129,6 +142,13 @@ func _title_for(page: PauseMenu.Page) -> String:
 
 
 func _help_for(page: PauseMenu.Page) -> String:
+	if page == PauseMenu.Page.ITEMS:
+		# The selected thing describes itself here rather than in the row: a list of names is
+		# scannable, and a list of names plus sentences is not.
+		var row: PauseMenu.ItemRow = _menu.item(_menu.index())
+		if row != null and not row.description.is_empty():
+			return row.description
+		return "W/S to choose    Esc to go back"
 	if page == PauseMenu.Page.TOP:
 		return "W/S to choose    E to pick    Esc to resume"
 	return "W/S to choose    E to pick    Esc to go back"

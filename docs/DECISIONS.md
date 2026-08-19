@@ -441,9 +441,16 @@ damaged one but could silently save over it.
   tri-state return where there is currently a nullable one. Revisit hook: `SaveManager._read`
   already computes exactly that distinction and throws it away at the boundary.
 
-## The pause menu is Resume / Save / Load, and Escape is what opens it
+## The pause menu is Resume / Save / Load, and Escape is what opens it — *Items added in M12*
 
 The fork: a pause menu is where a game puts everything that is not playing. What goes on it?
+
+> **Amended in M12.** A fourth row, **Items**, sits directly after Resume: it is the row a player
+> opens most often, and Save/Load keep their order relative to each other. The cost was one that
+> only a mutant found - `test_pause_and_saves`' navigation helper counted two presses to reach
+> Load and silently became a SAVE, quietly writing a slot in the middle of a test about refusing
+> to load one. Any test that navigates a menu by counting is a test that re-aims itself when a
+> row is inserted; those now name the row (`move(PauseMenu.Row.SAVE)`) rather than counting to it.
 
 - **Chosen: three rows, and Escape opens it from the world.** Save and Load are the reason it
   exists; everything else on a typical pause menu is either already a keypress here or is a

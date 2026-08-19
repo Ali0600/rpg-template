@@ -181,3 +181,11 @@ scripts/world/world_scene.gd	s|if Registry.get_resource\(&"ItemDef", item_id\) =
 scripts/world/world_scene.gd	s|elif GameState.give_item\(item_id, int\(effect.get\("count", 1\)\)\):|elif false:|	tests/integration/test_world_items.gd	a gift reaches the sink and nothing is given
 scripts/world/world_scene.gd	s|if GameState.take_item\(StringName\(str\(effect.get\("id", ""\)\)\), int\(effect.get\("count", 1\)\)\):|if false:|	tests/integration/test_world_items.gd	a take never reaches the inventory
 scripts/world/world_scene.gd	s|^\t_apply_effects\(effects\)$|\tpass|	tests/integration/test_world_items.gd	a closed conversation's effects never reach the one sink
+
+# --- M12: the bag, on screen ---
+scripts/ui/pause_menu.gd	s|return maxi\(_items.size\(\), 1\)|return _items.size()|	tests/unit/test_pause_menu.gd	an empty bag has no row, so the page cannot be stood on or escaped from
+scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.ITEMS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the bag lands the cursor on Save instead of Items
+scripts/ui/pause_menu.gd	s|if _index != Row.ITEMS and _slots.is_empty\(\):|if _slots.is_empty():|	tests/unit/test_pause_menu.gd	a game with no save slots cannot look in its own bag
+scripts/ui/pause_menu.gd	s|return "%s x%d" % \[row.name, row.count\]|return row.name|	tests/unit/test_pause_menu.gd	the bag stops saying how many of a thing is in it
+scripts/ui/pause_menu.gd	s|return "\(nothing carried\)"|return ""|	tests/unit/test_pause_menu.gd	an empty bag draws a blank row, which reads as a menu that failed
+scripts/world/world_scene.gd	s|for item_id in GameState.inventory.ids\(\):|for item_id in []:|	tests/integration/test_pause_and_saves.gd	the pause menu never lists anything the player is carrying

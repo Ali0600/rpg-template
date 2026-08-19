@@ -44,9 +44,12 @@ func _good_save() -> SaveData:
 	return data
 
 
-## Resume, Save, Load: two down and in, then two more down to the third slot. Written out
-## rather than looped so the count is a fact about the menu's shape, not a search for a row.
+## Resume, Items, Save, Load: THREE down and in, then two more down to the third slot. Written
+## out rather than looped so the count is a fact about the menu's shape, not a search for a
+## row - and so that inserting a row above Load moves this deliberately rather than silently
+## retargeting the whole test at Save, where every press below would write a slot.
 func _to_the_third_slot() -> void:
+	await _press(&"move_down")
 	await _press(&"move_down")
 	await _press(&"move_down")
 	await _press(&"interact")
@@ -249,3 +252,28 @@ func test_starting_another_game_closes_the_pause_menu() -> void:
 		"the pause menu outlived the game it was opened over").is_false()
 	assert_object(_world.pause_screen()).is_null()
 	assert_str(Router.state_name()).is_equal("world")
+
+
+func test_the_menu_lists_what_the_player_is_carrying() -> void:
+	# Read off the LABELS, not off the menu object: the bag reaching the pure cursor and the
+	# bag reaching the screen are different claims, and only the second is what a player sees.
+	_boot()
+	GameState.give_item(&"gate_key")
+	GameState.give_item(&"lamp_oil", 2)
+	assert_bool(_world.open_pause()).is_true()
+	await _press(&"move_down")
+	await _press(&"interact")
+
+	var drawn: Array[String] = []
+	for node in SceneHelpers.find_all_by_class(_world.pause_screen(), "Label"):
+		var label := node as Label
+		if label.visible:
+			drawn.append(label.text)
+	var all_text := " | ".join(drawn)
+	assert_str(all_text).override_failure_message(
+		"the bag was not drawn: %s" % all_text).contains("Gate key")
+	# The name comes from the item's own file, and the count from the inventory - so this also
+	# says the id was resolved rather than printed raw.
+	assert_str(all_text).contains("Lamp oil x2")
+	assert_str(all_text).not_contains("gate_key")
+
