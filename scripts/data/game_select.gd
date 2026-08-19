@@ -22,6 +22,12 @@ const SETTING := "application/config/game"
 ## optional-value flag written with a space silently becomes a positional argument.
 const ARG := "--game="
 
+## The QA harness's flag. It lives here rather than in `Qa` because SaveManager reads it in
+## `_ready()` to decide where saves go, and SaveManager is registered as an autoload BEFORE
+## Qa - so naming `Qa` there would reach for a singleton that does not exist yet. This file
+## already owns "what did the command line ask for", which is the same question.
+const QA_ARG := "--qa-script="
+
 
 ## The precedence, as a pure function so it can be proven with literal arrays rather than by
 ## arranging a filesystem and a project setting. Returns "" when nothing chooses.

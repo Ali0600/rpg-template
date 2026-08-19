@@ -130,3 +130,16 @@ scripts/world/actor_body.gd	s|global_position = _walker.settle\(global_position\
 scripts/world/actor_body.gd	s|global_position = _walker.abandon\(global_position\)|pass|	tests/integration/test_grid_movement.gd	a dialog opening mid-step leaves the player standing between tiles
 scripts/world/actor_body.gd	s|_walker.cancel\(\)|pass|	tests/integration/test_grid_movement.gd	a warp mid-step resolves it against the map the player just left
 scripts/data/game_manifest.gd	s|style != null and config.grid_step_pixels != style.tile_size|false|	tests/unit/test_game_manifest.gd	a grid step that is not the map tile size is accepted
+
+# --- M10: saves are per game ---
+scripts/autoload/save_manager.gd	s|if data.game != game:|if false:|	tests/unit/test_saves.gd	a save from another game loads into this one's slot
+scripts/autoload/save_manager.gd	s|return _read\(game, slot\).data|return load_slot(game, slot)|	tests/unit/test_saves.gd	listing the slots parks files and announces loads nobody asked for
+scripts/autoload/save_manager.gd	s|if arg.begins_with\(GameSelect.QA_ARG\):|if false:|	tests/unit/test_saves.gd	a scripted play session reads and writes a real player's saves
+scripts/autoload/save_manager.gd	s|if not problems.is_empty\(\):|if false:|	tests/unit/test_saves.gd	a save with no game is written to a directory named after nothing
+scripts/autoload/save_manager.gd	s|if held.exists and held.data == null:|if false:|	tests/unit/test_saves.gd	saving into a damaged slot destroys the bytes instead of parking them
+scripts/data/migrations.gd	s|d\["game"\] = String\(game\)|d["game"] = ""|	tests/unit/test_saves.gd	a migrated save forgets which game it belongs to
+scripts/data/save_data.gd	s|if String\(game\).is_empty\(\):|if false:|	tests/unit/test_saves.gd	a save that names no game passes validation
+scripts/autoload/game_state.gd	s|out.game = game|pass|	tests/unit/test_saves.gd	a save forgets which game it came from
+scripts/world/world_scene.gd	s|GameState.game = _game.id|pass|	tests/integration/test_game_switch.gd	nothing says which game is running, so no save can name one
+scripts/autoload/router.gd	s|return str\(State.find_key\(_state\)\).to_lower\(\)|return "world"|	tests/unit/test_router.gd	every flow state reports itself as the world
+scripts/data/game_config.gd	s|if save_slots < 1:|if false:|	tests/unit/test_game_config.gd	a game with no save slots passes the config validator

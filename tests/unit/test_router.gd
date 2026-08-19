@@ -82,3 +82,18 @@ func test_reset_clears_the_stack_not_just_the_state() -> void:
 	Router.reset()
 	assert_int(Router.overlay_depth()).is_equal(0)
 	assert_str(Router.state_name()).is_equal("world")
+
+func test_every_state_reports_its_own_name() -> void:
+	# The names are what a QA script asserts against, so a state that reports the wrong one
+	# makes every scripted play session agree with a lie. Derived from the enum rather than
+	# from a list beside it, and this is what pins the derivation.
+	var expected := {
+		Router.State.TITLE: "title",
+		Router.State.WORLD: "world",
+		Router.State.DIALOG: "dialog",
+		Router.State.PAUSED: "paused",
+	}
+	for state in expected:
+		Router.set_state(state)
+		assert_str(Router.state_name()).override_failure_message(
+			"state %d reported the wrong name" % state).is_equal(str(expected[state]))

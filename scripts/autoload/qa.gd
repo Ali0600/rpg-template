@@ -25,7 +25,7 @@ extends Node
 ## distance on every machine. Movement happens in _physics_process, so this counts the same
 ## clock the thing under test does.
 
-const ARG_PREFIX := "--qa-script="
+const ARG_PREFIX := GameSelect.QA_ARG
 
 var _steps: Array = []
 var _index := 0

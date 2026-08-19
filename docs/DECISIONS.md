@@ -16,6 +16,8 @@ one-glance menu of things still worth trying.
 - **Asymmetric side parts** (a satchel on one hip only). Blocked by
   `mirror_left_from_right`; revisit hook is the `left = flip_x(right)` branch in
   `sprite_compositor.gd`.
+- **Slots that say WHY they cannot be loaded** ("unreadable" rather than "empty"). Revisit
+  hook: `SaveManager._read` already computes the distinction and `peek()` discards it.
 
 ---
 
@@ -227,7 +229,9 @@ work now:
 - *`Router`* — it owns input, not scenes, and does that correctly. `TITLE` and `PAUSED` are
   unreachable because no title screen or pause menu exists: a missing feature, not a broken
   router. (Its `state_name()` is a positional array literal that would mis-name every state
-  if a member were ever inserted — `deferred — worth fixing`, revisit hook `router.gd:27`.)
+  if a member were ever inserted — `deferred — worth fixing`, revisit hook `router.gd:27`.
+  **Both fixed in M10**: the pause menu reaches `PAUSED`, and the name is derived from the
+  enum.)
 - *Dialog effects* — conditional nodes, `clear_flag`, item/warp/sound nodes. An NPC reacting
   to what you carry is three lines of game code (`ctx.say(a if ctx.has_flag(k) else b)`), and
   `set_flag(key, false)` gives clearing for free. Inventing a mini-language instead would
@@ -236,6 +240,8 @@ work now:
 - *`SaveData`* — a quest is expressible in `flags` and `seen`, both already typed, persisted
   and migrated. Adding a per-game dictionary is purely additive later and does not re-cut
   this seam. `deferred`; trigger: the first game that needs a count rather than a boolean.
+  (A `game` FIELD landed in M10 for a different reason — see below — but the per-game
+  dictionary is still deferred on the same terms.)
 
 ## The second game lives in this repo rather than in one that consumes the template
 
@@ -368,3 +374,62 @@ real body into real walls, plus 15 mutants.
 A blocked diagonal **slides** along its free axis rather than stopping dead, matching
 `move_and_slide` and the existing diagonal-slide gate. It is free here: the grid is
 axis-aligned, so the slid-to position is itself a cell centre.
+
+## Saves are per game, and a file must agree with the directory it sits in
+
+The fork: two games ship in one build, sharing this save format and these field names. Whose
+progress is `slot_0.json`?
+
+- **Chosen: `user://saves/<game>/slot_N.json`, and the save NAMES its game.** "Slot 1" then
+  means one thing — the first slot of the game you are playing — and the pause menu lists only
+  slots it could actually load. The name inside the file is checked against the directory on
+  every read, so a file copied, moved or hand-edited into the wrong game is refused and parked
+  rather than loaded. That check is the point: a demo save loading into the quest does not
+  present as a mismatched file, it presents as the quest being broken, and you go and debug
+  the quest.
+- *Shared slots that switch game on load* — `deferred — worth trying`: one list, and loading
+  a slot boots the game it belongs to. Rejected for now because a load becomes a full teardown
+  and boot rather than a map entry, and the slot list has to render every game's palette and
+  character to be readable. Revisit hook: `world_scene._commit_load`, which would call
+  `start_game(manifest)` before `restore(data)`.
+- *One flat namespace with the game stored inside* — rejected: the slot numbers still collide,
+  so "slot 1" means whatever was saved there last, and the menu has to filter a list whose
+  numbering then has holes in it.
+
+### The v2→v3 step takes the game as an argument
+
+A file older than v3 cannot say which game it is; the directory it was found in is the only
+evidence there is. So `Migrations.apply(raw, game)` takes it as **data**, which keeps every
+step a pure function of `(file, game)` — the frozen-forever property a migration needs.
+
+- *An adopting loader* (fill the field in from the caller after migrating) — rejected: it
+  makes "this file said nothing" and "this file said the right thing" the same case, so the
+  cross-check that catches a misfiled save can never fire on an old one.
+- *Refusing everything below v3* — rejected: the chain exists precisely so old saves survive,
+  and refusing them makes `supported_versions()` a lie.
+
+### A scripted session saves under `user://qa_saves`, wiped at boot
+
+`SaveManager.dir_for()` reads the command line: any `--qa-script=` and saves go to a separate
+directory, emptied on start. A play script that wrote to the real one would overwrite a
+player's progress on a machine that has both, and one that READ from it would pass or fail
+depending on who ran it. The QA fixture leans on this directly — it opens Load on an empty
+slot and requires the refusal, which is only deterministic because the directory is known
+empty.
+
+- *A fresh temp directory per run* — rejected: it leaks one directory per run, and nothing
+  ever proves the run started clean; wiping a fixed known path is checkable.
+
+### Reading the slot list has no side effects
+
+`peek()` is a separate, silent read: no `save_changed`, no parking, no `push_error`. Merely
+LOOKING at the pause menu must not produce `.corrupt` files. The consequence is that an
+unreadable slot is drawn as *empty*, which is why `save()` parks whatever it is about to
+overwrite — otherwise the menu, which refuses to load an "empty" slot, could never park a
+damaged one but could silently save over it.
+
+- *Distinguishing empty / unreadable / another game's in the list* — `deferred — worth trying`:
+  a row reading "Slot 2: unreadable" is more honest than one reading "empty". It needs a
+  tri-state return where there is currently a nullable one. Revisit hook: `SaveManager._read`
+  already computes exactly that distinction and throws it away at the boundary.
+
