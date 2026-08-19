@@ -64,6 +64,11 @@ snapshot and append effects; `world_scene._apply` is the single place any of it 
 state. `on_interact` returning `false` means "not mine" and the data's own behaviour runs — a
 game is additive or it is not using this seam.
 
+**A dialog choice line cannot be escaped.** `cancel` closes a dialog only while a line is
+being shown; on a line with choices the box routes input to the choice list instead, because
+the point of a choice is that one gets picked. So a conversation that loops back THROUGH a
+choice node has no way out of it - both branches of a choice must eventually end the talk.
+
 **Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step_pixels` at
 zero is free pixel movement; set to the map's tile size it is one press = one tile. Both go
 through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so nothing
@@ -119,6 +124,14 @@ validator that has only ever passed is decoration.
   the machine is. It fails as a mutation BASELINE FAILURE, which reads like a broken test.
 - A simulated `InputEventAction` needs its matching RELEASE, the way `Qa.press` inserts one.
   An action left held is still held at the next press, and the engine sees no change.
+- **Never navigate a menu by counting presses.** `move(PauseMenu.Row.SAVE)` and not `move(1)`:
+  inserting a row re-aims every counting test at whatever now sits there, silently and while
+  still passing. M12 turned a "refuse to load" test into one that SAVED a slot that way.
+- **A QA leg is held until a WALL or a BODY stops it**, never for a computed number of tiles.
+  An arriving hold carries the player onward into the next map, so a leg that follows a warp
+  must re-anchor against geometry rather than assume where the last one left off. The one
+  legitimate count is "enough frames to reach the row a door is on" - past it is fine, because
+  a warp fires on arrival.
 
 ### GDScript rules that are not optional here
 
