@@ -28,12 +28,20 @@ var _hint: ControlsHint
 ## The game-select screen, when it is up. It belongs to the World rather than to a game:
 ## _teardown_game must never touch it, because it is the thing that asked for the teardown.
 var _picker: GamePicker
+## The pause menu, when it is up. UNLIKE the picker this belongs to the running game - its
+## slot list is that game's - so _teardown_game frees it.
+var _pause: PauseScreen
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
 ## on every frame spent standing there.
 var _last_tile := Vector2i(-9999, -9999)
 
 ## How many map entries may chain through on_map_entered before it is called a loop.
 const MAX_CHAINED_ENTRIES := 8
+
+## "Use the map's spawn." A sentinel rather than an optional Vector2 because every real
+## position is a valid one, including the origin - there is no in-band value left to mean
+## "unset". Only restore() ever passes something else.
+const NO_SPOT := Vector2.INF
 var _entry_depth := 0
 
 
@@ -192,6 +200,12 @@ func _teardown_game() -> void:
 	if _hint != null and is_instance_valid(_hint):
 		_hint.free()
 	_hint = null
+	# Its slot list names the game being torn down, so it cannot outlive it. free() rather than
+	# queue_free() like everything else here: this is never reached from inside the screen's own
+	# signal handler, and a deferred free would leave it on screen over the next game's world.
+	if _pause != null and is_instance_valid(_pause):
+		_pause.free()
+	_pause = null
 
 	_game = null
 	_hooks = null
@@ -216,7 +230,10 @@ func _teardown_game() -> void:
 ## Loads a map and puts the player on a named spawn. The one entry point, so a warp, a load
 ## and the first boot all take the same path - three ways into a map is three places for the
 ## camera limits to be forgotten.
-func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
+##
+## `at` overrides the spawn with an exact position, which is what restoring a save is: a save
+## records where the player STOOD, and no spawn describes that. Nothing else passes it.
+func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) -> bool:
 	var data := MapData.load_from("res://data/maps/%s.json" % map_id)
 	_style = load("res://data/styles/%s.tres" % data.style_id) as SpriteStyle
 	if _style == null:
@@ -252,7 +269,7 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 		_dialog.setup(_style, get_viewport_rect().size)
 	if _hint.get_child_count() == 0:
 		_hint.setup(_style, get_viewport_rect().size, _game.controls_hint)
-	_spawn_player(data, spawn_id)
+	_spawn_player(data, spawn_id, at)
 	_spawn_npcs(data)
 	_configure_camera(data)
 
@@ -278,11 +295,15 @@ func enter_map(map_id: StringName, spawn_id: StringName) -> bool:
 	return true
 
 
-func _spawn_player(data: MapData, spawn_id: StringName) -> void:
-	var at := MapBuilder.spawn_position(data, spawn_id, _built.tile_size)
-	if at == Vector2(-1.0, -1.0):
-		push_error("World: map '%s' has no spawn '%s'" % [data.id, spawn_id])
-		at = MapData.tile_to_world(Vector2i.ONE, _built.tile_size)
+func _spawn_player(data: MapData, spawn_id: StringName, at: Vector2) -> void:
+	# A finite `at` is a restored position and is used as given. The spawn lookup below is
+	# skipped rather than done-and-discarded, so a save into a map with no matching spawn name
+	# does not report a spawn fault it does not have.
+	if not at.is_finite():
+		at = MapBuilder.spawn_position(data, spawn_id, _built.tile_size)
+		if at == Vector2(-1.0, -1.0):
+			push_error("World: map '%s' has no spawn '%s'" % [data.id, spawn_id])
+			at = MapData.tile_to_world(Vector2i.ONE, _built.tile_size)
 
 	if _player == null:
 		_player = ActorBody.new()
@@ -417,6 +438,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _open_picker(GameSelect.switchable()):
 			get_viewport().set_input_as_handled()
 		return
+	# Same guard again, and the same reason: a dialog box consumes `cancel` itself, so the
+	# pause menu can only be opened from a world nothing else is holding.
+	if event.is_action(&"cancel"):
+		if open_pause():
+			get_viewport().set_input_as_handled()
+		return
 	if not event.is_action(&"interact"):
 		return
 	if try_interact():
@@ -534,6 +561,86 @@ func _open_dialog(dialog_id: StringName) -> bool:
 	return true
 
 
+## Puts up the pause menu. Public for the same reason try_interact() is: a test should be able
+## to pause without staging an input event. Refuses rather than rebuilding when one is already
+## up, and refuses outright when no game is running - there would be no slots to list.
+func open_pause() -> bool:
+	if _pause != null or _game == null:
+		return false
+	_pause = PauseScreen.new()
+	# Constructed and connected in one function, the DialogBox rule: a view built in one place
+	# and wired in another is a view that eventually gets built and not wired.
+	_pause.resumed.connect(_close_pause)
+	_pause.save_requested.connect(_on_save_requested)
+	_pause.load_requested.connect(_on_load_requested)
+	add_child(_pause)
+	_pause.setup(PauseMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
+	Router.open_overlay(Router.State.PAUSED)
+	return true
+
+
+## What is in each of this game's slots, for drawing. peek() rather than load_slot(): merely
+## looking at the menu must not park files or announce loads nobody asked for.
+func _slot_summaries() -> Array[SaveData]:
+	var out: Array[SaveData] = []
+	if _game == null or _config == null:
+		return out
+	for slot in _config.save_slots:
+		out.append(SaveManager.peek(_game.id, slot))
+	return out
+
+
+func _close_pause() -> void:
+	if _pause == null:
+		return
+	# queue_free, not free: this is reached from inside the screen's own input handler, and
+	# freeing a node while it is dispatching an event is a crash.
+	_pause.queue_free()
+	_pause = null
+	Router.close_overlay()
+
+
+func _on_save_requested(slot: int) -> void:
+	SaveManager.save(slot, GameState.to_save())
+	# The menu stays up and is told what the slots hold NOW, so the row the player is looking
+	# at shows what they just wrote. A save whose only feedback is the screen closing is
+	# indistinguishable from one that failed.
+	if _pause != null:
+		_pause.refresh(_slot_summaries())
+
+
+func _on_load_requested(slot: int) -> void:
+	# Deferred for the reason _on_game_chosen is: this tears down and rebuilds the map, and
+	# doing that inside the screen's input callback frees the node that is dispatching.
+	_commit_load.call_deferred(slot)
+
+
+func _commit_load(slot: int) -> void:
+	# A frame passed. A teardown or a second event could have happened in it.
+	if _pause == null or _game == null:
+		return
+	var data := SaveManager.load_slot(_game.id, slot)
+	if data == null:
+		# load_slot has parked the bytes and said so. The menu stays up showing what the slots
+		# hold now - which is one fewer, and that is the honest thing for it to show.
+		_pause.refresh(_slot_summaries())
+		return
+	_close_pause()
+	restore(data)
+
+
+## Puts a loaded save back into the world. The one path from a save to a running game, so
+## "loading" cannot mean two slightly different things.
+##
+## State first, THEN the map: on_map_entered hooks read flags, so a map entered before the
+## save's flags are in place runs its opening hook against the previous game's progress.
+## enter_map resets the Router (so PAUSED is left) and re-runs those hooks, which is intended -
+## they are flag-gated and route through _apply like every other effect.
+func restore(data: SaveData) -> bool:
+	GameState.from_save(data)
+	return enter_map(data.map, &"", data.position)
+
+
 ## Test and QA access. Reaching for the node directly from outside would tie every test to
 ## the scene's shape; these are the things anything outside actually needs.
 func player() -> ActorBody:
@@ -546,6 +653,10 @@ func map_data() -> MapData:
 
 func dialog_box() -> DialogBox:
 	return _dialog
+
+
+func pause_screen() -> PauseScreen:
+	return _pause
 
 
 func npc_ids() -> Array[StringName]:

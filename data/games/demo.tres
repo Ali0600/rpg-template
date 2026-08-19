@@ -14,4 +14,4 @@ start_map = &"demo_town"
 start_spawn = &"start"
 player_character = &"hero"
 config = ExtResource("2_config")
-controls_hint = "WASD / arrows to walk    E or space to talk"
+controls_hint = "WASD / arrows to walk    E or space to talk    Esc to pause"

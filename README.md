@@ -14,8 +14,9 @@ It ships two halves:
    composed from shared parts, one palette and one outline rule, so a whole cast is visually
    coherent *by construction* rather than by discipline. Same seed, same pixels, every run.
 2. **The generic systems** — four-direction movement with tile collision, camera, data-driven
-   maps with warps between them, NPCs and branching dialog, game-flow states, saves with
-   migrations, a seeded RNG, an audio seam, a headless QA harness, and CI that runs all of it.
+   maps with warps between them, NPCs and branching dialog, game-flow states, a pause menu
+   with per-game save slots, saves with migrations, a seeded RNG, an audio seam, a headless QA
+   harness, and CI that runs all of it.
 
 ## Why it looks the way it looks
 
@@ -76,6 +77,7 @@ Regenerate the art after editing a rig or a style:
 | The world | `data/maps/*.json` — ASCII rows plus a legend | no |
 | What people say | `data/dialog/*.json` | no |
 | How it feels to move, incl. free vs grid movement | `data/game_config.tres` | no |
+| How many save slots there are | `data/game_config.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts, new tiles | `data/rigs/*.json`, `TileGen.TILES` | one file |
 
@@ -95,6 +97,10 @@ The repo ships **two** games, which is the only honest way to claim the template
 | World | a town and a cave | a village, a hollow, a keep |
 | Verbs | walk, talk, read a well | …plus a stash that opens once, and a gate that stays shut |
 | Code | none | one file: which of the warden's three lines to say |
+
+Escape pauses either of them, and the same menu saves and loads. Slots belong to the game
+that wrote them — `user://saves/<game>/slot_N.json` — and each save names its own game, so a
+file that ends up in the wrong directory is refused and preserved rather than loaded.
 
 **Launch it and it asks which one.** With more than one game and nothing choosing between
 them, you get a picker: the cursor recolours the screen to that game's palette and stands its
@@ -151,6 +157,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M7** — a second game, built to find out whether the first six were true
 - [x] **M8** — a game picker, so switching is a keypress rather than an edit
 - [x] **M9** — grid-step movement as a second mode, off by default
+- [x] **M10** — a pause menu, and save slots that belong to one game
 
 ## Experience Gained
 

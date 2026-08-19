@@ -21,4 +21,4 @@ start_spawn = &"start"
 player_character = &"quest_wanderer"
 config = ExtResource("2_config")
 hooks = ExtResource("3_hooks")
-controls_hint = "WASD / arrows to walk    E or space to look"
+controls_hint = "WASD / arrows to walk    E or space to look    Esc to pause"

@@ -356,3 +356,50 @@ frames.
 arithmetic on top of it — and prefer ending an operation by *observing that it finished* over
 computing when it will. Pin the answer as a test: this one lives in `test_engine_assumptions.gd`
 and asserts it is not running in a physics frame first, so it cannot quietly become vacuous.
+
+## A test that drives the last layer by hand cannot see the state the layers before it set
+
+`PauseScreen` latches itself once it has sent an answer to the world: a load rebuilds the map a
+frame later, and a second keypress in that window would answer a settled question. A load that
+comes back *refused* therefore has to clear the latch, or the menu sits on screen looking
+perfectly normal with every key dead.
+
+**Why it came up:** the integration suite drove the refusal by emitting `load_requested`
+directly — clean, fast, and it asserted exactly the right outcome. The mutant that deletes the
+un-latching line **survived**. Emitting the signal skips `_act()`, which is the thing that sets
+the latch, so the test staged a refusal in a state where there was nothing to clear. It proved
+the world's behaviour and nothing about the screen's. Rewriting it to navigate the menu with
+real key events — down, down, in, down, down, in — killed the mutant on the next run.
+
+Two harness facts fell out on the way, both of which read as broken tests rather than as broken
+instruments. A simulated `InputEventAction` needs its matching **release**, or the second press
+of the same action lands on an engine that thinks nothing changed. And a suite with no
+`scene_runner` must `await get_tree().physics_frame`, not `await_millis(1)`: under load — a
+mutation run, say — a millisecond spans no physics frame at all, so "the player did not move"
+becomes a fact about how busy the machine is. That one surfaced as a mutation `BASELINE
+FAILURE` on a suite that had passed by hand minutes earlier.
+
+**Takeaway:** driving a component by calling its inner layer directly tests that layer in a
+state the outer layers never put it in. If a rule is *about* state the outer layer sets — a
+latch, a guard, a mode — the test has to come in through the front door, and a surviving mutant
+is usually the only thing that will tell you it did not.
+
+## A refusal that fires early hides the refusal behind it
+
+A save whose game does not match its directory is refused by the loader and its bytes parked.
+Through the pause menu, that check is unreachable: the slot list reads each file silently, a
+foreign save does not read back, so the row renders as *empty* and Load refuses it before the
+loader is ever called.
+
+**Why it came up:** an integration test staged a quest save in the demo's slot, pressed Load,
+and asserted the bytes were parked. They were not — nothing had tried to load them. The layers
+are both correct and the outer one is strictly earlier, so the test's premise was wrong rather
+than the code. Reaching the inner check through the UI needs a slot that goes bad *between* the
+frame that drew the menu and the frame that loaded it, which is a real scenario and now the one
+the suite stages.
+
+**Takeaway:** when a system defends the same thing at two layers, work out which one fires
+first before writing a test that aims at the second — and then decide deliberately whether the
+inner one is reachable at all. If it is not, either stage the race that reaches it or say
+plainly that it is defence in depth. "Assert it was rejected" is not enough when more than one
+thing can do the rejecting.
