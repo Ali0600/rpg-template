@@ -2,9 +2,9 @@ class_name ItemDef
 extends Resource
 ## A thing the player can carry, as data.
 ##
-## An item is a NOUN with a name and a description, and nothing else. It has no icon, no
-## weight, no use verb and no stack limit, because every one of those is a decision a game
-## makes and the template would be guessing at.
+## An item is a NOUN with a name, a description and - since M13 - what it does when drunk in a
+## fight. It has no icon, no weight, no general use verb and no stack limit, because every one
+## of those is a decision a game makes and the template would be guessing at.
 ##
 ## The absent stack limit is the load-bearing one. A cap means a pickup can FAIL, and a chest
 ## marked `once` has already recorded that it was opened by the time the give is applied - so
@@ -27,6 +27,17 @@ extends Resource
 ## says "a key" twice is worse than a key that says it once.
 @export var description: String = ""
 
+## Hit points restored when this is used from the battle menu. ZERO MEANS NOT USABLE IN A
+## FIGHT, the same "zero is off" shape as GameConfig.grid_step_pixels - so the field is both
+## the amount and the answer to "does this belong in the battle item list", and the two cannot
+## disagree.
+##
+## This is the only use verb the template has. A general "use" from the pause menu is still a
+## game's own business (see docs/DECISIONS.md): a potion heals in every RPG ever written,
+## where "use the rope on the well" is a puzzle, and a template that grew a verb for the
+## second one would be designing somebody's game.
+@export var battle_heal: int = 0
+
 
 ## Everything wrong with this item, in the idiom of every other problems() here: all of them,
 ## not the first, so "what is broken about this item" is one read rather than three runs.
@@ -36,4 +47,8 @@ func problems() -> Array[String]:
 		out.append("item has no id")
 	if name.is_empty():
 		out.append("item '%s' has no name" % id)
+	# Negative healing is a weapon wearing a potion's clothes. If a game wants one, it wants a
+	# different verb, not a sign flip on this one.
+	if battle_heal < 0:
+		out.append("item '%s' heals %d" % [id, battle_heal])
 	return out

@@ -37,6 +37,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v2_to_v3(d, game)
 			3:
 				d = _v3_to_v4(d)
+			4:
+				d = _v4_to_v5(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -82,7 +84,20 @@ static func _v3_to_v4(d: Dictionary) -> Dictionary:
 	return d
 
 
+## v4 -> v5: nothing had been fought before v5.
+##
+## An empty party rather than a guess, the same call _v3_to_v4 made about the bag. A fabricated
+## level-1 hero would be a lie in two directions: this step cannot see the game's CombatDef, so
+## it cannot know what full health even is - and a game with no combat would get a party it has
+## no use for. Empty is the honest word for "this file predates fighting", and world_scene
+## turns it into a real player at the one place that can.
+static func _v4_to_v5(d: Dictionary) -> Dictionary:
+	d["party"] = {}
+	d["version"] = 5
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3, 4]
+	return [1, 2, 3, 4, 5]

@@ -1,0 +1,12 @@
+{
+	"_readme": "A real save in the version 4 shape - carrying items, no party - pinned so the v4->v5 step is tested against a FILE rather than against a dictionary a test just built. It carries a bag on purpose: the step must add a party WITHOUT dropping what v4 already knew, and a fixture with an empty bag could not tell the difference.",
+	"version": 4,
+	"game": "quest",
+	"map": "quest_keep",
+	"position": [88.0, 40.0],
+	"facing": 0,
+	"flags": { "lit_the_lantern": false },
+	"seen": { "quest_hollow/keystash": true },
+	"items": { "gate_key": 1 },
+	"play_seconds": 30.0
+}

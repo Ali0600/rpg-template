@@ -32,6 +32,12 @@ extends Resource
 ## real: the exporter follows it, and a typo fails at load instead of at first step.
 @export var config: GameConfig
 
+## Who the player is in a fight, how they grow, and how long a beat lasts. NULL IS NORMAL and
+## is the template's default: a game with no battles has no combat definition, and a map that
+## places an enemy in one is a content error the world reports rather than a crash. Kept off
+## GameConfig so a peaceful game carries no battle knobs it will never turn.
+@export var combat: CombatDef
+
 ## The one line of on-screen help. It belongs to the game because it names the game's verbs:
 ## "E or space to talk" is wrong for a game whose button does anything else.
 @export var controls_hint: String = ""
@@ -100,6 +106,11 @@ func problems() -> Array[String]:
 					% [config.grid_step_pixels, start_map, style.tile_size])
 		for p in config.problems():
 			out.append("config: " + p)
+
+	# Only when there is one: a game without battles is not a game with a broken CombatDef.
+	if combat != null:
+		for p in combat.problems():
+			out.append("combat: " + p)
 
 	if hooks != null:
 		var made := new_hooks()

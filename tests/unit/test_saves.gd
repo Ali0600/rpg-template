@@ -39,6 +39,7 @@ func test_a_save_round_trips_through_disk() -> void:
 	GameState.mark_seen(&"intro")
 	GameState.give_item(&"gate_key")
 	GameState.give_item(&"lamp_oil", 2)
+	GameState.set_party(13, 22, 3)
 	GameState.play_seconds = 42.5
 
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
@@ -58,6 +59,40 @@ func test_a_save_round_trips_through_disk() -> void:
 	# set of booleans would reload two flasks of oil as one.
 	assert_int(GameState.item_count(&"gate_key")).is_equal(1)
 	assert_int(GameState.item_count(&"lamp_oil")).is_equal(2)
+	# And what the player is worth in a fight. A save that forgot this reloads a level-3
+	# player as a fresh one, which reads as lost progress rather than as a save bug.
+	assert_int(GameState.player_hp).is_equal(13)
+	assert_int(GameState.player_xp).is_equal(22)
+	assert_int(GameState.player_level).is_equal(3)
+
+func test_a_game_that_never_fought_saves_no_party() -> void:
+	# Zero health means UNSET, and that has to survive the round trip as absence rather than as
+	# a party at nought hp - which the file format refuses outright.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	var data := GameState.to_save()
+	assert_dict(data.party).is_empty()
+	assert_array(data.problems()).is_empty()
+
+func test_a_new_game_does_not_inherit_the_last_one_s_level() -> void:
+	# An autoload outlives a session. Without the reset, starting over hands the new player
+	# every level the old one earned - which reads as a save bug rather than as a missing line.
+	GameState.set_party(31, 99, 3)
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	assert_int(GameState.player_level).is_equal(1)
+	assert_int(GameState.player_xp).is_equal(0)
+	assert_int(GameState.player_hp).is_equal(0)
+
+func test_loading_a_save_from_before_battles_leaves_the_party_unset() -> void:
+	# The signal world_scene reads to derive a fresh player from the game's curve. If this
+	# came back as "level 1 at zero hp" instead, that derivation would never fire and the
+	# first fight would open with a player who is already dead.
+	GameState.set_party(9, 4, 2)
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_village"
+	GameState.from_save(data)
+	assert_int(GameState.player_hp).is_equal(0)
+	assert_int(GameState.player_level).is_equal(1)
 
 func test_a_save_is_filed_under_its_game() -> void:
 	# The game comes from the SAVE, not from an argument: one source for the fact means a file
@@ -297,6 +332,53 @@ func test_a_version_3_save_is_carried_forward() -> void:
 	assert_str(String(data.game)).is_equal("quest")
 	assert_str(String(data.map)).is_equal("quest_keep")
 	assert_bool(bool(data.flags.get("has_gate_key", false))).is_true()
+
+func test_a_version_4_save_is_carried_forward() -> void:
+	var file := JsonFile.read(FIXTURES + "v4.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	assert_bool(migrated.has("party")).override_failure_message(
+		"a migrated save arrived with no party field at all").is_true()
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# An empty party rather than a guess: this step cannot see the game's CombatDef, so it does
+	# not know what full health is - world_scene derives that at the one place that can.
+	assert_dict(data.party).is_empty()
+	# And the step must not drop what v4 already knew. The fixture carries a bag on purpose:
+	# with an empty one, a migration that wiped the inventory would pass this test.
+	assert_int(int(data.items.get("gate_key", 0))).override_failure_message(
+		"the v4->v5 step lost the bag it was handed").is_equal(1)
+	assert_str(String(data.map)).is_equal("quest_keep")
+	assert_bool(bool(data.seen.get("quest_hollow/keystash", false))).is_true()
+
+func test_a_party_survives_a_round_trip() -> void:
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_keep"
+	data.party = {"hp": 14, "xp": 22, "level": 3}
+	assert_array(data.problems()).is_empty()
+	var back := SaveData.from_dict(data.to_dict())
+	assert_int(int(back.party.get("hp", 0))).is_equal(14)
+	assert_int(int(back.party.get("xp", 0))).is_equal(22)
+	assert_int(int(back.party.get("level", 0))).is_equal(3)
+
+func test_a_save_carrying_a_dead_player_is_refused() -> void:
+	# Zero health is what "unset" is spelled as in GameState, so a file that states it as a
+	# real party is a file that has been edited or written by a broken build.
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_keep"
+	data.party = {"hp": 0, "xp": 5, "level": 1}
+	assert_array(data.problems()).is_not_empty()
+
+func test_a_save_with_no_party_at_all_is_accepted() -> void:
+	# The control for the refusal above, and the common case: a game with no combat, or a save
+	# written before battles existed. Absent must stay legal forever.
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_keep"
+	assert_array(data.problems()).is_empty()
 
 
 func test_a_save_carrying_none_of_something_is_refused_and_preserved() -> void:

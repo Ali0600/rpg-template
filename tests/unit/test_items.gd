@@ -156,3 +156,22 @@ func test_every_item_a_conversation_names_exists() -> void:
 			assert_bool(known.has(item_id)).override_failure_message(
 				"dialog '%s' names item '%s', which no file in %s describes"
 				% [runner.id, item_id, ITEM_DIR]).is_true()
+
+func test_an_item_that_heals_a_negative_amount_is_refused() -> void:
+	# A weapon wearing a potion's clothes. A game that wants one wants a different verb, not a
+	# sign flip on this one - and battle_heal doubles as "does this belong in the fight menu",
+	# so a negative value would put it there and then hurt the person who drank it.
+	var item := ItemDef.new()
+	item.id = &"bad_tonic"
+	item.name = "Bad tonic"
+	item.battle_heal = -5
+	assert_array(item.problems()).is_not_empty()
+
+func test_an_item_that_heals_nothing_is_still_a_valid_item() -> void:
+	# The control, and the default every shipped item uses: zero means "not usable in a
+	# fight", which is the ordinary case rather than a fault.
+	var item := ItemDef.new()
+	item.id = &"key"
+	item.name = "Key"
+	assert_int(item.battle_heal).is_equal(0)
+	assert_array(item.problems()).is_empty()

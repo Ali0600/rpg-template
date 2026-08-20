@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 4
+const VERSION := 5
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -27,6 +27,11 @@ var seen: Dictionary = {}
 ## Inventory: this class describes the FILE, and a file may say things an Inventory would
 ## refuse - which is what problems() is for.
 var items: Dictionary = {}
+## Who the player is in a fight, as `{"hp", "xp", "level"}`. Added in v5. EMPTY IS A REAL
+## ANSWER and the common one: a save from before battles existed, or from a game that has no
+## combat at all, carries no party - and inventing a level-1 hero for it here would be this
+## class deciding a rule that belongs to the game's CombatDef, which it cannot see.
+var party: Dictionary = {}
 ## Seconds of play. Added in v2, which is what the v1 migration exists to demonstrate.
 var play_seconds: float = 0.0
 
@@ -41,6 +46,7 @@ func to_dict() -> Dictionary:
 		"flags": flags,
 		"seen": seen,
 		"items": items,
+		"party": party,
 		"play_seconds": play_seconds,
 	}
 
@@ -62,6 +68,7 @@ static func from_dict(d: Dictionary) -> SaveData:
 	# Copied, not sanitised: a count of zero is a FAULT to report, not something to quietly
 	# tidy away. Inventory.from_dict does the tidying, once the file has been accepted.
 	out.items = d.get("items", {}) if d.get("items", {}) is Dictionary else {}
+	out.party = d.get("party", {}) if d.get("party", {}) is Dictionary else {}
 	out.play_seconds = float(d.get("play_seconds", 0.0))
 	return out
 
@@ -85,4 +92,15 @@ func problems() -> Array[String]:
 		# broken build. Carrying "minus one key" is not a state the game can be in.
 		if int(items[key]) <= 0:
 			out.append("save carries %s of item '%s'" % [items[key], key])
+	# Only a party that is THERE is checked. Absent is legal and means "no combat here"; what
+	# cannot be legal is a party present and impossible. The checks stay structural on purpose
+	# - whether 40 hp is too much for level 2 is a question for the game's CombatDef, and this
+	# class has no way to reach one.
+	if not party.is_empty():
+		if int(party.get("hp", 0)) < 1:
+			out.append("save carries a party at %s hp" % party.get("hp", 0))
+		if int(party.get("xp", 0)) < 0:
+			out.append("save carries %s xp" % party.get("xp", 0))
+		if int(party.get("level", 0)) < 1:
+			out.append("save carries a party at level %s" % party.get("level", 0))
 	return out

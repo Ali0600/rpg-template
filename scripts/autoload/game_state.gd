@@ -21,6 +21,13 @@ var seen: Dictionary = {}
 ## is all or nothing, a count of zero forgets the item - belong with the data they govern, and
 ## every other layer is handed a snapshot rather than this.
 var inventory: Inventory = Inventory.new()
+## What the player is worth in a fight. ZERO HP MEANS UNSET, not dead: a game with no combat
+## never touches these, and a game with combat has world_scene derive full health from its
+## CombatDef the first time it needs them. The derivation lives there because the curve is a
+## resource this autoload has no business loading.
+var player_hp: int = 0
+var player_xp: int = 0
+var player_level: int = 1
 var play_seconds: float = 0.0
 
 
@@ -46,6 +53,9 @@ func reset() -> void:
 	flags = {}
 	seen = {}
 	inventory = Inventory.new()
+	player_hp = 0
+	player_xp = 0
+	player_level = 1
 	play_seconds = 0.0
 
 
@@ -97,6 +107,15 @@ func item_count(id: StringName) -> int:
 	return inventory.count(id)
 
 
+## What a fight left the player as. All three together, through one writer, because they are
+## one fact: a level without its heal, or xp without the level it bought, is a state no rule
+## in the game produces and every rule downstream would then have to tolerate.
+func set_party(hp: int, xp: int, level: int) -> void:
+	player_hp = maxi(hp, 0)
+	player_xp = maxi(xp, 0)
+	player_level = maxi(level, 1)
+
+
 ## The live state as a save. Kept here rather than in SaveManager because this is the object
 ## that OWNS the state - a writer that reached in and read the fields would be a second place
 ## that has to learn about every new one.
@@ -109,6 +128,11 @@ func to_save() -> SaveData:
 	out.flags = flags.duplicate(true)
 	out.seen = seen.duplicate(true)
 	out.items = inventory.to_dict()
+	# An unset party writes an EMPTY dictionary rather than zeros. A game with no combat then
+	# saves no combat state at all, and a file cannot claim the player has nought health.
+	out.party = {} if player_hp <= 0 else {
+		"hp": player_hp, "xp": player_xp, "level": player_level,
+	}
 	out.play_seconds = play_seconds
 	return out
 
@@ -123,4 +147,10 @@ func from_save(data: SaveData) -> void:
 	flags = data.flags.duplicate(true)
 	seen = data.seen.duplicate(true)
 	inventory = Inventory.from_dict(data.items)
+	# An absent party restores as UNSET, not as a level-1 player at zero health. The
+	# difference matters: unset is the signal world_scene reads to derive full health from the
+	# game's curve, and a save written before battles existed must produce exactly that.
+	player_hp = int(data.party.get("hp", 0))
+	player_xp = int(data.party.get("xp", 0))
+	player_level = maxi(int(data.party.get("level", 1)), 1)
 	play_seconds = data.play_seconds
