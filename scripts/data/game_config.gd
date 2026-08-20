@@ -51,6 +51,14 @@ extends Resource
 ## snapping, so this is deliberately off by default.
 @export var camera_smoothing: float = 0.0
 
+## How far the player walks between footsteps, in pixels. Zero switches them off, the same way
+## grid_step_pixels at zero means free movement - a mode rather than a magic number, so a game
+## that wants silent feet says so in data instead of in code.
+##
+## A cadence, not a timer: tying it to distance means it slows when the player slows and stops
+## when a wall stops them, which is what a footstep is.
+@export var footstep_pixels: float = 14.0
+
 ## How many save slots the pause menu offers. One is a perfectly good answer - it makes the
 ## menu a single "continue" - which is why this is a number a designer sets rather than a
 ## constant in the view.
@@ -69,6 +77,8 @@ func problems() -> Array[String]:
 		out.append("idle_speed_epsilon cannot be negative, got %f" % idle_speed_epsilon)
 	if grid_step_pixels < 0:
 		out.append("grid_step_pixels cannot be negative, got %d" % grid_step_pixels)
+	if footstep_pixels < 0.0:
+		out.append("footstep_pixels cannot be negative, got %f" % footstep_pixels)
 	if grid_step_seconds < 0.0:
 		out.append("grid_step_seconds cannot be negative, got %f" % grid_step_seconds)
 	if save_slots < 1:

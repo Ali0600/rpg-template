@@ -271,3 +271,15 @@ scripts/autoload/audio_bus.gd	s|if _requested.size\(\) > LOG_LIMIT:|if false:|	t
 scripts/autoload/audio_bus.gd	s|\tif not _sounds.has\(cue\):|\tif false:|	tests/unit/test_audio_bus.gd	a voice that cannot play a cue stops reporting it
 scripts/data/game_manifest.gd	s|if not FileAccess.file_exists\(cue\):|if false:|	tests/unit/test_game_manifest.gd	a game pointed at a voice with no generated cues passes validation
 scripts/util/content_scan.gd	s|return in_order\(once_each\(_walk\(root, extensions\)\)\)|return in_order(_walk(root, extensions))|	tests/unit/test_content_scan.gd	a source and its import sidecar count as two files, doubling every work list
+
+# --- M14: the template gets a voice ---
+scripts/world/step_meter.gd	s|\t_carried -= _stride|\t_carried = 0.0|	tests/unit/test_step_meter.gd	the leftover distance is thrown away, so the cadence follows the frame rate
+scripts/world/step_meter.gd	s|\t_carried = 0.0|\tpass|	tests/unit/test_step_meter.gd	being teleported counts as ground walked and lands a footstep on arrival
+scripts/world/actor_body.gd	s|\t\tstep.footfall = _meter.advance\(was.distance_to\(global_position\)\)|\t\tstep.footfall = false|	tests/integration/test_world_sounds.gd	walking makes no sound at all
+scripts/world/actor_body.gd	s|\t\t_meter.reset\(\)|\t\tpass|	tests/integration/test_world_sounds.gd	a warp counts the distance across the map as a stride
+scripts/ui/battle_logic.gd	s|_want\(Sfx.Cue.TIMED_HIT if timed else Sfx.Cue.HIT\)|_want(Sfx.Cue.HIT)|	tests/unit/test_battle_sounds.gd	landing the timing sounds exactly like missing it
+scripts/ui/battle_logic.gd	s|\t_sounds.clear\(\)|\tpass|	tests/unit/test_battle_sounds.gd	a drained cue plays again every frame, turning one hit into a stutter
+scripts/ui/battle_logic.gd	s|\t\t_want\(Sfx.Cue.LEVEL_UP\)|\t\tpass|	tests/unit/test_battle_sounds.gd	levelling up is silent
+scripts/ui/dialog_box.gd	s|\t\tsound_wanted.emit\(Sfx.id_of\(Sfx.Cue.PAGE\)\)|\t\tpass|	tests/integration/test_world_sounds.gd	turning a page of dialog is silent
+scripts/ui/dialog_box.gd	s|\t\t\tsound_wanted.emit\(Sfx.id_of\(Sfx.Cue.TALK\)\)|\t\t\tpass|	tests/integration/test_world_sounds.gd	the typewriter has no voice
+scripts/world/world_scene.gd	s|\t\tAudioBus.play\(Sfx.Cue.LOCKED\)|\t\tpass|	tests/integration/test_world_sounds.gd	a door that refuses to open gives no feedback for it

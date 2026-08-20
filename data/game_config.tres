@@ -14,3 +14,4 @@ interact_reach = 12.0
 body_size = Vector2(10, 6)
 idle_speed_epsilon = 1.0
 camera_smoothing = 0.0
+footstep_pixels = 14.0

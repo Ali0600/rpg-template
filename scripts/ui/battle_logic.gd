@@ -54,6 +54,9 @@ var _hp: int = 0
 var _xp: int = 0
 var _level: int = 1
 var _enemy_hp: int = 0
+## Cues asked for and not yet drained by the view.
+var _sounds: Array[StringName] = []
+
 ## Untyped Array because a typed default for a nested class is not a constant expression -
 ## the same reason PauseMenu._items is untyped.
 var _items: Array = []
@@ -206,6 +209,24 @@ func effects() -> Array[Dictionary]:
 	return _effects.duplicate(true)
 
 
+## The cues this fight has asked for since the last drain, oldest first.
+##
+## A separate list from _effects on purpose. Effects are applied ONCE at the end and are
+## discarded entirely on defeat - but losing is exactly when the defeat sting has to play, and
+## a fight makes noise all the way through rather than at the end. Drained rather than read,
+## because two cues can land in one frame: a hit that wins the fight is a hit AND a victory,
+## and a victory that levels is two more.
+func take_sounds() -> Array[StringName]:
+	var out := _sounds.duplicate()
+	_sounds.clear()
+	return out
+
+
+## Names a cue for the view to play. This class may not touch an autoload, so it reports.
+func _want(cue: Sfx.Cue) -> void:
+	_sounds.append(Sfx.id_of(cue))
+
+
 ## Moves the cursor by whole steps, WRAPPING, and only while something is waiting for a
 ## choice. A press during a cue is a timing press, not a menu one.
 func move(delta: int) -> bool:
@@ -214,6 +235,7 @@ func move(delta: int) -> bool:
 	if size() < 2:
 		return false
 	_index = posmod(_index + delta, size())
+	_want(Sfx.Cue.MENU_MOVE)
 	return true
 
 
@@ -221,8 +243,10 @@ func move(delta: int) -> bool:
 func press() -> void:
 	match _phase:
 		Phase.MENU:
+			_want(Sfx.Cue.MENU_CONFIRM)
 			_confirm_command()
 		Phase.ITEMS:
+			_want(Sfx.Cue.MENU_CONFIRM)
 			_confirm_item()
 		Phase.PLAYER_ACT, Phase.ENEMY_ACT:
 			# ONLY the first press of a cue is captured. Without this, holding the button down
@@ -246,6 +270,7 @@ func cancel() -> bool:
 		return false
 	_phase = Phase.MENU
 	_index = Row.ITEM
+	_want(Sfx.Cue.MENU_MOVE)
 	return true
 
 
@@ -291,6 +316,8 @@ func _confirm_item() -> void:
 	if row == null:
 		return
 	var healed := mini(_hp + row.heal, player_max_hp()) - _hp
+	if healed > 0:
+		_want(Sfx.Cue.HEAL)
 	_hp += healed
 	# Appended NOW, against the count this fight was handed. The snapshot is what makes the
 	# take safe: the world cannot be asked for an item the player did not have when the menu
@@ -332,6 +359,9 @@ func _land_player_hit() -> void:
 	var base := damage(_combat.attack_at(_level), _enemy.defense)
 	var timed := pressed_in_time()
 	var dealt := base * 2 if timed else base
+	# The IMPACT is the feedback, not the press. A click the moment the button went down would
+	# tell the player they pressed - which they know - instead of telling them they landed it.
+	_want(Sfx.Cue.TIMED_HIT if timed else Sfx.Cue.HIT)
 	_enemy_hp = maxi(_enemy_hp - dealt, 0)
 	var line := "A clean hit! %d damage." % dealt if timed else "%d damage." % dealt
 	if _enemy_hp <= 0:
@@ -345,11 +375,13 @@ func _land_enemy_hit() -> void:
 	var base := damage(_enemy.attack + int(move.get("power", 0)), _combat.defense_at(_level))
 	var blocked := pressed_in_time()
 	var taken := maxi(base / 2, 1) if blocked else base
+	_want(Sfx.Cue.BLOCK if blocked else Sfx.Cue.HURT)
 	_hp = maxi(_hp - taken, 0)
 	var name := str(move.get("name", "attacks"))
 	var line := "%s: %s. Blocked - %d damage." % [_enemy.name, name, taken] if blocked \
 		else "%s: %s. %d damage." % [_enemy.name, name, taken]
 	if _hp <= 0:
+		_want(Sfx.Cue.DEFEAT)
 		_outcome = Outcome.DEFEAT
 		# Deliberately NOT sealed: a defeat's effects are never applied, so there is nothing
 		# to collect. The world discards them and opens the game-over screen.
@@ -371,11 +403,13 @@ func _win() -> void:
 	var was := _level
 	_level = _combat.level_for(_xp)
 	var line := "%s is down. +%d xp." % [_enemy.name, earned]
+	_want(Sfx.Cue.VICTORY)
 	if _level > was:
 		# A level restores the player completely. It is the loop the whole design rests on:
 		# ambient fights are what make the boss survivable, and a heal you can feel is what
 		# makes fighting one more thing before the door a real decision.
 		_hp = player_max_hp()
+		_want(Sfx.Cue.LEVEL_UP)
 		line += " Level %d!" % _level
 	_seal()
 	_say(line, Phase.OVER)

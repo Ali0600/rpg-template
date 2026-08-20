@@ -111,6 +111,17 @@ func test_a_context_is_a_snapshot_rather_than_live_state() -> void:
 	assert_bool(ctx.has_flag(&"has_gate_key")).is_true()
 
 
+## The first effect carrying `op`, or an empty dictionary. Addressed by op rather than by
+## index: a positional read re-aims itself at whatever now sits there the moment an effect is
+## inserted ahead of it, silently and while still passing - the same failure as navigating a
+## menu by counting presses.
+func _effect(ctx: GameContext, op: StringName) -> Dictionary:
+	for effect: Dictionary in ctx.effects():
+		if StringName(str(effect.get("op", ""))) == op:
+			return effect
+	return {}
+
+
 func test_reading_the_effects_cannot_change_them() -> void:
 	var ctx := _ctx()
 	ctx.set_flag(&"a")
@@ -124,17 +135,18 @@ func test_a_flag_can_be_cleared_even_though_dialog_can_only_set_one() -> void:
 	# three lines of game code, not a new grammar in every dialog file.
 	var ctx := _ctx()
 	ctx.set_flag(&"has_gate_key", false)
-	assert_bool(bool(ctx.effects()[0].get("value", true))).is_false()
+	assert_bool(bool(_effect(ctx, GameContext.OP_FLAG).get("value", true))).is_false()
 
 
 func test_a_chest_hands_over_what_is_in_it() -> void:
 	var ctx := _ctx()
 	assert_bool(Interaction.decide({"id": "keystash", "dialog": "keystash",
 		"give_item": "gate_key", "once": true}, ctx)).is_true()
-	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG), str(GameContext.OP_GIVE_ITEM),
-		str(GameContext.OP_SEEN)])
-	assert_str(String(ctx.effects()[1]["id"])).is_equal("gate_key")
-	assert_int(int(ctx.effects()[1]["count"])).is_equal(1)
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG), str(GameContext.OP_SOUND),
+		str(GameContext.OP_GIVE_ITEM), str(GameContext.OP_SEEN)])
+	var gift := _effect(ctx, GameContext.OP_GIVE_ITEM)
+	assert_str(String(gift["id"])).is_equal("gate_key")
+	assert_int(int(gift["count"])).is_equal(1)
 
 
 func test_an_object_that_only_hands_something_over_is_not_a_dead_button() -> void:
@@ -142,7 +154,7 @@ func test_an_object_that_only_hands_something_over_is_not_a_dead_button() -> voi
 	# false and the player would press a chest that does nothing.
 	var ctx := _ctx()
 	assert_bool(Interaction.decide({"id": "cache", "give_item": "gate_key"}, ctx)).is_true()
-	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_GIVE_ITEM)])
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_SOUND), str(GameContext.OP_GIVE_ITEM)])
 
 
 func test_a_lock_refuses_without_the_item_and_says_so() -> void:
@@ -152,8 +164,10 @@ func test_a_lock_refuses_without_the_item_and_says_so() -> void:
 	assert_bool(Interaction.decide({"id": "lantern", "dialog": "lantern", "set_flag": "lit",
 		"requires_item": "lamp_oil", "take_item": "lamp_oil", "locked_dialog": "lantern_dry",
 		"once": true}, ctx)).is_true()
-	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG)])
-	assert_str(String(ctx.effects()[0]["dialog"])).is_equal("lantern_dry")
+	# The refusal cue lands BEFORE the line, because the sink applies effects in order and the
+	# thud belongs to the door rather than to the sentence about it.
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_SOUND), str(GameContext.OP_DIALOG)])
+	assert_str(String(_effect(ctx, GameContext.OP_DIALOG)["dialog"])).is_equal("lantern_dry")
 
 
 func test_with_the_item_it_works_and_the_item_goes() -> void:
@@ -172,7 +186,7 @@ func test_a_take_implies_carrying_it() -> void:
 	var ctx := _ctx()
 	assert_bool(Interaction.decide({"id": "lamp", "take_item": "lamp_oil",
 		"locked_dialog": "lantern_dry", "once": true}, ctx)).is_true()
-	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_DIALOG)])
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_SOUND), str(GameContext.OP_DIALOG)])
 
 
 func test_a_refusal_with_nothing_to_say_is_still_handled() -> void:
@@ -181,7 +195,10 @@ func test_a_refusal_with_nothing_to_say_is_still_handled() -> void:
 	var ctx := _ctx()
 	assert_bool(Interaction.decide({"id": "lamp", "dialog": "lantern",
 		"requires_item": "lamp_oil"}, ctx)).is_true()
-	assert_array(_ops(ctx)).is_empty()
+	# It still THUDS. A lock with no line is a content bug the validator catches, but a lock
+	# that answers a press with complete silence is indistinguishable from a dead button - and
+	# the sound is the one piece of feedback that does not need a writer.
+	assert_array(_ops(ctx)).is_equal([str(GameContext.OP_SOUND)])
 
 
 func test_a_lock_wanting_several_counts_them() -> void:
@@ -189,7 +206,7 @@ func test_a_lock_wanting_several_counts_them() -> void:
 		"requires_count": 3, "locked_dialog": "gate_barred"}
 	var short := _ctx({}, {}, {&"coin": 2})
 	Interaction.decide(record, short)
-	assert_str(String(short.effects()[0]["dialog"])).is_equal("gate_barred")
+	assert_str(String(_effect(short, GameContext.OP_DIALOG)["dialog"])).is_equal("gate_barred")
 	var enough := _ctx({}, {}, {&"coin": 3})
 	Interaction.decide(record, enough)
 	assert_array(_ops(enough)).is_equal([str(GameContext.OP_DIALOG)])

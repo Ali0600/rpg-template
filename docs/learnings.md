@@ -618,3 +618,28 @@ exactly.
 **Takeaway:** a normalisation that maps two names onto one must dedupe, and the bug appears in
 exactly one environment — so assert the SET, not just that every member is present. "Everything
 expected is here" is true of a list containing everything twice.
+
+## A gate that classifies files by grepping their text can be flipped by a comment
+
+This project's parse gate skips files naming an autoload, because a standalone parse cannot
+resolve one. The skip list is derived by grepping each file — so *mentioning* an autoload in a
+doc comment removes that file from the gate, as silently as calling one does.
+
+**Why it came up:** teaching the dialog box to make a noise dropped it, and both suites that
+depend on it, out of the parse gate. Rewriting the explanatory comment was part of the fix —
+the prose alone was enough to keep the file excluded.
+
+**Takeaway:** when a tool decides a file's treatment by scanning its source text — lint
+directives, coverage exclusions, CI path filters — that decision is coupled to documentation as
+well as to code, and the coupling is invisible at the point where it matters.
+
+## A positional read of a collected list re-aims itself when anything is inserted
+
+Tests that asserted `effects()[0]` and `effects()[1]` broke the moment a pickup cue was
+appended ahead of them — the same failure as navigating a menu by counting presses, and it can
+fail *silently* by pointing at whatever now sits at that index.
+
+**Why it came up:** six interaction tests failed at once when `Interaction` started asking for
+a sound. Rewriting them to address an effect by its OP made them immune, and clearer.
+
+**Takeaway:** address an element of a collected list by what it IS, never by where it sits.

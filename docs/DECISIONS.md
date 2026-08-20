@@ -855,3 +855,35 @@ Two roots can answer a sound id, and the order between them is the seam.
 An override is printed once at boot, and two files answering to one name is an **error** — the
 loser is invisible and which one loses depends on the filesystem, which is the same reason
 `Registry` refuses duplicate content ids rather than letting the last one win.
+
+## A view asks for a sound; it never plays one — *M14*
+
+Where the call to the speaker lives.
+
+- **Every screen emits `sound_wanted(id)`, and `world_scene` is the one place that plays it.**
+  *Chosen*, and not on purity grounds alone — it is the `_apply_effects` shape applied to
+  audio, and the alternative turned out to break a gate.
+- **Views calling the audio singleton directly.** Tried first, and rejected on evidence:
+  `check.sh`'s per-file parse gate skips any file whose TEXT names an autoload, so a view that
+  called it dropped ITSELF and every suite depending on it out of that gate. Two dialog suites
+  stopped parsing the moment `DialogBox` learned to make a noise. A comment naming the
+  singleton is enough to do the same thing, which is stated in `CLAUDE.md` beside the signal.
+- **A pure class playing its own cues.** Not available: `BattleLogic` may not touch an
+  autoload at all. It collects instead, and the view drains — which turned out to be necessary
+  rather than merely tidy, because a fight's cues have to survive a DEFEAT, whose effects the
+  world discards entirely. A defeat sting riding on the effect list would be silent at exactly
+  the moment the player most needs telling.
+
+## Footsteps are measured, not timed — *M14*
+
+- **One `StepMeter` counting distance actually moved, for both movement modes.** *Chosen.* It
+  slows when the player slows and stops when a wall stops them, which is what a footstep is.
+  One accumulator rather than two keeps the invariant that nothing downstream can tell free
+  movement from grid movement.
+- **Firing on grid-step completion.** Rejected: it would need a second implementation for free
+  movement, and the two would drift the first time either was touched.
+- **A timer.** Rejected on the failure mode - a player walking into a wall would keep making
+  footstep noises while standing perfectly still.
+
+The honest cost of one accumulator: a diagonal grid step covers 22.6px rather than 16, so its
+footfall lands part-way through the step. That is what walking sounds like anyway.

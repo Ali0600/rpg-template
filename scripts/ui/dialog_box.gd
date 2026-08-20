@@ -8,6 +8,15 @@ extends CanvasLayer
 ## do on a first press. Pressing confirm mid-reveal completes the line rather than skipping
 ## it, which is the behaviour every player expects and the one that is easy to get wrong.
 
+## A sound this view wants played. Emitted rather than played directly, for two reasons.
+##
+## Signals up, calls down - the world owns the speaker, and a view asking for a noise is the
+## same shape as a view asking for anything else. And practically: check.sh's per-file parse
+## gate skips any file whose TEXT names an autoload, so calling the audio singleton here would
+## quietly drop this file out of that gate, along with every test that depends on it. That is
+## not hypothetical - it is how this signal came to exist. Do not name it in prose either.
+signal sound_wanted(id: StringName)
+
 signal closed(effects: Array)
 
 ## The box's CAPACITY, named here because it is half of a contract: the other half is
@@ -47,6 +56,12 @@ const BOX_HEIGHT := TEXT_Y + TEXT_LINES * LINE_HEIGHT + PAD_BOTTOM
 
 const CHARACTERS_PER_SECOND := 45.0
 
+## How many revealed characters between typewriter blips. Not one per character: at 45 a
+## second that is a continuous tone rather than a voice. This is a FEEL number - no gate can
+## check it, only a person can hear it - so it sits here as one knob to turn rather than as a
+## rhythm spread through the reveal code.
+const CHARACTERS_PER_BLIP := 3
+
 var _runner: DialogRunner
 var _panel := ColorRect.new()
 var _speaker := Label.new()
@@ -54,6 +69,7 @@ var _text := RichTextLabel.new()
 var _choice_labels: Array[Label] = []
 var _choice_index := 0
 var _revealed := 0.0
+var _blipped := 0
 var _style: SpriteStyle
 var _gate := InputGate.new()
 var _viewport := Vector2i(320, 180)
@@ -136,6 +152,7 @@ func _show_line() -> void:
 	_speaker.text = line.speaker
 	_text.text = line.text
 	_revealed = 0.0
+	_blipped = 0
 	_text.visible_characters = 0
 	_choice_index = 0
 	for i in _choice_labels.size():
@@ -182,6 +199,11 @@ func _process(delta: float) -> void:
 	if _revealed < float(total):
 		_revealed = minf(_revealed + delta * CHARACTERS_PER_SECOND, float(total))
 		_text.visible_characters = int(_revealed)
+		# A while rather than an if: one slow frame can reveal several characters at once, and
+		# a single blip per frame would make the voice speed up and slow down with the machine.
+		while _text.visible_characters - _blipped >= CHARACTERS_PER_BLIP:
+			_blipped += CHARACTERS_PER_BLIP
+			sound_wanted.emit(Sfx.id_of(Sfx.Cue.TALK))
 
 
 func _fully_revealed() -> bool:
@@ -202,11 +224,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action(&"interact") or event.is_action(&"cancel"):
+		sound_wanted.emit(Sfx.id_of(Sfx.Cue.PAGE))
 		if not _fully_revealed():
 			# First press completes the line rather than skipping it. Skipping on the first
 			# press means a player who taps through loses text they never saw.
 			_revealed = float(_text.get_total_character_count())
 			_text.visible_characters = _text.get_total_character_count()
+			# Caught up with the reveal, so the rest of the line does not blip its way out
+			# all at once on the next frame.
+			_blipped = _text.visible_characters
 		elif not _runner.advance():
 			_close()
 		else:
@@ -218,11 +244,14 @@ func _choice_input(event: InputEvent, line: DialogRunner.Line) -> void:
 	var count := line.choices.size()
 	if event.is_action(&"move_down"):
 		_choice_index = (_choice_index + 1) % count
+		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint_choices()
 	elif event.is_action(&"move_up"):
 		_choice_index = (_choice_index + count - 1) % count
+		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint_choices()
 	elif event.is_action(&"interact"):
+		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 		if not _runner.choose(_choice_index):
 			_close()
 		else:

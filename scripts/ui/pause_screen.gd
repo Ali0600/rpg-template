@@ -8,6 +8,15 @@ extends CanvasLayer
 ##
 ## It sits ABOVE the dialog box, which is the input order too: a dialog cannot open while
 ## paused, and a pause must cover a conversation rather than appear behind one.
+## A sound this view wants played. Emitted rather than played directly, for two reasons.
+##
+## Signals up, calls down - the world owns the speaker, and a view asking for a noise is the
+## same shape as a view asking for anything else. And practically: check.sh's per-file parse
+## gate skips any file whose TEXT names an autoload, so calling the audio singleton here would
+## quietly drop this file out of that gate, along with every test that depends on it. That is
+## not hypothetical - it is how this signal came to exist. Do not name it in prose either.
+signal sound_wanted(id: StringName)
+
 signal resumed
 signal save_requested(slot: int)
 signal load_requested(slot: int)
@@ -161,12 +170,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action(&"move_down"):
-		_menu.move(1)
+		# Only when the cursor actually went somewhere. A list too short to move is a list
+		# where a blip would say "that worked" about nothing happening.
+		if _menu.move(1):
+			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
 	elif event.is_action(&"move_up"):
-		_menu.move(-1)
+		if _menu.move(-1):
+			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
 	elif event.is_action(&"interact"):
+		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 		_act(_menu.confirm())
 	elif event.is_action(&"cancel"):
 		_act(_menu.cancel())

@@ -100,9 +100,17 @@ func start_game(manifest: GameManifest) -> bool:
 ## the second is the easy one to forget. A DialogBox whose `closed` nobody hears leaves Router
 ## in DIALOG after the first conversation and the player never moves again - and the box hides
 ## itself, so on screen the conversation looks like it ended normally.
+## The one place a view's request for a noise becomes a noise. Every screen emits; nothing
+## else in scripts/ui touches the speaker, which is what keeps those files inside the per-file
+## parse gate along with every suite that depends on them.
+func _on_sound_wanted(id: StringName) -> void:
+	AudioBus.play_sfx(id)
+
+
 func _new_dialog() -> DialogBox:
 	var box := DialogBox.new()
 	box.closed.connect(_on_dialog_closed)
+	box.sound_wanted.connect(_on_sound_wanted)
 	add_child(box)
 	return box
 
@@ -385,6 +393,8 @@ func _physics_process(_delta: float) -> void:
 	if input != Vector2.ZERO:
 		_hint.dismiss()
 	var step := _player.apply(input)
+	if step.footfall:
+		AudioBus.play(Sfx.Cue.FOOTSTEP)
 	GameState.set_player(_player.global_position, step.facing)
 	_check_triggers()
 
@@ -423,10 +433,14 @@ func _try_warp(tile: Vector2i) -> bool:
 	if not MapData.warp_allowed(warp, GameState.flags, GameState.inventory.to_dict()):
 		# Once per arrival, not once per frame: _last_tile is already updated above, so
 		# standing against a locked gate says its line once rather than every tick.
+		AudioBus.play(Sfx.Cue.LOCKED)
 		var locked: StringName = warp.get("locked_dialog", &"")
 		if not String(locked).is_empty():
 			_open_dialog(locked)
 		return true
+	# Here rather than in enter_map, which is also the first spawn and a save restore -
+	# neither of which is a door being walked through.
+	AudioBus.play(Sfx.Cue.WARP)
 	enter_map(destination, warp["spawn"])
 	return true
 
@@ -634,6 +648,7 @@ func open_pause() -> bool:
 	_pause = PauseScreen.new()
 	# Constructed and connected in one function, the DialogBox rule: a view built in one place
 	# and wired in another is a view that eventually gets built and not wired.
+	_pause.sound_wanted.connect(_on_sound_wanted)
 	_pause.resumed.connect(_close_pause)
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
@@ -692,6 +707,7 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	_battle = BattleScreen.new()
 	# Constructed and connected in one function, the open_pause rule: a view built in one place
 	# and wired in another is a view that eventually gets built and not wired.
+	_battle.sound_wanted.connect(_on_sound_wanted)
 	_battle.finished.connect(_on_battle_finished)
 	add_child(_battle)
 	_battle.setup(BattleLogic.of(_game.combat, def, GameState.player_hp, GameState.player_xp,
@@ -779,6 +795,7 @@ func open_game_over() -> bool:
 	if _game_over != null or _game == null:
 		return false
 	_game_over = GameOverScreen.new()
+	_game_over.sound_wanted.connect(_on_sound_wanted)
 	_game_over.load_requested.connect(_on_game_over_load)
 	_game_over.new_game_requested.connect(_on_game_over_new_game)
 	add_child(_game_over)
