@@ -1,0 +1,41 @@
+{
+	"id": "gb16",
+	"_readme": [
+		"What every cue in the template is SHAPED like. What it is PLAYED on is a SoundStyle",
+		"under data/sounds - three of those share this one bank, the same way three sprite",
+		"styles share the one gb16 rig.",
+		"",
+		"Every key is optional and every cue states only what it cares about:",
+		"  wave       'tone' (the style's voice), 'noise', or 'both'",
+		"  hz/hz_end  pitch at the start and end; equal means no sweep",
+		"  steps      hold the sweep on N rungs instead of gliding - an arpeggio, not a siren",
+		"  ms         how long",
+		"  attack_ms  fade-in, which is what stops a click at the start",
+		"  gain       cue level before the style's gain and the player's volume",
+		"",
+		"Gains are NOT uniform on purpose. A footstep and a talk blip fire constantly and sit",
+		"low; a level-up fires twice a game and is allowed to be loud. The rule of thumb is",
+		"that the quieter a cue is, the more often the player will hear it."
+	],
+	"cues": {
+		"footstep": { "wave": "noise", "ms": 55, "attack_ms": 1, "gain": 0.26 },
+		"pickup": { "wave": "tone", "hz": 520, "hz_end": 1040, "steps": 3, "ms": 180, "gain": 0.5 },
+		"locked": { "wave": "tone", "hz": 220, "hz_end": 138, "ms": 200, "attack_ms": 3, "gain": 0.45 },
+		"warp": { "wave": "tone", "hz": 300, "hz_end": 900, "ms": 300, "gain": 0.38 },
+
+		"talk": { "wave": "tone", "hz": 660, "ms": 25, "attack_ms": 1, "gain": 0.16 },
+		"page": { "wave": "tone", "hz": 440, "hz_end": 660, "steps": 2, "ms": 70, "gain": 0.3 },
+
+		"menu_move": { "wave": "tone", "hz": 520, "ms": 45, "attack_ms": 1, "gain": 0.24 },
+		"menu_confirm": { "wave": "tone", "hz": 520, "hz_end": 784, "steps": 2, "ms": 100, "gain": 0.34 },
+
+		"hit": { "wave": "both", "hz": 320, "hz_end": 160, "ms": 90, "attack_ms": 1, "gain": 0.5 },
+		"timed_hit": { "wave": "both", "hz": 660, "hz_end": 330, "steps": 3, "ms": 150, "attack_ms": 1, "gain": 0.62 },
+		"block": { "wave": "noise", "ms": 70, "attack_ms": 1, "gain": 0.4 },
+		"hurt": { "wave": "tone", "hz": 380, "hz_end": 180, "ms": 200, "attack_ms": 2, "gain": 0.5 },
+		"heal": { "wave": "tone", "hz": 440, "hz_end": 880, "steps": 4, "ms": 260, "gain": 0.4 },
+		"level_up": { "wave": "tone", "hz": 440, "hz_end": 1320, "steps": 6, "ms": 420, "gain": 0.5 },
+		"victory": { "wave": "tone", "hz": 523, "hz_end": 1046, "steps": 5, "ms": 520, "gain": 0.5 },
+		"defeat": { "wave": "tone", "hz": 440, "hz_end": 110, "steps": 4, "ms": 640, "attack_ms": 4, "gain": 0.5 }
+	}
+}

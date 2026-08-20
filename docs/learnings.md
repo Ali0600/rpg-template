@@ -550,3 +550,41 @@ Then either fix the cause or write the justification down where the next reader 
 "we know about that one" is not a state a build log can hold. And when swapping how a gate
 reads its inputs, prove the gate still bites afterwards — a reader that silently returned
 nothing would make it compare absence to absence and report success.
+
+## An importer sits between the file you check and the asset the game plays
+
+Godot re-encodes assets on import. Its WAV importer defaults to QOA, which is lossy, so a
+generated cue can be verified byte-perfect on disk and still reach the player as something
+else.
+
+**Why it came up:** M14's drift gate compared committed PCM against freshly generated PCM and
+passed. Reading one `.wav.import` showed `compress/mode=2` — every cue was being transcoded on
+its way into the game, and nothing in the gate, the tests or the log mentioned it.
+
+**Takeaway:** when a build gate checks a committed artifact, check what the RUNTIME loads too —
+between the two sits an importer, a bundler or a minifier that is free to change it.
+
+## A file that is committed but not imported is missing from the export
+
+An imported asset ships as its `.import` sidecar plus the engine's cached copy; the original
+file is not packed. So a generated asset with no committed `.import` works locally and is
+absent from the build users get.
+
+**Why it came up:** M14 generates 48 WAVs. The repo already commits `.png.import` files, but
+nothing asserted it — and `.gitignore` ignores `.import/` the directory, which reads as though
+it ignores the sidecars too.
+
+**Takeaway:** if a pipeline generates assets, assert every one has its metadata sidecar
+committed beside it — the failure only appears in the artifact nobody runs tests against.
+
+## Bit-exact output across machines means avoiding the platform's maths library
+
+IEEE-754 pins `+ - * /` to identical results everywhere. `sin`, `pow`, `exp` and `log` come
+from the platform's libm and can differ in the last bit between architectures.
+
+**Why it came up:** M14's generated audio is committed and compared by a CI gate that runs on
+Ubuntu while the files are produced on macOS. One differing bit anywhere would fail the gate
+for a reason unreproducible locally.
+
+**Takeaway:** when output must be byte-identical across machines, build it from arithmetic and
+integers only — and write down why, because the next person reaches for `sin()` immediately.

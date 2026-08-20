@@ -746,3 +746,93 @@ Losing had to go somewhere. The user asked for "game over → title".
 The honest caveat, recorded because it will be asked: this is not a title screen, and the
 game still cannot be quit to anything. It is the minimum that makes losing mean something —
 your save matters, and a fresh run is genuinely fresh.
+
+## Sound is generated, the way art is — *M14*
+
+The template had a whole audio seam and no audio: `AudioBus` resolving ids, a
+`sound_requested` signal, a `GameContext.play()`, an `OP_SOUND` effect — and zero files, zero
+callers, and a game that has been silent since M0. `data/audio/README.md` argued that was
+correct: *"a placeholder beep committed to a template is a placeholder beep shipped in
+somebody's game."*
+
+That is the objection the ART side already answered, and answered better. The template does
+not ship an art pack; it ships a generator driven by a style resource. Sound gets the same
+answer, so nobody inherits anybody's beep.
+
+- **A synthesiser driven by a voice resource.** *Chosen.* `data/banks/*.json` says what a cue
+  is shaped like, `data/sounds/*.tres` says what it is played on, and three voices share one
+  bank exactly as three sprite styles share one rig.
+- **Shipping recorded sound effects.** Rejected on the grounds the art side already
+  established for LPC art: licensing that follows the template into somebody's game, and one
+  fixed aesthetic baked into a thing whose whole claim is that the aesthetic is swappable.
+- **Keeping the seam empty and letting each game bring audio.** Rejected — that is the status
+  quo, and the status quo is a subsystem no gate has ever exercised. A seam with no payload is
+  not a feature, it is an untested code path with documentation.
+
+*Deferred — music.* The user chose effects only for M14. A tune is content a designer writes,
+not something a generator should compose, so the shape when it comes is a note sequence in
+`data/music/*.json` performed by this same synthesiser. Revisit hook: `AudioBus.play_music`,
+which already exists and has never been called.
+
+## A cue names a shape; a voice names a sound — *M14*
+
+Whether the two-file split was real, or ceremony copied from the art pipeline.
+
+- **Bank plus voice.** *Chosen*, on the test of whether the two files fail differently: "the
+  footstep is too long" edits the bank, "the whole game is too harsh" edits the voice. Both
+  are real edits, so both files are honest. The proof it is not decorative is
+  `test_two_voices_over_one_bank_do_not_sound_the_same`, plus three shipped voices — `gb16`
+  square and bit-crushed, `nes16` square and brighter, `dusk16` a triangle pitched down for
+  the quest's late-evening look — that re-author not one cue between them.
+- **One resource holding both.** Rejected: it would make every re-voicing a full re-authoring,
+  which is precisely the cost the art side pays nothing for.
+
+## The cue vocabulary is an enum, not a lint rule — *M14*
+
+`AudioBus` warns once on an id it does not have and carries on. That is right, and it is also
+exactly how a misspelled cue ships: nobody notices a noise that was never there.
+
+- **An enum in `Sfx`, with an id table keyed by it.** *Chosen.* Template code names a cue as
+  `Sfx.Cue.HIT`, so a typo is a compile error — the strongest guarantee GDScript offers, and
+  strictly better than catching it later.
+- **A lint rule banning raw cue strings**, mirroring `RULE_DIRECTION`. Rejected: it cannot
+  tell a cue string from any other string, so it would need domain-prefixed ids invented to
+  keep it from firing on `"warp"`, `"victory"` and `"defeat"`, which are already in use as
+  effect keys and spawn names. An enum needs no prefix and no exemption list.
+- **Leaving it as strings and trusting the warning.** Rejected on the failure mode: the
+  warning fires at the moment the sound should have played, in a log nobody is reading,
+  in a build already shipped.
+
+Content still names sounds as text, because content is data — `Sfx.of()` is what validates it,
+beside every other id, at load.
+
+## The generator calls no transcendental function — *M14*
+
+The drift gate compares committed samples against freshly generated ones, on a Mac here and on
+an Ubuntu runner in CI.
+
+- **Square, triangle and saw from an integer phase accumulator; linear envelopes; noise from
+  `SeededRng` integers.** *Chosen.* IEEE-754 pins `+ - * /` to identical results on every
+  platform, so the generator is deterministic **by construction** rather than by luck.
+- **`sin`, `pow`, `exp` for smoother waveforms and curves.** Rejected. Those come from the
+  platform's libm and are not guaranteed bit-identical between architectures; one ULP anywhere
+  makes the committed WAV differ and turns the drift gate red in CI for a reason nobody can
+  reproduce locally — and a gate that flaps is a gate that gets switched off. The constraint
+  costs nothing: a chip voice has no sine in it either.
+
+## The importer is part of the pipeline, so the gate checks it — *M14*
+
+Godot's WAV importer defaults to `compress/mode=2`, which is QOA — **lossy**. Left alone, the
+drift gate would compare lossless samples while every player heard something else, and no
+surface anyone looks at would say so.
+
+- **Pin the defaults in `project.godot` `[importer_defaults]`, and have the gate compare the
+  IMPORTED stream as well as the committed file.** *Chosen.* Both halves are needed: the pin
+  makes new cues correct automatically, and the comparison is what would catch the pin being
+  removed.
+- **Setting `compress/mode` in each generated `.wav.import`.** Rejected as a list maintained
+  by hand — the next cue added comes back with whatever the default is, which is the failure
+  this project has hit twice with skip lists.
+- **Comparing raw file bytes instead of decoded samples.** Rejected for the reason the art
+  gate compares pixels rather than PNG bytes: a container header is not ours to author, and a
+  gate that fails on a file which sounds identical is a gate people learn to ignore.
