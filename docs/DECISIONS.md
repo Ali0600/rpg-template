@@ -649,6 +649,53 @@ window is not in the damage arithmetic. The lesson generalises past this game: *
 and its window open together, size the window for REACTING, not for precision** — and a feel
 number that no test can judge needs a human before it ships, not after.
 
+## No fact a player needs may be single-sourced in optional dialog — *M13.2*
+
+A play-test of the live build ended with the tester holding a flask of lamp oil, told about a
+key they never found, and asking how the quest was supposed to be played. Nothing was broken.
+Every gate was green. The data was built that way.
+
+**What the audit found.** Classifying each of the eleven facts a player needs by how reachable
+its statements are — FORCED (unavoidable on the critical path), LIKELY (a refusal fired by an
+obvious attempt), OPTIONAL (needs pressing something skippable) — turned an argument about
+taste into a list of defects:
+
+- Two facts were stated **nowhere**: that the key is under the hollow's one bush, and that the
+  ending is walking back to the warden.
+- "The key is in the hollow, west" was OPTIONAL and **single-sourced** in the warden's dialog,
+  and she is a static figure two tiles off the spawn with nothing to make you press her.
+- Every statement of what the oil is FOR sat **downstream of the key** — one line requires
+  carrying it, the other requires being inside the keep — while the oil itself was obtainable
+  in the first minute, ungated. Getting oil first is a legal, natural, unpunished order that
+  produces an item the game will not explain until you have solved the other half.
+- The line carrying four facts at once (lantern dry / oil exists / hermit has it / cave east
+  of town) was **destroyed by progress**: the hook's priority puts `was_seen(keeper)` above
+  `has_item(key)` forever, so beating the Keeper first deleted it from that save permanently.
+- Both refusals were dead ends. `gate_barred` never said "key"; `lantern_dry` never said "oil".
+
+**The rule now.** No fact a player needs may be single-sourced in optional dialog. Every
+refusal names what it wants and points somewhere. An item obtainable before its purpose is
+statable carries its purpose at pickup. And a conditional line that can be permanently
+outranked must have its facts repeated by the line that outranks it.
+
+**The fork: how does the premise reach the player?** Chosen — **the opening conversation is
+forced** (`GameHooks.on_map_entered`, guarded by a flag the dialog's own first node sets). A
+quest whose premise is optional is one most players never learn they are on, and the genre has
+opened this way since the eighties. What falls out for free from state that already exists: a
+load does not replay it (`restore()` is state first, then `enter_map`), and Start Again after
+a defeat does — which is right, because that is a new run of the story.
+
+*Rejected — gating the hermit's oil on quest knowledge* (`requires_flag`, so the choice is
+hidden until you know the lantern is dry). It enforces the intended order and would have made
+the tester's confusion impossible, but at the cost of sending them back across two maps for a
+flask they had already been shown. Making the world explain itself beats making the world
+withhold. Revisit hook: the choice list in `data/dialog/hermit.json`.
+
+*Rejected — reordering the hook so `has_item(key)` outranks `was_seen(keeper)`.* It would have
+saved the lost line, but the priority order is correct as a matter of story — the warden should
+react to the Keeper being gone before she reacts to a key. Fixed by redundancy instead: the
+outranking line now carries the outranked one's facts.
+
 ## Game over is an overlay, and TITLE still means nothing — *M13*
 
 Losing had to go somewhere. The user asked for "game over → title".

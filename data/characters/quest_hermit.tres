@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; The hermit in the cave. Given a face of his own because he used to wear the smith's: the
+; two are the only people east of the village, and a player who met both saw one person in
+; two places. A cast where anybody is a duplicate is a cast the player stops reading.
+;
+; Long hair and a slate robe - the coldest cloth in dusk16 that is not the gloom's indigo,
+; because he lives down there with it.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_hermit"
+style_id = &"dusk16"
+seed = 304
+parts = {
+"body": "body_robe",
+"hair": "hair_long"
+}
+ramps = {
+"body": "pants_slate",
+"hair": "hair_ash",
+"head": "skin_light"
+}

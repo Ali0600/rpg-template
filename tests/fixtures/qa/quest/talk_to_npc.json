@@ -9,6 +9,24 @@
 	],
 	"steps": [
 		{
+			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
 			"op": "wait",
 			"frames": 10
 		},
@@ -18,12 +36,12 @@
 		},
 		{
 			"op": "note",
-			"text": "a new game starts with nothing promised to anyone"
+			"text": "the opening conversation already landed its flag - a talk the player never chose to have is still a talk that happened"
 		},
 		{
 			"op": "assert_flag",
 			"key": "told_warden_yes",
-			"expect": false
+			"expect": true
 		},
 		{
 			"op": "note",

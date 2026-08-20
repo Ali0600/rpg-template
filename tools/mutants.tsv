@@ -236,3 +236,7 @@ data/enemies/keeper.tres	s|max_hp = 30|max_hp = 12|	tests/unit/test_battle_conte
 data/items/tonic.tres	s|battle_heal = 10|battle_heal = 0|	tests/unit/test_battle_content.gd	the tonic stops healing, so the Item command has nothing behind it
 scripts/ui/battle_logic.gd	s|return _combat.defend_cue_frames|return _combat.attack_cue_frames|	tests/unit/test_battle_logic.gd	the enemy swing reports the player wind-up length, so the lean reads alike for both
 scripts/ui/battle_logic.gd	s|^\t\t\treturn 1$|\t\t\treturn 0|	tests/unit/test_battle_logic.gd	a phase with no wind-up reports zero, and the view divides by it
+
+# --- M13.2: the quest tells you where to go ---
+games/quest/quest_hooks.gd	s|ctx.say\(DIALOG_ASKS\)|pass|	tests/unit/test_quest_hooks.gd	a new game opens with nobody having said what the player is for
+games/quest/quest_hooks.gd	s|if ctx.map_id != START_MAP or ctx.has_flag\(FLAG_MET\):|if false:|	tests/unit/test_quest_hooks.gd	the opening conversation replays on every walk back into the village

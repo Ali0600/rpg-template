@@ -14,10 +14,20 @@ extends GameHooks
 ## And note the `return false`. It is not a fallback, it is the design: the hook takes the
 ## cases it has something to say about and lets the map's own `dialog` handle the rest, so
 ## adding a line to the warden's opening never touches this file.
+##
+## The opening conversation is FORCED, and that is the second thing data cannot say. A
+## play-test found the oil, never found the key, and was never told either existed - because
+## the warden is a static figure two tiles off the spawn with nothing to make you press her.
+## A quest whose premise is optional is a quest most players never learn they are on.
 
 ## Handed over by the stash in quest_hollow, wanted by the gate in quest_village. The map
 ## declares both halves; this file reads it only to choose which line the warden says.
 const ITEM_KEY := &"gate_key"
+## Where the game begins, and the only map the opening conversation belongs to.
+const START_MAP := &"quest_village"
+## The warden's own default line. Named here as well as by the map now, because the hook
+## opens it rather than only choosing between the others.
+const DIALOG_ASKS := &"warden_asks"
 ## Set by the lantern in quest_keep. This is the only flag the game reads rather than just
 ## carrying, because it is the one the ending is made of.
 const FLAG_LIT := &"lit_the_lantern"
@@ -29,6 +39,25 @@ const FLAG_LIT := &"lit_the_lantern"
 const SEEN_KEEPER := "quest_keep/keeper"
 
 const WARDEN := &"warden"
+
+## Set by the first line of `warden_asks`, which is why nothing here has to set it: the flag
+## lands when the line is actually SHOWN, so a conversation the player never sees is a
+## conversation they are still owed.
+const FLAG_MET := &"met_the_warden"
+
+
+## The warden says her piece the first time the player stands in the village, rather than
+## waiting to be found.
+##
+## Everything about when this repeats falls out of state that already exists, so there is no
+## bookkeeping here: a LOAD puts the flag back before the map is entered (restore() is state
+## first, then enter_map), so it does not replay; walking back into the village never replays
+## it; and Start Again after a defeat DOES replay it, because that path tears the game down
+## and resets GameState - which is right, since it is a new run of the story.
+func on_map_entered(ctx: GameContext) -> void:
+	if ctx.map_id != START_MAP or ctx.has_flag(FLAG_MET):
+		return
+	ctx.say(DIALOG_ASKS)
 
 
 func on_interact(ctx: GameContext, target: Interactor.Target) -> bool:
@@ -54,7 +83,7 @@ func on_interact(ctx: GameContext, target: Interactor.Target) -> bool:
 ## template's do, not wait to be noticed in play.
 func problems() -> Array[String]:
 	var out: Array[String] = []
-	for dialog_id in [&"warden_has_key", &"warden_thanks", &"warden_keeper_down"]:
+	for dialog_id in [DIALOG_ASKS, &"warden_has_key", &"warden_thanks", &"warden_keeper_down"]:
 		# These are named HERE and nowhere in data, so nothing else can notice them going
 		# missing: a rename would leave the warden silent exactly when she has something to
 		# say, which reads as the quest not having advanced.

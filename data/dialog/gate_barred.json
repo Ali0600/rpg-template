@@ -1,15 +1,15 @@
 {
 	"_readme": [
-		"What a locked warp says when it refuses. A locked door with nothing to say is a",
-		"validation error in this template, because a door that ignores you reads as a broken",
-		"warp rather than as a shut gate."
+		"What the locked gate says. A refusal that only refuses is a dead end; this one names what",
+		"it wants and who would know where it is, so a player who walks east first - which is the",
+		"most natural opening move, the gate being four tiles from the spawn - leaves with a lead."
 	],
 	"id": "gate_barred",
 	"start": "locked",
 	"nodes": {
 		"locked": {
-			"speaker": "The gate",
-			"text": "Barred, and heavier than it looks. The keyhole is the shape of something you do not have."
+			"speaker": "",
+			"text": "Barred, and heavier than it looks. The keyhole wants a key you are not carrying - and the warden is the one who barred it."
 		}
 	}
 }

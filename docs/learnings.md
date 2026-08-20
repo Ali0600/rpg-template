@@ -480,3 +480,30 @@ mashing losing, because the window is not in the damage formula at all.
 REACTING (250ms plus latency plus slack), and grow the wind-up to keep the window a small
 fraction of it. More generally: a number that only a human can judge is not shipped until a
 human has judged it — get it in front of someone before the milestone closes, not after.
+
+## Audit a quest by asking how reachable each fact is, not by replaying it
+
+A play-tester finished with an item they could not explain and a goal they never found, and
+every automated gate was green — the scripted play sessions prove the quest is *completable*,
+which is a different claim from *learnable*. Replaying it myself would have proved nothing
+either: I knew where the key was.
+
+**Why it came up:** what surfaced the defects was mechanical rather than intuitive. List every
+fact a player needs to finish. For each, list every place the game states it. Then label each
+statement FORCED (unavoidable on the critical path), LIKELY (a refusal fired by an obvious
+attempt) or OPTIONAL (requires pressing something skippable). Two facts turned out to have no
+statement at all, one was single-sourced in an optional line, and one lived in a conditional
+line that later progress deleted forever.
+
+Two anti-patterns worth naming, because both read as fine in review:
+
+- **A purpose statement downstream of an unrelated gate.** Every line explaining the oil sat
+  behind having the key, while the oil itself was free to pick up first. The orderings a player
+  can take are not the ordering the author had in mind.
+- **A conditional line whose facts die when it is outranked.** A priority chain (`most advanced
+  state first`) is correct for tone and lethal for information: the newest branch silently
+  deletes everything only the older branch said.
+
+**Takeaway:** for any content with an information graph — a quest, an onboarding flow, a
+troubleshooting doc — audit by fact reachability rather than by walking the happy path, and
+treat "stated in exactly one optional place" as equivalent to "not stated".

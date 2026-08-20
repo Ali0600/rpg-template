@@ -12,27 +12,116 @@
 		"and that is exactly what this catches."
 	],
 	"steps": [
-		{ "op": "wait", "frames": 10 },
-		{ "op": "assert_state", "state": "world" },
-		{ "op": "assert_map", "map": "quest_village" },
-		{ "op": "assert_position", "tile": [5, 5] },
-
-		{ "op": "note", "text": "south-east across open ground: both keys down together" },
-		{ "op": "mark", "name": "corner" },
-		{ "op": "hold", "action": "move_right", "frames": 1 },
-		{ "op": "hold", "action": "move_down", "frames": 30 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 3 },
-		{ "op": "assert_moved", "axis": "x", "expect": "increase", "since": "corner" },
-		{ "op": "assert_moved", "axis": "y", "expect": "increase", "since": "corner" },
-
-		{ "op": "note", "text": "and back north-west, so it is not one lucky direction" },
-		{ "op": "mark", "name": "away" },
-		{ "op": "hold", "action": "move_left", "frames": 1 },
-		{ "op": "hold", "action": "move_up", "frames": 30 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 3 },
-		{ "op": "assert_moved", "axis": "x", "expect": "decrease", "since": "away" },
-		{ "op": "assert_moved", "axis": "y", "expect": "decrease", "since": "away" }
+		{
+			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				5,
+				5
+			]
+		},
+		{
+			"op": "note",
+			"text": "south-east across open ground: both keys down together"
+		},
+		{
+			"op": "mark",
+			"name": "corner"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 1
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_moved",
+			"axis": "x",
+			"expect": "increase",
+			"since": "corner"
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "increase",
+			"since": "corner"
+		},
+		{
+			"op": "note",
+			"text": "and back north-west, so it is not one lucky direction"
+		},
+		{
+			"op": "mark",
+			"name": "away"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 1
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_moved",
+			"axis": "x",
+			"expect": "decrease",
+			"since": "away"
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "decrease",
+			"since": "away"
+		}
 	]
 }
