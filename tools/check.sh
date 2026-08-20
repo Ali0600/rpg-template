@@ -34,15 +34,15 @@ fi
 autoload_re="\\b($(printf '%s' "$autoloads" | paste -sd'|' -))\\b"
 echo "autoloads: $(printf '%s' "$autoloads" | paste -sd',' -)"
 
-step "1/7 import"
+step "1/9 import"
 "$GODOT" --headless --path . --import >/dev/null 2>&1
 result $? "project imports"
 
-step "2/7 source rules"
+step "2/9 source rules"
 "$GODOT" --headless --path . -s tools/lint_rules.gd
 result $? "no unseeded RNG, raw directions or stray colours"
 
-step "3/7 script parse"
+step "3/9 script parse"
 parse_fail=0
 while IFS= read -r f; do
   # Autoload singletons do not exist in a standalone script run, so a script that
@@ -65,14 +65,14 @@ done < <(find . -name '*.gd' \
   -not -path './build/*' -not -path './export/*' 2>/dev/null)
 result $parse_fail "standalone scripts parse"
 
-step "3b/7 whole-project compile"
+step "3b/9 whole-project compile"
 # Per-file --check-only cannot resolve types that come from other scripts; this loads
 # everything together so a cross-script signature mismatch fails here, loudly, instead of
 # inside the test runner as a crash.
 "$GODOT" --headless --path . -s tools/compile_all.gd
 result $? "cross-script compile"
 
-step "4/7 tests"
+step "4/9 tests"
 if [ -f addons/gdUnit4/bin/GdUnitCmdTool.gd ]; then
   # gdUnit4 exits 0 both when it runs everything and when it runs NOTHING - a bad target
   # path, or a scanner crash during discovery, produces a green exit with no tests
@@ -104,11 +104,11 @@ else
   fail=1
 fi
 
-step "5/7 smoke boot"
+step "5/9 smoke boot"
 "$GODOT" --headless --path . -s tools/smoke_boot.gd
 result $? "autoloads boot, input map present, pixel settings intact"
 
-step "6/7 generated art is in sync"
+step "6/9 generated art is in sync"
 # The committed PNGs under assets/generated are build output. Regenerating must not change
 # them; if it does, someone edited a rig or a style and shipped the old sprites.
 if [ -f tools/gen_sprites.gd ]; then
@@ -118,7 +118,7 @@ else
   echo "SKIP  gen_sprites.gd does not exist yet (M1)"
 fi
 
-step "7/7 play the game"
+step "7/9 play the game"
 # The gate that needs the whole thing at once: the real physics server, the real input map,
 # the real map data. It boots the game, walks the player east, and checks a wall stops them.
 # Unit tests cannot answer any of those, and `-s tools/x.gd` cannot even load a scene whose
@@ -159,12 +159,21 @@ if [ "$play_ran" -eq 0 ]; then
 fi
 result $play_fail "$play_ran scripted play sessions"
 
+# Cheap, so it runs EVERY time rather than only with MUTANTS=1. A mutant's aim is broken by
+# writing new code, not by editing the mutant: add a function whose body happens to repeat a
+# line an existing pattern anchors on, and sed edits whichever comes first - so the mutant
+# starts reporting a verdict about a function nobody is testing. That has happened twice, and
+# both times the full mutation run found it twenty minutes later, in CI.
+step "8/9 mutants still aim at one line each"
+tools/mutants_aim.sh
+result $? "every mutant lands on exactly one line"
+
 
 # Opt-in because it re-runs a suite per mutant. It is the gate that proves the OTHER gates
 # bite, so it runs before a milestone is called done, not on every save:
 #   MUTANTS=1 tools/check.sh
 if [ "${MUTANTS:-0}" = "1" ]; then
-  step "8/8 mutation check"
+  step "9/9 mutation check"
   tools/mutate_check.sh --all
   result $? "every mutant killed"
 fi

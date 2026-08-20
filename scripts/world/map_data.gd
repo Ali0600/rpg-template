@@ -144,12 +144,15 @@ func warp_at(at: Vector2i) -> Dictionary:
 func enemy_at(at: Vector2i) -> Dictionary:
 	for entry: Variant in enemies:
 		var enemy: Dictionary = entry
-		var raw := JsonFile.to_int_array(enemy.get("tile", []))
-		if raw.size() == 2 and Vector2i(raw[0], raw[1]) == at:
+		# `spot` rather than warp_at's `raw`: the two lookups would otherwise be
+		# character-identical, and a find-and-replace aimed at one of them - a mutant, a
+		# codemod, a rename - silently edits both and reports a verdict about the wrong one.
+		var spot := JsonFile.to_int_array(enemy.get("tile", []))
+		if spot.size() == 2 and Vector2i(spot[0], spot[1]) == at:
 			return {
 				"id": StringName(str(enemy.get("id", ""))),
 				"enemy": StringName(str(enemy.get("enemy", ""))),
-				"tile": Vector2i(raw[0], raw[1]),
+				"tile": Vector2i(spot[0], spot[1]),
 				"facing": str(enemy.get("facing", "")),
 			}
 	return {}

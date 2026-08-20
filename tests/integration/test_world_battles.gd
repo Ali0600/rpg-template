@@ -189,6 +189,16 @@ func test_a_screen_nobody_closes_still_reports_its_result_once() -> void:
 		"a screen left on screen reported its result %d times" % counted[0]).is_equal(1)
 	screen.free()
 
+func test_a_key_is_not_offered_as_something_to_drink() -> void:
+	# Only things that HEAL reach the fight menu. A gate key in there is a row that can only
+	# disappoint, and worse, a row that spends the turn it is pressed on.
+	# The control - an item that DOES belong there - arrives with the tonic and the content.
+	_boot()
+	GameState.give_item(&"gate_key")
+	_world.open_battle_with(_enemy(999), "quest_village/foe")
+	assert_array(_world.battle_screen().logic().item_rows()).override_failure_message(
+		"the fight offered the player something that cannot be drunk").is_empty()
+
 func test_a_beaten_enemy_is_remembered_as_beaten() -> void:
 	_boot()
 	_world.open_battle_with(_enemy(), "quest_village/foe")

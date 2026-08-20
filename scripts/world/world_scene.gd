@@ -703,11 +703,14 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 ## gate key in a battle menu is a row that can only disappoint.
 func _battle_items() -> Array:
 	var out: Array = []
-	for item_id in GameState.inventory.ids():
-		var def := Registry.get_resource(&"ItemDef", item_id) as ItemDef
+	# `carried` rather than `item_id`, which _item_rows uses: the two loops would otherwise be
+	# character-identical, and a find-and-replace aimed at one of them - a mutant, a codemod,
+	# a rename - silently edits both and reports a verdict about the wrong function.
+	for carried in GameState.inventory.ids():
+		var def := Registry.get_resource(&"ItemDef", carried) as ItemDef
 		if def == null or def.battle_heal <= 0:
 			continue
-		out.append(BattleLogic.ItemRow.of(item_id, def.name, GameState.item_count(item_id),
+		out.append(BattleLogic.ItemRow.of(carried, def.name, GameState.item_count(carried),
 			def.battle_heal))
 	return out
 
