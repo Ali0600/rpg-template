@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; The Keeper. Rust and copper - the only warm-ramped figure in the game, because dusk16's own note says warm is the exceptional thing, and it is what took the keep.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_keeper"
+style_id = &"dusk16"
+seed = 303
+parts = {
+"body": "body_robe",
+"hair": "hair_long"
+}
+ramps = {
+"body": "cloth_rust",
+"hair": "hair_copper",
+"head": "skin_dark"
+}

@@ -1,0 +1,22 @@
+{
+	"_readme": [
+		"What the warden says once the Keeper is down but the lantern is still dark.",
+		"",
+		"Named only by games/quest/quest_hooks.gd, never by a map: which of her four lines she",
+		"says is the one piece of this game that is real code, and this is the branch the",
+		"battle milestone added."
+	],
+	"id": "warden_keeper_down",
+	"start": "heard",
+	"nodes": {
+		"heard": {
+			"speaker": "Warden",
+			"text": "You went in. And you came out.",
+			"next": "quiet"
+		},
+		"quiet": {
+			"speaker": "Warden",
+			"text": "Then the keep is only a building again. Light the lantern, and I will believe it."
+		}
+	}
+}

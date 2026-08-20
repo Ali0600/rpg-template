@@ -92,15 +92,20 @@ selection bug — it presents as the game you meant to run behaving strangely.
 
 ## The game it ships with
 
-**The Barred Gate** — five maps on one palette. A town with a well and three people who have
-something to say, a cave east of it, a village up the north road, a hollow west of that, and a
-keep behind a gate that stays shut until you find the key.
+**The Barred Gate** — five maps on one palette. A town with a well, a smith and two people
+with something to say, a cave east of it, a village up the north road, a hollow west of that,
+and a keep behind a gate that stays shut until you find the key.
+
+The warden barred that gate against the thing that took the keep. The key went into the
+hollow, and what nests on it now is why nobody has fetched it.
 
 | | |
 | --- | --- |
 | World | town, cave, village, hollow, keep — joined by five doors |
 | Verbs | walk, talk, read a well, open a stash once, carry a key, unlock a gate with it, trade a word for a flask of oil, burn the oil lighting a lantern |
-| Code | **one file**: which of the warden's three lines to say |
+| Fights | four, three of them unavoidable: two slinks in the hollow, a gloom in the cave, and the Keeper standing between the keep's door and its lantern |
+| Combat | menu turns with a timing window — a press on the cue doubles your hit or halves theirs. XP, three levels, and a tonic you can drink mid-fight |
+| Code | **one file**: which of the warden's four lines to say |
 | Look | `dusk16`, one of three palettes that share a single rig |
 
 That one file is the point. Everything else — every map, every conversation, every flag, the
@@ -112,6 +117,12 @@ line of JSON, and none of them is code. The game was built
 three real defects in the template, which is what building on it is for: a QA op that raced the
 steps written after it, an art-drift gate that walked a different set of directories than the
 game did, and three separate lists of "which directories does this project own" that disagreed.
+
+Fighting is the same story: an enemy is four lines of JSON on a map, its numbers are a
+`.tres` beside the items, and the difficulty is arithmetic rather than feel — a player who
+times every press beats the Keeper on every seed, and one who times none of them loses on
+every seed. Both are proven by a play script rather than asserted in a comment. Lose and the
+run ends; the only ways on are a save or a fresh start, which is what makes saving matter.
 
 Escape pauses, and the same menu saves and loads. Slots belong to the game that wrote them —
 `user://saves/<game>/slot_N.json` — and each save names its own game, so a file that ends up in
@@ -159,6 +170,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M10** — a pause menu, and save slots that belong to one game
 - [x] **M11** — one game, one world, and the name this repo should have had
 - [x] **M12** — items and an inventory, and a quest that runs on them
+- [x] **M13** — turn-based battles with timed presses, XP and levels, and a quest reworked around them
 
 ## Experience Gained
 
@@ -186,6 +198,22 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
   assets behind one API.
 - Implemented versioned save serialization with a forward-migration chain and fail-safe
   corruption handling that preserves the original bytes before any recovery path runs.
+- Designed a deterministic, frame-quantised turn-based combat system whose entire rule set is
+  a dependency-free unit under test: time is injected one simulation tick at a time rather
+  than read from a clock, making every fight reproducible from a seed and drivable by
+  automated play scripts on an exact frame.
+- Specified game balance as executable assertions rather than designer intuition, proving from
+  the shipped data that optimal play wins on every random seed and unskilled play loses on
+  every seed — so a retuned stat fails the build with the reason, instead of silently making a
+  skill mechanic decorative.
+- Extended automated end-to-end coverage to both ends of the competence range after
+  identifying that a competent test driver only exercises the branches competent play reaches;
+  the deliberately-unskilled driver covers the failure, retreat and recovery paths a passing
+  run never visits.
+- Added a static pre-flight check to the mutation-testing pipeline after diagnosing that newly
+  added code can silently re-target an existing, untouched mutation onto the wrong function;
+  the check runs unconditionally in seconds where the full suite takes twenty minutes, moving
+  detection from post-push CI to pre-commit.
 
 ---
 

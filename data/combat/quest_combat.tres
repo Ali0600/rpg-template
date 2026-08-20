@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CombatDef" load_steps=2 format=3]
+
+; The Barred Gate's fighter, and the shape of its difficulty.
+;
+; The curve is two steps and stops: this is a quest of about twenty minutes, and a level cap
+; the data states is better than one the player discovers by grinding into a wall.
+;
+; [10, 12] puts level 2 exactly at the two hollow slinks (5 + 5) and level 3 exactly at the
+; Keeper (10 + 25 = 35, past the 22 threshold). That is not a coincidence to be tidied away -
+; it is the whole difficulty design, and every number below was chosen against it. See
+; docs/DECISIONS.md for the arithmetic.
+;
+; The cues are frames, not seconds: 36 is a beat you can react to at 60fps, and 48 gives the
+; enemy's swing the extra moment it needs to be readable as somebody else's move. The 8-frame
+; window is about an eighth of a second - forgiving enough that a person lands it, tight
+; enough that holding the button through the whole cue does not.
+
+[ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
+
+[resource]
+script = ExtResource("1_combat")
+id = &"quest_combat"
+base_hp = 20
+hp_per_level = 4
+base_attack = 5
+attack_per_level = 2
+base_defense = 1
+defense_per_level = 1
+xp_curve = Array[int]([10, 12])
+attack_cue_frames = 36
+defend_cue_frames = 48
+timed_window_frames = 8
+message_frames = 45

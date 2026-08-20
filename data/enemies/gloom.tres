@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyDef" load_steps=2 format=3]
+
+; What haunts the cave. Genuinely dangerous at level 1 - an untimed fight costs about twenty
+; health, which is all of it - and trivial at level 3, where one timed hit ends it. It is the
+; game's one optional fight, and it is tuned so that WHEN you take it is the decision.
+
+[ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"gloom"
+name = "Gloom"
+character = &"quest_gloom"
+max_hp = 14
+attack = 6
+defense = 2
+xp = 12
+boss = false
+moves = [{ "name": "Chill", "power": 0 }, { "name": "Grasp", "power": 3 }]

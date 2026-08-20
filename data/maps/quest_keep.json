@@ -1,11 +1,15 @@
 {
 	"_readme": [
-		"Behind the gate. Small on purpose: the reward for a fetch quest is being let in, and a",
-		"large empty room would read as an unfinished level rather than as an ending.",
+		"Behind the gate, and what the gate was barred against.",
 		"",
-		"The lantern sets a flag and says a line. What makes it an ending is that the warden's",
-		"hook reads that flag - so the last thing the game does is change something the player",
-		"already walked past."
+		"An interior wall runs down column 4 from row 1 to row 4, so the only way east is the",
+		"gap on row 5 - and the Keeper stands in it. Same rule as the hollow: unavoidable by",
+		"geometry, visible from the doorway, and gone the moment it is beaten, which is also how",
+		"the room opens up.",
+		"",
+		"The lantern is where it always was in spirit - the far corner, on a bush - and still",
+		"sets the flag the warden's hook reads. What changed is that the room now says why",
+		"nobody had lit it."
 	],
 	"id": "quest_keep",
 	"style": "dusk16",
@@ -19,17 +23,17 @@
 	},
 	"ground": [
 		"##########",
+		"#...#....#",
+		"#...#....#",
+		"#-..#....#",
+		"#...#....#",
 		"#........#",
-		"#........#",
-		"#-.......#",
-		"#........#",
-		"#...,,...#",
 		"##########"
 	],
 	"decor": [
 		"          ",
 		"          ",
-		"     *    ",
+		"       *  ",
 		"          ",
 		"          ",
 		"          ",
@@ -41,7 +45,7 @@
 	"objects": [
 		{
 			"id": "lantern",
-			"tile": [5, 2],
+			"tile": [7, 2],
 			"kind": "lantern",
 			"dialog": "lantern",
 			"requires_item": "lamp_oil",
@@ -50,6 +54,9 @@
 			"set_flag": "lit_the_lantern",
 			"once": true
 		}
+	],
+	"enemies": [
+		{ "id": "keeper", "enemy": "keeper", "tile": [4, 5], "facing": "left" }
 	],
 	"warps": [
 		{ "tile": [1, 3], "map": "quest_village", "spawn": "from_keep" }

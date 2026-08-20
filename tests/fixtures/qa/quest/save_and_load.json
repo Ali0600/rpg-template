@@ -315,6 +315,22 @@
 			"axis": "x",
 			"expect": "unchanged",
 			"since": "saved_here"
+		},
+		{
+			"op": "note",
+			"text": "and the party came back with it: a save that forgot what the player was worth would reload a fought-for run as a fresh one"
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "assert_xp",
+			"value": 0
 		}
 	]
 }

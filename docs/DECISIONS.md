@@ -18,8 +18,20 @@ one-glance menu of things still worth trying.
   `sprite_compositor.gd`.
 - **Slots that say WHY they cannot be loaded** ("unreadable" rather than "empty"). Revisit
   hook: `SaveManager._read` already computes the distinction and `peek()` discards it.
-- **Using an item from the bag** (a "Use" verb on the pause menu's item list). Revisit hook:
-  `PauseMenu.confirm()` on the ITEMS page already returns `NONE` where the answer would go.
+- **Using an item from the bag** (a general "Use" verb on the pause menu's item list). Still
+  deferred after M13: `ItemDef.battle_heal` is the template's first and only use verb, and it
+  is deliberately narrow — a potion heals in every RPG ever written, where "use the rope on
+  the well" is a puzzle, and a template that grew a verb for the second one would be
+  designing somebody's game. Revisit hook unchanged: `PauseMenu.confirm()` on the ITEMS page
+  already returns `NONE` where the answer would go.
+- **Flee odds, and damage variance.** M13 made both deterministic — a boss refuses every
+  escape and everyone else allows it; a hit is worth exactly what the numbers say. A designer
+  can reason about that and a QA script can rely on it. Revisit hooks: the flee branch in
+  `BattleLogic.press()`, and `BattleLogic.damage()`.
+- **A real title screen.** `Router.State.TITLE` has been reachable-by-design and unused since
+  M2, and M13 pointedly did not spend it on the game-over screen. Revisit hook: the day a
+  title scene exists, `GameOverScreen` becomes the thing that routes to it rather than an
+  overlay over a dead world.
 
 ---
 
@@ -591,3 +603,55 @@ conversation could only earn flags. It now emits the same effect dictionaries a 
 goes through `_apply_effects` — one vocabulary, one place to look for "what does this actually
 do", and one place that has to learn a new op.
 
+
+
+## Hit points and turn order are the template's business after all — *M13*
+
+`scripts/world/interaction.gd` has carried this sentence since M12: *"Prices, hit points and
+turn order are still over the line - the moment a map file needs a type system, the template
+has started designing somebody's game."* M12 wrote it while moving **items** across that same
+line, on the grounds that "a count rather than a boolean" is the one noun every game
+re-invents. M13 makes the identical argument one level up and moves hit points and turn order
+too.
+
+**The fork.** Where does a battle system live?
+
+- **In the template, with all content as data** — `BattleLogic` beside `DialogRunner`,
+  `EnemyDef`/`CombatDef` beside `ItemDef`, encounters as a map record. *Chosen.* Every RPG
+  built on this thing would otherwise rewrite "a number that ticks down, a number that ticks
+  up, and whose turn it is" — each with its own save-migration bug, its own idea of what a
+  seeded damage roll is, and its own untested defeat path.
+- **In `games/<id>/`, as that game's own code.** Rejected for the reason the second game
+  would prove: it would re-invent HP from scratch, and the first thing it would get wrong is
+  the save. This is the items argument verbatim.
+- **A `kind: "enemy"` on an NPC record plus hook code.** Rejected: the template cannot
+  validate a vocabulary it does not own. A misspelt enemy id would be an NPC that simply does
+  nothing, where `enemy_refs()` makes it a build failure.
+
+**Where the line is now.** Over it: *economy* (prices, shops, currency) and *battle
+scripting* — what a particular boss does on turn three is a game's own business, and
+`GameHooks` is where it goes. Under it: the numbers, the turn order, and the screen.
+
+**What that bought, concretely.** "A beaten enemy stays beaten" is the same map-scoped `seen`
+key an opened chest already used, so it persisted and migrated for free. A battle's results
+go through `world_scene._apply_effects` like every other effect, so there is still exactly one
+place where anything reaches live state.
+
+## Game over is an overlay, and TITLE still means nothing — *M13*
+
+Losing had to go somewhere. The user asked for "game over → title".
+
+- **A `GAME_OVER` overlay offering Continue and Start again.** *Chosen.* It reuses the slot
+  machinery the pause menu already had, and boot stays world-first — which eight play scripts
+  and every integration suite assume.
+- **Reusing `Router.State.TITLE`.** Rejected. TITLE has meant "nothing to drive yet" since
+  M2, and it is the state the router boots in; making it also mean "the run ended" would give
+  one honest state two meanings, and `state_name()` feeds QA assertions directly.
+- **Building a real title scene.** Deferred, not rejected — see the backlog. It is a
+  milestone of its own (a new scene, a boot path that does not go straight into a map, and a
+  New Game flow that is more than `start_game` re-entry), and doing it badly to host a
+  game-over screen would be the tail wagging the dog.
+
+The honest caveat, recorded because it will be asked: this is not a title screen, and the
+game still cannot be quit to anything. It is the minimum that makes losing mean something —
+your save matters, and a fresh run is genuinely fresh.

@@ -1,12 +1,22 @@
 {
 	"_readme": [
-		"Where the key is. The stash is an object standing on a bush - there is no chest sprite",
-		"and there does not need to be one: an object is an interaction POINT, and what the",
-		"player sees is the decor tile that was already on the map.",
+		"Where the key is, and where you learn to fight for it.",
 		"",
-		"It carries once:true, so the memory of having opened it lives in GameState.seen and",
-		"survives a save. Keyed by map and id, so the keep could have its own 'stash' without",
-		"finding it already emptied."
+		"Row 5 is a wall with ONE gap, and a slink stands in it. That is the whole design: a",
+		"fight the quest requires is made unavoidable by GEOMETRY rather than by a trigger",
+		"radius. The player can see the gap, see what is standing in it, and there is no version",
+		"of slipping past - which is a fairer thing to lose to than a circle nobody drew.",
+		"",
+		"The second slink is beside the stash. Two of them is exactly level 2, which is exactly",
+		"what the Keeper needs - see data/combat/quest_combat.tres for the arithmetic. Neither",
+		"can kill you: four damage a hit, at most four hits across both fights, against twenty",
+		"health. The hollow is where the timing is taught, and a tutorial that can kill you is",
+		"one people reload rather than read.",
+		"",
+		"The stash is an object standing on a bush - there is no chest sprite and there does not",
+		"need to be one: an object is an interaction POINT, and what the player sees is the",
+		"decor tile that was already on the map. It carries once:true, so the memory of having",
+		"opened it lives in GameState.seen and survives a save."
 	],
 	"id": "quest_hollow",
 	"style": "dusk16",
@@ -24,8 +34,8 @@
 		"#..~~~~~~..#",
 		"#..........#",
 		"#.........-#",
-		"#..........#",
-		"#...,,,,...#",
+		"####.#######",
+		"#..,,......#",
 		"#..........#",
 		"############"
 	],
@@ -36,7 +46,7 @@
 		"            ",
 		"            ",
 		"            ",
-		"    *  *    ",
+		"  *         ",
 		"            ",
 		"            "
 	],
@@ -46,12 +56,16 @@
 	"objects": [
 		{
 			"id": "keystash",
-			"tile": [4, 6],
+			"tile": [2, 6],
 			"kind": "chest",
 			"dialog": "keystash",
 			"give_item": "gate_key",
 			"once": true
 		}
+	],
+	"enemies": [
+		{ "id": "slink_gate", "enemy": "slink", "tile": [4, 5], "facing": "up" },
+		{ "id": "slink_stash", "enemy": "slink", "tile": [3, 6], "facing": "right" }
 	],
 	"warps": [
 		{ "tile": [10, 4], "map": "quest_village", "spawn": "from_hollow" }

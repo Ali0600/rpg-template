@@ -29,12 +29,14 @@ regression, however good that game looks.
 ```
 scripts/spritegen/  pure RefCounted, deterministic, NO node access — the generator
 scripts/util/       dir, json_file, seeded_rng, hashing, lint_core, content_scan
-scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData…)
+scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData, EnemyDef, CombatDef…)
 scripts/world/      Locomotion + GridWalker (both pure) + the nodes that apply them
-scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen (pure + view)
+scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen,
+                    BattleLogic + BattleScreen, GameOverMenu + GameOverScreen (pure + view)
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
-data/               all content: games, styles, rigs, characters, maps, dialog
+data/               all content: games, styles, rigs, characters, maps, dialog,
+                    items, enemies, combat
 games/<id>/         a game's OWN code: a GameHooks subclass, and nothing generic
 assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
 ```
@@ -86,6 +88,24 @@ records a chest that gave nothing. Gifts go on dialog CHOICES, never nodes (a no
 condition and no memory, so a loop hands over a second key); the once-idiom is `set_flag X` +
 `hidden_if_flag X` on the same choice. `world_scene._apply_effects()` is the only place any of
 it reaches live state - `_on_dialog_closed` goes through it too.
+
+**A fight is template logic over game data, and it never writes anything.** `BattleLogic` is
+pure and has NO CLOCK: `tick()` is handed one physics frame at a time by `BattleScreen`, which
+is what lets a QA script press on an exact frame and get the same fight on every machine. Only
+the FIRST press of a cue is captured, or mashing lands a press in every window and "timing"
+means "press a lot". Results are COLLECTED and applied through `world_scene._apply_effects`, so
+"a beaten enemy stays beaten" is the same map-scoped `seen` key a chest uses - persisted and
+migrated for free. Enemies are a map record (`enemies[]`), fully projected by `enemy_at()` the
+way `warp_at()` is, and the encounter fires on ARRIVING at a tile adjacent to one: a body stops
+the player 6-10px out, so waiting for contact would make the trigger frame depend on walk
+speed. Diagonals deliberately do not count - a fight that must happen is made unavoidable by
+GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
+fight, and that is a legal shape forever.
+
+**Losing ends the run, and TITLE still means nothing.** `Router.State.GAME_OVER` +
+`GameOverScreen` (Continue / Start again) - an overlay, because this game boots straight into
+the world and has no title scene. `TITLE` stays "nothing to drive yet"; giving it a second
+meaning would break `state_name()`, which QA asserts on directly.
 
 **Saves are per game, and `restore()` is the one way back in.** Slots live at
 `user://saves/<game>/slot_N.json` and each save NAMES its game; the two are cross-checked on

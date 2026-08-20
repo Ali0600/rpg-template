@@ -227,3 +227,10 @@ scripts/ui/battle_screen.gd	s|_committed = true|pass|	tests/integration/test_wor
 scripts/ui/game_over_menu.gd	s|if slot\(_index\) == null:|if false:|	tests/unit/test_game_over_menu.gd	an empty slot is loaded from the game-over screen
 scripts/ui/game_over_menu.gd	s|if _slots.is_empty\(\) or not _has_any_save\(\):|if false:|	tests/unit/test_game_over_menu.gd	a player with no saves is shown a list of nothing
 scripts/world/map_data.gd	s|"enemy": StringName\(str\(enemy.get\("enemy", ""\)\)\),|"enemy": \&"",|	tests/unit/test_map_data.gd	the projection drops the enemy id, so every fight opens against nothing
+
+# --- M13: the quest, reworked around the fighting ---
+scripts/world/world_scene.gd	s|if GameState.was_seen\(Interaction.seen_key\(data.id, String\(enemy_id\)\)\):|if false:|	tests/integration/test_world_battles.gd	everything the player has beaten is standing on its tile again
+games/quest/quest_hooks.gd	s|if ctx.was_seen\(SEEN_KEEPER\):|if false:|	tests/unit/test_quest_hooks.gd	the warden never acknowledges the thing she barred the gate against
+data/combat/quest_combat.tres	s|xp_curve = Array\[int\]\(\[10, 12\]\)|xp_curve = Array[int]([10, 40])|	tests/unit/test_battle_content.gd	the curve drifts off the fights it was balanced against
+data/enemies/keeper.tres	s|max_hp = 30|max_hp = 12|	tests/unit/test_battle_content.gd	the boss becomes beatable by mashing, so the timing is decoration
+data/items/tonic.tres	s|battle_heal = 10|battle_heal = 0|	tests/unit/test_battle_content.gd	the tonic stops healing, so the Item command has nothing behind it

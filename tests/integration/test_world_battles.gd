@@ -59,6 +59,14 @@ func _manifest() -> GameManifest:
 	manifest.combat = _combat()
 	return manifest
 
+## The shipped game, but opening in the map that actually places enemies. A duplicate for the
+## same reason _manifest() duplicates: a loaded resource is shared with every other suite.
+func _hollow_manifest() -> GameManifest:
+	var manifest := _manifest()
+	manifest.start_map = &"quest_hollow"
+	manifest.start_spawn = &"from_village"
+	return manifest
+
 func _boot() -> Node2D:
 	var scene := load("res://scenes/world/world.tscn") as PackedScene
 	_world = scene.instantiate() as Node2D
@@ -300,3 +308,34 @@ func test_continuing_with_nothing_saved_is_refused_and_the_screen_keeps_answerin
 	await _steps(4)
 	assert_str(Router.state_name()).override_failure_message(
 		"the game-over screen stopped answering after a refusal").is_equal("world")
+
+
+# -- enemies on a real map ------------------------------------------------------------------
+
+func test_a_map_puts_bodies_on_the_tiles_its_enemies_stand_on() -> void:
+	var scene := load("res://scenes/world/world.tscn") as PackedScene
+	_world = scene.instantiate() as Node2D
+	add_child(_world)
+	assert_bool(_world.start_game(_hollow_manifest())).is_true()
+	assert_array(_world.enemy_ids()).override_failure_message(
+		"the hollow drew none of the enemies its map file places").contains([&"slink_gate"])
+
+func test_something_already_beaten_is_never_drawn_again() -> void:
+	# The rule that makes "defeated enemies stay gone" true across a save and a re-entry. It
+	# is checked at SPAWN rather than by hiding the body afterwards, because a hidden body
+	# still blocks the tile it stands on - and here that tile is a one-tile gap, so the map
+	# would become uncrossable for a reason the player cannot see.
+	var scene := load("res://scenes/world/world.tscn") as PackedScene
+	_world = scene.instantiate() as Node2D
+	add_child(_world)
+	assert_bool(_world.start_game(_hollow_manifest())).is_true()
+	assert_array(_world.enemy_ids()).contains([&"slink_gate"])
+
+	GameState.mark_seen("quest_hollow/slink_gate")
+	assert_bool(_world.enter_map(&"quest_hollow", &"from_village")).is_true()
+	assert_array(_world.enemy_ids()).override_failure_message(
+		"a beaten enemy was standing on its tile again after re-entering the map"
+	).not_contains([&"slink_gate"])
+	# And the control: the one that has NOT been beaten is still there, so this is a test
+	# about the seen key rather than about enemies failing to spawn at all.
+	assert_array(_world.enemy_ids()).contains([&"slink_stash"])
