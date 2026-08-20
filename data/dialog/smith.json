@@ -1,4 +1,15 @@
 {
+	"_readme": [
+		"The smith explains the style system, and hands over the only healing item in the game.",
+		"",
+		"The gift is on a CHOICE, never on a node: a node has no condition and no memory, so a",
+		"conversation looped through one would hand over a second pair of tonics. The idiom is",
+		"set_flag + hidden_if_flag on the same choice, which is how the hermit gives the oil.",
+		"",
+		"Both replies END the talk. A choice line cannot be escaped with cancel - the box routes",
+		"input to the list, because the point of a choice is that one gets picked - so a",
+		"conversation that looped back through a choice would have no way out of it at all."
+	],
 	"id": "smith",
 	"start": "greet",
 	"nodes": {
@@ -9,7 +20,19 @@
 		},
 		"point": {
 			"speaker": "Smith",
-			"text": "Change the style and we all change together. That's the trick of it."
-		}
+			"text": "Change the style and we all change together. That's the trick of it.",
+			"next": "offer"
+		},
+		"offer": {
+			"speaker": "Smith",
+			"text": "You have the look of someone walking east. Take these - bitter, but they close a cut mid-swing.",
+			"choices": [
+				{ "text": "Thank you.", "next": "took", "give_item": "tonic", "give_count": 2,
+				  "set_flag": "took_tonics", "hidden_if_flag": "took_tonics" },
+				{ "text": "I'll manage.", "next": "manage" }
+			]
+		},
+		"took": { "speaker": "Smith", "text": "Drink one when you are losing, not after. That is the whole art." },
+		"manage": { "speaker": "Smith", "text": "Everyone says that. The shelf is here either way." }
 	}
 }

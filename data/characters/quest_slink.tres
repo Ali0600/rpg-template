@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; A slink: low, hunched and moss-dark, so it reads as something that lives under roots rather than as a person in a coat.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_slink"
+style_id = &"dusk16"
+seed = 301
+parts = {
+"body": "body_robe",
+"hair": "hair_short"
+}
+ramps = {
+"body": "cloth_moss",
+"hair": "hair_black",
+"head": "skin_dark"
+}

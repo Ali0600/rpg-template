@@ -21,9 +21,15 @@ extends RefCounted
 ##
 ## Items were a game's own business until M12 and are now the template's, because "a count
 ## rather than a boolean" turned out to be the one noun every game re-invents: a key, a coin,
-## a potion and a quest token are one mechanism wearing four names. Prices, hit points and
-## turn order are still over the line - the moment a map file needs a type system, the
-## template has started designing somebody's game.
+## a potion and a quest token are one mechanism wearing four names.
+##
+## HIT POINTS AND TURN ORDER CROSSED THE SAME LINE IN M13, on the same argument one level up -
+## every game here would otherwise rewrite "a number that ticks down, a number that ticks up,
+## and whose turn it is", each with its own save-migration bug. They live in BattleLogic and
+## EnemyDef rather than in these verbs, and a map places a fight the way it places a chest.
+##
+## What is still over the line: PRICES and ECONOMY, and BATTLE SCRIPTING - what a particular
+## boss does on turn three is a game's own business, and GameHooks is where it goes.
 ##
 ## Two rules here are invisible at the point they matter:
 ##

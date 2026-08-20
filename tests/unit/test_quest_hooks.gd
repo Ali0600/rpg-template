@@ -18,8 +18,8 @@ func _hooks() -> GameHooks:
 	return manifest.new_hooks()
 
 
-func _ctx(flags: Dictionary, items: Dictionary = {}) -> GameContext:
-	return GameContext.create(MAP, Vector2i(5, 4), flags, {}, null, items)
+func _ctx(flags: Dictionary, items: Dictionary = {}, seen: Dictionary = {}) -> GameContext:
+	return GameContext.create(MAP, Vector2i(5, 4), flags, seen, null, items)
 
 
 func _warden() -> Interactor.Target:
@@ -79,3 +79,44 @@ func test_every_line_the_hooks_name_exists() -> void:
 		var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, {})
 		assert_bool(runner.ok).override_failure_message(runner.error).is_true()
 		assert_array(runner.problems()).is_empty()
+
+
+func test_she_notices_the_keeper_is_down_before_the_lantern_is_lit() -> void:
+	# The branch M13 added, and the only thing in the game that reads a fight's result. She
+	# barred the gate against that thing, so she is the one person who should notice.
+	var ctx := _ctx({}, {}, {"quest_keep/keeper": true})
+	assert_bool(_hooks().on_interact(ctx, _warden())).is_true()
+	assert_str(_said(ctx)).is_equal("warden_keeper_down")
+
+func test_the_lit_lantern_still_outranks_the_beaten_keeper() -> void:
+	# Most-advanced-first, and the control for the test above: by the time the keep is lit,
+	# "you killed the thing" is old news and she has an ending to deliver.
+	var ctx := _ctx({&"lit_the_lantern": true}, {}, {"quest_keep/keeper": true})
+	assert_str(_said(ctx)).is_equal("")
+	assert_bool(_hooks().on_interact(ctx, _warden())).is_true()
+	assert_str(_said(ctx)).is_equal("warden_thanks")
+
+func test_a_beaten_keeper_outranks_merely_holding_the_key() -> void:
+	var ctx := _ctx({}, {&"gate_key": 1}, {"quest_keep/keeper": true})
+	assert_bool(_hooks().on_interact(ctx, _warden())).is_true()
+	assert_str(_said(ctx)).is_equal("warden_keeper_down")
+
+func test_the_key_alone_still_gets_its_own_line() -> void:
+	# The control for THAT: dropping the keeper branch in above the key branch would make this
+	# test the only thing that notices.
+	var ctx := _ctx({}, {&"gate_key": 1})
+	assert_bool(_hooks().on_interact(ctx, _warden())).is_true()
+	assert_str(_said(ctx)).is_equal("warden_has_key")
+
+func test_the_seen_key_the_hooks_name_is_the_one_the_map_actually_produces() -> void:
+	# The hooks spell "quest_keep/keeper" as a literal, because game code may not call into
+	# the template to build one. That makes it a second source of truth for a key the MAP
+	# decides - so this is the test that keeps the two spelling it the same way.
+	var map := MapData.load_from("res://data/maps/quest_keep.json")
+	var ids: Array[StringName] = []
+	for entry: Variant in map.enemies:
+		ids.append(StringName(str((entry as Dictionary).get("id", ""))))
+	assert_array(ids).override_failure_message(
+		"quest_keep no longer places an enemy called 'keeper', so the warden's line about it is unreachable"
+	).contains([&"keeper"])
+	assert_str(Interaction.seen_key(map.id, "keeper")).is_equal("quest_keep/keeper")

@@ -403,3 +403,60 @@ first before writing a test that aims at the second — and then decide delibera
 inner one is reachable at all. If it is not, either stage the race that reaches it or say
 plainly that it is defence in depth. "Assert it was rejected" is not enough when more than one
 thing can do the rejecting.
+
+## A find-and-replace over source is broken by writing new code, not by editing the pattern
+
+`tools/mutants.tsv` aims each mutation at one line by matching its text. Two rows that had
+been correct and untouched for milestones both broke in the same PR, because functions added
+*next to* the code they targeted happened to repeat a line character-for-character: a second
+inventory loop beside the pause menu's, and a second tile lookup beside the warp one. `sed`
+edits the first match and says nothing, so each mutant silently started reporting a verdict
+about a function nobody was testing, and the rule it was written to protect stopped being
+covered.
+
+**Why it came up:** CI caught it as `TOO BROAD` twice in one session, twenty minutes into a
+mutation run, having passed everything locally — because locally only the *new* rows had been
+run. Nothing in either diff looks wrong: the new code is correct, the new tests pass, and the
+old rule fails silently.
+
+**Takeaway:** treat "this line is character-identical to one somewhere else" as a hazard to
+every scripted edit over source — mutants, codemods, `sed`, a rename. Fix it by making the two
+lines differ (rename a local, and say why in a comment) rather than by loosening the pattern;
+the duplicate is usually telling you the two functions are one copy-paste apart. And put the
+ambiguity check in the always-on gate rather than behind the slow opt-in one:
+`tools/mutants_aim.sh` answers it in about a second where the full run takes twenty minutes,
+and cheap enough to be unconditional is what makes it actually run.
+
+## A fight stops the player where they stood, which is rarely on a tile centre
+
+The encounter check fires on arriving at a tile next to an enemy, and the world freezes the
+player there mid-step. Their collider is 10px wide on 16px tiles, so a player halted a few
+pixels off-centre straddles two columns — and the next leg, which walks them through a
+one-tile gap in a wall, clips the wall beside it and goes nowhere.
+
+**Why it came up:** the hollow's slink stands *in* the gap, which is what makes that fight
+unavoidable by geometry rather than by a trigger radius. Winning it and walking on failed
+silently: the player simply did not move, and a position assertion two steps later reported a
+tile that looked almost right.
+
+**Takeaway:** any walking leg that follows something which can interrupt movement — a battle, a
+cutscene, a dialog that halts the player — must re-anchor against a wall before threading a
+gap narrower than a couple of tiles. This is the same family as the existing rule that an
+arriving hold carries the player onward: both are about a leg inheriting a position it did not
+choose. Anchor first, then move.
+
+## Headless does not mean fast when the thing you are waiting for is physics
+
+A play script that walks five maps and fights four battles took six and a half minutes
+headless — not because anything was slow, but because `_physics_process` still ticks at 60Hz
+in real time. Every `hold` for 400 frames costs 6.7 seconds of wall clock whether the player
+reaches the wall in 100 frames or not.
+
+**Why it came up:** the first complete run of the reworked quest blew a 400-second timeout and
+looked like a hang. Trimming the anchoring holds from "20 tiles, more than any map is wide" to
+what each map actually needs cut it to 3:22 without changing a single assertion.
+
+**Takeaway:** in a frame-driven test harness, the cost of a leg is the frames you *asked* for,
+not the frames the work took. Budget them: a hold only needs to outlast the widest crossing of
+the map it runs in. And when a headless run appears to hang, add up its declared frames before
+looking for a deadlock — 13,000 frames is not a hang, it is three and a half minutes.

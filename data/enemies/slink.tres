@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyDef" load_steps=2 format=3]
+
+; What nests on the key. Two slinks are the whole of level 2, and neither can kill a careless
+; player: 4 damage a hit, at most four hits across both fights, against 20 health. That is
+; deliberate - the hollow is where you learn the timing, and a tutorial that can kill you is
+; a tutorial people reload rather than read.
+
+[ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"slink"
+name = "Slink"
+character = &"quest_slink"
+max_hp = 10
+attack = 3
+defense = 1
+xp = 5
+boss = false
+moves = [{ "name": "Scratch", "power": 0 }, { "name": "Lunge", "power": 2 }]

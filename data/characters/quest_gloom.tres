@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; A gloom: the cave's own colour given a shape. Indigo cloth and ash hair, the coldest pairing dusk16 has.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_gloom"
+style_id = &"dusk16"
+seed = 302
+parts = {
+"body": "body_robe",
+"hair": "hair_long"
+}
+ramps = {
+"body": "cloth_indigo",
+"hair": "hair_ash",
+"head": "skin_dark"
+}

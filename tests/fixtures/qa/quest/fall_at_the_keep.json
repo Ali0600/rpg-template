@@ -1,0 +1,537 @@
+{
+	"_readme": [
+		"The same road, walked badly - and the only gate that proves this game can be LOST, and",
+		"recovered from.",
+		"",
+		"Every press here is mistimed on purpose, and the harness does it for free:",
+		"press_until_state mashes, and only the FIRST press of a cue is captured, so a masher's",
+		"press always lands early and never scores. That is why the Keeper kills this driver on",
+		"every seed while finish_the_quest.json beats it on every seed - the two scripts are the",
+		"same content at both ends of the skill range.",
+		"",
+		"Which matters because a driver that plays WELL only ever visits the branches good play",
+		"reaches. A perfect run never sees a fight it had to run from, never sees a boss refuse to",
+		"let it run, never sees a defeat, and never sees the screen that follows one. All four are",
+		"here, and none of them is reachable from the other script.",
+		"",
+		"The flee is also the proof that running costs something: the slink is still standing on",
+		"its tile afterwards, and since it is standing on OUR tile too, nothing re-triggers until",
+		"we walk away and come back."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the same road, walked badly. Every press in this script is mistimed on purpose: press_until_state mashes, and only the FIRST press of a cue is captured - so a masher's press always lands early and never scores. That is the point. A driver that plays well only ever visits the branches good play reaches, and the branches this game most needs proven - a fight lost, a boss that will not let you run, the road back afterwards - are exactly the ones it never sees."
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "west into the hollow, straight into the thing in the gap - and RUN from it"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "Flee is the third command: down twice, then confirm"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 120
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "something you ran from is still standing there: no level, and it is still on its tile"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "note",
+			"text": "running leaves it standing on its tile - and standing on OUR tile too, so nothing re-triggers until we leave and come back. West to the wall, then east into it again"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "and this time see it through, mistimed all the way"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 600
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "note",
+			"text": "through the gap, where the second one is waiting - re-anchor first, since the fight left us off-centre and the gap is one tile wide"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 80
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 600
+		},
+		{
+			"op": "note",
+			"text": "two of them is still a level, even played badly - the hollow is not where this ends"
+		},
+		{
+			"op": "assert_level",
+			"value": 2
+		},
+		{
+			"op": "note",
+			"text": "the stash, then out east and through the gate on the key"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				6
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 6
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 1
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				10,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_keep"
+		},
+		{
+			"op": "note",
+			"text": "and here is the fight this script exists for"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "try to run first: a boss refuses, and the attempt still costs the turn"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 200
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "then mash it out. Twenty-four health, four blocked hits a round if you block - and this driver never does. It loses on every seed, which is what makes the timing mechanic a mechanic rather than a decoration."
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "game_over",
+			"limit": 900
+		},
+		{
+			"op": "assert_state",
+			"state": "game_over"
+		},
+		{
+			"op": "note",
+			"text": "the run is over, and the only ways on are a save or a fresh start. There is no save, so Continue is refused and says so - press it anyway and nothing happens"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "game_over"
+		},
+		{
+			"op": "note",
+			"text": "start again: down one, confirm"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "a fresh run really is fresh - level one, empty bag, nothing beaten"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_xp",
+			"value": 0
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "assert_flag",
+			"key": "lit_the_lantern",
+			"expect": false
+		}
+	]
+}
