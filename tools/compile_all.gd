@@ -81,9 +81,30 @@ static func _names_an_autoload(path: String, autoloads: Array[String]) -> bool:
 		var hash_at := line.find("#")
 		code += (line if hash_at == -1 else line.substr(0, hash_at)) + "\n"
 	for name: String in autoloads:
-		if code.contains(name + "."):
+		if _uses(code, name):
 			return true
 	return false
+
+
+## Whether `code` uses `name` as a whole identifier followed by a dot.
+##
+## A plain substring search is wrong here and was wrong before anyone noticed: "Settings."
+## occurs inside "ProjectSettings.", so adding a singleton called Settings silently dropped
+## every file that reads a project setting out of the compile gate - nine of them, reported
+## only as a count going up. The character BEFORE the name has to be one that cannot continue
+## an identifier.
+static func _uses(code: String, name: String) -> bool:
+	var needle := name + "."
+	var at := code.find(needle)
+	while at != -1:
+		if at == 0 or not _is_identifier_char(code[at - 1]):
+			return true
+		at = code.find(needle, at + 1)
+	return false
+
+
+static func _is_identifier_char(c: String) -> bool:
+	return c == "_" or (c >= "0" and c <= "9") or (c.to_lower() >= "a" and c.to_lower() <= "z")
 
 
 func _all_gd(root: String) -> Array[String]:

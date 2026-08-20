@@ -24,12 +24,15 @@ func test_a_fresh_menu_opens_on_resume() -> void:
 	var menu := PauseMenu.of(_slots([]))
 	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
 	assert_int(menu.index()).is_equal(PauseMenu.Row.RESUME)
-	assert_int(menu.size()).is_equal(4)
+	# Derived from the enum, not typed as a number: a literal here has to be found and changed
+	# every time a row is added, and the version that is merely WRONG still passes for a while.
+	assert_int(menu.size()).is_equal(PauseMenu.Row.size())
 
 func test_the_top_cursor_wraps_both_ways() -> void:
 	var menu := PauseMenu.of(_slots([]))
 	assert_bool(menu.move(-1)).is_true()
-	assert_int(menu.index()).is_equal(PauseMenu.Row.LOAD)
+	# Backwards from the top lands on the LAST row, whichever that now is.
+	assert_int(menu.index()).is_equal(PauseMenu.Row.size() - 1)
 	assert_bool(menu.move(1)).is_true()
 	assert_int(menu.index()).is_equal(PauseMenu.Row.RESUME)
 
@@ -220,3 +223,36 @@ func test_refreshing_keeps_the_bag_and_the_cursor() -> void:
 	assert_int(menu.index()).is_equal(1)
 	assert_int(menu.item(1).count).is_equal(4)
 
+
+
+func test_confirming_the_sound_row_asks_for_the_next_step() -> void:
+	var menu := PauseMenu.of(_slots([]), [], "Normal")
+	menu.move(PauseMenu.Row.SOUND)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.SOUND)
+
+
+func test_the_sound_row_works_in_a_game_with_no_save_slots() -> void:
+	# The row has nothing to do with saves, and a game configured without them must still be
+	# able to turn the sound down. It is exempt from the empty-slot guard the way Items is -
+	# and that exemption is the whole reason this test exists, because the guard sits between
+	# the cursor and every row below Resume.
+	# Zero slots, not three empty ones: the guard fires on the LIST being empty.
+	var menu := PauseMenu.of(_slots([], 0), [], "Loud")
+	menu.move(PauseMenu.Row.SOUND)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.SOUND)
+	# The control: a slot row in the same menu still refuses, so this is not just "nothing is
+	# guarded any more".
+	menu.move(PauseMenu.Row.SAVE - PauseMenu.Row.SOUND)
+	assert_int(menu.index()).is_equal(PauseMenu.Row.SAVE)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+
+
+func test_the_sound_row_says_what_the_setting_is() -> void:
+	# Carried as text rather than read: the menu may not ask an autoload, so the world hands it
+	# the words the way it hands over slot summaries.
+	assert_str(PauseMenu.of(_slots([]), [], "Quiet").sound_label()).is_equal("Sound: Quiet")
+
+
+func test_a_menu_told_nothing_about_sound_still_draws_the_row() -> void:
+	# A blank label would render as an empty line, which reads as a menu that failed to draw.
+	assert_str(PauseMenu.of(_slots([])).sound_label()).is_not_empty()

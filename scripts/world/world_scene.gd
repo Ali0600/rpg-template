@@ -107,6 +107,17 @@ func _on_sound_wanted(id: StringName) -> void:
 	AudioBus.play_sfx(id)
 
 
+## The player turned the volume. Settings owns the value and writes it; the menu is handed the
+## new text the way it is handed new slot contents after a save.
+func _on_sound_changed() -> void:
+	Settings.cycle_sound()
+	# Played AFTER the change, so the blip is at the volume just chosen - which is the only
+	# feedback there is that Off means off.
+	AudioBus.play(Sfx.Cue.MENU_CONFIRM)
+	if _pause != null:
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name())
+
+
 func _new_dialog() -> DialogBox:
 	var box := DialogBox.new()
 	box.closed.connect(_on_dialog_closed)
@@ -649,11 +660,13 @@ func open_pause() -> bool:
 	# Constructed and connected in one function, the DialogBox rule: a view built in one place
 	# and wired in another is a view that eventually gets built and not wired.
 	_pause.sound_wanted.connect(_on_sound_wanted)
+	_pause.sound_changed.connect(_on_sound_changed)
 	_pause.resumed.connect(_close_pause)
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
 	add_child(_pause)
-	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows()), _style, get_viewport_rect().size)
+	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name()),
+		_style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
 
@@ -861,7 +874,7 @@ func _on_save_requested(slot: int) -> void:
 	# at shows what they just wrote. A save whose only feedback is the screen closing is
 	# indistinguishable from one that failed.
 	if _pause != null:
-		_pause.refresh(_slot_summaries(), _item_rows())
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name())
 
 
 func _on_load_requested(slot: int) -> void:
@@ -879,7 +892,7 @@ func _commit_load(slot: int) -> void:
 	if data == null:
 		# load_slot has parked the bytes and said so. The menu stays up showing what the slots
 		# hold now - which is one fewer, and that is the honest thing for it to show.
-		_pause.refresh(_slot_summaries(), _item_rows())
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name())
 		return
 	_close_pause()
 	restore(data)

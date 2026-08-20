@@ -38,6 +38,7 @@ var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 var _music := AudioStreamPlayer.new()
 var _enabled := true
+var _volume := 1.0
 var _style: SoundStyle
 var _override_dir := OVERRIDE_DIR
 var _generated_root := GENERATED_ROOT
@@ -189,6 +190,19 @@ func unknown_requests() -> Array[StringName]:
 
 func set_enabled(value: bool) -> void:
 	_enabled = value
+
+
+## The player's chosen loudness, 0 to 1. Settings owns the VALUE and this owns the DEVICE, so
+## there is one writer for each and neither has to know how the other stores it.
+func set_volume(linear: float) -> void:
+	_volume = clampf(linear, 0.0, 1.0)
+	for player in _players:
+		player.volume_db = linear_to_db(_volume)
+	_music.volume_db = linear_to_db(_volume)
+
+
+func volume() -> float:
+	return _volume
 
 
 func is_enabled() -> bool:

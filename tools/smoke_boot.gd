@@ -16,7 +16,7 @@ func _init() -> void:
 
 	var failures: Array[String] = []
 
-	for name in ["EventBus", "Registry", "GameState", "SaveManager", "Router", "AudioBus", "Qa"]:
+	for name in ["EventBus", "Registry", "GameState", "SaveManager", "Router", "AudioBus", "Settings", "Qa"]:
 		if root.get_node_or_null(NodePath(name)) == null:
 			failures.append("autoload missing: " + name)
 

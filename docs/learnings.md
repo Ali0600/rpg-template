@@ -643,3 +643,27 @@ fail *silently* by pointing at whatever now sits at that index.
 a sound. Rewriting them to address an effect by its OP made them immune, and clearer.
 
 **Takeaway:** address an element of a collected list by what it IS, never by where it sits.
+
+## A substring test for an identifier fires inside a longer identifier
+
+The whole-project compile gate skipped files containing `Name + "."`. Adding a singleton called
+`Settings` therefore matched every `ProjectSettings.` call, and nine files silently left the
+gate.
+
+**Why it came up:** the skip count went from 20 to 29 in a commit that referenced the new
+singleton three times. Nothing failed — a skipped file is simply not compiled, so the gate went
+on reporting success over a shrinking set.
+
+**Takeaway:** match identifiers on whole-word boundaries, never as substrings; and when naming a
+new global, check it is not the tail of something the platform already defines.
+
+## A cycle test that only checks where it ENDS cannot see a cycle that never moves
+
+`for each step: cycle()` then asserting the value is back at the default passes whether the
+cycle visits all four steps or is pinned to the default the whole time.
+
+**Why it came up:** the mutant replacing the advance with a constant survived. The fix was to
+assert every step is visited exactly once on the way round.
+
+**Takeaway:** for anything cyclic or reversible, assert the JOURNEY as well as the destination —
+returning to the start is the one property a broken cycle shares with a working one.

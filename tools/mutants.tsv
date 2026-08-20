@@ -185,7 +185,7 @@ scripts/world/world_scene.gd	s|^\t_apply_effects\(effects\)$|\tpass|	tests/integ
 # --- M12: the bag, on screen ---
 scripts/ui/pause_menu.gd	s|return maxi\(_items.size\(\), 1\)|return _items.size()|	tests/unit/test_pause_menu.gd	an empty bag has no row, so the page cannot be stood on or escaped from
 scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.ITEMS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the bag lands the cursor on Save instead of Items
-scripts/ui/pause_menu.gd	s|if _index != Row.ITEMS and _slots.is_empty\(\):|if _slots.is_empty():|	tests/unit/test_pause_menu.gd	a game with no save slots cannot look in its own bag
+scripts/ui/pause_menu.gd	s|\t\tif _index == Row.ITEMS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot look in its own bag
 scripts/ui/pause_menu.gd	s|return "%s x%d" % \[row.name, row.count\]|return row.name|	tests/unit/test_pause_menu.gd	the bag stops saying how many of a thing is in it
 scripts/ui/pause_menu.gd	s|return "\(nothing carried\)"|return ""|	tests/unit/test_pause_menu.gd	an empty bag draws a blank row, which reads as a menu that failed
 scripts/world/world_scene.gd	s|for item_id in GameState.inventory.ids\(\):|for item_id in []:|	tests/integration/test_pause_and_saves.gd	the pause menu never lists anything the player is carrying
@@ -283,3 +283,13 @@ scripts/ui/battle_logic.gd	s|\t\t_want\(Sfx.Cue.LEVEL_UP\)|\t\tpass|	tests/unit/
 scripts/ui/dialog_box.gd	s|\t\tsound_wanted.emit\(Sfx.id_of\(Sfx.Cue.PAGE\)\)|\t\tpass|	tests/integration/test_world_sounds.gd	turning a page of dialog is silent
 scripts/ui/dialog_box.gd	s|\t\t\tsound_wanted.emit\(Sfx.id_of\(Sfx.Cue.TALK\)\)|\t\t\tpass|	tests/integration/test_world_sounds.gd	the typewriter has no voice
 scripts/world/world_scene.gd	s|\t\tAudioBus.play\(Sfx.Cue.LOCKED\)|\t\tpass|	tests/integration/test_world_sounds.gd	a door that refuses to open gives no feedback for it
+
+# --- M14: turning it down ---
+scripts/autoload/settings.gd	s|\t_level = \(\(_level \+ 1\) % Level.size\(\)\) as Level|\t_level = Level.NORMAL|	tests/unit/test_settings.gd	the volume row stops changing anything
+scripts/autoload/settings.gd	s|\tAudioBus.set_volume\(sound_gain\(\)\)|\tpass|	tests/unit/test_settings.gd	the menu says Quiet while nothing gets any quieter
+scripts/autoload/settings.gd	s|\tif raw < 0 or raw >= Level.size\(\):|\tif false:|	tests/unit/test_settings.gd	a settings file from the future silences the game with no way to find out why
+scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, \{"sound_level": int\(_level\)\}\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
+scripts/autoload/settings.gd	s|\t\treturn QA_PATH|\t\treturn DEFAULT_PATH|	tests/unit/test_settings.gd	a scripted play session writes the player's real settings
+scripts/ui/pause_menu.gd	s|\t\tif _index == Row.SOUND:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot turn the sound down
+scripts/ui/pause_screen.gd	s|\t\t\treturn _menu.sound_label\(\) if at == PauseMenu.Row.SOUND else TOP_LABELS\[at\]|\t\t\treturn TOP_LABELS[at]|	tests/integration/test_pause_and_saves.gd	the sound row draws as an empty line
+tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]\):|\t\tif true:|	tests/unit/test_compile_all.gd	a singleton whose name ends another identifier drops files out of the compile gate
