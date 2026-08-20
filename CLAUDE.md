@@ -66,6 +66,15 @@ snapshot and append effects; `world_scene._apply` is the single place any of it 
 state. `on_interact` returning `false` means "not mine" and the data's own behaviour runs — a
 game is additive or it is not using this seam.
 
+**A dialog line has a SIZE, and the build enforces it.** `DialogBox` shows two lines of text
+with the choices in a band of their own below them, and the box grows only while a choice is
+up. Those numbers are constants on `DialogBox`; `test_dialog_fit.gd` measures every shipped
+line with the real font against those same constants and fails the build on anything that
+would not fit, naming the file and node. It exists because the opposite is silent: a
+`RichTextLabel` with scrolling off does not wrap, scroll or complain past its height - it
+CLIPS, so a fact written into the data never reaches the player and every headless gate still
+passes. A line that needs more room is another node on a `next` chain.
+
 **A dialog choice line cannot be escaped.** `cancel` closes a dialog only while a line is
 being shown; on a line with choices the box routes input to the choice list instead, because
 the point of a choice is that one gets picked. So a conversation that loops back THROUGH a
