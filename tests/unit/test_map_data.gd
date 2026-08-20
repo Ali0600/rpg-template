@@ -236,3 +236,47 @@ func test_a_map_lists_every_item_it_names() -> void:
 		"a door's key went unlisted, so a misspelt item on a warp would ship").is_true()
 	assert_int(refs.size()).override_failure_message("an item was listed twice").is_equal(3)
 
+
+func test_an_enemy_is_found_by_the_tile_it_stands_on() -> void:
+	# Fully projected, for the reason warp_at is: this dictionary is the ONLY thing the
+	# encounter check sees, so a field left out here is a fight that silently never starts.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	var found := map.enemy_at(Vector2i(3, 3))
+	assert_bool(found.is_empty()).override_failure_message(
+		"the enemy standing at [3,3] was not found there").is_false()
+	assert_str(String(found["id"])).is_equal("lurker")
+	assert_str(String(found["enemy"])).is_equal("cave_lurker")
+	assert_str(str(found["facing"])).is_equal("down")
+
+func test_a_tile_with_no_enemy_reports_none() -> void:
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_bool(map.enemy_at(Vector2i(2, 2)).is_empty()).is_true()
+
+func test_an_enemy_outside_the_map_is_reported() -> void:
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_str(str(map.problems(_known_tiles()))).contains("nowhere")
+
+func test_an_enemy_naming_no_definition_is_reported() -> void:
+	# A fight that cannot open, on a map that would merely look empty.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_str(str(map.problems(_known_tiles()))).contains("names no EnemyDef")
+
+func test_an_enemy_sharing_an_id_with_an_object_is_reported() -> void:
+	# They share a `seen` namespace: beating a guard called "giver" would empty a chest of the
+	# same name, which reads as a missing item rather than as a name collision.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_str(str(map.problems(_known_tiles()))).contains("used twice")
+
+func test_every_enemy_a_map_names_is_listed() -> void:
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	var refs := map.enemy_refs()
+	assert_bool(refs.has(&"cave_lurker")).override_failure_message(
+		"an enemy went unlisted, so a misspelt id on a map would ship").is_true()
+	assert_int(refs.size()).override_failure_message("an enemy was listed twice").is_equal(1)
+
+func test_a_map_with_no_enemies_has_none() -> void:
+	# The control, and the shape every shipped map had before this milestone: absence must
+	# stay legal, and must not read as a map that failed to load its enemies.
+	var map := MapData.load_from("res://data/maps/quest_town.json")
+	assert_array(map.enemy_refs()).is_empty()
+	assert_bool(map.enemy_at(Vector2i(4, 6)).is_empty()).is_true()

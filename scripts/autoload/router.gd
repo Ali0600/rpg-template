@@ -6,11 +6,15 @@ extends Node
 ## whole point: two independent `can_move` booleans is how a player ends up frozen after a
 ## dialog that closed, with each system certain it released control.
 
+## Appended to, never reordered: flow_changed carries these as ints, and a member inserted in
+## the middle renames every state after it in anything holding a number.
 enum State {
 	TITLE,  ## nothing to drive yet
 	WORLD,  ## the only state the player moves in
 	DIALOG,  ## a conversation is open; movement is suspended
 	PAUSED,  ## a menu is open over the world
+	BATTLE,  ## a fight has the screen; the world is still there underneath
+	GAME_OVER,  ## the run ended; the only ways on are a save or a fresh start
 }
 
 var _state: State = State.TITLE

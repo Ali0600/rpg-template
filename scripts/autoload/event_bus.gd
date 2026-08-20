@@ -29,5 +29,10 @@ signal flow_changed(info: Dictionary)
 ## { "game": StringName, "slot": int, "action": StringName, "ok": bool }
 signal save_changed(info: Dictionary)
 
+## A fight opened or resolved.
+## { "enemy": StringName, "open": bool, "outcome": StringName }
+## `outcome` is empty while the fight is on, then "victory", "defeat" or "fled".
+signal battle_changed(info: Dictionary)
+
 ## Something wants a sound. { "id": StringName, "kind": StringName }
 signal sound_requested(info: Dictionary)

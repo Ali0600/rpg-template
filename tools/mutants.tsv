@@ -214,3 +214,16 @@ scripts/data/migrations.gd	s|d = _v4_to_v5\(d\)|break|	tests/unit/test_saves.gd	
 scripts/data/save_data.gd	s|if int\(party.get\("hp", 0\)\) < 1:|if false:|	tests/unit/test_saves.gd	a save claiming a player at nought health is accepted
 scripts/autoload/game_state.gd	s|out.party = \{\} if player_hp <= 0 else \{|out.party = {} if true else {|	tests/unit/test_saves.gd	a save forgets everything the player fought for
 scripts/autoload/game_state.gd	s|^\tplayer_level = 1$|\tpass|	tests/unit/test_saves.gd	a new game starts at the last one's level
+
+# --- M13: the fight, on screen ---
+scripts/world/map_data.gd	s|map.enemies = file.get_array\("enemies"\)|map.enemies = []|	tests/unit/test_map_data.gd	maps stop carrying the enemies written into them
+scripts/world/map_data.gd	s|out.append\("enemy .%s. names no EnemyDef" % enemy_id\)|pass|	tests/unit/test_map_data.gd	an enemy naming no definition ships as a fight that never opens
+scripts/world/map_data.gd	s|out.append\("enemy id .%s. is used twice" % enemy_id\)|pass|	tests/unit/test_map_data.gd	an enemy and a chest share one memory of being dealt with
+scripts/world/map_data.gd	s|_add_ref\(out, \(entry as Dictionary\).get\("enemy", ""\)\)|pass|	tests/unit/test_map_data.gd	a misspelt enemy id goes unlisted and ships
+scripts/world/world_scene.gd	s|Router.open_overlay\(Router.State.BATTLE\)|pass|	tests/integration/test_world_battles.gd	a fight opens without taking control, so the player walks away mid-battle
+scripts/world/world_scene.gd	s|open_game_over\(\)$|pass|	tests/integration/test_world_battles.gd	losing drops the player back into the world as if nothing happened
+scripts/world/world_scene.gd	s|if _game == null or _game.combat == null or GameState.player_hp > 0:|if true:|	tests/integration/test_world_battles.gd	a new game starts its first fight with a player at nought health
+scripts/ui/battle_screen.gd	s|_committed = true|pass|	tests/integration/test_world_battles.gd	a won fight pays out again on every frame that follows
+scripts/ui/game_over_menu.gd	s|if slot\(_index\) == null:|if false:|	tests/unit/test_game_over_menu.gd	an empty slot is loaded from the game-over screen
+scripts/ui/game_over_menu.gd	s|if _slots.is_empty\(\) or not _has_any_save\(\):|if false:|	tests/unit/test_game_over_menu.gd	a player with no saves is shown a list of nothing
+scripts/world/map_data.gd	s|"enemy": StringName\(str\(enemy.get\("enemy", ""\)\)\),|"enemy": \&"",|	tests/unit/test_map_data.gd	the projection drops the enemy id, so every fight opens against nothing

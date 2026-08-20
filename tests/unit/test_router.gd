@@ -97,3 +97,19 @@ func test_every_state_reports_its_own_name() -> void:
 		Router.set_state(state)
 		assert_str(Router.state_name()).override_failure_message(
 			"state %d reported the wrong name" % state).is_equal(str(expected[state]))
+
+func test_the_new_flow_states_name_themselves() -> void:
+	# Derived from the enum via find_key, so a QA script's assert_state gets these for free -
+	# and an inserted member cannot silently rename the states after it.
+	Router.set_state(Router.State.BATTLE)
+	assert_str(Router.state_name()).is_equal("battle")
+	Router.set_state(Router.State.GAME_OVER)
+	assert_str(Router.state_name()).is_equal("game_over")
+
+func test_the_player_moves_in_neither_of_them() -> void:
+	Router.set_state(Router.State.BATTLE)
+	assert_bool(Router.player_can_move()).is_false()
+	assert_bool(Router.accepts_world_input()).override_failure_message(
+		"the pause menu could be opened during a fight").is_false()
+	Router.set_state(Router.State.GAME_OVER)
+	assert_bool(Router.player_can_move()).is_false()

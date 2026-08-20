@@ -1,0 +1,14 @@
+{ "_readme": "Enemies on a map, and every way an enemy record can be wrong. It ships deliberate faults - 'nowhere' stands outside the map, 'nameless' names no EnemyDef, and 'giver' collides with the object id above it - so problems() has something to find here; do not use this file where an empty problems() is the assertion. The 'lurker' at [3,3] is the only clean one, and the only EnemyDef named that nothing else in the fixtures names.",
+  "id": "with_enemies", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["########", "#......#", "#......#", "#......#", "#......#", "########"],
+  "spawns": { "start": [1, 1] },
+  "objects": [
+    { "id": "giver", "tile": [1, 4], "give_item": "gate_key" }
+  ],
+  "enemies": [
+    { "id": "lurker", "enemy": "cave_lurker", "tile": [3, 3], "facing": "down" },
+    { "id": "nowhere", "enemy": "cave_lurker", "tile": [99, 99] },
+    { "id": "nameless", "tile": [4, 1] },
+    { "id": "giver", "enemy": "cave_lurker", "tile": [5, 1] }
+  ] }
