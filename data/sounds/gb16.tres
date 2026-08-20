@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SoundStyle" load_steps=2 format=3]
+
+; The Game Boy voice: a square wave, crushed to sixteen amplitude levels.
+;
+; The quantise is the whole character. Real hardware had four bits of amplitude, and rounding
+; every sample onto rungs is what produces that crunch - it is a palette, for sound, and it is
+; the audio half of what SpriteStyle does with four-tone ramps.
+
+[ext_resource type="Script" path="res://scripts/data/sound_style.gd" id="1_sound"]
+
+[resource]
+script = ExtResource("1_sound")
+id = &"gb16"
+bank_id = &"gb16"
+mix_rate = 22050
+gain = 0.7
+pitch_scale = 1.0
+tone = &"square"
+quantise_steps = 16

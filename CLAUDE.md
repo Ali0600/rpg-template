@@ -14,6 +14,11 @@ regression, however good that game looks.
 - **Art is data.** Colours, palettes, cell sizes, frame counts and outline rules live in a
   `SpriteStyle` resource under `data/styles/`. A colour literal in `scripts/world/` or
   `scripts/ui/` is a build failure (`tools/lint_rules.gd`).
+- **Sound is data too, and generated the same way.** A cue's SHAPE is a row in
+  `data/banks/<id>.json`; its VOICE is a `SoundStyle` under `data/sounds/`. Three voices share
+  one bank the way three sprite styles share one rig. Template code never names a cue as a
+  string — `Sfx.Cue` is an enum, so a typo is a compile error rather than a warning nobody
+  reads at the moment the sound should have played.
 - **Numbers live in data, not code.** A literal in a script that a designer would want to
   change is a bug. Speeds, reaches and timings come from `data/game_config.tres`.
 - **Randomness is seeded.** `SeededRng` only. `randi()`, `randf()`, `Array.pick_random()`
@@ -27,16 +32,18 @@ regression, however good that game looks.
 ## 2. Architecture
 
 ```
-scripts/spritegen/  pure RefCounted, deterministic, NO node access — the generator
-scripts/util/       dir, json_file, seeded_rng, hashing, lint_core, content_scan
-scripts/data/       Resource types (SpriteStyle, CharacterSpec, GameConfig, SaveData, EnemyDef, CombatDef…)
+scripts/spritegen/  pure RefCounted, deterministic, NO node access — the sprite generator
+scripts/soundgen/   the same, for sound: synth, sound_bank, sound_source + two impls
+scripts/util/       dir, sfx, json_file, seeded_rng, hashing, lint_core, content_scan,
+                    image_file + sound_file (build-time readers, never shipped)
+scripts/data/       Resource types (SpriteStyle, SoundStyle, CharacterSpec, GameConfig, SaveData, EnemyDef, CombatDef…)
 scripts/world/      Locomotion + GridWalker (both pure) + the nodes that apply them
 scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen,
                     BattleLogic + BattleScreen, GameOverMenu + GameOverScreen (pure + view)
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
 scenes/             views only
 data/               all content: games, styles, rigs, characters, maps, dialog,
-                    items, enemies, combat
+                    items, enemies, combat, banks (cue shapes), sounds (voices)
 games/<id>/         a game's OWN code: a GameHooks subclass, and nothing generic
 assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
 ```
@@ -215,6 +222,7 @@ tools/mutate_check.sh --list   # what each mutant claims to cover
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sounds.gd
 ```
 
 Drive the real game from a script, or photograph it. QA scripts live under
@@ -235,8 +243,25 @@ Anything that needs the running game — the world, the player, the router — m
 a `Qa` script rather than by `-s tools/x.gd`: in `-s` mode the autoload singletons are not
 registered as identifiers, so a scene whose script names one will not even load.
 
-## 5. Generated art
+## 5. Generated art and sound
 
 `assets/generated/**` is output. Edit the rig (`data/rigs/*.json`) or the style
 (`data/styles/*.tres`), re-run `gen_sprites.gd`, and commit both together — `check.sh`
 regenerates and fails if the committed PNGs disagree with what the generator now produces.
+Sound works identically: edit `data/banks/*.json` or `data/sounds/*.tres`, re-run
+`gen_sounds.gd`, commit the WAVs.
+
+**Commit the `.import` sidecar with every generated file.** An imported asset ships as its
+sidecar plus the engine's cached copy; the original file is not packed, so a `.wav` or `.png`
+without one works locally and is simply absent from the web build.
+
+**The generator may not call `sin`, `pow` or `exp`.** IEEE-754 pins `+ - * /` to the same
+result on every machine and libm pins nothing, so a transcendental anywhere in the render path
+can make the committed bytes differ between this Mac and the Ubuntu runner — turning the drift
+gate red for a reason nobody can reproduce. Waveforms are built from arithmetic and integer
+noise, deliberately.
+
+**The drift gate checks what `load()` returns, not just the file.** Godot's WAV importer
+defaults to lossy QOA; `project.godot`'s `[importer_defaults]` pins it off, and
+`gen_sounds.gd --verify` compares the imported stream too, because a file that matches while
+the imported asset does not is a game whose every player hears something unchecked.

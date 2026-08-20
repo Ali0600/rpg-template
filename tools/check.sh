@@ -118,6 +118,19 @@ else
   echo "SKIP  gen_sprites.gd does not exist yet (M1)"
 fi
 
+step "6b/9 generated sound is in sync"
+# The committed WAVs under assets/generated are build output too. This compares the SAMPLES
+# rather than the file bytes - a container header is not ours to control - and then compares
+# what load() returns, because the importer is free to transcode on the way to the game and
+# its default for WAV is lossy. A file that matches while the imported stream does not is a
+# game whose every player hears something the gate never checked.
+if [ -f tools/gen_sounds.gd ]; then
+  "$GODOT" --headless --path . -s tools/gen_sounds.gd --verify
+  result $? "committed sounds match the generator"
+else
+  echo "SKIP  gen_sounds.gd does not exist yet (M14)"
+fi
+
 step "7/9 play the game"
 # The gate that needs the whole thing at once: the real physics server, the real input map,
 # the real map data. It boots the game, walks the player east, and checks a wall stops them.

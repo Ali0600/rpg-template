@@ -46,6 +46,27 @@ window/size/window_height_override=720
 window/stretch/mode="viewport"
 window/stretch/scale_mode="integer"
 
+[importer_defaults]
+
+; Generated cues are committed as lossless 16-bit PCM and the drift gate compares those
+; samples. Godot's WAV importer defaults to compress/mode=2, which is QOA - LOSSY - so the
+; stream the game plays would not be the stream the gate checked, and the difference would be
+; invisible on every surface anyone looks at.
+;
+; Pinned here rather than in each generated .wav.import for the reason every list in this
+; project is derived: a per-file setting is a list maintained by hand, and the next cue added
+; comes back with the default nobody re-reads. Sound is 236 KB per style at mode 0; the
+; compression was buying nothing worth this.
+wav={
+"compress/mode": 0,
+"edit/loop_mode": 0,
+"edit/normalize": false,
+"edit/trim": false,
+"force/8_bit": false,
+"force/max_rate": false,
+"force/mono": false
+}
+
 [input]
 
 move_up={

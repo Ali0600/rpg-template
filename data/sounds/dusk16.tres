@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SoundStyle" load_steps=2 format=3]
+
+; The Barred Gate's voice. A triangle rather than a square, pitched down and quieter.
+;
+; The look this pairs with is late evening, and a square wave is a bright, hard, arcade sound
+; that fights it. A triangle has almost no upper harmonics - it reads as soft and a little
+; hollow, which is what a lantern-lit quest at dusk should sound like. Same bank, same cues,
+; same lengths: only the voice moved.
+
+[ext_resource type="Script" path="res://scripts/data/sound_style.gd" id="1_sound"]
+
+[resource]
+script = ExtResource("1_sound")
+id = &"dusk16"
+bank_id = &"gb16"
+mix_rate = 22050
+gain = 0.65
+pitch_scale = 0.9
+tone = &"triangle"
+quantise_steps = 0

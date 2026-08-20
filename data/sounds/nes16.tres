@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SoundStyle" load_steps=2 format=3]
+
+; Brighter and cleaner than gb16 - the same square voice pitched up a little and left
+; unquantised, which is roughly the difference between the two machines. It shares the bank
+; with the other two styles and re-authors not one cue, which is the claim being cashed: a
+; game brings its own voice, not its own sound design.
+
+[ext_resource type="Script" path="res://scripts/data/sound_style.gd" id="1_sound"]
+
+[resource]
+script = ExtResource("1_sound")
+id = &"nes16"
+bank_id = &"gb16"
+mix_rate = 22050
+gain = 0.72
+pitch_scale = 1.1
+tone = &"square"
+quantise_steps = 0
