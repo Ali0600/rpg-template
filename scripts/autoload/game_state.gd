@@ -37,8 +37,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	# Only counts while the game is actually being played, so a save's play time means time
-	# spent playing rather than time spent with the window open.
-	if Router.player_can_move():
+	# spent playing rather than time spent with the window open. A battle counts too: it is the
+	# one state where the player is very much playing and deliberately cannot walk.
+	if Router.player_can_move() or Router.state() == Router.State.BATTLE:
 		play_seconds += delta
 
 

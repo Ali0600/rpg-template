@@ -153,6 +153,8 @@ func _run(step: Dictionary) -> void:
 				_fail("expected %d of item '%s', found %d" % [expected, item, carried])
 			else:
 				_log.append("carrying %d of '%s'" % [carried, item])
+		"assert_hp", "assert_xp", "assert_level":
+			_assert_party(op, step)
 		"assert_position":
 			_assert_position(step)
 		"mark":
@@ -214,6 +216,27 @@ func _tick_press_until() -> void:
 	_press(_until_action)
 	_until_presses += 1
 	_until_holding = true
+
+
+## Asserts one of the player's fight numbers, EXACTLY, for the same reason assert_item is
+## exact: "at least 12 hp" cannot tell a fight that was survived from one that was not fought.
+##
+## All three verbs share a function because they differ only in which field they read - three
+## copies of the same eight lines is where the fourth one goes wrong.
+func _assert_party(op: String, step: Dictionary) -> void:
+	var expected := int(step.get("value", 0))
+	var actual := 0
+	match op:
+		"assert_hp":
+			actual = GameState.player_hp
+		"assert_xp":
+			actual = GameState.player_xp
+		_:
+			actual = GameState.player_level
+	if actual != expected:
+		_fail("expected %s %d, found %d" % [op.trim_prefix("assert_"), expected, actual])
+	else:
+		_log.append("%s is %d" % [op.trim_prefix("assert_"), actual])
 
 
 func _assert_position(step: Dictionary) -> void:

@@ -29,6 +29,10 @@ var _hint: ControlsHint
 ## The pause menu, when it is up. It belongs to the running game - its slot list is that
 ## game's - so _teardown_game frees it.
 var _pause: PauseScreen
+var _battle: BattleScreen
+var _game_over: GameOverScreen
+## Enemy id -> its ActorBody, for the ones still standing on this map.
+var _enemies: Dictionary = {}
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
 ## on every frame spent standing there.
 var _last_tile := Vector2i(-9999, -9999)
@@ -77,6 +81,10 @@ func start_game(manifest: GameManifest) -> bool:
 		push_error("World: game '%s' has no config" % _game.id)
 		return false
 	_hooks = _game.new_hooks()
+	# Before the first map, so a hook or an encounter on the opening tile finds a real player
+	# rather than one at zero health. _teardown_game above has already reset the party, so this
+	# is always the fresh-hero case here.
+	_ensure_party()
 	_camera = Camera2D.new()
 	_dialog = _new_dialog()
 	_hint = ControlsHint.new()
@@ -135,6 +143,17 @@ func _teardown_game() -> void:
 	if _pause != null and is_instance_valid(_pause):
 		_pause.free()
 	_pause = null
+	# The same argument for both fight screens: each names an enemy or a slot list belonging to
+	# the game being torn down, and neither is ever reached from inside its own handler here.
+	if _battle != null and is_instance_valid(_battle):
+		_battle.free()
+	_battle = null
+	if _game_over != null and is_instance_valid(_game_over):
+		_game_over.free()
+	_game_over = null
+	# These bodies were inside the root just freed, and _despawn_beaten_enemies walks this
+	# unguarded.
+	_enemies.clear()
 
 	_game = null
 	_hooks = null
@@ -200,6 +219,7 @@ func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) 
 		_hint.setup(_style, get_viewport_rect().size, _game.controls_hint)
 	_spawn_player(data, spawn_id, at)
 	_spawn_npcs(data)
+	_spawn_enemies(data)
 	_configure_camera(data)
 
 	GameState.current_map = map_id
@@ -278,6 +298,48 @@ func _spawn_npcs(data: MapData) -> void:
 		_npcs[npc_id] = record
 
 
+## Puts a body on every enemy tile whose enemy is still standing.
+##
+## An enemy already beaten is simply not built - checked here rather than hidden later, because
+## a hidden body still blocks the tile it stands on, and a corridor guarded by something
+## invisible is a map the player cannot cross and cannot see why.
+func _spawn_enemies(data: MapData) -> void:
+	_enemies.clear()
+	for entry: Variant in data.enemies:
+		var record: Dictionary = entry
+		var raw := JsonFile.to_int_array(record.get("tile", []))
+		if raw.size() != 2:
+			continue
+		var enemy_id := StringName(str(record.get("id", "?")))
+		if GameState.was_seen(Interaction.seen_key(data.id, String(enemy_id))):
+			continue
+		var def := Registry.get_resource(&"EnemyDef", StringName(str(record.get("enemy", "")))) as EnemyDef
+		if def == null:
+			continue
+		var body := ActorBody.new()
+		body.name = "Enemy_" + String(enemy_id)
+		body.setup(_config, _source, def.character)
+		_built.sorted.add_child(body)
+		var facing := Dir.from_name(str(record.get("facing", "")))
+		body.place(MapData.tile_to_world(Vector2i(raw[0], raw[1]), _built.tile_size),
+			facing if facing >= 0 else Dir.D.DOWN)
+		_enemies[enemy_id] = body
+
+
+## Removes the bodies of anything beaten since the map was drawn, so the tile a fight was
+## standing on opens the moment the fight ends rather than on the next visit.
+func _despawn_beaten_enemies() -> void:
+	if _built == null:
+		return
+	for enemy_id: StringName in _enemies.keys():
+		if not GameState.was_seen(Interaction.seen_key(GameState.current_map, String(enemy_id))):
+			continue
+		var body: ActorBody = _enemies[enemy_id]
+		if is_instance_valid(body):
+			body.queue_free()
+		_enemies.erase(enemy_id)
+
+
 func _configure_camera(data: MapData) -> void:
 	if _camera.get_parent() == null:
 		_player.add_child(_camera)
@@ -320,27 +382,39 @@ func _physics_process(_delta: float) -> void:
 		_hint.dismiss()
 	var step := _player.apply(input)
 	GameState.set_player(_player.global_position, step.facing)
-	_check_warp()
+	_check_triggers()
 
 
-## Moves the player to another map when they stand on a warp tile.
+## What arriving on a new tile sets off. ONE guard for both kinds of trigger, because they
+## share the question "is this the first frame on this tile" - two copies of that would be two
+## `_last_tile`s, and the second one is the one that fires every frame.
 ##
-## Guarded by the tile they were on last frame: without it, arriving on the destination map
-## next to a warp back would immediately send them home again, and the two maps would bounce
-## the player between them forever.
-func _check_warp() -> void:
+## Guarded by the tile they were on last frame: without it, arriving on a destination map next
+## to a warp back would immediately send them home again, and the two maps would bounce the
+## player between them forever.
+func _check_triggers() -> void:
 	if _built == null:
 		return
 	var tile := _player.tile(_built.tile_size)
 	if tile == _last_tile:
 		return
 	_last_tile = tile
+	# A door first: a warp and a fight on adjacent tiles is a map-design mistake, and leaving
+	# rather than fighting is the safer way to resolve it - the enemy is still there afterwards.
+	if _try_warp(tile):
+		return
+	_try_encounter(tile)
+
+
+## Moves the player to another map when they stand on a warp tile. Returns whether the tile
+## had a warp at all - answered, refused or taken - so the caller knows to stop looking.
+func _try_warp(tile: Vector2i) -> bool:
 	var warp := _built.data.warp_at(tile)
 	if warp.is_empty():
-		return
+		return false
 	var destination: StringName = warp["map"]
 	if String(destination).is_empty():
-		return
+		return false
 
 	if not MapData.warp_allowed(warp, GameState.flags, GameState.inventory.to_dict()):
 		# Once per arrival, not once per frame: _last_tile is already updated above, so
@@ -348,8 +422,42 @@ func _check_warp() -> void:
 		var locked: StringName = warp.get("locked_dialog", &"")
 		if not String(locked).is_empty():
 			_open_dialog(locked)
-		return
+		return true
 	enter_map(destination, warp["spawn"])
+	return true
+
+
+## Starts a fight when the player arrives NEXT TO something that fights back.
+##
+## Adjacency rather than collision, and it is not an approximation of one: a body stops the
+## player six to ten pixels out, which is most of the way through the tile they are entering,
+## so waiting for contact would mean the trigger frame depends on walk speed and the exact
+## fraction of a tile a step happens to cover. Arriving on a tile is a whole number, on a known
+## frame, identical on every machine - which is what lets a QA script fight a scripted battle.
+##
+## Diagonals deliberately do not count. A fight the player is meant to have is made unavoidable
+## by GEOMETRY - a one-tile gap they must walk through - rather than by a radius, because a
+## radius that catches you as you slip past a corner reads as the game grabbing you.
+func _try_encounter(tile: Vector2i) -> void:
+	if _game == null or _built.data.enemies.is_empty():
+		return
+	for step in Dir.ALL:
+		var offset := Dir.vector_of(step)
+		var record := _built.data.enemy_at(tile + Vector2i(int(offset.x), int(offset.y)))
+		if record.is_empty():
+			continue
+		var seen_key := Interaction.seen_key(GameState.current_map, String(record["id"]))
+		if GameState.was_seen(seen_key):
+			continue
+		var def := Registry.get_resource(&"EnemyDef", record["enemy"]) as EnemyDef
+		if def == null:
+			# Said out loud rather than skipped: a misspelt enemy id is a fight that never
+			# happens, and a map that merely looks empty is the hardest kind of content bug.
+			push_error("World: map '%s' places enemy '%s', which no file in data/enemies describes"
+				% [GameState.current_map, record["enemy"]])
+			continue
+		open_battle_with(def, seen_key)
+		return
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -484,6 +592,10 @@ func _apply_effects(effects: Array) -> bool:
 					did = true
 				else:
 					push_error("World: took '%s' the player is not carrying" % effect.get("id", ""))
+			GameContext.OP_PARTY:
+				GameState.set_party(int(effect.get("hp", 0)), int(effect.get("xp", 0)),
+					int(effect.get("level", 1)))
+				did = true
 			GameContext.OP_WARP:
 				did = enter_map(StringName(str(effect.get("map", ""))),
 					StringName(str(effect.get("spawn", "start")))) or did
@@ -552,6 +664,166 @@ func _item_rows() -> Array:
 	return out
 
 
+## Starts a fight against a resolved enemy. Public and taking a DEF rather than a map record,
+## so a test can stage any fight it likes without needing a map that places one - the same
+## reason try_interact() and open_pause() are public.
+##
+## `seen_key` is what a victory will mark, passed in rather than rebuilt here because the
+## caller already knows which record this came from.
+func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
+	if _battle != null or _game_over != null or _game == null or def == null:
+		return false
+	if _game.combat == null:
+		# A map placed an enemy in a game that has no combat definition. Said out loud: the
+		# alternative is a fight that silently never opens, which reads as a broken trigger.
+		push_error("World: game '%s' has no combat, but something tried to start a fight" % _game.id)
+		return false
+	var faults := def.problems()
+	if not faults.is_empty():
+		push_error("World: enemy '%s' is not fit to fight: %s" % [def.id, ", ".join(faults)])
+		return false
+
+	_ensure_party()
+	_player.halt()
+	_battle = BattleScreen.new()
+	# Constructed and connected in one function, the open_pause rule: a view built in one place
+	# and wired in another is a view that eventually gets built and not wired.
+	_battle.finished.connect(_on_battle_finished)
+	add_child(_battle)
+	_battle.setup(BattleLogic.of(_game.combat, def, GameState.player_hp, GameState.player_xp,
+		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key)),
+		_style, get_viewport_rect().size, _source, _game.player_character, def.character)
+	Router.open_overlay(Router.State.BATTLE)
+	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
+	return true
+
+
+## What the player could drink mid-fight, resolved into rows. The Registry lookup lives here
+## because BattleLogic may not touch an autoload - and only things that HEAL are offered: a
+## gate key in a battle menu is a row that can only disappoint.
+func _battle_items() -> Array:
+	var out: Array = []
+	# `carried` rather than `item_id`, which _item_rows uses: the two loops would otherwise be
+	# character-identical, and a find-and-replace aimed at one of them - a mutant, a codemod,
+	# a rename - silently edits both and reports a verdict about the wrong function.
+	for carried in GameState.inventory.ids():
+		var def := Registry.get_resource(&"ItemDef", carried) as ItemDef
+		if def == null or def.battle_heal <= 0:
+			continue
+		out.append(BattleLogic.ItemRow.of(carried, def.name, GameState.item_count(carried),
+			def.battle_heal))
+	return out
+
+
+## A fight's seed, derived only from state that is already persisted.
+##
+## Never a clock: the whole point of a seeded fight is that a QA script fighting it gets the
+## same enemy moves on every machine and every run. Deriving it from the player's own progress
+## also means walking back into a fight you fled replays it exactly, which is a promise the
+## save file can keep.
+func _battle_seed(seen_key: String) -> int:
+	return SeededRng.hash_seed(hash("%s/%s" % [GameState.game, seen_key]),
+		"%d:%d" % [GameState.player_xp, GameState.player_level])
+
+
+## The one place a fight's result reaches the world.
+##
+## The screen is closed FIRST: this arrives from inside its own _physics_process, and a defeat
+## goes on to build another screen, so leaving the battle up while that happens would stack two
+## full-screen views and free one of them mid-dispatch.
+func _on_battle_finished(outcome: int, effects: Array) -> void:
+	var enemy_name := &""
+	if _battle != null and _battle.logic() != null:
+		enemy_name = StringName(_battle.logic().enemy_name())
+	_close_battle()
+	match outcome:
+		BattleLogic.Outcome.DEFEAT:
+			# Nothing is applied. A lost fight earns no xp, marks nothing beaten and consumes
+			# nothing - the run is over, and the save the player goes back to is the truth.
+			EventBus.battle_changed.emit({"enemy": enemy_name, "open": false, "outcome": &"defeat"})
+			open_game_over()
+		_:
+			_apply_effects(effects)
+			_despawn_beaten_enemies()
+			EventBus.battle_changed.emit({"enemy": enemy_name, "open": false,
+				"outcome": &"fled" if outcome == BattleLogic.Outcome.FLED else &"victory"})
+
+
+func _close_battle() -> void:
+	if _battle == null:
+		return
+	# queue_free, not free: reached from inside the screen's own frame callback.
+	_battle.queue_free()
+	_battle = null
+	Router.close_overlay()
+
+
+## Fills in a player who has never fought, from the game's own curve.
+##
+## THE one place "no party yet" becomes a real hero, and it lives here because the curve is a
+## CombatDef - which GameState may not load and a save file may not reach. Zero hp is the
+## signal, so this is safe to call on every entry: a player mid-run is left exactly as they are.
+func _ensure_party() -> void:
+	if _game == null or _game.combat == null or GameState.player_hp > 0:
+		return
+	GameState.set_party(_game.combat.max_hp(GameState.player_level), GameState.player_xp,
+		GameState.player_level)
+
+
+## Puts up the end of the run. Public for the same reason open_pause() is.
+func open_game_over() -> bool:
+	if _game_over != null or _game == null:
+		return false
+	_game_over = GameOverScreen.new()
+	_game_over.load_requested.connect(_on_game_over_load)
+	_game_over.new_game_requested.connect(_on_game_over_new_game)
+	add_child(_game_over)
+	_game_over.setup(GameOverMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
+	Router.open_overlay(Router.State.GAME_OVER)
+	return true
+
+
+func _close_game_over() -> void:
+	if _game_over == null:
+		return
+	_game_over.queue_free()
+	_game_over = null
+	Router.close_overlay()
+
+
+func _on_game_over_load(slot: int) -> void:
+	# Deferred for the same reason a pause-menu load is: this rebuilds the map, and doing that
+	# inside the screen's input callback frees nodes the tree is still dispatching to.
+	_commit_game_over_load.call_deferred(slot)
+
+
+func _commit_game_over_load(slot: int) -> void:
+	if _game_over == null or _game == null:
+		return
+	var data := SaveManager.load_slot(_game.id, slot)
+	if data == null:
+		# load_slot has parked the bytes and said so. The screen stays up showing what the
+		# slots hold now - one fewer - and answering again, which refresh() re-enables.
+		_game_over.refresh(_slot_summaries())
+		return
+	_close_game_over()
+	restore(data)
+
+
+func _on_game_over_new_game() -> void:
+	_commit_new_game.call_deferred()
+
+
+func _commit_new_game() -> void:
+	if _game_over == null:
+		return
+	var manifest := _game
+	# Closed before start_game, which tears the whole game down: the screen is a child of this
+	# node and _teardown_game would free it out from under the deferred call that is running.
+	_close_game_over()
+	start_game(manifest)
+
+
 func _close_pause() -> void:
 	if _pause == null:
 		return
@@ -601,6 +873,10 @@ func _commit_load(slot: int) -> void:
 ## they are flag-gated and route through _apply like every other effect.
 func restore(data: SaveData) -> bool:
 	GameState.from_save(data)
+	# A save written before battles existed - or by a game that had none - restores with no
+	# party at all. This is where that becomes a real hero, from the curve of whichever game is
+	# actually running, which is a fact neither the file nor GameState can reach.
+	_ensure_party()
 	return enter_map(data.map, &"", data.position)
 
 
@@ -620,6 +896,22 @@ func dialog_box() -> DialogBox:
 
 func pause_screen() -> PauseScreen:
 	return _pause
+
+
+func battle_screen() -> BattleScreen:
+	return _battle
+
+
+func game_over_screen() -> GameOverScreen:
+	return _game_over
+
+
+func enemy_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for k: StringName in _enemies.keys():
+		out.append(k)
+	out.sort()
+	return out
 
 
 func npc_ids() -> Array[StringName]:

@@ -34,6 +34,16 @@ var warps: Array = []
 ## on, and whether it blocks you comes from that tile's own metadata - so adding a chest is
 ## an art change plus four lines of data, and MapBuilder gains no rendering code at all.
 var objects: Array = []
+## Things that fight back. Each is {"id", "enemy", "tile", "facing"}, where `enemy` names an
+## EnemyDef under data/enemies/.
+##
+## Unlike an object, an enemy IS a sprite - it stands on its tile with generated art, and
+## walking next to it starts the fight. It is not an interaction target: there is no pressing
+## a monster, and one that had to be pressed would be one the player could simply walk past.
+##
+## Being beaten is remembered as a `seen` key, exactly as a chest remembers being opened, so
+## "defeated enemies stay gone" needed no new persistence and migrates for free.
+var enemies: Array = []
 var style_id: StringName = &"gb16"
 
 
@@ -53,6 +63,7 @@ static func load_from(path: String) -> MapData:
 	map.npcs = file.get_array("npcs")
 	map.warps = file.get_array("warps")
 	map.objects = file.get_array("objects")
+	map.enemies = file.get_array("enemies")
 	map.ok = true
 	return map
 
@@ -123,6 +134,37 @@ func warp_at(at: Vector2i) -> Dictionary:
 				"locked_dialog": StringName(str(warp.get("locked_dialog", ""))),
 			}
 	return {}
+
+
+## The enemy standing on a tile, fully projected, or an empty dictionary.
+##
+## Projected for the same reason warp_at is: this dictionary is the ONLY thing the encounter
+## check sees, so a field left out here is a fight that silently never starts - and a fight
+## that never starts looks exactly like a map that has not been given its enemies yet.
+func enemy_at(at: Vector2i) -> Dictionary:
+	for entry: Variant in enemies:
+		var enemy: Dictionary = entry
+		# `spot` rather than warp_at's `raw`: the two lookups would otherwise be
+		# character-identical, and a find-and-replace aimed at one of them - a mutant, a
+		# codemod, a rename - silently edits both and reports a verdict about the wrong one.
+		var spot := JsonFile.to_int_array(enemy.get("tile", []))
+		if spot.size() == 2 and Vector2i(spot[0], spot[1]) == at:
+			return {
+				"id": StringName(str(enemy.get("id", ""))),
+				"enemy": StringName(str(enemy.get("enemy", ""))),
+				"tile": Vector2i(spot[0], spot[1]),
+				"facing": str(enemy.get("facing", "")),
+			}
+	return {}
+
+
+## Every EnemyDef this map names, for the content gate. The item_refs precedent: a misspelt
+## enemy id is a fight that cannot open, and the map would look merely empty.
+func enemy_refs() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for entry: Variant in enemies:
+		_add_ref(out, (entry as Dictionary).get("enemy", ""))
+	return out
 
 
 ## Whether a warp will actually fire. Pure, so "a locked door needs its key" is a test that
@@ -316,6 +358,29 @@ func _object_problems(bounds: Vector2i) -> Array[String]:
 		var needs := str(object.get("requires_item", ""))
 		if (not needs.is_empty() or not takes.is_empty()) and str(object.get("locked_dialog", "")).is_empty():
 			out.append("object '%s' needs an item but says nothing when refused" % object_id)
+
+	# Enemies share the same id namespace, and the reason is sharper than for objects: being
+	# beaten is recorded as the same map-scoped `seen` key an opened chest uses. An enemy and a
+	# chest called "guard" are one memory - beat the guard and the chest is already empty.
+	for entry: Variant in enemies:
+		var enemy: Dictionary = entry
+		var enemy_id := str(enemy.get("id", ""))
+		if enemy_id.is_empty():
+			out.append("an enemy has no id")
+			continue
+		if taken.has(enemy_id):
+			out.append("enemy id '%s' is used twice" % enemy_id)
+		taken[enemy_id] = true
+
+		if str(enemy.get("enemy", "")).is_empty():
+			out.append("enemy '%s' names no EnemyDef" % enemy_id)
+		var spot := JsonFile.to_int_array(enemy.get("tile", []))
+		if spot.size() != 2:
+			out.append("enemy '%s' has no tile" % enemy_id)
+			continue
+		var stands := Vector2i(spot[0], spot[1])
+		if stands.x < 0 or stands.y < 0 or stands.x >= bounds.x or stands.y >= bounds.y:
+			out.append("enemy '%s' at %s is outside the %s map" % [enemy_id, stands, bounds])
 	return out
 
 
