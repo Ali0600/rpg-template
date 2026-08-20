@@ -171,6 +171,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M11** — one game, one world, and the name this repo should have had
 - [x] **M12** — items and an inventory, and a quest that runs on them
 - [x] **M13** — turn-based battles with timed presses, XP and levels, and a quest reworked around them
+- [x] **M13.1–.4** — the play-test round: reaction-sized timing windows, a quest that says where to go, a dialog box that declares its capacity, a quiet build log
 
 ## Experience Gained
 

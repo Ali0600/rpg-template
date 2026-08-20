@@ -143,7 +143,11 @@ validator that has only ever passed is decoration.
 - Pure logic (`spritegen/`, `Locomotion`, `DialogRunner`, `MapData`) is `RefCounted` and
   tested with no scene tree. Node behaviour uses gdUnit4's `scene_runner`.
 - Mutants are mandatory: a rule with no row in `tools/mutants.tsv` is a rule nobody has
-  proven is tested. `NOT APPLIED` means fix the pattern, never delete the row.
+  proven is tested. `NOT APPLIED` means fix the pattern, never delete the row. A pattern must
+  match exactly ONE line, and `tools/mutants_aim.sh` checks every row on every `check.sh` run —
+  because writing NEW code is what breaks an old mutant's aim: repeat a line one anchors on and
+  sed silently retargets it at your function. Fix by making the two lines differ (rename a
+  local), never by loosening the pattern.
 - Gates run **unpiped** — `cmd | tail` exits with `tail`'s status, so a failing gate
   reports success.
 - Autoloads outlive a suite: call `GameState.reset()` in `before_test`.
