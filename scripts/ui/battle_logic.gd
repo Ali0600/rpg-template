@@ -168,6 +168,21 @@ func cue_on() -> bool:
 	return _count <= _combat.timed_window_frames
 
 
+## How long the current cue runs from end to end, so a view can draw a wind-up as a FRACTION
+## of itself rather than against a number it keeps its own copy of.
+##
+## One is returned outside a cue rather than zero: every caller divides by this, and a phase
+## with no wind-up should read as "finished", not crash the frame.
+func cue_span() -> int:
+	match _phase:
+		Phase.PLAYER_ACT:
+			return _combat.attack_cue_frames
+		Phase.ENEMY_ACT:
+			return _combat.defend_cue_frames
+		_:
+			return 1
+
+
 func acting_side_is_player() -> bool:
 	return _phase == Phase.PLAYER_ACT
 

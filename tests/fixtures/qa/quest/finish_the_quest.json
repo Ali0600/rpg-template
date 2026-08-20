@@ -1,27 +1,22 @@
 {
 	"_readme": [
-		"The whole quest, played WELL, end to end - and the only gate that proves the fighting,",
-		"the levelling and the item command all work against real content rather than against a",
-		"fixture.",
+		"The whole quest, played WELL, end to end - and the only gate that proves the fights, the",
+		"levels and the Item command all work on the shipped data rather than on a fixture.",
 		"",
-		"Every battle press in here is timed. The waits come from data/combat/quest_combat.tres",
-		"and from the QA step machine's own cost, and they are arithmetic rather than guesswork:",
-		"a `press` occupies three frames (the press, one held frame, the inserted release) and a",
-		"`wait` of N occupies N+1. A confirm starts a 36-frame swing whose timed window is the",
-		"last 8, so `wait 27` puts the second press on tick 31 - five frames of slack either",
-		"side. Impact lands on 36, the message runs 45, the enemy's 48-frame swing then opens its",
-		"own window at tick 121, and `wait 89` puts the block on 124. A full round is 174 frames.",
+		"Every battle wait below is derived, not guessed. data/combat/quest_combat.tres gives a",
+		"72-frame swing, an 84-frame enemy telegraph, a 24-frame window and a 45-frame message, so",
+		"one round is 246 ticks from confirm back to the menu; a QA `press` costs 3 frames and a",
+		"`wait(N)` costs N+1. The presses land mid-window with about twelve frames of slack either",
+		"side. RETUNE THE TIMING AND THESE NUMBERS ALL MOVE - recompute them from that file.",
 		"",
-		"Two things about walking legs are worth knowing before editing this file. A fight stops",
-		"the player WHERE THEY STOOD, which is rarely a tile centre - so any leg that follows a",
-		"battle and then has to thread a one-tile gap re-anchors against a wall first, or the",
-		"player's body clips the wall beside the gap. And an arriving hold carries the player",
-		"onward into the next map: here that is used deliberately twice, once to carry us out of",
-		"the hollow and straight along the village's row 5 into the gate on one held key.",
+		"Two rules of this harness show up everywhere below. A leg is held until a WALL or a BODY",
+		"stops it, never for a counted number of tiles. And an arriving hold carries the player",
+		"onward into the next map, which is used deliberately here: one held key takes us out of",
+		"the hollow, across the village and into the gate.",
 		"",
-		"Its sibling is fall_at_the_keep.json, which walks the same road badly and loses. Neither",
-		"script is the whole proof on its own: a driver that plays well only ever visits the",
-		"branches good play reaches."
+		"A fight adds a third: it stops the player wherever they stood, which is rarely a tile",
+		"centre - so every leg that follows a battle re-anchors on a wall before it goes anywhere",
+		"near a one-tile gap."
 	],
 	"steps": [
 		{
@@ -517,7 +512,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 27
+			"frames": 56
 		},
 		{
 			"op": "press",
@@ -525,7 +520,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 89
+			"frames": 121
 		},
 		{
 			"op": "press",
@@ -533,7 +528,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 50
+			"frames": 62
 		},
 		{
 			"op": "press",
@@ -541,7 +536,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 27
+			"frames": 56
 		},
 		{
 			"op": "press",
@@ -549,7 +544,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 89
+			"frames": 121
 		},
 		{
 			"op": "press",
@@ -557,7 +552,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 50
+			"frames": 62
 		},
 		{
 			"op": "press",
@@ -565,7 +560,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 27
+			"frames": 56
 		},
 		{
 			"op": "press",
@@ -573,7 +568,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 89
+			"frames": 121
 		},
 		{
 			"op": "press",
@@ -581,7 +576,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 50
+			"frames": 62
 		},
 		{
 			"op": "note",
@@ -593,7 +588,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 27
+			"frames": 56
 		},
 		{
 			"op": "press",
@@ -1016,7 +1011,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 175
+			"frames": 247
 		},
 		{
 			"op": "note",
@@ -1036,7 +1031,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 140
+			"frames": 175
 		},
 		{
 			"op": "press",
@@ -1044,7 +1039,7 @@
 		},
 		{
 			"op": "wait",
-			"frames": 175
+			"frames": 247
 		},
 		{
 			"op": "wait",

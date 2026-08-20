@@ -10,10 +10,25 @@
 ; it is the whole difficulty design, and every number below was chosen against it. See
 ; docs/DECISIONS.md for the arithmetic.
 ;
-; The cues are frames, not seconds: 36 is a beat you can react to at 60fps, and 48 gives the
-; enemy's swing the extra moment it needs to be readable as somebody else's move. The 8-frame
-; window is about an eighth of a second - forgiving enough that a person lands it, tight
-; enough that holding the button through the whole cue does not.
+; The cues are frames, not seconds. These are the SECOND set of values: the first shipped
+; without anyone playing the game, and a play-test killed them in one sentence - "way too fast
+; for human reaction". They were: cues of 36 and 48, and a window of 8.
+;
+; The mechanism behind that, worth stating because it is the thing to size against: the `!`
+; lights exactly WHEN the window opens (BattleLogic.cue_on is the same comparison the press is
+; judged by, deliberately - the screen and the rule must be one fact). So the window is not a
+; margin around a beat the player already saw coming; it IS the whole reaction budget. Eight
+; frames is 133ms, and a person needs about 250ms to see a thing and move, before the display
+; and the browser have their share.
+;
+; So: 24 frames, 400ms, is the reaction. The cues grew with it - 72 and 84 - because the window
+; has to stay a small fraction of the wind-up, or pressing the moment the swing starts happens
+; to land inside it and "timing" collapses back into "press early". The enemy's is still the
+; longer of the two: somebody else's move needs an extra beat to read as one.
+;
+; None of this touches balance. The window is not in the damage arithmetic - a timed hit is
+; worth double whenever it lands - so the fight the numbers were tuned against is the same
+; fight; test_battle_content.gd proves that on every run.
 
 [ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
 
@@ -27,7 +42,7 @@ attack_per_level = 2
 base_defense = 1
 defense_per_level = 1
 xp_curve = Array[int]([10, 12])
-attack_cue_frames = 36
-defend_cue_frames = 48
-timed_window_frames = 8
+attack_cue_frames = 72
+defend_cue_frames = 84
+timed_window_frames = 24
 message_frames = 45

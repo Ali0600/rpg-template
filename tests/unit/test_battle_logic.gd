@@ -502,3 +502,33 @@ func test_a_different_seed_draws_differently() -> void:
 			_until_leaves(battle, BattleLogic.Phase.MESSAGE)
 		logs[log] = true
 	assert_int(logs.size()).is_greater(1)
+
+func test_a_cue_reports_its_own_full_length() -> void:
+	# The view draws the wind-up as a fraction of this rather than keeping its own copy of the
+	# frame counts. Asked of the logic so that a retune moves the animation with the rule -
+	# the lean IS the anticipation, and the `!` only lights once the window is already open.
+	var battle := _fight()
+	battle.press()
+	assert_int(battle.cue_span()).override_failure_message(
+		"the player's wind-up does not report its own length").is_equal(CUE)
+	# Forward through the impact and the line it prints, until the enemy's own swing is up.
+	# Bounded, and it asserts it arrived: a "drive until you see X" loop over a machine that
+	# can stall is how a suite hangs instead of failing.
+	var reached := false
+	for i in 500:
+		battle.tick()
+		if battle.phase() == BattleLogic.Phase.ENEMY_ACT:
+			reached = true
+			break
+	assert_bool(reached).override_failure_message(
+		"the enemy never took its turn").is_true()
+	assert_int(battle.cue_span()).override_failure_message(
+		"the enemy's swing reports the player's wind-up length, so the two read alike"
+	).is_equal(DEFEND_CUE)
+
+func test_outside_a_cue_the_span_is_safe_to_divide_by() -> void:
+	# One, not zero: every caller divides by this, and a phase with no wind-up should read as
+	# "finished" rather than take the frame down with it.
+	var battle := _fight()
+	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
+	assert_int(battle.cue_span()).is_equal(1)

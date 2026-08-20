@@ -210,9 +210,14 @@ func _paint_fighters() -> void:
 	var cue := maxi(_logic.count(), 0)
 	var reach := 0.0
 	if acting:
-		# Furthest forward at the moment of impact, which is where the window is.
-		var span := float(maxi(cue, 1))
-		reach = LUNGE * (1.0 - clampf(span / 48.0, 0.0, 1.0))
+		# Furthest forward at the moment of impact, which is where the window is - and
+		# measured against the cue's OWN length, asked of the logic rather than kept here.
+		# A hardcoded span makes the lean finish early on a longer cue and never arrive on a
+		# shorter one, so a retune of the timing would silently stop the wind-up reading as
+		# one. That matters more than it looks: the lean is the anticipation the player is
+		# reacting to, and the `!` only lights once the window is already open.
+		var span := float(maxi(_logic.cue_span(), 1))
+		reach = LUNGE * (1.0 - clampf(float(maxi(cue, 0)) / span, 0.0, 1.0))
 
 	if _hero_view != null:
 		_hero_view.position = _hero_home + Vector2(reach if acting and player_side else 0.0, 0.0)

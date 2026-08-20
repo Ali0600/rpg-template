@@ -1,22 +1,14 @@
 {
 	"_readme": [
-		"The same road, walked badly - and the only gate that proves this game can be LOST, and",
-		"recovered from.",
+		"The same game played BADLY, on purpose, because a driver that plays well only ever visits",
+		"the branches good play reaches. Nothing here is a fixture: it is the shipped quest, lost.",
 		"",
-		"Every press here is mistimed on purpose, and the harness does it for free:",
-		"press_until_state mashes, and only the FIRST press of a cue is captured, so a masher's",
-		"press always lands early and never scores. That is why the Keeper kills this driver on",
-		"every seed while finish_the_quest.json beats it on every seed - the two scripts are the",
-		"same content at both ends of the skill range.",
+		"press_until_state mashes, and only the FIRST press of a cue is captured - so a masher's",
+		"press always lands early and never scores. That is what makes this a bad driver for free,",
+		"and it is why the Keeper kills them: four unblocked hits against twenty-four health.",
 		"",
-		"Which matters because a driver that plays WELL only ever visits the branches good play",
-		"reaches. A perfect run never sees a fight it had to run from, never sees a boss refuse to",
-		"let it run, never sees a defeat, and never sees the screen that follows one. All four are",
-		"here, and none of them is reachable from the other script.",
-		"",
-		"The flee is also the proof that running costs something: the slink is still standing on",
-		"its tile afterwards, and since it is standing on OUR tile too, nothing re-triggers until",
-		"we walk away and come back."
+		"What only this script ever reaches: fleeing a fight and finding it still standing, a boss",
+		"refusing to be fled, losing, the game-over screen, and the road back from it."
 	],
 	"steps": [
 		{

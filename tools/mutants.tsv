@@ -234,3 +234,5 @@ games/quest/quest_hooks.gd	s|if ctx.was_seen\(SEEN_KEEPER\):|if false:|	tests/un
 data/combat/quest_combat.tres	s|xp_curve = Array\[int\]\(\[10, 12\]\)|xp_curve = Array[int]([10, 40])|	tests/unit/test_battle_content.gd	the curve drifts off the fights it was balanced against
 data/enemies/keeper.tres	s|max_hp = 30|max_hp = 12|	tests/unit/test_battle_content.gd	the boss becomes beatable by mashing, so the timing is decoration
 data/items/tonic.tres	s|battle_heal = 10|battle_heal = 0|	tests/unit/test_battle_content.gd	the tonic stops healing, so the Item command has nothing behind it
+scripts/ui/battle_logic.gd	s|return _combat.defend_cue_frames|return _combat.attack_cue_frames|	tests/unit/test_battle_logic.gd	the enemy swing reports the player wind-up length, so the lean reads alike for both
+scripts/ui/battle_logic.gd	s|^\t\t\treturn 1$|\t\t\treturn 0|	tests/unit/test_battle_logic.gd	a phase with no wind-up reports zero, and the view divides by it
