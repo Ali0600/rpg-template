@@ -20,6 +20,10 @@ class Step:
 	var velocity: Vector2
 	var facing: int
 	var clip: StringName
+	## Whether a foot landed on this step. Not decided here or by GridWalker - neither knows
+	## how far the body ACTUALLY moved, and only the move itself does. ActorBody.apply sets it
+	## after move_and_slide, which is why it has a default rather than a constructor argument.
+	var footfall := false
 
 	func _init(velocity_value: Vector2, facing_value: int, clip_value: StringName) -> void:
 		velocity = velocity_value

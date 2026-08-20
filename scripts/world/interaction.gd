@@ -83,6 +83,9 @@ static func decide(record: Dictionary, ctx: GameContext) -> bool:
 	if not flag.is_empty():
 		ctx.set_flag(StringName(flag))
 	if not gives.is_empty():
+		# After the two all-or-nothing refusals above, so a take that could not be covered
+		# never makes a pickup noise for something the player did not get.
+		ctx.play(Sfx.id_of(Sfx.Cue.PICKUP))
 		ctx.give_item(StringName(gives), int(record.get("give_count", 1)))
 	if not takes.is_empty():
 		ctx.take_item(StringName(takes), take_count)
@@ -96,6 +99,9 @@ static func decide(record: Dictionary, ctx: GameContext) -> bool:
 ## not fire, or a chest would remember being opened by someone who could not open it.
 static func _refuse(record: Dictionary, ctx: GameContext) -> bool:
 	var locked := str(record.get("locked_dialog", ""))
+	# Appended BEFORE the line, because the sink applies effects in order and the thud belongs
+	# to the door rather than to the sentence about it.
+	ctx.play(Sfx.id_of(Sfx.Cue.LOCKED))
 	if not locked.is_empty():
 		ctx.say(StringName(locked))
 	return true

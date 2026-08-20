@@ -73,6 +73,15 @@ snapshot and append effects; `world_scene._apply` is the single place any of it 
 state. `on_interact` returning `false` means "not mine" and the data's own behaviour runs — a
 game is additive or it is not using this seam.
 
+**A view asks for a sound; it never plays one.** Every screen carries
+`signal sound_wanted(id)` and `world_scene._on_sound_wanted` is the single place that reaches
+the speaker - the `_apply_effects` shape, for audio. Two reasons, and the second is the one
+that bites: `check.sh`'s per-file parse gate skips any file whose TEXT contains an autoload
+name, so a view calling the audio singleton silently drops itself AND every suite that depends
+on it out of that gate. **Naming it in a comment is enough to do this** - which is how the
+signal came to exist. Pure classes (`BattleLogic`) go one step further and COLLECT cues for the
+view to drain, because a fight's cues must survive a defeat, whose effects are discarded.
+
 **A dialog line has a SIZE, and the build enforces it.** `DialogBox` shows two lines of text
 with the choices in a band of their own below them, and the box grows only while a choice is
 up. Those numbers are constants on `DialogBox`; `test_dialog_fit.gd` measures every shipped

@@ -16,6 +16,10 @@ var config: GameConfig
 var facing: int = Dir.D.DOWN
 
 var _shape := CollisionShape2D.new()
+## Counts ground covered so something upstairs can put a footstep on it. Null when the config
+## asks for no footsteps at all.
+var _meter: StepMeter = null
+
 ## Built by setup() when the config asks for grid movement, null otherwise. Null IS free
 ## movement - there is no mode flag to keep in sync with it.
 var _walker: GridWalker
@@ -32,6 +36,7 @@ func _ready() -> void:
 func setup(config_value: GameConfig, source: SpriteSource, character_id: StringName) -> bool:
 	config = config_value
 	_walker = GridWalker.new(config) if config.grid_step_pixels > 0 else null
+	_meter = StepMeter.new(config.footstep_pixels) if config.footstep_pixels > 0.0 else null
 	if view.get_parent() == null:
 		add_child(view)
 	if _shape.get_parent() == null:
@@ -61,12 +66,18 @@ func apply(input: Vector2) -> Locomotion.Step:
 		else Locomotion.step(input, facing, config)
 	facing = step.facing
 	velocity = step.velocity
+	var was := global_position
 	move_and_slide()
 	if _walker != null:
 		# Where move_and_slide actually left us decides whether the step arrived, and the last
 		# fraction of a pixel is given back here rather than predicted before the move.
 		global_position = _walker.settle(global_position)
 	view.set_pose(step.clip, step.facing)
+	# Measured, never predicted: move_and_slide picks its own delta and a wall can eat most of
+	# a frame's motion, so a stride computed from speed would keep a blocked player's feet
+	# clattering against the wall they are standing still against.
+	if _meter != null:
+		step.footfall = _meter.advance(was.distance_to(global_position))
 	return step
 
 
@@ -96,6 +107,10 @@ func _reachable(motion: Vector2) -> bool:
 func place(at: Vector2, new_facing: int = -1) -> void:
 	if _walker != null:
 		_walker.cancel()
+	if _meter != null:
+		# A spawn, a warp or a load is not a stride. Without this, the distance across a map
+		# would be counted as ground the player walked and land a footstep on arrival.
+		_meter.reset()
 	global_position = at
 	halt(new_facing)
 

@@ -12,6 +12,15 @@ extends CanvasLayer
 ## The screen has NO timing code of its own. Every moving thing on it is derived from
 ## logic.count(), the same number the rules are judging the player's press against, so what the
 ## player sees and what the fight scores cannot drift apart.
+## A sound this view wants played. Emitted rather than played directly, for two reasons.
+##
+## Signals up, calls down - the world owns the speaker, and a view asking for a noise is the
+## same shape as a view asking for anything else. And practically: check.sh's per-file parse
+## gate skips any file whose TEXT names an autoload, so calling the audio singleton here would
+## quietly drop this file out of that gate, along with every test that depends on it. That is
+## not hypothetical - it is how this signal came to exist. Do not name it in prose either.
+signal sound_wanted(id: StringName)
+
 signal finished(outcome: int, effects: Array)
 
 const LAYER := 12
@@ -151,6 +160,12 @@ func _physics_process(_delta: float) -> void:
 	if _logic == null or _committed:
 		return
 	_logic.tick()
+	# Drained HERE and nowhere else. Input arrives in _unhandled_input and queues cues there
+	# too, but one drain in the loop picks all of them up on the next frame - and one driver
+	# that copes with whatever it finds beats a play() call at every site that might queue
+	# something, where the newest site is always the one that forgets.
+	for cue in _logic.take_sounds():
+		sound_wanted.emit(cue)
 	_paint()
 	if _logic.finished():
 		_committed = true

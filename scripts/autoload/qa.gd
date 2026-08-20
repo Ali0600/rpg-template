@@ -132,6 +132,22 @@ func _run(step: Dictionary) -> void:
 				_fail("expected to be in map '%s', found '%s'" % [wanted_map, GameState.current_map])
 			else:
 				_log.append("in map '%s'" % wanted_map)
+		"sound_mark":
+			# Clears the window an assert_sound looks at, so a script asks "since I pressed
+			# this" rather than "at some point in the whole run".
+			AudioBus.clear_requests()
+			_log.append("listening from here")
+		"assert_sound":
+			# The id that was REQUESTED, never that audio was audible: this runs headless on a
+			# dummy driver, and a gate that claims to hear something is a gate proving nothing.
+			var cue := StringName(str(step.get("id", "")))
+			var want := bool(step.get("expect", true))
+			var heard := AudioBus.requested().has(cue)
+			if heard != want:
+				_fail("expected sound '%s' to be %s since the last mark, heard: %s"
+					% [cue, "asked for" if want else "silent", AudioBus.requested()])
+			else:
+				_log.append("sound '%s' %s" % [cue, "played" if heard else "stayed quiet"])
 		"assert_flag":
 			# The one assertion that can tell "the quest advanced" from "something moved the
 			# player". A gate opening is evidence a warp fired; the flag is evidence the
@@ -339,6 +355,12 @@ func _fail(message: String) -> void:
 func _finish() -> void:
 	_finished = true
 	_release_all()
+	# Every session, not just the ones that assert a sound. AudioBus warns once about an id it
+	# does not have, into a log nobody is reading, in a build that has already shipped - so a
+	# misspelled cue is exactly the kind of defect that survives to release. Checking it here
+	# turns that warning into a red gate across all nine scripted play sessions for free.
+	for unknown in AudioBus.unknown_requests():
+		_fail("something asked for the sound '%s', which no cue is called" % unknown)
 	for line in _log:
 		print("qa: " + line)
 	if _failures.is_empty():
