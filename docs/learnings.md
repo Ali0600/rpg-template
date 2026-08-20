@@ -460,3 +460,23 @@ what each map actually needs cut it to 3:22 without changing a single assertion.
 not the frames the work took. Budget them: a hold only needs to outlast the widest crossing of
 the map it runs in. And when a headless run appears to hang, add up its declared frames before
 looking for a deadlock — 13,000 frames is not a hang, it is three and a half minutes.
+
+## A cue and its window that open together make the window the whole reaction budget
+
+A timing mechanic showed the player a `!` at the exact frame the scoring window opened —
+deliberately, so that the thing drawn and the thing judged were one comparison and could not
+drift apart. The window was 8 frames, about 133ms, and the file's own comment called it
+"forgiving enough that a person lands it". It was not: a human needs roughly 250ms to see
+something and move, before the display and the browser take their share. The mechanic was
+only hittable by anticipation, and the first person to play it said so in one sentence.
+
+**Why it came up:** the numbers had been chosen against the *arithmetic* — a window small
+enough that holding the button through the cue does not score — and that constraint is real,
+but it only sets the upper bound. Nothing set the lower one, because no gate can feel a
+control, and every automated proof passed: the balance tests still showed timing winning and
+mashing losing, because the window is not in the damage formula at all.
+
+**Takeaway:** if the telegraph and the window open on the same frame, size the window for
+REACTING (250ms plus latency plus slack), and grow the wind-up to keep the window a small
+fraction of it. More generally: a number that only a human can judge is not shipped until a
+human has judged it — get it in front of someone before the milestone closes, not after.

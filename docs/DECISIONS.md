@@ -637,6 +637,18 @@ key an opened chest already used, so it persisted and migrated for free. A battl
 go through `world_scene._apply_effects` like every other effect, so there is still exactly one
 place where anything reaches live state.
 
+**Retuned after play, M13.1.** The first timing values shipped without anyone playing the
+game, and the user's verdict on the live build was one sentence: *"way too fast for human
+reaction."* They were right, and the reason is structural rather than a matter of taste — the
+`!` lights exactly WHEN the window opens (`cue_on()` is the same comparison the press is
+judged by, deliberately, so the screen and the rule cannot drift), so the window is not a
+margin around a beat the player already saw coming: it *is* the entire reaction budget. Eight
+frames is 133ms against a human's ~250ms. The window went to 24 frames and the cues to 72/84
+to keep the window a small fraction of the wind-up. Nothing about balance moved, because the
+window is not in the damage arithmetic. The lesson generalises past this game: **when a cue
+and its window open together, size the window for REACTING, not for precision** — and a feel
+number that no test can judge needs a human before it ships, not after.
+
 ## Game over is an overlay, and TITLE still means nothing — *M13*
 
 Losing had to go somewhere. The user asked for "game over → title".
