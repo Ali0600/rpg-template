@@ -887,3 +887,33 @@ Where the call to the speaker lives.
 
 The honest cost of one accumulator: a diagonal grid step covers 22.6px rather than 16, so its
 footfall lands part-way through the step. That is what walking sounds like anyway.
+
+## A setting is not a save — *M14*
+
+Where the player's volume lives.
+
+- **Its own file, `user://settings.json`, outside every slot.** *Chosen.* A save is one run of
+  one game; a setting belongs to the person at the keyboard and has to survive starting over,
+  switching game and deleting every slot.
+- **A field on `SaveData`.** Rejected: it would need a migration, it would be per-slot, and
+  loading an old save would reset the volume — which is not a thing a load should do.
+- **Not persisting at all (session-only).** Rejected on the deployed demo: every reload of the
+  page would come back loud.
+
+No version field, deliberately. There is one field; a value the enum does not contain falls
+back to the default with a warning, and the next write repairs the file. A migration chain for
+that would be ceremony, and `supported_versions()` would be describing a format that never
+changed.
+
+## Four named steps, cycled by confirm — *M14*
+
+- **Off / Quiet / Normal / Loud, advanced by the confirm button.** *Chosen.* The pause menu has
+  up, down and confirm; up and down move the cursor, so confirm is the only button left. Four
+  steps is also what a menu row can say in one word.
+- **A slider on left/right.** Rejected for now: it needs an input axis the menu does not use for
+  anything else, and a continuous value has no name to draw on the row.
+- **A plain on/off toggle.** Rejected: the honest complaint about game audio is rarely "silence
+  it", it is "quieter than that".
+
+The gains are not evenly spaced (0, 0.25, 0.6, 1.0) because hearing is roughly logarithmic and
+even spacing sounds like three loud settings and one quiet one.

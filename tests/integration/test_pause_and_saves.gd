@@ -296,3 +296,33 @@ func _dismiss_opening() -> void:
 			return
 		await _press(&"interact")
 	fail("the opening conversation would not close")
+
+
+func test_the_sound_row_is_drawn_with_the_current_setting_on_it() -> void:
+	# Asserted on the RENDERED text, not on the menu's answer. The menu returning the right
+	# label proves nothing about the screen putting it on screen: the row could draw the
+	# static blank that sits in its place in the label table, which renders as an empty line
+	# and reads as a menu that failed to draw.
+	await _boot()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	var drawn := _drawn_rows()
+	assert_array(drawn).override_failure_message("the pause screen drew nothing").is_not_empty()
+	var found := ""
+	for text in drawn:
+		if text.contains("Sound"):
+			found = text
+	assert_str(found).override_failure_message(
+		"no row said anything about sound; the screen drew %s" % [drawn]).is_not_empty()
+	assert_str(found).override_failure_message(
+		"the sound row does not say what the setting IS: '%s'" % found).contains(":")
+
+
+## Every non-empty label the pause screen is currently showing.
+func _drawn_rows() -> Array[String]:
+	var out: Array[String] = []
+	for child in _world.pause_screen().get_children():
+		var label := child as Label
+		if label != null and label.visible and not label.text.strip_edges().is_empty():
+			out.append(label.text)
+	return out

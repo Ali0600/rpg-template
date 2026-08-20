@@ -30,6 +30,7 @@ GameState="*res://scripts/autoload/game_state.gd"
 SaveManager="*res://scripts/autoload/save_manager.gd"
 Router="*res://scripts/autoload/router.gd"
 AudioBus="*res://scripts/autoload/audio_bus.gd"
+Settings="*res://scripts/autoload/settings.gd"
 Qa="*res://scripts/autoload/qa.gd"
 
 [debug]

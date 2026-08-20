@@ -40,7 +40,7 @@ scripts/data/       Resource types (SpriteStyle, SoundStyle, CharacterSpec, Game
 scripts/world/      Locomotion + GridWalker (both pure) + the nodes that apply them
 scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen,
                     BattleLogic + BattleScreen, GameOverMenu + GameOverScreen (pure + view)
-scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Qa
+scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Settings Qa
 scenes/             views only
 data/               all content: games, styles, rigs, characters, maps, dialog,
                     items, enemies, combat, banks (cue shapes), sounds (voices)
@@ -131,6 +131,20 @@ fight, and that is a legal shape forever.
 `GameOverScreen` (Continue / Start again) - an overlay, because this game boots straight into
 the world and has no title scene. `TITLE` stays "nothing to drive yet"; giving it a second
 meaning would break `state_name()`, which QA asserts on directly.
+
+**A setting is not a save.** `Settings` owns `user://settings.json` - global, outside every
+slot, surviving a new game and a deleted save. It carries no version: one field, an
+unrecognised value falls back to the default, and the next write repairs the file. Redirected
+under `--qa-script` exactly as saves are, and `test_settings.gd` ASSERTS the redirect is in
+effect before touching anything - a suite that cycles the volume would otherwise write the
+player's real preference, and the mutation harness runs that suite with the code deliberately
+broken.
+
+**Do not give an autoload a name that ends another identifier.** `compile_all.gd` decides what
+to skip by looking for `Name.`, and `Settings.` occurs inside `ProjectSettings.` - nine files
+silently left the compile gate, reported only as a count going up. The matcher now requires a
+whole identifier; the hazard is the naming, so check a new singleton's name against the engine's
+own globals.
 
 **Saves are per game, and `restore()` is the one way back in.** Slots live at
 `user://saves/<game>/slot_N.json` and each save NAMES its game; the two are cross-checked on

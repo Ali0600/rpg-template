@@ -17,11 +17,13 @@ enum Page { TOP, ITEMS, SAVE, LOAD }
 
 ## The TOP page's rows, in the order they are drawn. The view indexes its labels by this, so
 ## the order lives in one place rather than in a list beside a list.
-enum Row { RESUME, ITEMS, SAVE, LOAD }
+## SOUND is appended rather than slotted in beside Resume, so every existing test that lands
+## on a row by naming it - move(Row.SAVE) - still lands on the same one.
+enum Row { RESUME, ITEMS, SAVE, LOAD, SOUND }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
-enum Kind { NONE, RESUME, SAVE, LOAD }
+enum Kind { NONE, RESUME, SAVE, LOAD, SOUND }
 
 
 ## One answer, carried as a value the way Locomotion.Step is. The slot is explicit rather than
@@ -63,15 +65,24 @@ var _slots: Array[SaveData] = []
 ## One ItemRow per thing carried, in pickup order. Untyped Array because a typed default
 ## for a nested class is not a constant expression.
 var _items: Array = []
+## What the Sound row currently says. Carried as text for the reason the slots are carried as
+## SaveData: reading it means asking the settings singleton, and this class may not - the same
+## rule that keeps it off the disk.
+var _sound := ""
 var _page := Page.TOP
 var _index := 0
 
 
-static func of(slots: Array[SaveData], items: Array = []) -> PauseMenu:
+static func of(slots: Array[SaveData], items: Array = [], sound: String = "") -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
+	menu._sound = sound
 	return menu
+
+
+func sound_label() -> String:
+	return "Sound: %s" % _sound if not _sound.is_empty() else "Sound"
 
 
 func page() -> Page:
@@ -137,13 +148,19 @@ func confirm() -> Pick:
 	if _page == Page.TOP:
 		if _index == Row.RESUME:
 			return Pick.of(Kind.RESUME)
-		# A game configured with no slots has nowhere to go. The item page is exempt: an empty
-		# bag is a fact worth showing, where an empty slot list is a menu with nothing in it.
-		if _index != Row.ITEMS and _slots.is_empty():
-			return Pick.of(Kind.NONE)
+		# Answered BEFORE the empty-slot guard below, along with the item page. Neither has
+		# anything to do with saves, and a game configured with no slots must still be able to
+		# turn the sound down.
+		if _index == Row.SOUND:
+			return Pick.of(Kind.SOUND)
 		if _index == Row.ITEMS:
 			_page = Page.ITEMS
 			_index = 0
+			return Pick.of(Kind.NONE)
+		# A game configured with no slots has nowhere to go. The two rows above are exempt: an
+		# empty bag is a fact worth showing, where an empty slot list is a menu with nothing in
+		# it.
+		if _slots.is_empty():
 			return Pick.of(Kind.NONE)
 		_page = Page.SAVE if _index == Row.SAVE else Page.LOAD
 		_index = 0
@@ -174,9 +191,10 @@ func cancel() -> Pick:
 ## New slot contents, same cursor. Called after a save so the row the player is looking at
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
-func refresh(slots: Array[SaveData], items: Array = []) -> void:
+func refresh(slots: Array[SaveData], items: Array = [], sound: String = "") -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
+	_sound = sound
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
 
