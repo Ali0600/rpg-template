@@ -189,3 +189,28 @@ scripts/ui/pause_menu.gd	s|if _index != Row.ITEMS and _slots.is_empty\(\):|if _s
 scripts/ui/pause_menu.gd	s|return "%s x%d" % \[row.name, row.count\]|return row.name|	tests/unit/test_pause_menu.gd	the bag stops saying how many of a thing is in it
 scripts/ui/pause_menu.gd	s|return "\(nothing carried\)"|return ""|	tests/unit/test_pause_menu.gd	an empty bag draws a blank row, which reads as a menu that failed
 scripts/world/world_scene.gd	s|for item_id in GameState.inventory.ids\(\):|for item_id in []:|	tests/integration/test_pause_and_saves.gd	the pause menu never lists anything the player is carrying
+
+# --- M13: the fight, as rules ---
+scripts/ui/battle_logic.gd	s|return maxi\(1, attack - defense\)|return maxi(0, attack - defense)|	tests/unit/test_battle_logic.gd	armour that matches an attacker makes a fight nobody can end
+scripts/ui/battle_logic.gd	s|var dealt := base \* 2 if timed else base|var dealt := base|	tests/unit/test_battle_logic.gd	a perfectly timed hit lands like any other
+scripts/ui/battle_logic.gd	s|var taken := maxi\(base / 2, 1\) if blocked else base|var taken := base|	tests/unit/test_battle_logic.gd	blocking an enemy hit does nothing at all
+scripts/ui/battle_logic.gd	s|if _pressed_at >= 0:|if false:|	tests/unit/test_battle_logic.gd	mashing the button re-arms the window, so timing means pressing a lot
+scripts/ui/battle_logic.gd	s|return _count <= _combat.timed_window_frames|return true|	tests/unit/test_battle_logic.gd	the timing window is open for the whole cue
+scripts/ui/battle_logic.gd	s|return _pressed_at >= 0 and _pressed_at <= _combat.timed_window_frames|return _pressed_at >= 0|	tests/unit/test_battle_logic.gd	any press at all counts as a timed one
+scripts/ui/battle_logic.gd	s|_moves_rng.next_int\(0, _enemy.moves.size\(\) - 1\)|0|	tests/unit/test_battle_logic.gd	an enemy only ever uses its first move, so half its content never ships
+scripts/ui/battle_logic.gd	s|^\t\t_hp = player_max_hp\(\)$|\t\tpass|	tests/unit/test_battle_logic.gd	levelling up stops healing, so the boss is unreachable
+scripts/ui/battle_logic.gd	s|if _enemy.boss:|if false:|	tests/unit/test_battle_logic.gd	a boss can be walked away from
+scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_SEEN, "key": _seen_key\}\)|pass|	tests/unit/test_battle_logic.gd	a beaten enemy is never marked beaten and comes back
+scripts/ui/battle_logic.gd	s|var healed := mini\(_hp \+ row.heal, player_max_hp\(\)\) - _hp|var healed := row.heal|	tests/unit/test_battle_logic.gd	a tonic heals past the player's own maximum
+scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_TAKE_ITEM, "id": row.id, "count": 1\}\)|pass|	tests/unit/test_battle_logic.gd	a tonic is drunk and never consumed
+scripts/ui/battle_logic.gd	s|if _hp <= 0:|if false:|	tests/unit/test_battle_logic.gd	the player cannot lose a fight
+scripts/data/combat_def.gd	s|return base_hp \+ hp_per_level \* \(maxi\(level, 1\) - 1\)|return base_hp|	tests/unit/test_combat_def.gd	levelling up adds no health
+scripts/data/combat_def.gd	s|spent \+= step|pass|	tests/unit/test_combat_def.gd	every level costs the same as the first, so the curve is not a curve
+scripts/data/combat_def.gd	s|if xp_curve.is_empty\(\):|if false:|	tests/unit/test_combat_def.gd	a game where nothing can ever level up ships unreported
+scripts/data/enemy_def.gd	s|if moves.is_empty\(\):|if false:|	tests/unit/test_enemy_def.gd	an enemy with nothing to do on its turn ships
+scripts/data/item_def.gd	s|if battle_heal < 0:|if false:|	tests/unit/test_items.gd	a potion that wounds the person who drinks it ships
+scripts/data/migrations.gd	s|d\["party"\] = \{\}|pass|	tests/unit/test_saves.gd	a migrated save arrives with no party field at all
+scripts/data/migrations.gd	s|d = _v4_to_v5\(d\)|break|	tests/unit/test_saves.gd	a v4 save is handed on without being migrated
+scripts/data/save_data.gd	s|if int\(party.get\("hp", 0\)\) < 1:|if false:|	tests/unit/test_saves.gd	a save claiming a player at nought health is accepted
+scripts/autoload/game_state.gd	s|out.party = \{\} if player_hp <= 0 else \{|out.party = {} if true else {|	tests/unit/test_saves.gd	a save forgets everything the player fought for
+scripts/autoload/game_state.gd	s|^\tplayer_level = 1$|\tpass|	tests/unit/test_saves.gd	a new game starts at the last one's level
