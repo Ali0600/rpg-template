@@ -35,6 +35,23 @@ func _init() -> void:
 		for d: String in dupes:
 			failures.append("duplicate content id: " + d)
 
+	# The same question Registry answers, asked of sound: two files answering to one name means
+	# one of them is unreachable, and WHICH one depends on directory order. Every shipped voice
+	# is then checked end to end - a voice that cannot play a cue the template asks for is a
+	# game that boots fine and goes quiet at the moment it should not.
+	if root.get_node_or_null(^"AudioBus") != null:
+		var audio := root.get_node(^"AudioBus")
+		for d: StringName in (audio.call(&"duplicate_ids") as Array):
+			failures.append("more than one file answers to sound '%s'" % d)
+		for res in ContentScan.resources("res://data/sounds", ["tres"] as Array[String]):
+			var voice := res as SoundStyle
+			if voice == null:
+				continue
+			audio.call(&"use_style", voice)
+			for cue: StringName in (audio.call(&"missing_cues") as Array):
+				failures.append("voice '%s' has no sound for '%s'" % [voice.id, cue])
+		audio.call(&"use_style", null)
+
 	if root.get_node_or_null(^"GameState") != null:
 		var state := root.get_node(^"GameState")
 		state.call(&"new_game", &"smoke_game", &"smoke", Vector2(8.0, 8.0), 0)

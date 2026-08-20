@@ -38,6 +38,12 @@ extends Resource
 ## GameConfig so a peaceful game carries no battle knobs it will never turn.
 @export var combat: CombatDef
 
+## How this game SOUNDS. Null is normal and is the template's default: a game with no voice is
+## a silent game, the same legal shape a null `combat` gives a game that cannot fight. A
+## resource rather than an id for the reason `config` is one - the exporter follows a real
+## reference, and a typo fails at load instead of at the first noise that does not happen.
+@export var sound_style: SoundStyle
+
 ## The one line of on-screen help. It belongs to the game because it names the game's verbs:
 ## "E or space to talk" is wrong for a game whose button does anything else.
 @export var controls_hint: String = ""
@@ -111,6 +117,17 @@ func problems() -> Array[String]:
 	if combat != null:
 		for p in combat.problems():
 			out.append("combat: " + p)
+
+	# Same shape, and same reason as the art check above: a voice whose cues were never
+	# generated is a game that boots fine and is silent, which reads as "sound is not built
+	# yet" rather than as a missing file.
+	if sound_style != null:
+		for p in sound_style.problems():
+			out.append("sound: " + p)
+		var cue := "res://assets/generated/%s/sfx/%s.wav" % [sound_style.id, Sfx.id_of(Sfx.Cue.FOOTSTEP)]
+		if not FileAccess.file_exists(cue):
+			out.append("sound_style '%s' has no generated cues (expected %s) - run tools/gen_sounds.gd"
+				% [sound_style.id, cue])
 
 	if hooks != null:
 		var made := new_hooks()

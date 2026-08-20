@@ -25,7 +25,28 @@ const SKIP_DIRS: Array[String] = ["addons", ".godot", ".git", ".import"]
 ## Every file under `root` whose extension is in `extensions`, sorted, as res:// paths.
 ## A missing directory is empty, not an error - callers scan optional content roots.
 static func files(root: String, extensions: Array[String]) -> Array[String]:
-	return in_order(_walk(root, extensions))
+	return in_order(once_each(_walk(root, extensions)))
+
+
+## One entry per source file, keeping the first.
+##
+## Necessary the moment `source_name` started resolving a sidecar to the file it stands for:
+## HERE both exist - `hit.wav` and `hit.wav.import` sit side by side - so the same sound
+## resolved twice, while in an exported build only the sidecar is packed and it resolves once.
+## A walk that double-counts in one environment and not the other is worse than either, and it
+## surfaced as a work list of thirty-two cues where sixteen ship.
+##
+## A function over a list, for the same reason in_order is: what a directory contains cannot be
+## forced from a test, and what a list contains can.
+static func once_each(paths: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	var seen: Dictionary = {}
+	for path in paths:
+		if seen.has(path):
+			continue
+		seen[path] = true
+		out.append(path)
+	return out
 
 
 ## The ordering contract, as a function over a list rather than over a directory.
@@ -59,6 +80,21 @@ static func resources(root: String, extensions: Array[String] = RESOURCE_EXTS) -
 	return out
 
 
+## The name of the SOURCE file a packed entry stands for.
+##
+## An exported build does not contain the files you put in it. A `.tres` is packed beside a
+## `.remap`, and an IMPORTED asset - every png, wav, ogg - is packed as its `.import` sidecar
+## plus the engine's cached copy, with the original left out entirely. So a walk looking for
+## "ogg" finds nothing in a shipped build while working perfectly in the editor.
+##
+## That is not hypothetical: it is why AudioBus could scan `data/audio` happily here and come
+## up empty on the deployed page. Kept as a pure function over a NAME so it can be tested
+## without putting an orphan `.import` on disk, which would confuse the importer and break the
+## exact-array assertion the walk's own suite makes.
+static func source_name(file_name: String) -> String:
+	return file_name.trim_suffix(".remap").trim_suffix(".import")
+
+
 static func _walk(root: String, extensions: Array[String]) -> Array[String]:
 	var out: Array[String] = []
 	var dir := DirAccess.open(root)
@@ -72,7 +108,7 @@ static func _walk(root: String, extensions: Array[String]) -> Array[String]:
 			if not name.begins_with(".") and not SKIP_DIRS.has(name):
 				out.append_array(_walk(full, extensions))
 		else:
-			var check := name.trim_suffix(".remap")
+			var check := source_name(name)
 			if extensions.has(check.get_extension()):
 				out.append(root.path_join(check))
 		name = dir.get_next()

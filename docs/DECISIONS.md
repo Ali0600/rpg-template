@@ -836,3 +836,22 @@ surface anyone looks at would say so.
 - **Comparing raw file bytes instead of decoded samples.** Rejected for the reason the art
   gate compares pixels rather than PNG bytes: a container header is not ours to author, and a
   gate that fails on a file which sounds identical is a gate people learn to ignore.
+
+## A game's own file beats the generated cue — *M14*
+
+Two roots can answer a sound id, and the order between them is the seam.
+
+- **`data/audio` wins over the generated cue.** *Chosen.* A game replaces one sound by dropping
+  one file in, and never has to delete build output to do it — which matters because the drift
+  gate would put that output straight back on the next run. It is the `GameHooks` rule one
+  level down: a game is additive, or it is not using this seam.
+- **Generated wins, overrides as a fallback.** Rejected: it makes the generator authoritative
+  over the game, which is backwards for a template whose whole claim is that a game brings its
+  own look and sound.
+- **One root only** (generate into `data/audio`). Rejected: `data/` is content a human authors
+  and `assets/generated/` is output a gate overwrites. Merging them would mean the drift gate
+  competing with a designer over the same directory.
+
+An override is printed once at boot, and two files answering to one name is an **error** — the
+loser is invisible and which one loses depends on the filesystem, which is the same reason
+`Registry` refuses duplicate content ids rather than letting the last one win.
