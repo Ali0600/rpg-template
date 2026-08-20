@@ -527,3 +527,26 @@ the content contract, not an implementation detail. Name it in constants, have t
 quiet again), and measure with the real font rather than counting characters — proportional
 glyphs make a character count a guess. And assert overlap as GEOMETRY: rects that must not
 intersect, taken off the built nodes, not re-derived from the arithmetic the view already used.
+
+## A res:// image is not a file at runtime, and a benign warning still costs something
+
+`Image.load_from_file()` on a committed PNG warns "this will not work on export" — correctly.
+A `res://*.png` in a shipped Godot build is not a PNG any more: the importer has turned it into
+a compressed texture and the original bytes are not packed, so code that reads the file works in
+the editor and fails on a player's machine. The runtime must ask for art as a *resource*
+(`load()`); only build-time tooling may read the raw file.
+
+**Why it came up:** all three call sites here were build-time — an art-drift gate and a
+determinism suite whose whole job is comparing the committed file's pixels — so the advice was
+aimed at the wrong code and the warning was harmless. It still fired 21 times per run, and the
+user noticed it in CI and asked. That is the actual cost: a log with routine noise in it is a
+log people learn to skim, which is where the next real warning goes unread. Decoding the bytes
+explicitly (`FileAccess.get_file_as_bytes` + `Image.load_png_from_buffer`) is the same pixels
+with no resource system involved and nothing to warn about.
+
+**Takeaway:** when a platform warns about an API, check which *layer* the warning is aimed at
+before dismissing it — the same call can be a bug in the shipping path and correct in tooling.
+Then either fix the cause or write the justification down where the next reader will find it;
+"we know about that one" is not a state a build log can hold. And when swapping how a gate
+reads its inputs, prove the gate still bites afterwards — a reader that silently returned
+nothing would make it compare absence to absence and report success.

@@ -246,3 +246,6 @@ scripts/ui/dialog_box.gd	s|const CHOICE_Y := TEXT_Y \+ TEXT_LINES \* LINE_HEIGHT
 scripts/ui/dialog_box.gd	s|_text.size = Vector2\(text_width\(_viewport.x\), TEXT_LINES \* LINE_HEIGHT\)|_text.size = Vector2(text_width(_viewport.x), LINE_HEIGHT)|	tests/integration/test_dialog_box_layout.gd	the text area shows one line of the two the writing is allowed
 scripts/ui/dialog_box.gd	s|const TEXT_LINES := 2|const TEXT_LINES := 9|	tests/unit/test_dialog_fit.gd	the fit gate is told the box is nine lines tall and stops catching overflow
 scripts/ui/dialog_box.gd	s|return CHOICE_Y \+ count \* CHOICE_PITCH \+ PAD_BOTTOM|return BOX_HEIGHT|	tests/integration/test_dialog_box_layout.gd	the box never grows, so the choices fall off the bottom of it
+
+# --- M13.4: reading art without the import system ---
+scripts/util/image_file.gd	s|if image.load_png_from_buffer\(bytes\) != OK:|if false:|	tests/unit/test_image_file.gd	an undecodable file reads as a blank image instead of as nothing

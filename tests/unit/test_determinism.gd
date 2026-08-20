@@ -76,7 +76,7 @@ func test_committed_art_matches_what_the_generator_produces_now() -> void:
 		var rig := ArtFixtures.rig_for(style)
 		for spec in ArtFixtures.characters_of(style_id):
 			var path := ArtFixtures.generated_texture_path(style_id, spec.id)
-			var committed := Image.load_from_file(path)
+			var committed := ImageFile.read_png(path)
 			assert_object(committed).override_failure_message(
 				"%s is missing - run tools/gen_sprites.gd" % path).is_not_null()
 			var fresh: Image = SheetBuilder.build(rig, style, spec)["image"]
@@ -88,7 +88,7 @@ func test_committed_tiles_match_the_generator() -> void:
 	for style_id in ArtFixtures.style_ids():
 		var style := ArtFixtures.style(style_id)
 		var path := "res://assets/generated/%s/tiles.png" % style_id
-		var committed := Image.load_from_file(path)
+		var committed := ImageFile.read_png(path)
 		assert_object(committed).is_not_null()
 		var fresh: Image = TileGen.build(style)["image"]
 		assert_str(Hashing.image_digest(committed)).override_failure_message(
