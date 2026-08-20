@@ -81,6 +81,10 @@ func start_game(manifest: GameManifest) -> bool:
 		push_error("World: game '%s' has no config" % _game.id)
 		return false
 	_hooks = _game.new_hooks()
+	# Which cues exist is a property of the GAME, so the bus is pointed at this one's voice
+	# here rather than at boot. A null voice is a silent game and is a legal shape - AudioBus
+	# then resolves only whatever a game dropped in data/audio, which may be nothing at all.
+	AudioBus.use_style(_game.sound_style)
 	# Before the first map, so a hook or an encounter on the opening tile finds a real player
 	# rather than one at zero health. _teardown_game above has already reset the party, so this
 	# is always the fresh-hero case here.

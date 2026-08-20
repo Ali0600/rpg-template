@@ -116,3 +116,31 @@ func test_a_grid_step_matching_the_maps_tiles_is_accepted() -> void:
 	config.grid_step_pixels = 16
 	manifest.config = config
 	assert_array(manifest.problems()).is_empty()
+
+
+func test_a_voice_whose_cues_were_never_generated_is_reported() -> void:
+	# The failure this catches is a game that boots perfectly and is silent, which reads as
+	# "sound is not built yet" rather than as a missing file - the same reason the manifest
+	# already checks the player's generated ART instead of trusting the name.
+	var manifest := load("res://data/games/quest.tres") as GameManifest
+	assert_array(manifest.problems()).is_empty()
+
+	var orphan := manifest.duplicate() as GameManifest
+	var voice := SoundStyle.new()
+	voice.id = &"never_generated"
+	voice.bank_id = &"gb16"
+	voice.tone = &"square"
+	orphan.sound_style = voice
+	var reported := false
+	for p in orphan.problems():
+		if p.contains("never_generated"):
+			reported = true
+	assert_bool(reported).override_failure_message(
+		"a voice with no generated cues passed validation: %s" % [orphan.problems()]).is_true()
+
+
+func test_a_game_with_no_voice_at_all_is_still_valid() -> void:
+	# Silence is a legal shape, exactly as a null combat is a game that cannot fight.
+	var silent := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
+	silent.sound_style = null
+	assert_array(silent.problems()).is_empty()

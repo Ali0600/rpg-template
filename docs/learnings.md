@@ -588,3 +588,33 @@ for a reason unreproducible locally.
 
 **Takeaway:** when output must be byte-identical across machines, build it from arithmetic and
 integers only — and write down why, because the next person reaches for `sin()` immediately.
+
+## A directory scan cannot see imported assets in an exported build
+
+An exported Godot build does not contain the files you put in it. A `.tres` is packed beside a
+`.remap`, and every imported asset — png, wav, ogg — is packed as its `.import` sidecar plus
+the engine's cached copy, with the original left out. So `DirAccess`-based discovery looking
+for `"ogg"` finds everything in the editor and nothing in the shipped build.
+
+**Why it came up:** `AudioBus` discovered a game's drop-in sounds by scanning `data/audio` for
+audio extensions. It had never been wrong because the directory had always been empty — the
+seam was broken in exports from the day it was written, and had no payload to be broken with.
+
+**Takeaway:** discovery that walks a directory is discovery that behaves differently in a
+packaged build; resolve known paths where you can, and where you must scan, normalise the
+packed name back to its source.
+
+## Normalising two names to one means the environment with both now counts it twice
+
+Stripping `.import` so a packed sidecar resolves to its source is correct in an export, where
+only the sidecar exists. In the editor **both** exist, so every asset resolved twice and every
+work list silently doubled.
+
+**Why it came up:** the fix above turned 16 generated cues into 32 entries. Nothing crashed —
+the drift gate still passed, because it iterates the cue vocabulary rather than the directory.
+The only thing that noticed was an assertion comparing the shipped set against the expected set
+exactly.
+
+**Takeaway:** a normalisation that maps two names onto one must dedupe, and the bug appears in
+exactly one environment — so assert the SET, not just that every member is present. "Everything
+expected is here" is true of a list containing everything twice.

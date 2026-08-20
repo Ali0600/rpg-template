@@ -261,3 +261,13 @@ scripts/soundgen/sound_bank.gd	s|if Sfx.of\(cue\) < 0:|if false:|	tests/unit/tes
 scripts/util/sfx.gd	s|Cue.FOOTSTEP: &"footstep",||	tests/unit/test_sfx.gd	a cue in the enum has no id, so it silently resolves to no sound
 scripts/util/sfx.gd	s|return -1|return 0|	tests/unit/test_sfx.gd	a sound name no cue has resolves to the first cue instead of being refused
 scripts/data/sound_style.gd	s|if not Synth.TONES.has\(tone\):|if false:|	tests/unit/test_sound_bank.gd	a voice naming a waveform that does not exist passes validation
+
+# --- M14: resolving a sound, across two roots ---
+scripts/util/content_scan.gd	s|return file_name.trim_suffix\(".remap"\).trim_suffix\(".import"\)|return file_name.trim_suffix(".remap")|	tests/unit/test_content_scan.gd	imported assets become invisible to every scan in an exported build
+scripts/autoload/audio_bus.gd	s|\t\t_sounds\[id\] = stream|\t\tif not _sounds.has(id): _sounds[id] = stream|	tests/unit/test_audio_bus.gd	a generated cue beats the file a game dropped in to replace it
+scripts/autoload/audio_bus.gd	s|_next = \(_next \+ 1\) % _players.size\(\)|_next = 0|	tests/unit/test_audio_bus.gd	every cue cuts the one before it again
+scripts/autoload/audio_bus.gd	s|if seen.has\(id\):|if false:|	tests/unit/test_audio_bus.gd	two files answering to one name pass in silence, and which wins depends on the filesystem
+scripts/autoload/audio_bus.gd	s|if _requested.size\(\) > LOG_LIMIT:|if false:|	tests/unit/test_audio_bus.gd	the request log grows without bound in an autoload that outlives every scene
+scripts/autoload/audio_bus.gd	s|\tif not _sounds.has\(cue\):|\tif false:|	tests/unit/test_audio_bus.gd	a voice that cannot play a cue stops reporting it
+scripts/data/game_manifest.gd	s|if not FileAccess.file_exists\(cue\):|if false:|	tests/unit/test_game_manifest.gd	a game pointed at a voice with no generated cues passes validation
+scripts/util/content_scan.gd	s|return in_order\(once_each\(_walk\(root, extensions\)\)\)|return in_order(_walk(root, extensions))|	tests/unit/test_content_scan.gd	a source and its import sidecar count as two files, doubling every work list
