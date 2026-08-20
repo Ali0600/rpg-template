@@ -14,7 +14,12 @@
 		},
 		"light": {
 			"speaker": "",
-			"text": "It catches on the second try. The room is suddenly a room, rather than a shape in the dark - and the window faces west, over the village. The warden will see it from her gate."
+			"text": "It catches on the second try. The room is suddenly a room, rather than a shape in the dark.",
+			"next": "seen"
+		},
+		"seen": {
+			"speaker": "",
+			"text": "The window faces west, over the village. The warden will see it from her gate."
 		}
 	}
 }

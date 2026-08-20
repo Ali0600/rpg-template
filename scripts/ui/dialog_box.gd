@@ -10,8 +10,41 @@ extends CanvasLayer
 
 signal closed(effects: Array)
 
-const BOX_HEIGHT := 54
+## The box's CAPACITY, named here because it is half of a contract: the other half is
+## tests/unit/test_dialog_fit.gd, which measures every shipped line against these numbers and
+## fails the build on anything that will not fit. They are constants rather than magic numbers
+## in _build for exactly that reason - a gate that kept its own copy would drift, and the day
+## it drifted the overflow would be silent again.
+##
+## Silent is the word that matters. A line too long for this box is not wrapped, scrolled or
+## reported: RichTextLabel with scroll_active off simply CLIPS it, so a fact written into the
+## data never reaches the player and nothing anywhere says so.
 const MARGIN := 6
+const FONT_SIZE := 8
+## The fallback font's height at FONT_SIZE. Pinned as a constant so the layout arithmetic is
+## readable, and asserted against the real font in the fit gate - if a project theme ever
+## changes the font, that assertion fails rather than the box quietly shrinking.
+const LINE_HEIGHT := 12
+## How many lines of text one node may use. Two is a deliberate ceiling on the WRITING as much
+## as on the box: a conversation that needs more is a conversation with another node in it,
+## and chaining `next` is this format's own pagination.
+const TEXT_LINES := 2
+const MAX_CHOICES := 4
+
+const SPEAKER_Y := 2
+const TEXT_Y := 15
+const PADDING := 4
+## Choices get their OWN band, below every line of text rather than below where the text
+## happened to end. Placing them relative to the rendered text is what put a choice on top of
+## a second line in the shipped build: the position was computed for one-line text and the
+## data grew past it.
+const CHOICE_Y := TEXT_Y + TEXT_LINES * LINE_HEIGHT + 2
+const CHOICE_PITCH := 12
+const PAD_BOTTOM := 5
+
+## The box with nothing to answer: speaker, two lines, done.
+const BOX_HEIGHT := TEXT_Y + TEXT_LINES * LINE_HEIGHT + PAD_BOTTOM
+
 const CHARACTERS_PER_SECOND := 45.0
 
 var _runner: DialogRunner
@@ -23,6 +56,23 @@ var _choice_index := 0
 var _revealed := 0.0
 var _style: SpriteStyle
 var _gate := InputGate.new()
+var _viewport := Vector2i(320, 180)
+
+
+## How wide a line of text may be, given the screen. A function rather than a constant because
+## the fit gate has to ask the same question of the same numbers, and the panel's width is a
+## function of the viewport.
+static func text_width(viewport_width: int) -> float:
+	return float(viewport_width - MARGIN * 2 - PADDING * 2)
+
+
+## How tall the box stands while answering `count` choices. The box GROWS for a decision and
+## shrinks back after: a reader needs the room exactly while they are choosing, and a box that
+## was always tall enough for four choices would cover half the world for every line of chat.
+static func height_for(count: int) -> int:
+	if count <= 0:
+		return BOX_HEIGHT
+	return CHOICE_Y + count * CHOICE_PITCH + PAD_BOTTOM
 
 
 func _ready() -> void:
@@ -35,28 +85,30 @@ func setup(style: SpriteStyle, viewport_size: Vector2i) -> void:
 	_style = style
 	# No fallback colour is typed here: a style that forgot to define its panel should show
 	# the readable default the style module owns, not a black rectangle invented in the view.
+	_viewport = viewport_size
 	_panel.color = style.ui_color("panel")
-	_panel.position = Vector2(MARGIN, viewport_size.y - BOX_HEIGHT - MARGIN)
-	_panel.size = Vector2(viewport_size.x - MARGIN * 2, BOX_HEIGHT)
+	_resize(0)
 	add_child(_panel)
 
-	_speaker.position = Vector2(4, 2)
-	_speaker.add_theme_font_size_override("font_size", 8)
+	_speaker.position = Vector2(PADDING, SPEAKER_Y)
+	_speaker.add_theme_font_size_override("font_size", FONT_SIZE)
 	_speaker.add_theme_color_override("font_color", style.ui_color("dim"))
 	_panel.add_child(_speaker)
 
-	_text.position = Vector2(4, 13)
-	_text.size = Vector2(_panel.size.x - 8, 22)
+	_text.position = Vector2(PADDING, TEXT_Y)
+	# The full TEXT_LINES tall. It used to be 22px against a 12px line, so even two lines were
+	# clipped - the box could really only ever show one.
+	_text.size = Vector2(text_width(_viewport.x), TEXT_LINES * LINE_HEIGHT)
 	_text.bbcode_enabled = false
 	_text.scroll_active = false
-	_text.add_theme_font_size_override("normal_font_size", 8)
+	_text.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_text.add_theme_color_override("default_color", style.ui_color("text"))
 	_panel.add_child(_text)
 
-	for i in 4:
+	for i in MAX_CHOICES:
 		var label := Label.new()
-		label.position = Vector2(8, 12 + i * 10)
-		label.add_theme_font_size_override("font_size", 8)
+		label.position = Vector2(PADDING + 4, CHOICE_Y + i * CHOICE_PITCH)
+		label.add_theme_font_size_override("font_size", FONT_SIZE)
 		label.visible = false
 		_panel.add_child(label)
 		_choice_labels.append(label)
@@ -89,16 +141,25 @@ func _show_line() -> void:
 	for i in _choice_labels.size():
 		var label := _choice_labels[i]
 		label.visible = false
+	_resize(line.choices.size() if line.has_choices() else 0)
 	if line.has_choices():
 		_layout_choices(line)
 
 
+## Grows or shrinks the panel to fit what this line needs, keeping it pinned to the bottom of
+## the screen - so the box opens upward into the world rather than down off the edge of it.
+func _resize(choices: int) -> void:
+	var height := height_for(choices)
+	_panel.position = Vector2(MARGIN, _viewport.y - height - MARGIN)
+	_panel.size = Vector2(_viewport.x - MARGIN * 2, height)
+
+
 func _layout_choices(line: DialogRunner.Line) -> void:
-	# Choices sit under the text, so the line stays readable while the answer is picked.
+	# Choices sit in their own band under the WHOLE text area, not under the text as drawn.
+	# Their positions were set once in _build; nothing here recomputes them from the line.
 	for i in mini(line.choices.size(), _choice_labels.size()):
 		var label := _choice_labels[i]
 		label.text = "  " + line.choices[i]
-		label.position = Vector2(8, 26 + i * 9)
 		label.visible = true
 	_paint_choices()
 

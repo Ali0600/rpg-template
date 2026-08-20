@@ -649,6 +649,38 @@ window is not in the damage arithmetic. The lesson generalises past this game: *
 and its window open together, size the window for REACTING, not for precision** — and a feel
 number that no test can judge needs a human before it ships, not after.
 
+## A view that renders data declares its capacity, and the build enforces it — *M13.3*
+
+A screenshot of the live build showed the warden's opening with a choice drawn on top of the
+second line of her text. Measuring every shipped line found worse: the text area was 22px
+against a 12px line, so only ONE line ever really fit, and four nodes were being silently
+truncated - three of them the signposting lines added the day before to tell the player where
+to go. Nine scripted play sessions pressed through those conversations on every CI run and
+could not see any of it, because headless QA never renders a pixel.
+
+**The fork.** How does a fixed 320x180 box cope with data of unbounded length?
+
+- **Reserved bands + a build-time budget** *(chosen)*. Text gets a fixed two-line band,
+  choices get their own band below it, the box grows only while a choice is up - and
+  `test_dialog_fit.gd` measures every shipped line with the real font against constants owned
+  by `DialogBox`, failing the build on an overflow and naming the node. Text too long for the
+  box becomes another node on a `next` chain, which is this format's own pagination and paces
+  the typewriter better anyway.
+- *Runtime pagination* — `deferred — worth trying`: overflowing text continues on the next
+  press, so any data ever written renders. Rejected for now because it duplicates what node
+  chaining already does and makes an unbroken paragraph legal to write, which is a worse thing
+  to have in the content than a build failure. Revisit hook: `DialogBox._show_line`, the day a
+  game on this template needs prose it cannot break up.
+- *A taller box* — rejected. It moves the cliff without telling anyone where the new one is,
+  and the worst-case line is unbounded.
+- *A smaller font* — rejected outright: 8px is already the readability floor at this
+  resolution.
+
+**The general rule.** A view that renders DATA has a capacity, and that capacity is part of
+the content contract rather than an implementation detail of the view. State it in constants
+the gate reads too - two copies is how the check and the thing checked drift apart - and
+enforce it at build time, because the failure mode of "too big to draw" is usually silence.
+
 ## No fact a player needs may be single-sourced in optional dialog — *M13.2*
 
 A play-test of the live build ended with the tester holding a flask of lamp oil, told about a

@@ -15,11 +15,11 @@
 		"greet": {
 			"speaker": "Hermit",
 			"text": "Nobody comes down here for the view.",
-			"next": "ask"
+			"next": "shelf"
 		},
 		"ask": {
 			"speaker": "Hermit",
-			"text": "There is oil on the shelf. The keep's lantern drank its last flask years before the gate was barred, and I have kept the rest since. More than one person needs.",
+			"text": "I have kept the rest since. More than one person needs.",
 			"choices": [
 				{
 					"text": "Could I have some of that oil?",
@@ -41,6 +41,11 @@
 		"passing": {
 			"speaker": "Hermit",
 			"text": "Everyone is, eventually. The shelf keeps."
+		},
+		"shelf": {
+			"speaker": "Hermit",
+			"text": "There is oil on the shelf. The keep's lantern drank its last flask years before the gate was barred.",
+			"next": "ask"
 		}
 	}
 }

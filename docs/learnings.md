@@ -507,3 +507,23 @@ Two anti-patterns worth naming, because both read as fine in review:
 **Takeaway:** for any content with an information graph — a quest, an onboarding flow, a
 troubleshooting doc — audit by fact reachability rather than by walking the happy path, and
 treat "stated in exactly one optional place" as equivalent to "not stated".
+
+## A UI that renders data has a capacity, and exceeding it is usually silent
+
+A dialog box drew a two-line text area at 22px against a 12px font line, so only one line ever
+fit; and it placed the choice list at a fixed offset that assumed one line of text. Longer
+lines were clipped with no error and no log, and choices were drawn on top of the story. Four
+shipped conversations were affected — three of them lines added the day before *specifically*
+to tell the player where to go, so the fix for one bug was silently swallowed by another.
+
+**Why it came up:** every gate passed the whole time. Nine scripted play sessions pressed
+through those exact conversations on every CI run, and a headless harness never renders a
+pixel, so "the dialog advanced" was the only thing being checked. The defect is only visible to
+a person looking at a screen — or to arithmetic nobody had written down.
+
+**Takeaway:** when a view renders content that other people will write, its capacity is part of
+the content contract, not an implementation detail. Name it in constants, have the gate read
+*those* constants (a gate with its own copy drifts, and the day it drifts the failure goes
+quiet again), and measure with the real font rather than counting characters — proportional
+glyphs make a character count a guess. And assert overlap as GEOMETRY: rects that must not
+intersect, taken off the built nodes, not re-derived from the arithmetic the view already used.

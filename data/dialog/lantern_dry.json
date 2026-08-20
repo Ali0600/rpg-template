@@ -9,7 +9,12 @@
 	"nodes": {
 		"dry": {
 			"speaker": "",
-			"text": "A lantern on a hook. The reservoir is dry, and has been for a long time. It wants oil, and nobody nearer than the hermit - east, past the town - has kept any."
+			"text": "A lantern on a hook. The reservoir is dry, and has been for a long time.",
+			"next": "wants"
+		},
+		"wants": {
+			"speaker": "",
+			"text": "It wants oil, and nobody nearer than the hermit - east, past the town - has kept any."
 		}
 	}
 }
