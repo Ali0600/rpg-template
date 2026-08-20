@@ -1,8 +1,10 @@
 {
 	"_readme": [
-		"Said only when the player is carrying the key. Chosen by games/quest/quest_hooks.gd,",
-		"not by anything in the dialog format - a node cannot be conditional, and deliberately",
-		"so: three lines of game code beat a mini-language every dialog file has to learn."
+		"Said by the hooks while the player is carrying the key and has not yet been inside.",
+		"",
+		"It is the whole next leg stated once - but it is NOT the only place any of it is said.",
+		"The lantern's own refusal names the oil and the hermit, and warden_keeper_down repeats all",
+		"of it, because this line stops being reachable the moment the Keeper falls."
 	],
 	"id": "warden_has_key",
 	"start": "notice",
@@ -14,12 +16,12 @@
 		},
 		"shrug": {
 			"speaker": "Warden",
-			"text": "Go on, then. The gate is that way, and it has been that way a long time.",
+			"text": "Go on, then. The gate is east, and it has been shut a long time. Whatever took the keep is still in there.",
 			"next": "light"
 		},
 		"light": {
 			"speaker": "Warden",
-			"text": "Take a light with you. The lantern in there ran dry years ago - the hermit in the cave east of the town hoards oil by the flask."
+			"text": "And take a light. The lantern in there ran dry years ago - the hermit in the cave east of the town hoards oil by the flask."
 		}
 	}
 }

@@ -120,3 +120,40 @@ func test_the_seen_key_the_hooks_name_is_the_one_the_map_actually_produces() -> 
 		"quest_keep no longer places an enemy called 'keeper', so the warden's line about it is unreachable"
 	).contains([&"keeper"])
 	assert_str(Interaction.seen_key(map.id, "keeper")).is_equal("quest_keep/keeper")
+
+# -- the opening the player cannot walk past -------------------------------------------------
+
+func test_a_new_game_opens_with_the_warden_saying_her_piece() -> void:
+	# The premise used to be optional: she is a static figure two tiles off the spawn, and a
+	# play-test walked past her, never found the key, and was never told one existed.
+	var ctx := _ctx({})
+	_hooks().on_map_entered(ctx)
+	assert_str(_said(ctx)).override_failure_message(
+		"a new game began with nobody having said what the player is for").is_equal("warden_asks")
+
+func test_she_does_not_say_it_again_once_she_has() -> void:
+	# The control. A hook that opened it unconditionally would pass the test above and reopen
+	# the conversation on every walk back into the village - including on every load.
+	var ctx := _ctx({&"met_the_warden": true})
+	_hooks().on_map_entered(ctx)
+	assert_bool(ctx.has_effects()).override_failure_message(
+		"the opening replayed for a player who had already heard it").is_false()
+
+func test_the_other_maps_open_with_nothing() -> void:
+	var ctx := GameContext.create(&"quest_cave", Vector2i(1, 6), {}, {}, null, {})
+	_hooks().on_map_entered(ctx)
+	assert_bool(ctx.has_effects()).override_failure_message(
+		"the warden's opening followed the player into another map").is_false()
+
+func test_the_line_it_opens_is_the_one_that_records_having_been_heard() -> void:
+	# The two halves are in different files - the hook opens the dialog, and the dialog's own
+	# first node sets the flag that stops it reopening - so this pins that they agree. If the
+	# flag were renamed in the data, the opening would replay forever and every other test
+	# here would still pass.
+	var runner := DialogRunner.load_from("res://data/dialog/warden_asks.json")
+	assert_bool(runner.ok).is_true()
+	assert_array(runner.problems()).is_empty()
+	runner.begin()
+	assert_array(runner.flags_to_set()).override_failure_message(
+		"the warden's opening does not record that it was heard, so it reopens forever"
+	).contains([&"met_the_warden"])

@@ -1,30 +1,47 @@
 {
-	"_readme": "A conversation is nodes with a 'next', or a node with 'choices'. A node that continues nowhere ends the talk. 'set_flag' is collected by the runner and applied by the caller once the line has actually been shown.",
+	"_readme": [
+		"The town elder. Optional, and that is the point of him: a town's job is to say the same",
+		"things the critical path says, in another voice, to a player who wandered.",
+		"",
+		"Node ids, choice count and flag wiring are unchanged from the demo dialogue he used to",
+		"speak - promised_elder is still set by the first choice and still read by the kid - so the",
+		"three-choice branch and its terminal-node shape stay exactly as tested."
+	],
 	"id": "elder",
 	"start": "greet",
 	"nodes": {
 		"greet": {
 			"speaker": "Elder",
-			"text": "You have the look of someone who builds things and then walks away from them.",
+			"text": "You came down the north road. Then you have seen the gate, and the woman standing at it.",
 			"next": "ask"
 		},
 		"ask": {
 			"speaker": "Elder",
-			"text": "Will you finish this one?",
+			"text": "Eleven years she has kept a door shut on a building nobody uses. Will you go in for her?",
 			"choices": [
-				{ "text": "I will.", "next": "promised", "set_flag": "promised_elder" },
-				{ "text": "Ask me tomorrow.", "next": "deferred" },
-				{ "text": "(say nothing)", "next": "silence" }
+				{
+					"text": "I will.",
+					"next": "promised",
+					"set_flag": "promised_elder"
+				},
+				{
+					"text": "Ask me tomorrow.",
+					"next": "deferred"
+				},
+				{
+					"text": "(say nothing)",
+					"next": "silence"
+				}
 			]
 		},
 		"promised": {
 			"speaker": "Elder",
-			"text": "Then the town is yours to fill. Start with the smith - she has been waiting.",
+			"text": "Then see the smith before you go - she is east along this row, and she keeps something for cuts.",
 			"next": "farewell"
 		},
 		"deferred": {
 			"speaker": "Elder",
-			"text": "Tomorrow is a fine place to keep things.",
+			"text": "Tomorrow is a fine place to keep things. She has kept it there eleven years.",
 			"next": "farewell"
 		},
 		"silence": {
@@ -33,7 +50,7 @@
 		},
 		"farewell": {
 			"speaker": "Elder",
-			"text": "Go on, then."
+			"text": "Go on, then. The hermit east of here has been asking after that keep too."
 		}
 	}
 }

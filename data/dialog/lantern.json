@@ -1,19 +1,20 @@
 {
 	"_readme": [
-		"Said only once the oil is in hand: the map's object requires lamp_oil and consumes",
-		"it, so reaching this line is itself the proof the player found the hermit."
+		"Lighting it is the ending, so its last line points at the person who has been waiting for",
+		"it - which nothing used to do. The player was expected to walk back to the warden on a",
+		"hunch."
 	],
 	"id": "lantern",
 	"start": "pour",
 	"nodes": {
 		"pour": {
-			"speaker": "The keep",
+			"speaker": "",
 			"text": "You pour the flask in. The wick drinks it and stiffens.",
 			"next": "light"
 		},
 		"light": {
-			"speaker": "The keep",
-			"text": "It catches on the second try. The room is suddenly a room, rather than a shape in the dark."
+			"speaker": "",
+			"text": "It catches on the second try. The room is suddenly a room, rather than a shape in the dark - and the window faces west, over the village. The warden will see it from her gate."
 		}
 	}
 }

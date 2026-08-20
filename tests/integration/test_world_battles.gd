@@ -73,6 +73,9 @@ func _boot() -> Node2D:
 	add_child(_world)
 	assert_bool(_world.start_game(_manifest())).override_failure_message(
 		"the world would not start the game").is_true()
+	# The game opens with the warden's conversation on screen now. Every test below is about
+	# something else, so getting past it belongs here rather than in each of them.
+	await _dismiss_opening()
 	return _world
 
 func _steps(count: int) -> void:
@@ -131,7 +134,7 @@ func _good_save() -> SaveData:
 # -- taking control ------------------------------------------------------------------------
 
 func test_a_fight_takes_control_and_gives_it_back() -> void:
-	_boot()
+	await _boot()
 	var player: ActorBody = _world.player()
 	assert_bool(_world.open_battle_with(_enemy(), "quest_village/foe")).is_true()
 	assert_str(Router.state_name()).is_equal("battle")
@@ -152,7 +155,7 @@ func test_a_fight_takes_control_and_gives_it_back() -> void:
 func test_a_fresh_player_starts_the_first_fight_at_full_health() -> void:
 	# The derivation that turns "no party yet" into a real hero. Without it the first fight
 	# opens on a player at zero health, who loses before pressing anything.
-	_boot()
+	await _boot()
 	assert_int(GameState.player_hp).override_failure_message(
 		"a new game began with a player who has no health").is_greater(0)
 	assert_int(GameState.player_hp).is_equal(_combat().max_hp(1))
@@ -164,7 +167,7 @@ func test_a_fresh_player_starts_the_first_fight_at_full_health() -> void:
 func test_winning_pays_out_once_and_only_once() -> void:
 	# Exactly, not "at least": the screen reports its result from inside a frame callback, and
 	# a missing latch pays the same xp again on every frame that follows.
-	_boot()
+	await _boot()
 	var before := GameState.player_xp
 	_world.open_battle_with(_enemy(1, 1, 5), "quest_village/foe")
 	await _fight_it_out()
@@ -201,14 +204,14 @@ func test_a_key_is_not_offered_as_something_to_drink() -> void:
 	# Only things that HEAL reach the fight menu. A gate key in there is a row that can only
 	# disappoint, and worse, a row that spends the turn it is pressed on.
 	# The control - an item that DOES belong there - arrives with the tonic and the content.
-	_boot()
+	await _boot()
 	GameState.give_item(&"gate_key")
 	_world.open_battle_with(_enemy(999), "quest_village/foe")
 	assert_array(_world.battle_screen().logic().item_rows()).override_failure_message(
 		"the fight offered the player something that cannot be drunk").is_empty()
 
 func test_a_beaten_enemy_is_remembered_as_beaten() -> void:
-	_boot()
+	await _boot()
 	_world.open_battle_with(_enemy(), "quest_village/foe")
 	await _fight_it_out()
 	assert_bool(GameState.was_seen("quest_village/foe")).override_failure_message(
@@ -217,7 +220,7 @@ func test_a_beaten_enemy_is_remembered_as_beaten() -> void:
 func test_winning_a_fight_leaves_the_player_where_the_fight_left_them() -> void:
 	# The party effect reaching the sink. A fight that reported nothing would hand back a
 	# player at full health, and every fight would be free.
-	_boot()
+	await _boot()
 	GameState.set_party(9, 0, 1)
 	_world.open_battle_with(_enemy(20, 3, 5), "quest_village/foe")
 	await _fight_it_out()
@@ -229,7 +232,7 @@ func test_winning_a_fight_leaves_the_player_where_the_fight_left_them() -> void:
 # -- losing --------------------------------------------------------------------------------
 
 func test_losing_ends_the_run() -> void:
-	_boot()
+	await _boot()
 	GameState.set_party(1, 0, 1)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
 	await _fight_it_out()
@@ -239,7 +242,7 @@ func test_losing_ends_the_run() -> void:
 
 func test_a_lost_fight_earns_nothing() -> void:
 	# Above all it must not mark the enemy beaten: the thing that just won is still standing.
-	_boot()
+	await _boot()
 	GameState.set_party(1, 0, 1)
 	var before := GameState.player_xp
 	_world.open_battle_with(_enemy(999, 99, 25), "quest_village/foe")
@@ -252,7 +255,7 @@ func test_a_lost_fight_earns_nothing() -> void:
 # -- getting back on the road ---------------------------------------------------------------
 
 func test_continuing_from_a_save_puts_the_player_back_in_it() -> void:
-	_boot()
+	await _boot()
 	assert_bool(SaveManager.save(0, _good_save())).is_true()
 	GameState.set_party(1, 0, 1)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
@@ -271,7 +274,7 @@ func test_continuing_from_a_save_puts_the_player_back_in_it() -> void:
 	assert_int(GameState.player_level).is_equal(2)
 
 func test_starting_again_rebuilds_the_game_from_the_beginning() -> void:
-	_boot()
+	await _boot()
 	GameState.set_flag(&"lit_the_lantern", true)
 	GameState.set_party(1, 99, 3)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
@@ -282,6 +285,11 @@ func test_starting_again_rebuilds_the_game_from_the_beginning() -> void:
 	await _press(&"move_down")
 	await _press(&"interact")
 	await _steps(4)
+	# A fresh run, so the warden says her piece again - which is the point of starting again,
+	# and the reason this asserts the opening rather than dismissing it quietly.
+	assert_str(Router.state_name()).override_failure_message(
+		"starting again did not begin the story again").is_equal("dialog")
+	await _dismiss_opening()
 	assert_str(Router.state_name()).is_equal("world")
 	assert_int(GameState.player_level).override_failure_message(
 		"starting again kept the dead run's level").is_equal(1)
@@ -292,7 +300,7 @@ func test_starting_again_rebuilds_the_game_from_the_beginning() -> void:
 func test_continuing_with_nothing_saved_is_refused_and_the_screen_keeps_answering() -> void:
 	# The refusal, and the control for it: the screen must still be listening afterwards, or a
 	# player with no saves is stuck on a menu that has stopped responding entirely.
-	_boot()
+	await _boot()
 	GameState.set_party(1, 0, 1)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
 	await _fight_it_out()
@@ -306,6 +314,7 @@ func test_continuing_with_nothing_saved_is_refused_and_the_screen_keeps_answerin
 	await _press(&"move_down")
 	await _press(&"interact")
 	await _steps(4)
+	await _dismiss_opening()
 	assert_str(Router.state_name()).override_failure_message(
 		"the game-over screen stopped answering after a refusal").is_equal("world")
 
@@ -339,3 +348,15 @@ func test_something_already_beaten_is_never_drawn_again() -> void:
 	# And the control: the one that has NOT been beaten is still there, so this is a test
 	# about the seen key rather than about enemies failing to spawn at all.
 	assert_array(_world.enemy_ids()).contains([&"slink_stash"])
+
+## The game now opens with the warden's conversation on screen, so every suite that boots it
+## has to get past that before it can test anything else. Bounded and asserted rather than a
+## fixed number of presses: the box reveals text a character at a time, so how many presses a
+## conversation takes depends on how long its lines are - and a "press until it goes away"
+## loop with no cap is how a suite hangs instead of failing.
+func _dismiss_opening() -> void:
+	for i in 12:
+		if Router.state_name() != "dialog":
+			return
+		await _press(&"interact")
+	fail("the opening conversation would not close")

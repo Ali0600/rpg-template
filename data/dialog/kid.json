@@ -1,26 +1,47 @@
 {
+	"_readme": [
+		"The town kid. The other optional voice, and the only one that says out loud what is waiting",
+		"in the hollow - a player who skipped the warden can still learn it here.",
+		"",
+		"Structure is unchanged: three chained nodes into a two-choice line, the first choice",
+		"requires_flag promised_elder and is HIDDEN rather than refused when it is not set. That is",
+		"the shape the dialog tests pin, so the rewrite keeps it exactly."
+	],
 	"id": "kid",
 	"start": "greet",
 	"nodes": {
 		"greet": {
 			"speaker": "Kid",
-			"text": "I can walk in four directions. Watch!",
+			"text": "You're going west, aren't you. Everyone who goes west has that face.",
 			"next": "brag"
 		},
 		"brag": {
 			"speaker": "Kid",
-			"text": "...that's all four. There aren't any more.",
+			"text": "There's a hollow out past the village. Something lives down there and it NESTS on things. That's what nesting is, it sits on it so you can't have it.",
 			"next": "boast"
 		},
 		"boast": {
 			"speaker": "Kid",
-			"text": "The elder says you promised to finish the town. Did you?",
+			"text": "The elder says you promised to go into the keep. Did you?",
 			"choices": [
-				{ "text": "I did.", "next": "knew", "requires_flag": "promised_elder" },
-				{ "text": "Not yet.", "next": "shrug" }
+				{
+					"text": "I did.",
+					"next": "knew",
+					"requires_flag": "promised_elder"
+				},
+				{
+					"text": "Not yet.",
+					"next": "shrug"
+				}
 			]
 		},
-		"knew": { "speaker": "Kid", "text": "I KNEW it. I'm telling everyone." },
-		"shrug": { "speaker": "Kid", "text": "That's what grown-ups always say." }
+		"knew": {
+			"speaker": "Kid",
+			"text": "I KNEW it. I'm telling everyone. Take a light, it's dark in there, everyone knows that."
+		},
+		"shrug": {
+			"speaker": "Kid",
+			"text": "That's what grown-ups always say."
+		}
 	}
 }

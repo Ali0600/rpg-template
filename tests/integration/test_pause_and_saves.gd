@@ -63,6 +63,9 @@ func _boot() -> Node2D:
 	add_child(_world)
 	assert_bool(_world.start_game(load(GAME) as GameManifest)).override_failure_message(
 		"the world would not start the game").is_true()
+	# The game opens with the warden's conversation on screen now. Every test below is about
+	# something else, so getting past it belongs here rather than in each of them.
+	await _dismiss_opening()
 	return _world
 
 ## Physics frames, which is the clock the player moves on. The tree's own signal rather than a
@@ -96,7 +99,7 @@ func _press(action: StringName) -> void:
 	await _steps(1)
 
 func test_pausing_takes_control_away_and_resuming_gives_it_back() -> void:
-	_boot()
+	await _boot()
 	var player: ActorBody = _world.player()
 	assert_bool(_world.open_pause()).is_true()
 	assert_str(Router.state_name()).is_equal("paused")
@@ -118,7 +121,7 @@ func test_pausing_takes_control_away_and_resuming_gives_it_back() -> void:
 	assert_object(_world.pause_screen()).is_null()
 
 func test_saving_from_the_menu_writes_this_games_slot() -> void:
-	_boot()
+	await _boot()
 	var player: ActorBody = _world.player()
 	var spot := player.global_position + Vector2(32.0, 0.0)
 	player.place(spot, Dir.D.RIGHT)
@@ -138,7 +141,7 @@ func test_saving_from_the_menu_writes_this_games_slot() -> void:
 		"the menu closed itself after a save").is_not_null()
 
 func test_loading_puts_the_player_back_where_they_saved() -> void:
-	_boot()
+	await _boot()
 	var player: ActorBody = _world.player()
 	var saved_at := player.global_position + Vector2(32.0, 0.0)
 	player.place(saved_at, Dir.D.RIGHT)
@@ -169,7 +172,7 @@ func test_loading_puts_the_player_back_where_they_saved() -> void:
 func test_a_save_made_in_another_map_restores_into_that_map() -> void:
 	# A save records a map as well as a position, and the game has five. Restoring into the one
 	# the player is already standing in would pass every position assertion above.
-	_boot()
+	await _boot()
 	var data := SaveData.new()
 	data.game = &"quest"
 	data.map = &"quest_keep"
@@ -190,7 +193,7 @@ func test_another_games_save_is_never_even_offered() -> void:
 	# Fail closed at the first opportunity: another game's save sitting in this game's slot
 	# read back, so the row says "empty" and Load refuses it. Nothing is parked, because
 	# nothing tried to load it - listing the slots is a silent read.
-	_boot()
+	await _boot()
 	var stranger := SaveData.new()
 	stranger.game = &"other"
 	stranger.map = &"quest_village"
@@ -214,7 +217,7 @@ func test_a_slot_that_goes_bad_while_the_menu_is_open_is_refused_and_the_menu_li
 	# case that exercises the screen's latch - it stops answering the moment it sends an answer
 	# to the world, so a refusal has to un-latch it, or the menu sits there looking perfectly
 	# normal with every key dead and the only way out is killing the game.
-	_boot()
+	await _boot()
 	assert_bool(SaveManager.save(2, _good_save())).is_true()
 
 	assert_bool(_world.open_pause()).is_true()
@@ -242,7 +245,7 @@ func test_starting_another_game_closes_the_pause_menu() -> void:
 	# The menu lists ONE game's slots. Left standing over a game that has just been started it
 	# would offer to load saves that cannot load, and to write slots belonging to a game nobody
 	# is playing.
-	_boot()
+	await _boot()
 	_world.open_pause()
 	var screen: PauseScreen = _world.pause_screen()
 	var other := (load(GAME) as GameManifest).duplicate() as GameManifest
@@ -251,13 +254,18 @@ func test_starting_another_game_closes_the_pause_menu() -> void:
 	assert_bool(is_instance_valid(screen)).override_failure_message(
 		"the pause menu outlived the game it was opened over").is_false()
 	assert_object(_world.pause_screen()).is_null()
+	# The new game opens its own story, the way any new game does - so the state to expect
+	# here is that one rather than the world, and PAUSED is gone either way.
+	assert_str(Router.state_name()).override_failure_message(
+		"the pause state survived a game being started under it").is_not_equal("paused")
+	await _dismiss_opening()
 	assert_str(Router.state_name()).is_equal("world")
 
 
 func test_the_menu_lists_what_the_player_is_carrying() -> void:
 	# Read off the LABELS, not off the menu object: the bag reaching the pure cursor and the
 	# bag reaching the screen are different claims, and only the second is what a player sees.
-	_boot()
+	await _boot()
 	GameState.give_item(&"gate_key")
 	GameState.give_item(&"lamp_oil", 2)
 	assert_bool(_world.open_pause()).is_true()
@@ -277,3 +285,14 @@ func test_the_menu_lists_what_the_player_is_carrying() -> void:
 	assert_str(all_text).contains("Lamp oil x2")
 	assert_str(all_text).not_contains("gate_key")
 
+## The game now opens with the warden's conversation on screen, so every suite that boots it
+## has to get past that before it can test anything else. Bounded and asserted rather than a
+## fixed number of presses: the box reveals text a character at a time, so how many presses a
+## conversation takes depends on how long its lines are - and a "press until it goes away"
+## loop with no cap is how a suite hangs instead of failing.
+func _dismiss_opening() -> void:
+	for i in 12:
+		if Router.state_name() != "dialog":
+			return
+		await _press(&"interact")
+	fail("the opening conversation would not close")

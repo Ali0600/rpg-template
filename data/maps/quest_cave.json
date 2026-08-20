@@ -44,7 +44,7 @@
 	"npcs": [
 		{
 			"id": "hermit",
-			"character": "town_smith",
+			"character": "quest_hermit",
 			"tile": [10, 2],
 			"facing": "down",
 			"dialog": "hermit",

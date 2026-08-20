@@ -21,6 +21,24 @@
 	"steps": [
 		{
 			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
 			"text": "the village, carrying nothing and owed an explanation"
 		},
 		{

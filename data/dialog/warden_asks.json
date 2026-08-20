@@ -1,30 +1,47 @@
 {
 	"_readme": [
-		"The warden's default line, named by the NPC in the map. The game's hooks return false",
-		"when they have nothing better to say, and this is what runs then - which is the whole",
-		"shape of the seam: a game takes the cases it cares about and leaves the rest to data.",
+		"The warden's opening, and the game's premise. Named by the map AND opened by the hooks:",
+		"on_map_entered forces it the first time the player stands in the village, because a",
+		"play-test found the oil, never found the key, and was never told either existed.",
 		"",
-		"Rewritten for M13. She used to bar the gate for no stated reason; now she says what she",
-		"barred it against, and what has moved into the hollow since - so both fights the quest",
-		"requires are announced before the player walks into either."
+		"Its `greet` node sets met_the_warden, which is what stops the hook replaying it. A node",
+		"flag lands when the line is SHOWN, so a conversation nobody saw is one they are still owed.",
+		"",
+		"Every fact a player needs to take the first step is in `why`: that there is a key, that it",
+		"is west in the hollow, and that it is under the one bush down there. That last one used to",
+		"be stated NOWHERE - the stash is an unmarked object standing on scenery."
 	],
 	"id": "warden_asks",
 	"start": "greet",
 	"nodes": {
 		"greet": {
 			"speaker": "Warden",
-			"text": "The gate is barred, and I am the one who barred it. Something took the keep, and I could not take it back.",
+			"text": "You will want to know why the gate is barred. I barred it. Something took the keep eleven years ago, and I could not take it back.",
+			"set_flag": "met_the_warden",
 			"next": "why"
 		},
 		"why": {
 			"speaker": "Warden",
-			"text": "The key went into the hollow, west of here, some years ago. What nests on it now is why nobody has fetched it.",
+			"text": "The key went west, into the hollow - under the roots of the one bush that grows down there. What nests beside it now is why nobody has fetched it.",
 			"choices": [
-				{ "text": "I'll go and look.", "next": "good", "set_flag": "told_warden_yes" },
-				{ "text": "Sounds like your problem.", "next": "fair" }
+				{
+					"text": "I'll go and look.",
+					"next": "good",
+					"set_flag": "told_warden_yes"
+				},
+				{
+					"text": "Sounds like your problem.",
+					"next": "fair"
+				}
 			]
 		},
-		"good": { "speaker": "Warden", "text": "Then you are already doing more than I have in a decade. Mind the smith on your way - she keeps something for cuts." },
-		"fair": { "speaker": "Warden", "text": "It is. And it will still be my problem tomorrow." }
+		"good": {
+			"speaker": "Warden",
+			"text": "Then you are already doing more than I have in a decade. Mind the smith in the town south of here - she keeps something for cuts."
+		},
+		"fair": {
+			"speaker": "Warden",
+			"text": "It is. And it will still be my problem tomorrow, when you have run out of other things to do."
+		}
 	}
 }

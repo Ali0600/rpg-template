@@ -1,18 +1,13 @@
 {
 	"_readme": [
-		"The one conversation in this game that hands something over, and the shape every",
-		"such conversation should copy: the gift sits on a CHOICE carrying `set_flag`, and",
-		"`hidden_if_flag` names that same flag.",
+		"The oil, and the only gift on this path. The flask can be taken in the first minute of the",
+		"game, before the player has any idea a lantern exists - so the hermit says what it is FOR.",
+		"An item obtainable before its purpose is statable has to carry its purpose at pickup.",
 		"",
-		"A node cannot do this. It has no condition and no memory of having been entered, so",
-		"a conversation looping back through it gives a second flask every pass. The pair",
-		"below is 'taken once, offered never again' - and it works on the FIRST pass too,",
-		"because the runner counts flags earned earlier in the same conversation, not just",
-		"the ones already written to the game state.",
-		"",
-		"Both replies END the conversation rather than looping back to the greeting. A choice",
-		"line cannot be escaped with cancel - the whole point of a choice is that one is",
-		"picked - so a loop through a choice is a conversation with no way out of it."
+		"The gift is on a CHOICE, never on a node: a node has no condition and no memory, so a",
+		"conversation looped through one would hand over a second flask. The idiom is set_flag +",
+		"hidden_if_flag on the same choice. Both replies END the talk - a choice line cannot be",
+		"escaped with cancel, so a conversation that looped back through one would have no way out."
 	],
 	"id": "hermit",
 	"start": "greet",
@@ -24,7 +19,7 @@
 		},
 		"ask": {
 			"speaker": "Hermit",
-			"text": "There is oil on the shelf. More than one person needs.",
+			"text": "There is oil on the shelf. The keep's lantern drank its last flask years before the gate was barred, and I have kept the rest since. More than one person needs.",
 			"choices": [
 				{
 					"text": "Could I have some of that oil?",
@@ -33,7 +28,10 @@
 					"set_flag": "took_oil",
 					"hidden_if_flag": "took_oil"
 				},
-				{ "text": "Just passing through.", "next": "passing" }
+				{
+					"text": "Just passing through.",
+					"next": "passing"
+				}
 			]
 		},
 		"gave": {
@@ -42,7 +40,7 @@
 		},
 		"passing": {
 			"speaker": "Hermit",
-			"text": "Everyone is, eventually."
+			"text": "Everyone is, eventually. The shelf keeps."
 		}
 	}
 }

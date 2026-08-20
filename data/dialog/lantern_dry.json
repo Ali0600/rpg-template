@@ -1,16 +1,15 @@
 {
 	"_readme": [
-		"What the lantern says with nothing to burn. A lock with no line to say is a button",
-		"that does nothing on the one press that matters most - the one before you have found",
-		"the thing it wants - which is why MapData refuses to ship an object that can refuse",
-		"and has no locked_dialog."
+		"The lantern's refusal. It names OIL and where the nearest is, because it used to say only",
+		"that the reservoir was dry - true, atmospheric, and useless to a player who has just fought",
+		"a boss to reach it."
 	],
 	"id": "lantern_dry",
 	"start": "dry",
 	"nodes": {
 		"dry": {
-			"speaker": "The keep",
-			"text": "A lantern on a hook. The reservoir is dry, and has been for a long time."
+			"speaker": "",
+			"text": "A lantern on a hook. The reservoir is dry, and has been for a long time. It wants oil, and nobody nearer than the hermit - east, past the town - has kept any."
 		}
 	}
 }

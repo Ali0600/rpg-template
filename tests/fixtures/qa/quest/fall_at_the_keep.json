@@ -13,6 +13,24 @@
 	"steps": [
 		{
 			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
 			"text": "the same road, walked badly. Every press in this script is mistimed on purpose: press_until_state mashes, and only the FIRST press of a cue is captured - so a masher's press always lands early and never scores. That is the point. A driver that plays well only ever visits the branches good play reaches, and the branches this game most needs proven - a fight lost, a boss that will not let you run, the road back afterwards - are exactly the ones it never sees."
 		},
 		{
@@ -490,6 +508,20 @@
 		{
 			"op": "wait",
 			"frames": 30
+		},
+		{
+			"op": "note",
+			"text": "and a fresh run begins the story again - the warden has not met this one"
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
 		},
 		{
 			"op": "assert_state",
