@@ -140,3 +140,15 @@ func test_move_and_slide_picks_its_own_delta_rather_than_one_you_pass() -> void:
 	# below is vacuous, so the guard above states the frame kind explicitly.
 	var idle_step := 100.0 * get_process_delta_time()
 	assert_float(moved).is_equal_approx(idle_step, 0.001)
+
+
+func test_reading_a_missing_file_as_bytes_is_empty_and_quiet() -> void:
+	# ImageFile.read_png has no file_exists guard in front of its read, because this makes one
+	# unreachable: a missing path comes back as an empty array rather than as an error or a
+	# crash. The reader turns that into null, which is what the art-drift gate reports as
+	# "(unreadable)". If a future engine made this noisy or fatal, the gate would start
+	# crashing on a missing sprite instead of naming it, and this is where that shows up.
+	var bytes := FileAccess.get_file_as_bytes("res://assets/generated/does_not_exist.png")
+	assert_int(bytes.size()).override_failure_message(
+		"a missing file no longer reads as empty bytes").is_equal(0)
+	assert_int(FileAccess.get_open_error()).is_equal(ERR_FILE_NOT_FOUND)

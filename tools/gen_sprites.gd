@@ -129,7 +129,7 @@ func _emit_image(path: String, img: Image) -> void:
 	if not FileAccess.file_exists(path):
 		_drifted.append(path + " (missing)")
 		return
-	var existing := Image.load_from_file(path)
+	var existing := ImageFile.read_png(path)
 	if existing == null:
 		_drifted.append(path + " (unreadable)")
 		return
