@@ -701,3 +701,42 @@ killed** and a deliberately wrong assertion still failed the run.
 
 **Takeaway:** after any change that makes a gate faster, cheaper, or narrower, re-run the
 thing that proves the gate can still fail. Green-after is not evidence; red-on-bad-input is.
+
+## A gate over the source tree cannot see the packaging step
+
+Every check can pass against `res://` in the project directory while the artifact users download
+is missing something. Packing is a transformation, and an untested transformation is a place
+defects live.
+
+**Why it came up:** M14 shipped a fix for a bug that only exists in exports, and nothing could
+verify it. Excluding the generated audio from the pack then produced a build that boots, walks,
+talks and requests every cue exactly as it should — and is completely silent — while every
+existing assertion stayed green.
+
+**Takeaway:** if you ship an artifact, run a real check against the artifact. For anything with a
+packaging step, the source tree and the package are two different programs.
+
+## A missing input can present as a hang rather than an error
+
+Pointing Godot's `--main-pack` at a nonexistent or truncated pack does not fail — it sits there
+producing no output until killed.
+
+**Why it came up:** the control for "does this gate bite" hung for five minutes. The same thing
+then happened to the gate's own script, because a caller-supplied relative path stopped resolving
+once the run changed directory.
+
+**Takeaway:** bound any subprocess whose input you are deliberately breaking, and resolve paths to
+absolute before anything changes directory. A gate that hangs reads as infrastructure flake, which
+is the one failure nobody investigates.
+
+## An assertion sited where the value is always full proves nothing
+
+Three `assert_hp` calls across two long play sessions could not see the damage formula change,
+because each sat right after a level-up and a level-up refills health.
+
+**Why it came up:** a deliberately sabotaged combat formula passed five and a half minutes of
+scripted play that appeared, from the file, to check health three times.
+
+**Takeaway:** ask what the asserted value would be if the code were wrong. If the answer is "the
+same, because something downstream normalises it", the assertion is decoration wherever it sits —
+move it to the one window where the value is still the code's own output.

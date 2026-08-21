@@ -242,7 +242,29 @@ tools/check.sh                 # import, lint, parse, compile, tests, boot, art 
 MUTANTS=1 tools/check.sh       # + prove every gate bites (milestone close)
 tools/mutate_check.sh --list   # what each mutant claims to cover
 tools/mutants_scope.sh         # the mutants THIS branch's diff could have broken
+tools/pack_check.sh            # export the .pck and PLAY it - the artifact, not the source tree
 ```
+
+**Every gate except one runs against `res://` in the project directory. `pack_check.sh` runs
+against the `.pck` a player downloads**, because that is where a whole class of defect lives: an
+asset that is not packed, an exclude filter that grew, an importer that did not run. M14 shipped
+one of those - the audio seam's drop-in half had been broken in exports since the day it was
+written, and no gate could have seen it.
+
+`--export-pack` needs no export templates and `--main-pack` boots the pack with the stock
+binary, so the whole thing costs about five seconds and runs in `check.sh` as step 7b. The QA
+scripts are read from an ABSOLUTE host path, because `tests/*` is excluded from the pack - the
+shipping preset is never modified to make itself testable.
+
+**A missing or truncated pack HANGS rather than failing.** Measured, both of them, with no output
+at all. Every packed run is `timeout`-wrapped, and any path handed to `--main-pack` is made
+absolute BEFORE the run changes directory - a relative one stops resolving and presents as that
+same hang.
+
+**A swallowed exit code needs a stated reason.** `pages.yml` ignores the exporter's status for a
+real, measured one (it aborts during shutdown after writing a complete package) and says so. It
+used to ignore `--import`'s status for no reason at all, which was a fail-open in the step that
+builds what ships.
 
 **Anything driven by frames gets `$GODOT_FRAMES` (`--fixed-fps 60`), from `_engine.sh`.**
 Headless does not mean fast: the engine still paces its main loop against the wall clock, so a

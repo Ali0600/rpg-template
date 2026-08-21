@@ -293,3 +293,7 @@ scripts/autoload/settings.gd	s|\t\treturn QA_PATH|\t\treturn DEFAULT_PATH|	tests
 scripts/ui/pause_menu.gd	s|\t\tif _index == Row.SOUND:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot turn the sound down
 scripts/ui/pause_screen.gd	s|\t\t\treturn _menu.sound_label\(\) if at == PauseMenu.Row.SOUND else TOP_LABELS\[at\]|\t\t\treturn TOP_LABELS[at]|	tests/integration/test_pause_and_saves.gd	the sound row draws as an empty line
 tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]\):|\t\tif true:|	tests/unit/test_compile_all.gd	a singleton whose name ends another identifier drops files out of the compile gate
+
+# --- M15: the played game, and the artifact it ships as ---
+scripts/ui/battle_logic.gd	s|return maxi\(1, attack - defense\)|return maxi(1, attack - defense + 3)|	tests/fixtures/qa/quest/finish_the_quest.json	combat arithmetic changes and the PLAYED game does not notice
+scripts/ui/battle_logic.gd	s|\t\t_hp = player_max_hp\(\)|\t\tpass|	tests/fixtures/qa/quest/finish_the_quest.json	levelling stops healing, which the played game only sees because it now reads hp mid-run

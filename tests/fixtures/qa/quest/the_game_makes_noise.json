@@ -22,6 +22,9 @@
 		{ "op": "press", "action": "interact" },
 		{ "op": "assert_state", "state": "world" },
 
+		{ "op": "note", "text": "the voice can actually play what it names - the assertion that only bites against a packed build" },
+		{ "op": "assert_audio_ready" },
+
 		{ "op": "note", "text": "walking asks for footsteps" },
 		{ "op": "sound_mark" },
 		{ "op": "hold", "action": "move_down" },

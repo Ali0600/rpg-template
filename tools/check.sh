@@ -190,6 +190,18 @@ if [ "$play_ran" -eq 0 ]; then
 fi
 result $play_fail "$play_ran scripted play sessions"
 
+step "7b/9 the exported artifact plays"
+# Every step above this line runs against res:// in the project directory. This one runs against
+# the .pck a player downloads, which is a different thing: an asset that is not packed, an
+# exclude filter that grew, an importer that did not run - none of those are visible from the
+# source tree, and M14 shipped one that had been broken in exports since it was written.
+#
+# It is here rather than only on the deploy because it turned out to cost FIVE SECONDS, export
+# included - --export-pack needs no export templates, and --main-pack boots the pack with the
+# stock binary. That was measured before deciding where to put it.
+tools/pack_check.sh
+result $? "the exported artifact plays"
+
 # Cheap, so it runs EVERY time rather than only with MUTANTS=1. A mutant's aim is broken by
 # writing new code, not by editing the mutant: add a function whose body happens to repeat a
 # line an existing pattern anchors on, and sed edits whichever comes first - so the mutant

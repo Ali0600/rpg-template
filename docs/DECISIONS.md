@@ -949,3 +949,48 @@ The full 226-mutant sweep was 57% of every CI run, on both the PR and the merge.
 What deliberately did NOT move: `mutants_aim.sh` runs over the whole file on every run of
 both. It costs under a second and it is the check that catches new code stealing an old
 mutant's aim — which has happened twice.
+
+## The artifact is played, not enumerated — *M15*
+
+Nothing in this project had ever looked at the `.pck` a player downloads. Two ways to fix that.
+
+- **Boot the pack and play it** with the committed QA sessions, via `--main-pack`. *Chosen.* It
+  subsumes any file list: a packed game that boots, walks, warps, talks, fights and asks for its
+  sounds has demonstrably packed the maps, tiles, sheets, dialog, manifests and cues. It also
+  needs no export templates and reuses a harness that already exists.
+- **Enumerate the pack** — mount it with `ProjectSettings.load_resource_pack` and diff the walk
+  against `ContentScan` over the source tree. Rejected as the primary gate because it proves
+  presence, not playability, and presence is the weaker claim. Still worth doing one day for a
+  different reason: it would finally test `ContentScan`'s docstring claim that "the same walk
+  works from a .pck", which nothing exercises.
+- **Grepping the raw pck for known paths.** Rejected: the packed name is `hit.wav.import`, not
+  `hit.wav`, so the obvious grep proves the sidecar shipped and says nothing about the audio.
+
+**Where it runs:** in `check.sh`, on every run, because it turned out to cost five seconds rather
+than the thirty assumed while planning. That was measured before deciding. It ALSO runs in
+`pages.yml` against the real deployed package, where `deploy needs: build` means a package that
+does not play leaves the live page on the last good build.
+
+## An assertion where the value is always full is decoration — *M15*
+
+`finish_the_quest` and `fall_at_the_keep` between them make 99 assertions and five and a half
+minutes of scripted play, and neither noticed `BattleLogic.damage()` returning three more than it
+should.
+
+The reason is exact: **every mid-run `assert_hp` in both scripts sits immediately after a
+level-up, and a level-up is a full heal.** Damage taken is overwritten before it is ever read.
+`assert_level` cannot help - xp is a per-enemy constant, so it is the same whether a fight took
+two rounds or four - and `finish_the_quest` made zero `assert_xp` calls at all.
+
+- **One `assert_hp` after a fight that does NOT level the player.** *Chosen.* That is the only
+  window in either script where hp is neither full-at-start nor refilled. Both directions of the
+  arithmetic are now caught (`+3` and `-1` both land on 13 against a pinned 14).
+- **Recomputing the expected hp from the combat numbers.** Rejected: a test that derives its
+  expectation from the thing under test cannot see that thing change. The value was read out of
+  the run's own log.
+- **More assertions everywhere.** Rejected as the fix. The file already *looked* like it asserted
+  hp three times; the problem was never the count.
+
+`mutate_check.sh` now drives a play session as a "suite" when the suite column points at
+`tests/fixtures/qa/`, so the play gate is mutation-proven like everything else. That only became
+reasonable when M14.1 made a session cost two seconds instead of ninety.

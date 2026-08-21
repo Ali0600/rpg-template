@@ -148,6 +148,20 @@ func _run(step: Dictionary) -> void:
 					% [cue, "asked for" if want else "silent", AudioBus.requested()])
 			else:
 				_log.append("sound '%s' %s" % [cue, "played" if heard else "stayed quiet"])
+		"assert_audio_ready":
+			# Not "was a sound asked for" - assert_sound answers that, and it answers it the
+			# same way whether the file exists or not, on purpose. This asks whether the voice
+			# can actually PLAY what the template names.
+			#
+			# In the source tree it is nearly free and always passes. Against an exported pack
+			# it is the whole point: an artifact built without its audio boots, walks, talks and
+			# requests every cue exactly as it should, and is silent. That was measured, not
+			# imagined - excluding the cues from the pack left every other assertion green.
+			var absent := AudioBus.missing_cues()
+			if not absent.is_empty():
+				_fail("the voice cannot play %d cue(s) it names: %s" % [absent.size(), absent])
+			else:
+				_log.append("every cue the template names is playable")
 		"assert_flag":
 			# The one assertion that can tell "the quest advanced" from "something moved the
 			# player". A gate opening is evidence a warp fired; the flag is evidence the
