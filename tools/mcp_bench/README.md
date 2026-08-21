@@ -69,6 +69,11 @@ as a win.
   returns `addon_version: "unknown", versions_match: false` and the server logs
   `Handshake failed (addon may be outdated)`, with addon and server both at 4.1.0. Every
   tool tried still worked. Treat it as an untested-on-4.7 signal, not a blocker.
+- **The addon is not free to install, which is why this repo does not commit it.**
+  `plugin.gd` forces an `MCPGameBridge` autoload via `ProjectSettings.save()`, and that save
+  strips every comment from `project.godot` (restoring them by hand does not survive the next
+  build that loads the plugin). The autoload then either ships (+1MB) or errors three times on
+  every packed boot. See `docs/DECISIONS.md`; the on-demand install recipe is in CLAUDE.md.
 - The bridge runs **headless** — `Godot --headless --editor --path <proj>` brings up port
   6550 with no visible editor window. The README's "open the Godot project" is not literally
   required.
