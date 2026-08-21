@@ -177,6 +177,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M14** — sound: a synthesiser driven by a cue bank and a voice, generated and drift-gated the way the sprites are, with the whole game finally audible
 - [x] **M14.1** — the gate got 17x faster without losing an assertion: frame-driven runs stop waiting on the wall clock, and a pull request proves the mutants its own diff could have broken
 - [x] **M15** — the gate finally looks at what ships: the exported .pck is booted and played on every run, and the played game now notices its own combat arithmetic
+- [x] **M16** — terrain became data: tiles are authored pixel art in `data/tiles/*.json` in the rig's own alphabet, the six procedural ones ported losslessly, and a floor, a rough wall, a door, steps, a table and a rug added without touching a script
 
 ## Experience Gained
 

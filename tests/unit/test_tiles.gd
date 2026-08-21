@@ -60,6 +60,20 @@ func test_ground_tiles_are_fully_opaque_and_decor_tiles_are_not() -> void:
 			assert_int(clear).override_failure_message(
 				"ground tile '%s' has %d transparent pixels" % [id, clear]).is_equal(0)
 
+func test_the_bank_has_an_example_of_every_solid_and_decor_combination() -> void:
+	# The collision test below walks whatever the bank happens to contain, so a combination
+	# with no example is a case it silently stops checking rather than a case it fails on.
+	# decor-and-walkable had no example until a rug was authored: every decor tile shipped
+	# was also solid, so "a decor tile that does not block" was an untested claim.
+	var bank := _bank(&"gb16")
+	var seen: Array[String] = []
+	for i in bank.size():
+		var e := bank.at(i)
+		seen.append("%s/%s" % [bool(e.get("solid", false)), bool(e.get("decor", false))])
+	for wanted in ["true/true", "true/false", "false/true", "false/false"]:
+		assert_bool(seen.has(wanted)).override_failure_message(
+			"no tile is solid/decor = %s, so the collision test cannot check that case" % wanted).is_true()
+
 func test_the_tileset_gives_collision_to_exactly_the_solid_tiles() -> void:
 	var style := ArtFixtures.style(&"gb16")
 	var meta := _tiles_meta(&"gb16")

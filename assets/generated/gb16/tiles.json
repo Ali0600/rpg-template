@@ -1,5 +1,5 @@
 {
-	"columns": 6,
+	"columns": 12,
 	"rows": 1,
 	"style": "gb16",
 	"tile_size": 16,
@@ -45,6 +45,48 @@
 			"index": 5,
 			"ramp": "terrain_bush",
 			"solid": true
+		},
+		{
+			"decor": false,
+			"id": "floor",
+			"index": 6,
+			"ramp": "leather",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "wall_rough",
+			"index": 7,
+			"ramp": "stone",
+			"solid": true
+		},
+		{
+			"decor": false,
+			"id": "door",
+			"index": 8,
+			"ramp": "leather",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "stairs",
+			"index": 9,
+			"ramp": "stone",
+			"solid": false
+		},
+		{
+			"decor": true,
+			"id": "table",
+			"index": 10,
+			"ramp": "leather",
+			"solid": true
+		},
+		{
+			"decor": true,
+			"id": "rug",
+			"index": 11,
+			"ramp": "terrain_path",
+			"solid": false
 		}
 	],
 	"version": 1
