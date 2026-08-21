@@ -1,0 +1,8 @@
+{
+  "name": "mcp-bench",
+  "private": true,
+  "type": "module",
+  "description": "Times two Godot MCP servers through one task battery. Dev tooling; never part of check.sh.",
+  "scripts": { "bench": "node bench.mjs" },
+  "dependencies": { "@modelcontextprotocol/sdk": "^1.30.0" }
+}

@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://bmcpbenchfixture01"]
+
+[node name="Main" type="Node2D"]
+
+[node name="Child" type="Node2D" parent="."]
+
+[node name="GrandChild" type="Sprite2D" parent="Child"]
