@@ -782,3 +782,26 @@ consistent with the data never being read at all.
 existing gate already pins the output exactly; if so, an untouched artifact is the proof.
 Then break the new input once, to show the gate is looking at it.
 
+## A gate that walks your data checks only the combinations your data happens to contain
+
+A test that iterates a collection and asserts a rule per item reads as exhaustive. It is
+exhaustive over the DATA, not over the rule — so any case the data has no example of is one
+the gate silently stops checking, and it reports the same green either way.
+
+**Why it came up:** `test_tiles.gd` walks every tile in the generated metadata and asserts
+that solid tiles have a collision polygon and walkable ones do not. Sound. But every decor
+tile the template shipped was also solid — the bush was the only one — so
+"a decor tile that does not block" had never been checked by anything, and nobody could tell,
+because the test passed on six tiles out of six. Authoring a rug (decor, walkable) closed it
+by accident; a second test now asserts the bank has an example of all four solid × decor
+combinations, and says which one is missing when it does not.
+
+The general shape: when the *content* decides what the *gate* covers, coverage becomes a
+property nobody is watching. Adding the missing example fixes today; asserting the
+combinations exist is what stops it reopening the next time someone prunes the data.
+
+**Takeaway:** for any gate that loops over data, write a second assertion about the data's
+own coverage — every enum value, every flag combination, every branch of the thing you are
+looping on has at least one example — so a shrinking corpus fails loudly instead of quietly
+narrowing the check.
+
