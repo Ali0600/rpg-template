@@ -667,3 +667,37 @@ assert every step is visited exactly once on the way round.
 
 **Takeaway:** for anything cyclic or reversible, assert the JOURNEY as well as the destination —
 returning to the start is the one property a broken cycle shares with a working one.
+
+## Headless does not mean fast when the loop is paced by the wall clock
+
+A headless engine still runs its main loop in real time. A scripted play session that takes a
+player three minutes takes the test suite three minutes, and no amount of CPU helps.
+
+**Why it came up:** the play gate was 6m13s of an 18-minute CI run. `--fixed-fps 60` pins every
+frame's delta and stops waiting between frames: 371s became 8s, with byte-identical output.
+
+**Takeaway:** when a test harness is slow, check whether it is CPU-bound at all before
+optimizing it — a simulation waiting on the clock is not working, it is sleeping.
+
+## When a harness's cost is process startup, optimize the process count
+
+The mutation sweep spent ~67% of ten minutes on engine startup: 275 boots at ~1.5s each, of
+which 49 were baseline runs re-proving suites that a step 60 seconds earlier had proven green.
+
+**Why it came up:** the tests inside those runs accounted for ~200s of 616s. Nothing about the
+tests was slow.
+
+**Takeaway:** profile a harness by counting the processes it starts, not by reading the code it
+runs. The fix is fewer invocations — scope, deduplicate, or amortize — not faster tests.
+
+## A speedup has to be proven not to have blunted the detector
+
+Making a gate 17x faster is worthless if it now passes things it used to catch.
+
+**Why it came up:** `--fixed-fps` changes the engine's timing, and every one of these harnesses
+is timing-sensitive by design. The evidence that it was safe was not that the suite still went
+green — a suite that tested nothing would also go green — but that **all 226 mutants were still
+killed** and a deliberately wrong assertion still failed the run.
+
+**Takeaway:** after any change that makes a gate faster, cheaper, or narrower, re-run the
+thing that proves the gate can still fail. Green-after is not evidence; red-on-bad-input is.

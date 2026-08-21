@@ -13,6 +13,22 @@ resolve_godot() {
   done
 }
 
+# Flags for anything driven by FRAMES - the test suite, the scripted play sessions, the
+# mutation sweep. Headless does not mean fast: the engine still paces its main loop against the
+# wall clock, so a play session that takes a player three minutes takes the gate three minutes
+# too. --fixed-fps pins every frame's delta AND stops waiting for real time between them.
+#
+# It changes nothing a gate can observe. Every one of these harnesses counts PHYSICS FRAMES,
+# never seconds, and the delta each frame reports is the same 1/60 it was before - which is why
+# the ten play sessions produce byte-identical logs with it and without it, and why the whole
+# suite returns identical verdicts on all 595 tests. Measured, not assumed: play 371s -> 8s,
+# suite 37s -> 8s.
+#
+# Do NOT add this to the generators (gen_sprites, gen_sounds) or the one-shot tools. They quit
+# in their first frame, so it would buy nothing and would put a flag in a command line nobody
+# needs to understand.
+GODOT_FRAMES="--fixed-fps 60"
+
 require_godot() {
   GODOT="$(resolve_godot)"
   if [ -z "$GODOT" ] || [ ! -x "$GODOT" ]; then

@@ -917,3 +917,35 @@ changed.
 
 The gains are not evenly spaced (0, 0.25, 0.6, 1.0) because hearing is roughly logarithmic and
 even spacing sounds like three loud settings and one quiet one.
+
+## The gate got 17x faster without losing an assertion — *M14.1*
+
+Four milestones of M14 cost ~17 minutes of CI each, and the profile said the time was not in
+the tests: 604 tests execute in 34 seconds. It was in engine boots and in the wall clock.
+
+- **`--fixed-fps 60` on everything driven by frames.** *Chosen.* Headless Godot still paces its
+  main loop against real time, so a play session that takes a player three minutes took the
+  gate three minutes. Measured, both ways, before anything was built on it: play sessions
+  371s → 8s with byte-identical logs, suite 37s → 8s with identical verdicts on all 595 tests,
+  and **226/226 mutants still killed** — which is the real proof it did not blunt detection.
+- **Rewriting the QA scripts to wait fewer frames.** Rejected outright: the frame counts ARE
+  the test. A battle asserted on frame N is asserting the timing window exists.
+- **Dropping the slowest two play sessions from CI.** Rejected: they are the two that play the
+  whole quest and lose a fight, i.e. the only ones that cover the game end to end.
+
+## A pull request proves what it could have broken; main proves everything — *M14.1*
+
+The full 226-mutant sweep was 57% of every CI run, on both the PR and the merge.
+
+- **Scoped on PR, full on main.** *Chosen by the user.* A change can only make decorative a
+  mutant whose file or suite it touched, so that is what a PR runs — seconds instead of ten
+  minutes. Every merge re-runs the whole sweep, where nobody waits on it, so a test that went
+  decorative because of a change somewhere else is caught one step later rather than never.
+- **Full sweep on every PR, sharded across parallel jobs.** Rejected for cost: identical rigor
+  before merge, ~4x the runner minutes, for a window that main closes minutes later anyway.
+- **Main only, nothing on PR.** Rejected: it gives up the one thing scoping is good at, which
+  is catching the author's own change making the author's own test decorative.
+
+What deliberately did NOT move: `mutants_aim.sh` runs over the whole file on every run of
+both. It costs under a second and it is the check that catches new code stealing an old
+mutant's aim — which has happened twice.

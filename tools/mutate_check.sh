@@ -20,6 +20,7 @@
 # Usage:
 #   tools/mutate_check.sh --all
 #   tools/mutate_check.sh --list
+#   tools/mutate_check.sh --assume-green --all   (only right after a full green suite run)
 #   tools/mutate_check.sh <file> <sed-expression> <suite> [label]
 
 set -uo pipefail
@@ -39,7 +40,7 @@ sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 # Echoes "<suites_ran> <failures> <errors> <crashed>" for a suite run.
 run_suite() {
   local out ran fails errs crashed
-  out=$("$GODOT" --headless --path . -s "$RUNNER" -a "$1" --ignoreHeadlessMode -c 2>&1 \
+  out=$("$GODOT" --headless $GODOT_FRAMES --path . -s "$RUNNER" -a "$1" --ignoreHeadlessMode -c 2>&1 \
         | sed 's/\x1b\[[0-9;]*m//g')
   crashed=0
   printf '%s' "$out" | grep -q 'handle_crash' && crashed=1
@@ -52,8 +53,19 @@ run_suite() {
 
 verified_green=" "
 
+# Skips the baseline runs. Only safe where a FULL green suite run already happened in the same
+# job moments earlier - check.sh proves all 54 suites green at step 4/9 and only then reaches
+# step 9/9, and CI does the same in one job. In that window a per-suite baseline is a second
+# answer to a question already answered, and it is 49 extra engine boots to get it.
+#
+# The risk it accepts, stated plainly: if a suite were ALREADY red, every mutant against it
+# would read as KILLED. That is exactly what the baseline exists to catch - so this flag is for
+# call sites that have just proven the opposite, and never for a bare run.
+ASSUME_GREEN=0
+
 # A red baseline makes every mutant look killed, so each suite is proven green once first.
 ensure_green() {
+  [ "$ASSUME_GREEN" = "1" ] && return 0
   case "$verified_green" in *" $1 "*) return 0 ;; esac
   read -r ran fails errs crashed <<<"$(run_suite "$1")"
   if [ "$crashed" -ne 0 ] || [ "$ran" -lt 1 ] || [ "$fails" -ne 0 ] || [ "$errs" -ne 0 ]; then
@@ -123,6 +135,13 @@ mutate_one() {
   return 1
 }
 
+# Consumed before the mode dispatch so it composes with every form, including the positional
+# single-mutant one.
+while [ "${1:-}" = "--assume-green" ]; do
+  ASSUME_GREEN=1
+  shift
+done
+
 case "${1:-}" in
   --list)
     grep -vE '^\s*(#|$)' "$TSV" | awk -F'\t' '{printf "%-28s %s\n", $3, $4}'
@@ -144,7 +163,7 @@ case "${1:-}" in
     exit 0
     ;;
   '')
-    echo "usage: tools/mutate_check.sh --all | --list | <file> <sed-expr> <suite> [label]"
+    echo "usage: tools/mutate_check.sh [--assume-green] --all | --list | <file> <sed-expr> <suite> [label]"
     exit 2
     ;;
   *)

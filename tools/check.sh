@@ -43,26 +43,44 @@ step "2/9 source rules"
 result $? "no unseeded RNG, raw directions or stray colours"
 
 step "3/9 script parse"
-parse_fail=0
-while IFS= read -r f; do
-  # Autoload singletons do not exist in a standalone script run, so a script that
-  # references GameState "fails" here for a reason that is not a defect. Those are covered
-  # by the smoke boot instead.
-  if grep -qE "$autoload_re" "$f"; then
-    continue
-  fi
+# One engine boot per file, and the parse itself is free - the 0.35s is startup. So they run
+# four at a time. Each is independent and read-only, which is why this is safe to parallelize
+# where nothing else in this gate is; a failure has to be recorded in a FILE rather than a
+# variable, because a variable set inside an xargs child dies with it.
+parse_out="$(mktemp -d)"
+parse_one() {
+  local f="$1" out
   out=$("$GODOT" --headless --path . --check-only -s "$f" 2>&1)
   if echo "$out" | grep -qE 'Parse Error|Compile Error'; then
-    echo "  $f"; echo "$out" | grep -E 'Parse Error|Compile Error' | head -3
-    parse_fail=1
+    { echo "  $f"; echo "$out" | grep -E 'Parse Error|Compile Error' | head -3; } \
+      > "$parse_out/$(echo "$f" | tr '/.' '__')"
   fi
-  # No directory list here on purpose. A list would be a fourth copy of "what this project
-  # contains" (LintCore.SOURCE_ROOTS is the other three), and the failure mode of a stale
-  # one is silence: a new directory simply stops being parsed. Scanning everything and
-  # excluding what is not ours cannot go stale.
-done < <(find . -name '*.gd' \
+}
+export -f parse_one
+export GODOT parse_out
+
+# No directory list here on purpose. A list would be a fourth copy of "what this project
+# contains" (LintCore.SOURCE_ROOTS is the other three), and the failure mode of a stale
+# one is silence: a new directory simply stops being parsed. Scanning everything and
+# excluding what is not ours cannot go stale.
+#
+# Autoload singletons do not exist in a standalone script run, so a script that references
+# GameState "fails" here for a reason that is not a defect. Those are covered by the smoke
+# boot and by the whole-project compile instead.
+find . -name '*.gd' \
   -not -path './addons/*' -not -path './.godot/*' -not -path './.git/*' \
-  -not -path './build/*' -not -path './export/*' 2>/dev/null)
+  -not -path './build/*' -not -path './export/*' 2>/dev/null \
+  | while IFS= read -r f; do grep -qE "$autoload_re" "$f" || printf '%s\n' "$f"; done \
+  | xargs -P 4 -I{} bash -c 'parse_one "$@"' _ {}
+
+parse_fail=0
+# A count, not a glob test: an empty directory and a directory with one report must not look
+# alike, and the reports are what say which file failed.
+if [ "$(find "$parse_out" -type f | wc -l | tr -d ' ')" -gt 0 ]; then
+  cat "$parse_out"/*
+  parse_fail=1
+fi
+rm -rf "$parse_out"
 result $parse_fail "standalone scripts parse"
 
 step "3b/9 whole-project compile"
@@ -83,7 +101,7 @@ if [ -f addons/gdUnit4/bin/GdUnitCmdTool.gd ]; then
     echo "FAIL  no test suites found on disk - tests/ is missing or renamed"
     fail=1
   fi
-  gd_out=$("$GODOT" --headless --path . -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests --ignoreHeadlessMode -c 2>&1)
+  gd_out=$("$GODOT" --headless $GODOT_FRAMES --path . -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests --ignoreHeadlessMode -c 2>&1)
   gd_status=$?
   printf '%s\n' "$gd_out" | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Overall Summary|Executed test suites' || true
   if printf '%s' "$gd_out" | grep -q 'handle_crash'; then
@@ -157,7 +175,7 @@ for game_dir in tests/fixtures/qa/*/; do
   for script in "$game_dir"*.json; do
     [ -f "$script" ] || continue
     play_ran=$((play_ran + 1))
-    "$GODOT" --headless --path . -- --qa-script="res://$script" $game_flag
+    "$GODOT" --headless $GODOT_FRAMES --path . -- --qa-script="res://$script" $game_flag
     if [ $? -ne 0 ]; then
       echo "  FAILED: $script ${game_flag:-(no game chosen: the picker decides)}"
       play_fail=1
@@ -181,13 +199,24 @@ step "8/9 mutants still aim at one line each"
 tools/mutants_aim.sh
 result $? "every mutant lands on exactly one line"
 
+# Cheap, and it guards a SILENT failure: CI picks a pull request's mutants with this, so a
+# scoper that selects nothing reads as "this change needed no mutants" rather than as a broken
+# tool. Its selftest already caught one real bug - awk's -v cannot carry a newline, so the
+# first version matched nothing at all.
+step "8b/9 the mutant scoper still selects"
+tools/mutants_scope.sh --selftest
+result $? "a change still selects the mutants it could have broken"
+
 
 # Opt-in because it re-runs a suite per mutant. It is the gate that proves the OTHER gates
 # bite, so it runs before a milestone is called done, not on every save:
 #   MUTANTS=1 tools/check.sh
 if [ "${MUTANTS:-0}" = "1" ]; then
   step "9/9 mutation check"
-  tools/mutate_check.sh --all
+  # --assume-green: step 4/9 above proved all 54 suites green minutes ago in this same run,
+  # so re-proving each one before its mutants is 49 extra engine boots to answer a question
+  # already answered.
+  tools/mutate_check.sh --assume-green --all
   result $? "every mutant killed"
 fi
 

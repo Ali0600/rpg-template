@@ -33,6 +33,11 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Enough history for a pull request to diff against its own merge base. The default
+          # depth of 1 has no merge base at all, and the scoping step would silently select
+          # nothing - which would read as "this change needs no mutants".
+          fetch-depth: 50
 
       - name: Cache the Godot binary
         id: godot-cache
@@ -64,9 +69,45 @@ jobs:
           GODOT_BIN: /home/runner/godot-bin/godot
         run: tools/check.sh
 
-      - name: Prove the mutants still bite
+      # The mutation sweep is split by WHERE it runs, not weakened.
+      #
+      # A pull request proves the mutants its own diff can have broken - the rows that mutate a
+      # file it touched, or that name a suite it touched, plus any row it ADDED. That is the set
+      # a change can plausibly have made decorative, and it takes seconds instead of ten minutes.
+      #
+      # Every merge to main then re-runs all of them, because scoping cannot see a test that
+      # went decorative because of a change somewhere else entirely. Nobody is waiting on that
+      # run, which is the whole point of putting it there.
+      #
+      # Note what does NOT move: tools/mutants_aim.sh runs inside check.sh over the WHOLE file
+      # on every run of both. That is the check that catches new code stealing an old mutant's
+      # aim, it costs under a second, and it has caught that twice.
+      #
+      # --assume-green on both: check.sh has just proven all 54 suites green in this same job,
+      # so re-proving each one before its mutants is 49 engine boots to answer it again.
+      - name: Prove the mutants this change could have broken
+        if: github.event_name == 'pull_request'
         env:
           GODOT_BIN: /home/runner/godot-bin/godot
-        # The gate that proves the OTHER gates are real. A mutant that stops applying is a
-        # hard failure here, so a rename that silently drops coverage cannot merge.
-        run: tools/mutate_check.sh --all
+          # Through the environment, never interpolated into the script body: a ${{ }} value
+          # is pasted as TEXT before bash ever sees it, so anything shell-significant in it
+          # would be executed rather than read.
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -uo pipefail
+          git fetch --no-tags --depth=50 origin "$BASE_REF"
+          tools/mutants_scope.sh --base "origin/$BASE_REF" > /tmp/scoped.tsv
+          rows=$(grep -cvE '^\s*(#|$)' /tmp/scoped.tsv || true)
+          echo "selected $rows mutant(s) for this diff:"
+          cut -f1,4 /tmp/scoped.tsv | sed 's/^/  /'
+          if [ "$rows" -eq 0 ]; then
+            echo "nothing this change touches has a mutant - main will run the full sweep."
+            exit 0
+          fi
+          MUTANTS_TSV=/tmp/scoped.tsv tools/mutate_check.sh --assume-green --all
+
+      - name: Prove every mutant still bites
+        if: github.event_name != 'pull_request'
+        env:
+          GODOT_BIN: /home/runner/godot-bin/godot
+        run: tools/mutate_check.sh --assume-green --all
