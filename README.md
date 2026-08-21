@@ -174,6 +174,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M13** — turn-based battles with timed presses, XP and levels, and a quest reworked around them
 - [x] **M13.1–.4** — the play-test round: reaction-sized timing windows, a quest that says where to go, a dialog box that declares its capacity, a quiet build log
 - [x] **M14** — sound: a synthesiser driven by a cue bank and a voice, generated and drift-gated the way the sprites are, with the whole game finally audible
+- [x] **M14.1** — the gate got 17x faster without losing an assertion: frame-driven runs stop waiting on the wall clock, and a pull request proves the mutants its own diff could have broken
 
 ## Experience Gained
 

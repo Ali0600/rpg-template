@@ -241,7 +241,29 @@ validator that has only ever passed is decoration.
 tools/check.sh                 # import, lint, parse, compile, tests, boot, art drift, play
 MUTANTS=1 tools/check.sh       # + prove every gate bites (milestone close)
 tools/mutate_check.sh --list   # what each mutant claims to cover
+tools/mutants_scope.sh         # the mutants THIS branch's diff could have broken
 ```
+
+**Anything driven by frames gets `$GODOT_FRAMES` (`--fixed-fps 60`), from `_engine.sh`.**
+Headless does not mean fast: the engine still paces its main loop against the wall clock, so a
+play session that takes a player three minutes took the gate three minutes. The flag pins every
+delta at 1/60 AND stops waiting for real time between frames. It changes nothing a gate can
+see - these harnesses count physics frames, never seconds - which is why the ten play sessions
+give byte-identical logs with it and without, the suite returns identical verdicts on all 595
+tests, and all 226 mutants are still killed. The whole gate went 7m35s to 27s. Do NOT add it to
+the generators; they quit in their first frame.
+
+**The mutation sweep is split by WHERE it runs, never weakened.** A pull request proves the
+mutants its own diff could have broken (`mutants_scope.sh`: rows that mutate a file it touched,
+name a suite it touched, or were added by it); every merge to `main` re-runs all of them, where
+nobody is waiting. `mutants_aim.sh` still runs over the WHOLE file on every run of both -
+that is the check that catches new code stealing an old mutant's aim, and it costs under a
+second. Both CI paths pass `--assume-green`, which is only safe because `check.sh` has just
+proven all 54 suites green in the same job.
+
+**Open the PR and walk away.** `gh pr merge --auto --squash` merges it when CI goes green;
+polling a 17-minute run is how a session gets spent. This needs a required status check on
+`main` - without one, `--auto` merges immediately, which is the trap.
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
