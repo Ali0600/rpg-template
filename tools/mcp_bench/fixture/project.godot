@@ -1,0 +1,16 @@
+; A throwaway Godot project for benchmarking MCP servers.
+; Deliberately EMPTY of scripts: tools/ is a LintCore.SOURCE_ROOTS root and check.sh's
+; parse gate scans every *.gd under it, so a fixture script would put bench scaffolding
+; under the template's own gates.
+
+config_version=5
+
+[application]
+
+config/name="mcp_bench_fixture"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+run/main_scene="res://main.tscn"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
