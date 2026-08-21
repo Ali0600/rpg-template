@@ -35,6 +35,37 @@ one-glance menu of things still worth trying.
 
 ---
 
+## Two Godot MCP servers, and the addon stays out of the repo
+
+- **Chosen: add `godot-live` (`@satelliteoflove/godot-mcp`) beside `godot`
+  (`@coding-solo/godot-mcp`) in `.mcp.json`, and do NOT commit its editor addon.** The bench
+  (`tools/mcp_bench`) settled the first half: they are complements, not competitors. One
+  scaffolds and spawns a headless engine per call (250ms; 835ms for `create_scene`); the other
+  reads and drives a running editor over a WebSocket bridge at a flat 7ms and cannot create a
+  scene at all. Two entries cost nothing - with no editor running, `godot-live` reports "not
+  connected".
+- *Also commit and enable `addons/godot_mcp`* - **rejected on measurement.** Its `plugin.gd`
+  calls `ProjectSettings.save()` to force an `MCPGameBridge` autoload, and that save **strips
+  every comment from `project.godot`**: the QOA-importer explanation and the `config/game`
+  refusal note both disappeared, and restoring them by hand did not survive the next build
+  that loaded the plugin. Those comments are load-bearing - CLAUDE.md cites both. The forced
+  autoload is then a second problem with no good side: leave the addon in the pack and it
+  ships (+1MB, `exec_commands` included); exclude it and every packed boot prints three
+  `Failed to instantiate an autoload` errors, which is exactly the log noise #41 removed.
+- *Replace `godot` with it* - rejected: it has no `create_scene` and no `add_node`, so
+  scaffolding would be lost outright.
+- **Not a security problem, checked rather than assumed.** The bridge autoload gates on
+  `EngineDebugger.is_active()` and speaks the debugger protocol rather than opening a port,
+  so it is inert in a release export even though it ships. The addon's own source says so and
+  the packed run confirms it. The objection is comment loss and log noise, not RCE.
+- **Deferred - worth revisiting** if the addon gains a way to run without registering the
+  autoload, or if `project.godot` stops carrying documentation worth losing. Revisit hook:
+  `_ensure_game_bridge_autoload()` in `addons/godot_mcp/plugin.gd`, and the on-demand recipe
+  in CLAUDE.md.
+- **`npx` launch kept** for both, despite `npx` costing 494ms to connect against 64ms for a
+  resolved binary. A direct path is machine-specific or an npx cache path that can be
+  garbage-collected; portability beat 430ms once per session.
+
 ## Terrain is authored pixel art in a bank of its own
 
 - **Chosen: a `TileBank` in `data/tiles/<id>.json`, authored in the rig's alphabet.** Tiles

@@ -325,6 +325,33 @@ rendering driver, so not headless and not in CI). `tools/_engine.sh` resolves th
 `GODOT_BIN` overrides it. The Godot MCP is an accelerator for interactive work, **never** a
 dependency of the build.
 
+**Two MCP servers, two jobs.** `godot` (`@coding-solo/godot-mcp`) scaffolds - create a scene,
+add a node, load a sprite - by spawning a headless engine per call (250ms, 835ms for
+`create_scene`). `godot-live` (`@satelliteoflove/godot-mcp`) reads and drives a RUNNING editor
+over a WebSocket bridge at a flat 7ms: live scene tree, tilemap edits, input injection,
+deterministic `freeze`/`step`. Measured in `tools/mcp_bench` - re-run it rather than trusting
+these numbers. Neither does the other's job: `godot-live` cannot create a scene or add a node
+at all.
+
+**`godot-live` needs an addon this repo deliberately does NOT commit.** Enabling
+`addons/godot_mcp` costs two things that were measured, not guessed. Its `plugin.gd` calls
+`ProjectSettings.save()` to force an `MCPGameBridge` autoload, and **that save strips every
+comment out of `project.godot`** - the QOA-importer note and the `config/game` refusal note
+both vanished, and restoring them by hand did not survive the next build that loaded the
+plugin. The forced autoload then either ships (+1MB in the pack, `exec_commands` included) or,
+if excluded, makes every packed boot print three `Failed to instantiate an autoload` errors.
+`--import` alone is safe; anything that loads the plugin is not. So install it on demand, use
+it, and revert:
+
+```bash
+npx -y @satelliteoflove/godot-mcp --install-addon .   # then enable it in project.godot
+/Applications/Godot.app/Contents/MacOS/Godot --headless --editor --path .   # bridge on :6550
+git checkout -- project.godot && rm -rf addons/godot_mcp                    # when done
+```
+
+The bridge runs headless - no editor window, despite what the addon's README says. With no
+editor up, `godot-live` simply reports "not connected" and costs nothing.
+
 Anything that needs the running game — the world, the player, the router — must be driven by
 a `Qa` script rather than by `-s tools/x.gd`: in `-s` mode the autoload singletons are not
 registered as identifiers, so a scene whose script names one will not even load.

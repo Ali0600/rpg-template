@@ -2,11 +2,21 @@
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@coding-solo/godot-mcp"],
+      "args": [
+        "-y",
+        "@coding-solo/godot-mcp"
+      ],
       "env": {
         "GODOT_PATH": "${GODOT_BIN:-/Applications/Godot.app/Contents/MacOS/Godot}",
         "DEBUG": "false"
       }
+    },
+    "godot-live": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@satelliteoflove/godot-mcp"
+      ]
     }
   }
 }
