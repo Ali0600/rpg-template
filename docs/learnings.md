@@ -740,3 +740,19 @@ scripted play that appeared, from the file, to check health three times.
 **Takeaway:** ask what the asserted value would be if the code were wrong. If the answer is "the
 same, because something downstream normalises it", the assertion is decoration wherever it sits —
 move it to the one window where the value is still the code's own output.
+
+## Redirecting a command's output does not silence the shell's report of its death
+
+`cmd >/dev/null 2>&1` hides everything the program writes. It does not hide
+`Aborted (core dumped)` — that line comes from the **shell that waited on the command**, not
+from the command, so it is written to the shell's stderr after the program is already gone.
+
+**Why it came up:** the pack exporter writes a complete package and then aborts during shutdown.
+The gate ignores that exit code for a stated reason, and the log still carried a crash line
+sitting directly under the comment explaining the crash was expected — the kind of contradiction
+that teaches people to skim a log.
+
+**Takeaway:** to suppress it, make a wrapper shell the one that waits — discard *its* stderr and
+have it exit normally, keeping the real status in a file if you still want it. And note this is
+bash-version-dependent: bash 3.2 (macOS) does not print it and bash 5 (most CI) does, so "I
+cannot reproduce it locally" is expected rather than evidence it is gone.

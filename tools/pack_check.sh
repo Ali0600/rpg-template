@@ -30,6 +30,14 @@ PACK="${1:-}"
 PRESET="Web"
 ROOT="$(pwd)"
 
+# Created up front because the export below drops its exit status in here. Also the directory
+# the play sessions run FROM: it has no project.godot in it, so the engine cannot quietly fall
+# back to the source tree and test the very thing this gate exists to look past. Proven - the
+# same run from /tmp plays identically, and that is the only reason to believe the pack is what
+# actually ran.
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
 # A pack that is missing or truncated does not fail - it HANGS. Measured: a nonexistent pack and
 # a half-copied one both sat there until killed, with no output at all. So every packed run is
 # bounded, and an unusable artifact reports as a timeout instead of eating the job's budget.
@@ -40,19 +48,40 @@ if [ -z "$TIMEOUT" ]; then
   exit 1
 fi
 
+# Writes the pack, quietly.
+#
+# The exit code is not evidence in either direction: the headless exporter writes the complete
+# package and THEN aborts during shutdown (exit 134) - the same reasoning pages.yml states for
+# the full web export. The ARTIFACT is the evidence, which is what the guards below check.
+#
+# It runs through a wrapper shell so that shell, rather than this one, is the one that notices
+# the signal. Bash prints "Aborted (core dumped)" for a foreground command killed by a signal,
+# and redirecting the command's own streams does not stop it - the message comes from the shell
+# that waited, not from the program. In a gate's log it reads as a crash nobody handled, which
+# is exactly the kind of line that teaches people to skim. The wrapper's stderr is discarded and
+# it exits normally, so there is nothing left to report; the real status is kept in a file and
+# used only where it is genuinely informative, in the failure messages.
+export_status="?"
+export_pack() {
+  bash -c '"$1" --headless --path . --export-pack "$2" "$3" >/dev/null 2>&1; echo $? > "$4"' \
+    _ "$GODOT" "$1" "$2" "$WORK/export_status" 2>/dev/null
+  export_status="$(cat "$WORK/export_status" 2>/dev/null || echo '?')"
+}
+
 if [ -z "$PACK" ]; then
   PACK="$ROOT/build/pack_check/index.pck"
   mkdir -p "$(dirname "$PACK")"
   rm -f "$PACK"
   echo "exporting $PRESET pack..."
-  # The exit code is not evidence here: the headless exporter writes the complete package and
-  # THEN aborts during shutdown. The artifact is the evidence, which is what the guard below
-  # checks - the same reasoning pages.yml states for the full web export.
-  "$GODOT" --headless --path . --export-pack "$PRESET" "$PACK" >/dev/null 2>&1
+  export_pack "$PRESET" "$PACK"
 fi
 
 if [ ! -s "$PACK" ]; then
-  echo "FAIL  no pack at $PACK - the export produced nothing"
+  if [ "$export_status" = "?" ]; then
+    echo "FAIL  no pack at $PACK - nothing was exported, and that path holds no pack"
+  else
+    echo "FAIL  the export produced no pack at $PACK (exporter exited $export_status)"
+  fi
   exit 1
 fi
 # Made absolute BEFORE anything changes directory. The sessions run from a scratch directory
@@ -67,16 +96,10 @@ esac
 # by playing it, below.
 bytes=$(wc -c < "$PACK" | tr -d ' ')
 if [ "$bytes" -lt 100000 ]; then
-  echo "FAIL  $PACK is only $bytes bytes - the package is truncated"
+  echo "FAIL  $PACK is only $bytes bytes - the package is truncated (exporter exited $export_status)"
   exit 1
 fi
 echo "pack: $PACK ($bytes bytes)"
-
-# Driven from a directory with no project.godot in it, so the engine cannot quietly fall back to
-# the source tree and test the very thing this gate exists to look past. Proven: the same run
-# from /tmp plays identically, and that is the only reason to believe the pack is what ran.
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
 
 fail=0
 ran=0

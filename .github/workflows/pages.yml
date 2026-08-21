@@ -98,8 +98,16 @@ jobs:
             exit 1
           fi
 
-          ~/godot-bin/godot --headless --path . --export-release "Web" build/web/index.html
-          status=$?
+          # Run through a wrapper shell so THAT shell, rather than this one, is the one that
+          # notices the exporter dying by a signal. Bash prints "Aborted (core dumped)" for a
+          # foreground command killed by one, and redirecting the command's own streams does
+          # not stop it - the message comes from the shell that waited, not from the program.
+          # In this log it reads as a crash nobody handled, next to a comment explaining that
+          # the crash is expected, which is the kind of contradiction that teaches people to
+          # skim. The wrapper's stderr is discarded and it exits normally; the real status is
+          # kept in a file, because it is worth printing.
+          bash -c '~/godot-bin/godot --headless --path . --export-release "Web" build/web/index.html; echo $? > /tmp/export_status' 2>/dev/null
+          status=$(cat /tmp/export_status 2>/dev/null || echo "?")
           echo "godot --export-release exited ${status}"
 
           # Godot's headless exporter writes the complete package and THEN aborts during

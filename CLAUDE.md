@@ -261,6 +261,12 @@ at all. Every packed run is `timeout`-wrapped, and any path handed to `--main-pa
 absolute BEFORE the run changes directory - a relative one stops resolving and presents as that
 same hang.
 
+**An expected crash must not print like an unexpected one.** The pack exporter aborts during
+shutdown after writing a complete package; bash reports that as `Aborted (core dumped)` from the
+shell that WAITED on it, so redirecting the command's own streams does not stop it. Both export
+sites run through a wrapper shell whose stderr is discarded and which exits normally. Note bash
+3.2 (macOS) never prints it and bash 5 (CI) does — not reproducing it locally proves nothing.
+
 **A swallowed exit code needs a stated reason.** `pages.yml` ignores the exporter's status for a
 real, measured one (it aborts during shutdown after writing a complete package) and says so. It
 used to ignore `--import`'s status for no reason at all, which was a fail-open in the step that
