@@ -195,6 +195,22 @@
 			"value": 1
 		},
 		{
+			"op": "note",
+			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all"
+		},
+		{
+			"op": "assert_hp",
+			"value": 14
+		},
+		{
+			"op": "note",
+			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3"
+		},
+		{
+			"op": "assert_xp",
+			"value": 5
+		},
+		{
 			"op": "assert_item",
 			"id": "gate_key",
 			"count": 0

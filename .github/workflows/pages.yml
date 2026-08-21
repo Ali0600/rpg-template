@@ -84,7 +84,19 @@ jobs:
           set +e
           set -uo pipefail
           mkdir -p build/web
-          ~/godot-bin/godot --headless --path . --import >/dev/null 2>&1 || true
+          # NOT swallowed. This used to end in `|| true`, which is a fail-open in the one
+          # step that builds what users download: a broken import produces a pack missing its
+          # imported resources, and the only symptom downstream was a smaller file.
+          #
+          # The contrast with the export below is deliberate and worth reading: THAT exit code
+          # is ignored for a stated, measured reason (the exporter aborts during shutdown after
+          # writing a complete package). This one was ignored out of habit.
+          ~/godot-bin/godot --headless --path . --import
+          import_status=$?
+          if [ "$import_status" -ne 0 ]; then
+            echo "the import failed (exit ${import_status}) - the pack would be missing resources"
+            exit 1
+          fi
 
           ~/godot-bin/godot --headless --path . --export-release "Web" build/web/index.html
           status=$?
@@ -116,6 +128,18 @@ jobs:
           # files beginning with an underscore - which is most of an Emscripten build.
           touch build/web/.nojekyll
           ls -la build/web
+
+      - name: Play the package that is about to be deployed
+        env:
+          GODOT_BIN: /home/runner/godot-bin/godot
+        # The file checks above are liveness: four files exist and the pack is not truncated.
+        # They cannot tell a complete package from one missing every sound, which was measured -
+        # excluding the cues left a pack that boots, walks, talks and requests every cue exactly
+        # as it should, and is silent.
+        #
+        # This drives THE PACK ABOUT TO SHIP through the real QA harness. `deploy` needs this
+        # job, so a package that does not play leaves the live page on the last good build.
+        run: tools/pack_check.sh build/web/index.pck
 
       - name: Package the site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

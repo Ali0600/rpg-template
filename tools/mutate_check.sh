@@ -38,8 +38,25 @@ trap 'rm -rf "$WORK"' EXIT
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 
 # Echoes "<suites_ran> <failures> <errors> <crashed>" for a suite run.
+#
+# A "suite" may also be a scripted PLAY SESSION under tests/fixtures/qa/. The play gate proves
+# things no unit suite can - that the real loop, the real input map and the real map data agree -
+# and until it could be mutated, none of that was ever proven to bite. It was worth doing the
+# moment a session cost two seconds instead of ninety.
 run_suite() {
   local out ran fails errs crashed
+  case "$1" in
+    tests/fixtures/qa/*)
+      # The game is the directory the script lives in, exactly as check.sh derives it, so this
+      # needs no list of its own to go stale.
+      local game
+      game=$(basename "$(dirname "$1")")
+      "$GODOT" --headless $GODOT_FRAMES --path . -- --qa-script="res://$1" --game="$game" \
+        >/dev/null 2>&1
+      if [ $? -eq 0 ]; then printf '1 0 0 0'; else printf '1 1 0 0'; fi
+      return
+      ;;
+  esac
   out=$("$GODOT" --headless $GODOT_FRAMES --path . -s "$RUNNER" -a "$1" --ignoreHeadlessMode -c 2>&1 \
         | sed 's/\x1b\[[0-9;]*m//g')
   crashed=0
