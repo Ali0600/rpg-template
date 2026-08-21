@@ -38,7 +38,7 @@ func test_tiles_use_the_same_palette_as_the_characters() -> void:
 	# game made of mixed assets betrays itself.
 	for style_id in ArtFixtures.style_ids():
 		var style := ArtFixtures.style(style_id)
-		var built := TileGen.build(style)
+		var built := TileGen.build(style, ArtFixtures.tile_bank_for(style))
 		var offenders := _off_palette(built["image"], style.palette_rgba32())
 		assert_array(offenders).override_failure_message(
 			"%s tiles use colours outside the style palette: %s" % [style_id, offenders]).is_empty()

@@ -11,9 +11,13 @@ regression, however good that game looks.
 
 - **Typed GDScript everywhere.** `untyped_declaration` and `unsafe_method_access` warnings
   are on. No C#.
-- **Art is data.** Colours, palettes, cell sizes, frame counts and outline rules live in a
-  `SpriteStyle` resource under `data/styles/`. A colour literal in `scripts/world/` or
-  `scripts/ui/` is a build failure (`tools/lint_rules.gd`).
+- **Art is data, with no exception left.** Colours, palettes, cell sizes, frame counts and
+  outline rules live in a `SpriteStyle` resource under `data/styles/`. A colour literal in
+  `scripts/world/` or `scripts/ui/` is a build failure (`tools/lint_rules.gd`). **Terrain is
+  authored the same way characters are** - a `TileBank` under `data/tiles/` in the rig's own
+  `.`/`1`/`2`/`3`/`o` alphabet, one bank dressing every style. It was a `const TILES` in
+  `TileGen` drawn by five hardcoded routines until M16, and the cost was legible: no routine
+  could draw a door, so the quest's cave was built out of grass-world tiles.
 - **Sound is data too, and generated the same way.** A cue's SHAPE is a row in
   `data/banks/<id>.json`; its VOICE is a `SoundStyle` under `data/sounds/`. Three voices share
   one bank the way three sprite styles share one rig. Template code never names a cue as a
@@ -42,8 +46,8 @@ scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen,
                     BattleLogic + BattleScreen, GameOverMenu + GameOverScreen (pure + view)
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Settings Qa
 scenes/             views only
-data/               all content: games, styles, rigs, characters, maps, dialog,
-                    items, enemies, combat, banks (cue shapes), sounds (voices)
+data/               all content: games, styles, rigs, tiles (terrain art), characters,
+                    maps, dialog, items, enemies, combat, banks (cue shapes), sounds (voices)
 games/<id>/         a game's OWN code: a GameHooks subclass, and nothing generic
 assets/generated/   build OUTPUT of tools/gen_sprites.gd — never hand-edited
 ```
@@ -81,6 +85,15 @@ name, so a view calling the audio singleton silently drops itself AND every suit
 on it out of that gate. **Naming it in a comment is enough to do this** - which is how the
 signal came to exist. Pure classes (`BattleLogic`) go one step further and COLLECT cues for the
 view to drain, because a fight's cues must survive a defeat, whose effects are discarded.
+
+**A tile names a ramp, never a colour, and `solid` is art data.** `TileBank.problems()`
+refuses a ragged row, a typo'd pixel, a duplicated id, a tile that is not the bank's declared
+size, and a transparent pixel in anything not marked `decor` - a hole in the ground shows the
+window's background through the world, and it is invisible while authoring because the tile
+looks right on its own. A tile's `ramp` is a DEFAULT: `SpriteStyle.tile_ramps` overrides one
+where a style wants it different, which is what stops adding a tile from being a mandatory
+edit to every style. `TileGen.problems(bank, style)` holds the checks needing both, the way
+`CharacterSpec.problems(rig, style)` does.
 
 **A dialog line has a SIZE, and the build enforces it.** `DialogBox` shows two lines of text
 with the choices in a band of their own below them, and the box grows only while a choice is

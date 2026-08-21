@@ -35,6 +35,34 @@ one-glance menu of things still worth trying.
 
 ---
 
+## Terrain is authored pixel art in a bank of its own
+
+- **Chosen: a `TileBank` in `data/tiles/<id>.json`, authored in the rig's alphabet.** Tiles
+  were the one art noun still in code — a `const TILES` of six in `TileGen`, drawn by five
+  hardcoded routines (`scatter`, `speckle`, `ripple`, `brick`, `blob`). The cost was not
+  abstract: no routine can draw a door, so `quest_cave.json` built an interior out of
+  grass-world tiles, and a game that wanted a floor edited a file under `scripts/`. Authored
+  grids make a tile as expressive as a character part, and reuse the alphabet a rig author
+  already knows.
+- *Move only the LIST to data, keep the procedural kinds* — rejected: it reads like the same
+  fix and unlocks nothing. A new tile could still only look like one of five existing
+  patterns, so the interior problem would survive the refactor intact.
+- *Keep both — procedural for texture, authored for shapes* — rejected: two ways to author
+  one thing, forever, and the tile appearance would stay half in `scripts/`. The procedural
+  routines earned their keep once, as the SOURCE of the port: every pixel they drew was one
+  of three tones or transparent, so the six shipped tiles converted losslessly and the
+  committed PNGs did not move.
+- *A `tiles` key inside `data/rigs/<id>.json`* — deferred, worth revisiting if the two ever
+  turn out to move together in practice: it needs no new directory and no new style field.
+  Rejected for now because terrain and cast should swap independently — the day an AI sprite
+  source draws the characters, the ground should not have to be redrawn with them. Revisit
+  hook: `SpriteStyle.tile_bank_id`, which is the only thing keeping them apart.
+- **A tile's `ramp` is a default, not a requirement.** Every style previously carried an
+  identical six-key `tile_ramps` dict, so adding a tile was a mandatory edit to all three.
+  The bank names the default and `tile_ramps` overrides it — the same shape as the rig's
+  `slot_defaults`. All three styles dropped their dict entirely, which the drift gate proved
+  was a no-op.
+
 ## Engine and language
 
 - **Chosen: Godot 4.7 with typed GDScript.** The user's other 2D RPG (saltcharter) is

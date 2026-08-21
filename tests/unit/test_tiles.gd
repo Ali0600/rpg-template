@@ -5,6 +5,9 @@ extends GdUnitTestSuite
 ## hardcodes - so a style that adds a cliff makes it solid in its own data and the movement
 ## system never learns the word "cliff".
 
+func _bank(style_id: StringName) -> TileBank:
+	return ArtFixtures.tile_bank_for(ArtFixtures.style(style_id))
+
 func _tiles_meta(style_id: StringName) -> Dictionary:
 	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style_id)
 	assert_bool(file.ok).override_failure_message(file.error).is_true()
@@ -12,20 +15,20 @@ func _tiles_meta(style_id: StringName) -> Dictionary:
 
 func test_the_generator_draws_every_tile_it_declares() -> void:
 	var style := ArtFixtures.style(&"gb16")
-	var built := TileGen.build(style)
+	var built := TileGen.build(style, _bank(&"gb16"))
 	var image: Image = built["image"]
 	var meta: Dictionary = built["meta"]
-	assert_int((meta["tiles"] as Array).size()).is_equal(TileGen.ids().size())
-	assert_int(image.get_width()).is_equal(style.tile_size * TileGen.ids().size())
+	assert_int((meta["tiles"] as Array).size()).is_equal(_bank(&"gb16").ids().size())
+	assert_int(image.get_width()).is_equal(style.tile_size * _bank(&"gb16").ids().size())
 	assert_int(image.get_height()).is_equal(style.tile_size)
 
 func test_no_tile_is_a_flat_block_of_one_colour() -> void:
 	# A tile that came out as a single fill means its texturing pass did nothing - it still
 	# renders, and the world just looks like coloured paper.
 	var style := ArtFixtures.style(&"gb16")
-	var built := TileGen.build(style)
+	var built := TileGen.build(style, _bank(&"gb16"))
 	var image: Image = built["image"]
-	for i in TileGen.ids().size():
+	for i in _bank(&"gb16").ids().size():
 		var seen: Array[int] = []
 		for y in style.tile_size:
 			for x in style.tile_size:
@@ -33,18 +36,18 @@ func test_no_tile_is_a_flat_block_of_one_colour() -> void:
 				if not seen.has(v):
 					seen.append(v)
 		assert_int(seen.size()).override_failure_message(
-			"tile '%s' uses only %d colour(s)" % [TileGen.ids()[i], seen.size()]).is_greater(1)
+			"tile '%s' uses only %d colour(s)" % [_bank(&"gb16").ids()[i], seen.size()]).is_greater(1)
 
 func test_ground_tiles_are_fully_opaque_and_decor_tiles_are_not() -> void:
 	# A transparent hole in the FLOOR shows the background colour through the world. A decor
 	# tile is the opposite case: it stands on the floor, so anything outside its shape must
 	# stay clear or the bush arrives as a dark square cut into the grass.
 	var style := ArtFixtures.style(&"gb16")
-	var built := TileGen.build(style)
+	var built := TileGen.build(style, _bank(&"gb16"))
 	var image: Image = built["image"]
-	var decor := TileGen.decor_ids()
-	for i in TileGen.ids().size():
-		var id := TileGen.ids()[i]
+	var decor := _bank(&"gb16").decor_ids()
+	for i in _bank(&"gb16").ids().size():
+		var id := _bank(&"gb16").ids()[i]
 		var clear := 0
 		for y in style.tile_size:
 			for x in style.tile_size:
@@ -83,7 +86,7 @@ func test_the_tileset_gives_collision_to_exactly_the_solid_tiles() -> void:
 func test_tiles_can_be_looked_up_by_name() -> void:
 	# Map files name tiles, never column numbers: inserting a tile must not renumber a map.
 	var coords := TileSetFactory.coords_by_id(_tiles_meta(&"gb16"))
-	for id in TileGen.ids():
+	for id in _bank(&"gb16").ids():
 		assert_bool(coords.has(id)).override_failure_message("no coords for tile '%s'" % id).is_true()
 
 func test_a_tileset_without_a_tile_size_is_refused() -> void:

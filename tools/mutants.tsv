@@ -53,7 +53,8 @@ scripts/world/map_data.gd	s|return Vector2i\(floori\(at.x / tile_size\), floori\
 scripts/world/map_data.gd	s|if solid_tiles.has\(ground_at\(at\)\) or solid_tiles.has\(decor_at\(at\)\):|if true:|	tests/unit/test_map_data.gd	an unwalled map edge stops being reported
 scripts/world/actor_body.gd	s|_shape.position = Vector2\(0.0, -config.body_size.y / 2.0\)|_shape.position = Vector2.ZERO|	tests/integration/test_world_movement.gd	the collision box sinks through the floor line
 scripts/world/map_builder.gd	s|built.sorted.y_sort_enabled = true|built.sorted.y_sort_enabled = false|	tests/integration/test_world_movement.gd	actors stop sorting against the scenery
-scripts/spritegen/tile_gen.gd	s|if not bool\(def.get\(\"decor\", false\)\):|if false:|	tests/unit/test_tiles.gd	a decor tile becomes a solid square cut into the ground
+scripts/spritegen/tile_bank.gd	s|elif ch == TRANSPARENT_CHAR and not is_decor:|elif ch == TRANSPARENT_CHAR:|	tests/unit/test_tile_bank.gd	a decor tile is reported as a hole in the ground
+scripts/spritegen/tile_bank.gd	s|elif ch == TRANSPARENT_CHAR and not is_decor:|elif false:|	tests/unit/test_tile_bank.gd	a hole in the ground stops being reported
 
 # --- M4: interaction and dialog ---
 scripts/util/input_gate.gd	s|if event == _last and frame == _frame:|if event == _last:|	tests/unit/test_input_gate.gd	a repeated press of the same key is swallowed forever
@@ -297,3 +298,11 @@ tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]
 # --- M15: the played game, and the artifact it ships as ---
 scripts/ui/battle_logic.gd	s|return maxi\(1, attack - defense\)|return maxi(1, attack - defense + 3)|	tests/fixtures/qa/quest/finish_the_quest.json	combat arithmetic changes and the PLAYED game does not notice
 scripts/ui/battle_logic.gd	s|\t\t_hp = player_max_hp\(\)|\t\tpass|	tests/fixtures/qa/quest/finish_the_quest.json	levelling stops healing, which the played game only sees because it now reads hp mid-run
+scripts/spritegen/tile_bank.gd	s|if row.length\(\) != tile:|if false:|	tests/unit/test_tile_bank.gd	a ragged tile row stops being reported
+scripts/spritegen/tile_bank.gd	s|if rows.size\(\) != tile:|if false:|	tests/unit/test_tile_bank.gd	a tile that is not the bank's size stops being reported
+scripts/spritegen/tile_bank.gd	s|if not known_chars.contains\(ch\):|if false:|	tests/unit/test_tile_bank.gd	a typo'd pixel character stops being reported
+scripts/spritegen/tile_bank.gd	s|elif seen.has\(tile_id\):|elif false:|	tests/unit/test_tile_bank.gd	two tiles answering to one name stop being reported
+scripts/spritegen/tile_bank.gd	s|if not override.is_empty\(\):|if false:|	tests/unit/test_tile_bank.gd	a style stops being able to recolour one tile of a shared bank
+scripts/spritegen/tile_gen.gd	s|if bank.tile != style.tile_size:|if false:|	tests/unit/test_tile_bank.gd	pixel art authored at another size is silently scaled
+scripts/spritegen/tile_gen.gd	s|img.set_pixel\(x, y, outline\)|pass|	tests/unit/test_tile_bank.gd	the outline character stops drawing anything
+scripts/spritegen/tile_gen.gd	s|var tone := TileBank.TONE_CHARS.find\(ch\)|var tone := -1|	tests/unit/test_tiles.gd	authored rows stop reaching the drawn tile

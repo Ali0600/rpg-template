@@ -8,6 +8,7 @@ id = &"gb16"
 cell_size = Vector2i(16, 24)
 tile_size = 16
 rig_id = &"gb16"
+tile_bank_id = &"gb16"
 ramps = {
 "cloth_blue": ["#2b4b7d", "#306082", "#5b6ee1"],
 "cloth_green": ["#2f5a3d", "#4b692f", "#6abe30"],
@@ -50,14 +51,6 @@ part_choices = {
 }
 outline_mode = 1
 outline_color_hex = "#1a1c2c"
-tile_ramps = {
-"bush": "terrain_bush",
-"grass": "terrain_grass",
-"grass_alt": "terrain_grass",
-"path": "terrain_path",
-"wall": "stone",
-"water": "terrain_water"
-}
 ui_colors = {
 "dim": "#8b9bb4",
 "panel": "#1a1c2c",
