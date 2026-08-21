@@ -81,9 +81,10 @@ Regenerate the art after editing a rig or a style:
 | How many save slots there are | `data/game_config.tres` | no |
 | What can be picked up and carried | `data/items/*.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
-| New body parts, new tiles | `data/rigs/*.json`, `TileGen.TILES` | one file |
+| New body parts | `data/rigs/*.json` | no |
+| New terrain — a floor, a door, a cliff | `data/tiles/*.json` | no |
 
-If changing any of the first six needs a code edit, that's a bug in the template.
+If changing any of these needs a code edit, that's a bug in the template.
 
 A **game** is one `data/games/<id>.tres`: its first map and spawn, the character the player
 wears, the tuning it uses, the line of on-screen help, and the one script it is allowed to

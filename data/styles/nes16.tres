@@ -16,6 +16,7 @@ id = &"nes16"
 cell_size = Vector2i(16, 24)
 tile_size = 16
 rig_id = &"gb16"
+tile_bank_id = &"gb16"
 ramps = {
 "cloth_blue": ["#0058f8", "#3cbcfc", "#a4e4fc"],
 "cloth_green": ["#008840", "#00a800", "#b8f818"],
@@ -58,14 +59,6 @@ part_choices = {
 }
 outline_mode = 2
 outline_color_hex = "#000000"
-tile_ramps = {
-"bush": "terrain_bush",
-"grass": "terrain_grass",
-"grass_alt": "terrain_grass",
-"path": "terrain_path",
-"wall": "stone",
-"water": "terrain_water"
-}
 ui_colors = {
 "dim": "#787878",
 "panel": "#000000",

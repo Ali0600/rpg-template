@@ -8,11 +8,14 @@ extends GdUnitTestSuite
 
 const FIXTURES := "res://tests/fixtures/maps/"
 
+func _bank() -> TileBank:
+	return ArtFixtures.tile_bank_for(ArtFixtures.style(&"gb16"))
+
 func _known_tiles() -> Array[String]:
-	return TileGen.ids()
+	return _bank().ids()
 
 func _solid_tiles() -> Array[String]:
-	return TileGen.solid_ids()
+	return _bank().solid_ids()
 
 func test_the_shipped_map_is_valid() -> void:
 	var map := MapData.load_from("res://data/maps/quest_town.json")

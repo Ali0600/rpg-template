@@ -16,6 +16,7 @@ extends SceneTree
 const OUT_ROOT := "res://assets/generated"
 const STYLE_DIR := "res://data/styles"
 const RIG_DIR := "res://data/rigs"
+const TILE_DIR := "res://data/tiles"
 const CHARACTER_DIR := "res://data/characters"
 
 var _verify := false
@@ -76,6 +77,11 @@ func _run_style(style: SpriteStyle, all_specs: Array) -> void:
 	var rig := Rig.load_from("%s/%s.json" % [RIG_DIR, style.rig_id])
 	for p in rig.problems():
 		_problems.append("rig '%s': %s" % [style.rig_id, p])
+	var bank := TileBank.load_from("%s/%s.json" % [TILE_DIR, style.tile_bank_id])
+	for p in bank.problems():
+		_problems.append("tile bank '%s': %s" % [style.tile_bank_id, p])
+	for p in TileGen.problems(bank, style):
+		_problems.append(p)
 	if not _problems.is_empty():
 		return
 
@@ -106,7 +112,7 @@ func _run_style(style: SpriteStyle, all_specs: Array) -> void:
 		_emit_image("%s/%s.png" % [dir, spec.id], built["image"])
 		_emit_json("%s/%s.sheet.json" % [dir, spec.id], meta.to_dict())
 
-	var tiles := TileGen.build(style)
+	var tiles := TileGen.build(style, bank)
 	_emit_image("%s/tiles.png" % dir, tiles["image"])
 	_emit_json("%s/tiles.json" % dir, tiles["meta"])
 

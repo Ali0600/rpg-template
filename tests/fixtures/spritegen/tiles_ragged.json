@@ -1,0 +1,17 @@
+{
+	"id": "broken",
+	"tile": 4,
+	"tiles": [
+		{
+			"id": "grass",
+			"ramp": "r",
+			"solid": false,
+			"rows": [
+				"2222",
+				"2222",
+				"222",
+				"2222"
+			]
+		}
+	]
+}

@@ -756,3 +756,29 @@ that teaches people to skim a log.
 have it exit normally, keeping the real status in a file if you still want it. And note this is
 bash-version-dependent: bash 3.2 (macOS) does not print it and bash 5 (most CI) does, so "I
 cannot reproduce it locally" is expected rather than evidence it is gone.
+
+## A refactor with an exact expected output can be proven by a gate that already exists
+
+Moving code to data usually leaves you asking "did I change behaviour?" and answering it by
+reading the diff. When the output is a committed artifact, you can do better: the drift gate
+already asserts `committed == what the generator makes now`, so a port that is meant to
+change nothing is proven the moment that gate passes with the artifact untouched in `git
+status`. No new test, no judgement call.
+
+**Why it came up:** M16 moved six procedurally-drawn tiles out of `TileGen.TILES` and into
+authored pixel art in `data/tiles/gb16.json`. Every pixel the old routines drew was one of
+three ramp tones or transparent, so the conversion to the `.`/`1`/`2`/`3` alphabet was exact
+— and `gen_sprites.gd --verify` reporting "39 files match" with `assets/generated` clean was
+the whole proof. Reading the conversion by eye would have proven nothing.
+
+Two details made it trustworthy rather than merely green. The converter read the old
+routines back through **sentinel colours**, not a real style's ramp: two ramps in a real
+palette can share a tone, and the read-back could then not tell tone 0 from tone 2. And the
+port was followed by a **control** — flipping one character in the JSON turned all three
+styles' tiles red — because a gate that passes after a change you cannot see is equally
+consistent with the data never being read at all.
+
+**Takeaway:** before hand-verifying a behaviour-preserving refactor, ask whether some
+existing gate already pins the output exactly; if so, an untouched artifact is the proof.
+Then break the new input once, to show the gate is looking at it.
+

@@ -29,6 +29,11 @@ enum Outline {
 ## Which rig (data/rigs/<id>.json) supplies the part shapes.
 @export var rig_id: StringName = &"gb16"
 
+## Which tile bank (data/tiles/<id>.json) supplies the terrain shapes. Separate from the rig
+## so terrain and cast swap independently - the day an AI source draws the characters, the
+## ground should not have to be redrawn with them.
+@export var tile_bank_id: StringName = &"gb16"
+
 ## name -> [shadow, base, light] as hex strings. Three tones per material is the cel
 ## shading budget; a fourth tone is where a limited palette starts to look muddy.
 @export var ramps: Dictionary = {}
@@ -45,7 +50,9 @@ enum Outline {
 @export var outline_mode: Outline = Outline.SOLID
 @export var outline_color_hex: String = "#1a1c2c"
 
-## Terrain colours, keyed by tile id, as ramp names.
+## Terrain colour OVERRIDES, keyed by tile id, as ramp names. Empty is the normal case: a
+## tile names its own default ramp in the bank, so adding a tile is not an edit to every
+## style. Name one here only to colour it differently from the bank.
 @export var tile_ramps: Dictionary = {}
 
 ## Interface colours (text, dim text, panel), as hex strings. Deliberately NOT part of

@@ -98,10 +98,13 @@ has proven is tested — and three times during this build a mutant proved a tes
 
 - **Which game runs** → a manifest in `data/games/`: start map, spawn, player character,
   config, controls hint. `--game=<id>` beats `config/game` in `project.godot`, which beats
-  "there is only one game" — and when nothing chooses, the player is asked rather than guessed
-  at. One game ships, so nothing has to choose today; the refusal is what keeps the second
-  one honest when it arrives.
+  "there is only one game" — and when nothing chooses, the boot **refuses** rather than
+  guessing, naming the games it found. One game ships, so nothing has to choose today;
+  the refusal is what keeps the second one honest when it arrives.
 - **Art style** → a new file in `data/styles/`. Nothing else.
+- **Terrain** → a tile bank in `data/tiles/`: pixel art in the rig's own alphabet, plus
+  `solid` (does it block?) and `decor` (does it stand on another tile?). One bank dresses
+  every style, because a tile names a ramp rather than a colour.
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
 - **Writing** → files in `data/dialog/`.

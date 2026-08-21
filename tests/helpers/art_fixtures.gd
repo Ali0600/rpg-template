@@ -12,6 +12,7 @@ extends RefCounted
 
 const STYLE_DIR := "res://data/styles"
 const RIG_DIR := "res://data/rigs"
+const TILE_DIR := "res://data/tiles"
 const CHARACTER_DIR := "res://data/characters"
 const GENERATED_ROOT := "res://assets/generated"
 
@@ -32,6 +33,10 @@ static func style(style_id: StringName) -> SpriteStyle:
 
 static func rig_for(style_value: SpriteStyle) -> Rig:
 	return Rig.load_from("%s/%s.json" % [RIG_DIR, style_value.rig_id])
+
+
+static func tile_bank_for(style_value: SpriteStyle) -> TileBank:
+	return TileBank.load_from("%s/%s.json" % [TILE_DIR, style_value.tile_bank_id])
 
 
 ## Every character that belongs to a style, in a stable order.

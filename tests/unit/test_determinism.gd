@@ -90,7 +90,7 @@ func test_committed_tiles_match_the_generator() -> void:
 		var path := "res://assets/generated/%s/tiles.png" % style_id
 		var committed := ImageFile.read_png(path)
 		assert_object(committed).is_not_null()
-		var fresh: Image = TileGen.build(style)["image"]
+		var fresh: Image = TileGen.build(style, ArtFixtures.tile_bank_for(style))["image"]
 		assert_str(Hashing.image_digest(committed)).override_failure_message(
 			"%s is out of date - re-run tools/gen_sprites.gd" % path) \
 			.is_equal(Hashing.image_digest(fresh))
