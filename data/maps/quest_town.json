@@ -84,6 +84,17 @@
 			"facing": "left",
 			"dialog": "smith",
 			"behavior": "static"
+		},
+		{
+			"id": "carter",
+			"character": "town_carter",
+			"tile": [6, 3],
+			"facing": "down",
+			"dialog": "carter",
+			"behavior": "patrol",
+			"path": [[6, 3], [6, 8]],
+			"dwell_min": 45,
+			"dwell_max": 90
 		}
 	],
 	"objects": [
