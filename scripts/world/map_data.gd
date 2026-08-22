@@ -223,6 +223,54 @@ func open_edges(solid_tiles: Array[String]) -> Array[Vector2i]:
 
 
 ## Everything wrong with this map, all of it, with coordinates.
+## What is wrong with one npc's movement. Separate because a behaviour is the one part of an
+## npc record that can soft-lock a game: an NPC parked on the only warp out of a room is a
+## door that cannot be used, and it looks like a broken map rather than a bad record.
+func _behavior_problems(npc: Dictionary, bounds: Vector2i, solid_tiles: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	var npc_id := str(npc.get("id", "?"))
+	var raw_name := str(npc.get("behavior", "static"))
+	var kind := NpcBrain.kind_from_name(raw_name)
+	if kind < 0:
+		# A typo'd behaviour must fail the build. Falling back to standing still would make
+		# "wonder" look like a shy NPC rather than a misspelling, which is the kind of fault
+		# that survives a whole milestone.
+		out.append("npc '%s' has unknown behavior '%s', expected one of %s"
+			% [npc_id, raw_name, ", ".join(PackedStringArray(NpcBrain.NAMES.keys()))])
+		return out
+	if kind == NpcBrain.Kind.WANDER and int(npc.get("range", 2)) < 1:
+		out.append("npc '%s' wanders with range %d, which is standing still"
+			% [npc_id, int(npc.get("range", 2))])
+	if kind != NpcBrain.Kind.PATROL:
+		return out
+
+	var path: Array = npc.get("path", [])
+	if path.size() < 2:
+		out.append("npc '%s' patrols a path of %d point(s); a patrol needs at least 2"
+			% [npc_id, path.size()])
+	for i in path.size():
+		var pair := JsonFile.to_int_array(path[i])
+		if pair.size() != 2:
+			out.append("npc '%s' patrol point %d is not a tile" % [npc_id, i])
+			continue
+		var point := Vector2i(pair[0], pair[1])
+		if point.x < 0 or point.y < 0 or point.x >= bounds.x or point.y >= bounds.y:
+			out.append("npc '%s' patrol point %d at %s is outside the %s map"
+				% [npc_id, i, point, bounds])
+			continue
+		# A waypoint inside a wall is a target the NPC can never reach, so it walks into the
+		# wall until the stuck counter gives up - forever, and silently.
+		# `point`, not `at`: the open-edge check a few functions up reads identically with `at`,
+		# and a mutant anchored there silently retargets onto whichever comes first in the file.
+		if solid_tiles.has(ground_at(point)) or solid_tiles.has(decor_at(point)):
+			out.append("npc '%s' patrol point %d at %s is a solid tile" % [npc_id, i, point])
+		# A patroller that parks on a warp is a door that cannot be used - the player walks
+		# into a body where the exit is. It presents as a broken map, not a bad record.
+		if not warp_at(point).is_empty():
+			out.append("npc '%s' patrol point %d at %s stands on a warp" % [npc_id, i, point])
+	return out
+
+
 func problems(known_tiles: Array[String], solid_tiles: Array[String] = []) -> Array[String]:
 	var out: Array[String] = []
 	if not ok:
@@ -275,6 +323,7 @@ func problems(known_tiles: Array[String], solid_tiles: Array[String] = []) -> Ar
 			out.append("npc '%s' at %s is outside the %s map" % [npc.get("id", "?"), at, bounds])
 		if str(npc.get("character", "")).is_empty():
 			out.append("npc '%s' names no character" % npc.get("id", "?"))
+		out.append_array(_behavior_problems(npc, bounds, solid_tiles))
 
 	for entry: Variant in warps:
 		var warp: Dictionary = entry

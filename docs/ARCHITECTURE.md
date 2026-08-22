@@ -107,6 +107,9 @@ has proven is tested — and three times during this build a mutant proved a tes
   every style, because a tile names a ramp rather than a colour.
 - **Characters** → files in `data/characters/`; unspecified slots fill from the seed.
 - **World** → files in `data/maps/`, ASCII plus a legend.
+- **How NPCs behave** → `behavior` on an npc record: `static`, `wander` (with a
+  `range`) or `patrol` (with a `path` of tiles). No code: the brain is template logic over
+  map data, and it drives the same body the player uses.
 - **Writing** → files in `data/dialog/`.
 - **What can be carried** → files in `data/items/`. A map hands one over with `give_item`,
   a lock wants one with `requires_item`, a lantern drinks one with `take_item`, and a dialog

@@ -1,0 +1,19 @@
+{ "_readme": "NPC behaviours, and every way one can be wrong. It ships deliberate faults - 'typo' misspells its behaviour, 'short' patrols a single point, 'inwall' routes through the wall column at x=6, 'ondoor' parks a waypoint on the warp at [1,4], and 'frozen' wanders with range 0 - so problems() has something to find here; do not use this file where an empty problems() is the assertion. 'walker' and 'rounder' are the only clean movers, and 'statue' is the control that must never be reported.",
+  "id": "with_behaviors", "style": "gb16",
+  "legend": { ".": "grass", "#": "wall" },
+  "ground": ["########", "#......#", "#......#", "#......#", "#......#", "########"],
+  "spawns": { "start": [1, 1] },
+  "warps": [
+    { "tile": [1, 4], "map": "elsewhere", "spawn": "start" }
+  ],
+  "npcs": [
+    { "id": "statue", "character": "elder", "tile": [2, 1], "behavior": "static" },
+    { "id": "plain", "character": "elder", "tile": [3, 1] },
+    { "id": "walker", "character": "elder", "tile": [2, 2], "behavior": "patrol", "path": [[2, 2], [4, 2]] },
+    { "id": "rounder", "character": "elder", "tile": [2, 3], "behavior": "wander", "range": 1 },
+    { "id": "typo", "character": "elder", "tile": [3, 3], "behavior": "wonder" },
+    { "id": "short", "character": "elder", "tile": [4, 3], "behavior": "patrol", "path": [[4, 3]] },
+    { "id": "inwall", "character": "elder", "tile": [5, 1], "behavior": "patrol", "path": [[5, 1], [7, 1]] },
+    { "id": "ondoor", "character": "elder", "tile": [5, 2], "behavior": "patrol", "path": [[5, 2], [1, 4]] },
+    { "id": "frozen", "character": "elder", "tile": [5, 3], "behavior": "wander", "range": 0 }
+  ] }

@@ -14,7 +14,8 @@ extends Node
 ## edit to the gate.
 ##
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
-## assert_map · assert_flag · assert_item · assert_position · mark · assert_moved ·
+## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
+## assert_level · sound_mark · assert_sound · assert_audio_ready · mark · assert_moved ·
 ## screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
