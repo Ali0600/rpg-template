@@ -35,6 +35,29 @@ one-glance menu of things still worth trying.
 
 ---
 
+## NPC movement freezes with the player, and the brain is pure
+
+- **Chosen: `NpcBrain`, a pure class answering with an intent vector, driven from
+  `world_scene._physics_process` BELOW the `player_can_move()` gate.** The intent vector is
+  what makes it cheap: `ActorBody` already handles both movement modes, animation and the
+  step meter, and its own header always said the player and every NPC "differ only in what
+  drives them". This is the other driver, and no movement code was written twice.
+- *A Node per NPC with its own `_physics_process`* - rejected: it would move on its own
+  schedule, which means a second answer to "is the world running" and a speaker who can
+  wander off mid-sentence unless something remembers to pause her.
+- *Freeze only the SPEAKER during dialog* - rejected: the halt-to-face done when a
+  conversation opens would silently stop being true for everyone else, and a town walking
+  behind a dialog box while the player cannot move reads as the game having lost the input,
+  not as ambience. Freezing everything is one line's placement and covers pause, battle and
+  game-over for free. Revisit hook: the `_drive_npcs()` call site.
+- *Behaviours as a game hook rather than map data* - rejected: patrol and wander are RPG
+  vocabulary, not one game's design. A hook would mean every game writes movement code.
+- **A typo'd behaviour fails the build.** Falling back to `static` would make `"wonder"` look
+  like a shy NPC rather than a misspelling, and nothing on screen would ever say otherwise.
+- **Every shipped NPC stays `static`,** because seven of ten QA sessions use their bodies as
+  walls. Movement ships as new content placed where no session walks - a constraint found by
+  reading the sessions, not by assuming.
+
 ## Two Godot MCP servers, and the addon stays out of the repo
 
 - **Chosen: add `godot-live` (`@satelliteoflove/godot-mcp`) beside `godot`

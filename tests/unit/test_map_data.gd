@@ -283,3 +283,50 @@ func test_a_map_with_no_enemies_has_none() -> void:
 	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_array(map.enemy_refs()).is_empty()
 	assert_bool(map.enemy_at(Vector2i(4, 6)).is_empty()).is_true()
+
+func test_a_typod_behavior_fails_the_build_rather_than_standing_still() -> void:
+	# The whole reason behaviours are validated. Falling back to `static` would make
+	# "wonder" look like a shy NPC instead of a misspelling, and it would survive a
+	# milestone: nothing on screen says the map meant something else.
+	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
+	assert_bool(map.ok).override_failure_message(map.error).is_true()
+	var problems := str(map.problems(_known_tiles(), _solid_tiles()))
+	assert_str(problems).contains("unknown behavior")
+	assert_str(problems).contains("wonder")
+
+func test_the_clean_npcs_in_that_fixture_are_not_reported() -> void:
+	# The near miss. A rule that fires on every mover would be disabled by the next person,
+	# so the two correct movers and the two static NPCs must come back clean.
+	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
+		.problems(_known_tiles(), _solid_tiles()))
+	for clean in ["statue", "plain", "walker", "rounder"]:
+		assert_str(problems).override_failure_message(
+			"%s is a correct npc and was reported: %s" % [clean, problems]).not_contains(clean)
+
+func test_a_patrol_of_one_point_is_reported() -> void:
+	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
+		.problems(_known_tiles(), _solid_tiles()))
+	assert_str(problems).contains("short")
+	assert_str(problems).contains("patrols a path of 1 point(s)")
+
+func test_a_patrol_waypoint_inside_a_wall_is_reported() -> void:
+	# A target the NPC can never reach: it walks into the wall until the stuck counter gives
+	# up, then tries again forever. Nothing errors and nothing moves.
+	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
+		.problems(_known_tiles(), _solid_tiles()))
+	assert_str(problems).contains("inwall")
+	assert_str(problems).contains("is a solid tile")
+
+func test_a_patrol_waypoint_on_a_warp_is_reported() -> void:
+	# A body parked on the only exit is a door that cannot be used, and it presents as a
+	# broken map rather than as a bad record.
+	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
+		.problems(_known_tiles(), _solid_tiles()))
+	assert_str(problems).contains("ondoor")
+	assert_str(problems).contains("stands on a warp")
+
+func test_a_wanderer_with_no_range_is_reported() -> void:
+	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
+		.problems(_known_tiles(), _solid_tiles()))
+	assert_str(problems).contains("frozen")
+	assert_str(problems).contains("wanders with range 0")

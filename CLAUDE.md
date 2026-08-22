@@ -41,7 +41,7 @@ scripts/soundgen/   the same, for sound: synth, sound_bank, sound_source + two i
 scripts/util/       dir, sfx, json_file, seeded_rng, hashing, lint_core, content_scan,
                     image_file + sound_file (build-time readers, never shipped)
 scripts/data/       Resource types (SpriteStyle, SoundStyle, CharacterSpec, GameConfig, SaveData, EnemyDef, CombatDef…)
-scripts/world/      Locomotion + GridWalker (both pure) + the nodes that apply them
+scripts/world/      Locomotion + GridWalker + NpcBrain (all pure) + the nodes that apply them
 scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen,
                     BattleLogic + BattleScreen, GameOverMenu + GameOverScreen (pure + view)
 scripts/autoload/   EventBus Registry GameState SaveManager Router AudioBus Settings Qa
@@ -139,6 +139,27 @@ the player 6-10px out, so waiting for contact would make the trigger frame depen
 speed. Diagonals deliberately do not count - a fight that must happen is made unavoidable by
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
+
+**An NPC's behaviour is data, and a moving one is driven by the player's own code.**
+`behavior` on a map's npc record is `static` (the default), `wander` (bounded drift around
+where it was placed) or `patrol` (an authored `path` of tiles, `loop` or ping-pong).
+`NpcBrain` is pure and has NO CLOCK - it answers with an INTENT VECTOR, the same axis pair a
+keyboard produces, so a walking NPC goes through the same `Locomotion`/`GridWalker`/`ActorBody`
+the player does. Dwelling counts FRAMES; a wall-clock dwell would make a play session depend
+on how busy the machine is. Draws come from a `SeededRng` keyed on game+map+npc id, never a
+clock - the world had no per-frame randomness before this and still has none that a rerun
+cannot reproduce.
+
+`_drive_npcs()` sits BELOW the `Router.player_can_move()` early return, and that placement is
+the whole design: a dialog, the pause menu, a fight or game-over stops the town as well as the
+player, so a speaker cannot wander off mid-sentence. It is a placement rather than a line, so
+no mutant can express it - `test_world_npcs.gd` proves it by moving the call above the gate.
+NPC footfalls are read and DISCARDED, or a town of walkers plays footsteps the player cannot
+place. **A `static` NPC is never given a brain at all**, which matters beyond cost: several QA
+sessions use shipped NPC bodies as walls (the warden at village [5,3] stops every northward
+leg), so a shipped NPC that started wandering would break sessions that look unrelated. A
+typo'd behaviour FAILS THE BUILD rather than standing still, and a patrol waypoint in a wall
+or on a warp is refused - an NPC parked on the only exit is a door that cannot be used.
 
 **Losing ends the run, and TITLE still means nothing.** `Router.State.GAME_OVER` +
 `GameOverScreen` (Continue / Start again) - an overlay, because this game boots straight into

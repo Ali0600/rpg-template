@@ -22,7 +22,8 @@ var _player: ActorBody
 ## which is the same as "built once per process" - correct while one game ran forever.
 var _camera: Camera2D
 var _dialog: DialogBox
-## npc id -> {"body": ActorBody, "dialog": String}
+## npc id -> the whole map record, plus {"body": ActorBody, "id", "kind"} and, for a mover,
+## {"brain": NpcBrain}. The map's own keys survive because a game's hook is handed this.
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
 var _hint: ControlsHint
@@ -318,6 +319,14 @@ func _spawn_npcs(data: MapData) -> void:
 		record["id"] = npc_id
 		record["kind"] = StringName(str(npc.get("kind", "npc")))
 		record["body"] = body
+		# Behaviour is data: `static` (the default, and what every shipped NPC is) needs no
+		# brain at all, so a town of statues costs nothing per frame. The seed is built from
+		# stable identifiers rather than a clock, which is what lets a play session assert an
+		# NPC's position hundreds of frames into a run and get the same answer every time.
+		var brain := NpcBrain.of(record, body.global_position, _built.tile_size,
+			SeededRng.new(SeededRng.hash_seed(0, "%s:%s:%s" % [GameState.game, data.id, npc_id])))
+		if NpcBrain.is_mover(brain.kind):
+			record["brain"] = brain
 		_npcs[npc_id] = record
 
 
@@ -407,7 +416,30 @@ func _physics_process(_delta: float) -> void:
 	if step.footfall:
 		AudioBus.play(Sfx.Cue.FOOTSTEP)
 	GameState.set_player(_player.global_position, step.facing)
+	_drive_npcs()
 	_check_triggers()
+
+
+## Walks every NPC that has a brain, one frame.
+##
+## It sits BELOW the `Router.player_can_move()` early return on purpose, and that placement is
+## the whole design: a dialog, the pause menu, a fight or the game-over screen stops the town
+## as well as the player. The speaker cannot wander off mid-sentence, and the one-shot
+## turn-to-face done when the conversation opens stays true for as long as the box is up.
+##
+## Footfalls are read and DISCARDED. Every NPC body carries a working StepMeter, so a town of
+## walkers would otherwise play a footstep cue each time any of them takes a stride - a sound
+## the player cannot place and cannot escape.
+func _drive_npcs() -> void:
+	for entry: Variant in _npcs.values():
+		var record: Dictionary = entry
+		var brain := record.get("brain") as NpcBrain
+		if brain == null:
+			continue
+		var body := record.get("body") as ActorBody
+		if body == null:
+			continue
+		body.apply(brain.intent(body.global_position))
 
 
 ## What arriving on a new tile sets off. ONE guard for both kinds of trigger, because they
