@@ -805,3 +805,31 @@ own coverage — every enum value, every flag combination, every branch of the t
 looping on has at least one example — so a shrinking corpus fails loudly instead of quietly
 narrowing the check.
 
+## Before placing something that moves, measure where your tests already walk
+
+A test suite that drives a world through real input has an implicit map: the set of positions
+it passes through. Nothing declares that set, so anything new placed in the world is placed
+blind - and if the new thing MOVES, it can wander into a corridor a test depends on and break
+it days later, in a test whose name has nothing to do with the change.
+
+**Why it came up:** M17 gave NPCs patrol and wander behaviours. Exploration turned up that
+seven of ten scripted play sessions use NPC bodies as *walls* - one asserts the exact tile a
+particular NPC's body produces - so a wandering NPC in the wrong place would break sessions
+about warps, sound and item pickups. Reasoning about which tiles were "probably safe" from
+reading the scripts was going to be guesswork, so instead I put a one-line `print` on the
+world's tile-change hook, ran all ten sessions, and rendered the result as an overlay on the
+map. The answer was unambiguous: they use one vertical corridor and the right-hand third, and
+the entire left half is untouched. Placing the walker there took a minute instead of an
+argument, and the overlay also corrected a guess - one NPC everyone assumed was incidental
+turned out to be standing on a visited tile.
+
+The measurement is only half of it. A safe placement that is never *tested* for safety is a
+claim, so the same session set was re-run with the route deliberately moved into the busy
+corridor: one session failed, which is what makes "column 6 is safe" a finding rather than a
+hope.
+
+**Takeaway:** when adding something mobile to a world that tests already traverse, instrument
+the traversal and look at it before choosing a position - a temporary print plus an ASCII
+overlay costs minutes. Then prove the position matters by moving it somewhere bad and
+watching a test fail.
+

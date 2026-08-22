@@ -1,0 +1,22 @@
+{
+	"_readme": [
+		"The carter, and the only NPC in the game who is not standing where you left her.",
+		"",
+		"She exists to make the template's newest noun visible: `behavior` on her map record is",
+		"`patrol`, and the walking is template logic over that data - her dialog knows nothing",
+		"about it. Two nodes, no choices, no flags: a conversation is not what she is for."
+	],
+	"id": "carter",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Carter",
+			"text": "Mind yourself - I walk this road all day and I'll not stop for you.",
+			"next": "road"
+		},
+		"road": {
+			"speaker": "Carter",
+			"text": "Up to the north road, down past the well, and back. Someone has to, and the elder is not going to."
+		}
+	}
+}
