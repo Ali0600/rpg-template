@@ -152,3 +152,59 @@ func test_reading_a_missing_file_as_bytes_is_empty_and_quiet() -> void:
 	assert_int(bytes.size()).override_failure_message(
 		"a missing file no longer reads as empty bytes").is_equal(0)
 	assert_int(FileAccess.get_open_error()).is_equal(ERR_FILE_NOT_FOUND)
+
+
+func test_a_body_inherits_the_velocity_of_the_floor_it_stands_on() -> void:
+	# Why ActorBody clears platform_floor_layers. The engine treats EVERY layer as a possible
+	# moving platform by default, and a body reporting on_floor against a moving one inherits
+	# its velocity - the conveyor/moving-platform feature. In a top-down game every actor is
+	# a "floor" to anything touching it from above, so the feature presented as an NPC being
+	# dragged sideways by a player walking past her.
+	#
+	# Pinned with a StaticBody2D's constant_linear_velocity because that is the one platform
+	# velocity the physics server knows without the platform being moved inside a physics
+	# frame. The mechanism is the same one the fix opts out of.
+	var ground := StaticBody2D.new()
+	var ground_shape := CollisionShape2D.new()
+	var ground_rect := RectangleShape2D.new()
+	ground_rect.size = Vector2(200.0, 8.0)
+	ground_shape.shape = ground_rect
+	ground.add_child(ground_shape)
+	ground.constant_linear_velocity = Vector2(60.0, 0.0)
+	add_child(ground)
+	ground.global_position = Vector2(0.0, 20.0)
+
+	var body := CharacterBody2D.new()
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(8.0, 8.0)
+	shape.shape = rect
+	body.add_child(shape)
+	add_child(body)
+
+	# Carried: the default, every layer a platform.
+	body.global_position = Vector2(0.0, 10.0)
+	body.platform_floor_layers = 0xFFFFFFFF
+	var carried_from := body.global_position.x
+	for i in 20:
+		body.velocity = Vector2(0.0, 200.0)
+		body.move_and_slide()
+		await get_tree().physics_frame
+	var carried := body.global_position.x - carried_from
+	assert_float(carried).override_failure_message(
+		"the platform stopped carrying at all, so the opt-out below proves nothing").is_greater(1.0)
+
+	# Opted out: the same contact, no inheritance.
+	body.global_position = Vector2(0.0, 10.0)
+	body.platform_floor_layers = 0
+	var free_from := body.global_position.x
+	for i in 20:
+		body.velocity = Vector2(0.0, 200.0)
+		body.move_and_slide()
+		await get_tree().physics_frame
+	assert_float(body.global_position.x).override_failure_message(
+		"clearing platform_floor_layers no longer stops the carry; the NPC drag can return"
+		).is_equal_approx(free_from, 0.01)
+
+	ground.queue_free()
+	body.queue_free()

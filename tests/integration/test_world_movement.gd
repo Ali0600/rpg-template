@@ -163,3 +163,43 @@ func test_an_actor_stands_on_the_centre_of_its_spawn_tile() -> void:
 	var tile := _built.data.spawn(&"start")
 	assert_vector(body.global_position).is_equal(MapData.tile_to_world(tile, _built.tile_size))
 	assert_vector(body.tile(_built.tile_size)).is_equal(tile)
+
+
+## Two bodies in contact - the first test in this repo to stage that at all.
+##
+## Seven QA sessions lean on an NPC body stopping the player, yet no suite ever put two
+## ActorBodies together, so "a body blocks a body" was load-bearing and unpinned. The
+## CARRYING half of that story cannot be tested here - driving apply() from a coroutine
+## moves bodies outside a physics frame, where the server tracks no velocity for them and
+## the platform mechanism cannot occur at all. It lives in test_world_npcs, through the
+## real world scene. This is the half this harness can hold: they still collide.
+func _spawn_body_at(at: Vector2) -> ActorBody:
+	var body := ActorBody.new()
+	body.setup(_config, FileSpriteSource.create(&"gb16"), &"hero")
+	_built.sorted.add_child(body)
+	body.global_position = at
+	return body
+
+
+## Drives both bodies for a while in the ORDER world_scene uses - the player resolves its
+## move_and_slide first, then the NPCs - because that order is what hands an NPC the
+## player's freshly-settled velocity.
+func _tick_pair(blocker: ActorBody, blocker_input: Vector2, walker: ActorBody,
+		walker_input: Vector2, ticks: int) -> void:
+	for i in ticks:
+		blocker.apply(blocker_input)
+		walker.apply(walker_input)
+		await get_tree().physics_frame
+
+func test_a_body_still_stops_another_body() -> void:
+	# The control for both tests above: they would also pass if the bodies simply stopped
+	# colliding, which would silently break every QA session that walks into an NPC until
+	# her body stops it.
+	var blocker := _spawn_body_at(MapBuilder.spawn_position(_built.data, &"start", _built.tile_size))
+	var walker := _spawn_body_at(blocker.global_position + Vector2(0.0, -10.0))
+	await await_idle_frame()
+
+	await _tick_pair(blocker, Vector2.ZERO, walker, Vector2(0.0, 1.0), 30)
+
+	assert_float(walker.global_position.y).override_failure_message(
+		"the walker passed through the body that should have stopped it").is_less(blocker.global_position.y)
