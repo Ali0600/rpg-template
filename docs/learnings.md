@@ -833,3 +833,38 @@ the traversal and look at it before choosing a position - a temporary print plus
 overlay costs minutes. Then prove the position matters by moving it somewhere bad and
 watching a test fail.
 
+## An unset engine property is not neutral - it is whatever genre the engine assumed
+
+Engine defaults are chosen for the engine's most common use case, not for yours. Leaving one
+alone reads as "no opinion" but is really "the default opinion", and when your genre differs
+you inherit a feature you never asked for, doing something reasonable in a context where it
+is wrong.
+
+**Why it came up:** a player reported an NPC being dragged sideways when he walked past her -
+but only when she approached from ABOVE; from below she just stopped. Two identical-looking
+situations, one code path. `CharacterBody2D` treats every layer as a possible moving platform
+by default, and a body reporting `on_floor` against a moving body inherits its velocity.
+Touched from above, the player is a *floor*; from below, a *ceiling*. The asymmetry the player
+described **was the diagnosis** - only a direction-dependent concept could produce it, which
+pointed at the floor/platform machinery before any code was read.
+
+Two things worth copying beyond the specific bug:
+
+**Measure the symptom, not just the theory.** Instrumenting the running game showed her x
+climbing in steps of exactly 0.8px per frame; walk speed is 48px/s at 60fps, so the drift rate
+*was* the player's speed - which is what turns "something drags her" into "she inherits his
+velocity". After the fix, 896 of 896 frames at exactly her column.
+
+**Fix the feature, not the family.** The obvious fix was `MOTION_MODE_FLOATING`, which Godot
+recommends for top-down and which deletes floors and ceilings outright. It also silently
+changed how every body slides along every wall: eleven scripted play sessions were calibrated
+against the old sliding, and one diverged into 16 cascading failures, none of them about NPCs.
+The narrow opt-out (`platform_floor_layers = 0`) fixed the reported bug and changed nothing
+else; the broader change became a recorded decision for someone who can *play* it. A fix whose
+blast radius exceeds the bug is a redesign wearing a fix's clothes.
+
+**Takeaway:** when behaviour differs by direction, orientation or side, suspect a
+default-configured engine concept that is itself directional before suspecting your own logic.
+Audit what you never set - that list is configuration you have implicitly accepted - and when
+the clean fix and the narrow fix disagree in blast radius, ship the narrow one and write the
+clean one down.

@@ -28,6 +28,10 @@ one-glance menu of things still worth trying.
   escape and everyone else allows it; a hit is worth exactly what the numbers say. A designer
   can reason about that and a QA script can rely on it. Revisit hooks: the flee branch in
   `BattleLogic.press()`, and `BattleLogic.damage()`.
+- **`MOTION_MODE_FLOATING` for actors** — Godot's recommended mode for top-down, and a
+  cleaner answer to the NPC-carry bug than the narrow opt-out that shipped. It changes how
+  every body slides along every wall, so it needs playing rather than proving. Revisit hook:
+  one line in `ActorBody._init`.
 - **A real title screen.** `Router.State.TITLE` has been reachable-by-design and unused since
   M2, and M13 pointedly did not spend it on the game-over screen. Revisit hook: the day a
   title scene exists, `GameOverScreen` becomes the thing that routes to it rather than an
@@ -88,6 +92,25 @@ one-glance menu of things still worth trying.
 - **`npx` launch kept** for both, despite `npx` costing 494ms to connect against 64ms for a
   resolved binary. A direct path is machine-specific or an npx cache path that can be
   garbage-collected; portability beat 430ms once per session.
+
+## The NPC carry was fixed narrowly, not by switching motion mode
+
+- **Chosen: `platform_floor_layers = 0` on every ActorBody.** A player found NPCs being
+  dragged sideways when he walked past them - but only when they approached from ABOVE. The
+  cause is the moving-platform feature: `on_floor` against a moving body inherits its
+  velocity, measured at 0.8px a frame (exactly walk speed) until the NPC was two tiles off
+  her route. Clearing the layers opts out of exactly that and changes nothing else.
+- *`MOTION_MODE_FLOATING`* — **deferred, worth trying**: it is what Godot recommends for
+  top-down and it removes the floor/ceiling concept the bug is built on, rather than one
+  feature that hangs off it. Rejected for now because it is not a bug fix, it is a movement
+  change: floating alters how every body slides along every wall, and all eleven play
+  sessions are calibrated against the current sliding. Switching it diverged
+  `finish_the_quest` at the hermit and cascaded into 16 failures - none of them about NPCs.
+  Whether the resulting slide feels better is a question for someone who has played it.
+  Revisit hook: one line in `ActorBody._init`, plus re-deriving the affected legs.
+- *Collision layers, so actors never touch* — rejected: the player would walk through NPCs,
+  and seven QA sessions use NPC bodies as walls. It also deletes a real interaction rather
+  than fixing it.
 
 ## Terrain is authored pixel art in a bank of its own
 

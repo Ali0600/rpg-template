@@ -134,3 +134,46 @@ func test_a_patrolling_npc_walks_toward_its_first_waypoint() -> void:
 	var moved := body.global_position - was
 	assert_float(moved.y).override_failure_message(
 		"asked to patrol south, moved %s" % moved).is_greater(0.0)
+
+
+## Holds an action down for a stretch of frames, then releases it. _press is a tap; a carry
+## only shows up while the player is actually moving against her.
+func _hold(action: StringName, frames: int) -> void:
+	var down := InputEventAction.new()
+	down.action = action
+	down.pressed = true
+	Input.parse_input_event(down)
+	await _steps(frames)
+	var up := InputEventAction.new()
+	up.action = action
+	up.pressed = false
+	Input.parse_input_event(up)
+	await _steps(1)
+
+func test_an_npc_walking_into_the_player_is_not_carried_sideways() -> void:
+	# A player found this one. The engine's default motion mode is GROUNDED, which is a
+	# platformer contract: an NPC touching the player from above is "standing on" him, and a
+	# body standing on a MOVING body inherits its velocity. She was dragged at 0.8px a frame -
+	# exactly the walk speed - until she was two tiles off her route.
+	#
+	# It has to be staged through the real world scene. Driving apply() by hand from a
+	# coroutine moves bodies outside a physics frame, where the server tracks no velocity for
+	# them, so the mechanism cannot occur there however the bodies are arranged.
+	await _boot()
+	var npcs: Dictionary = _world._npcs
+	var first: Dictionary = npcs.values()[0]
+	var body := first.get("body") as ActorBody
+	var home := MapData.world_to_tile(body.global_position, 16)
+	_add_mover("patrol", {"path": [[home.x, home.y + 3], [home.x, home.y]],
+		"dwell_min": 0, "dwell_max": 0})
+
+	# Directly in her way, one body-height below, so she walks down into him and stays there.
+	var player := _world._player as ActorBody
+	player.place(body.global_position + Vector2(0.0, 10.0), Dir.D.UP)
+	await _steps(30)
+
+	var her_x := body.global_position.x
+	await _hold(&"move_right", 45)
+	assert_float(body.global_position.x).override_failure_message(
+		"she was dragged %.1fpx sideways by the player walking past her"
+			% [body.global_position.x - her_x]).is_equal_approx(her_x, 0.5)

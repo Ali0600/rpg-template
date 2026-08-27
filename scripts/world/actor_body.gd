@@ -25,6 +25,21 @@ var _meter: StepMeter = null
 var _walker: GridWalker
 
 
+func _init() -> void:
+	# No actor is ever a moving platform. The engine DEFAULT is that every layer is one
+	# (platform_floor_layers is all bits), which is a platformer contract: a body touching
+	# another from above reports on_floor, and a body on a MOVING floor inherits its velocity.
+	# That made an NPC walking down into the player ride along wherever he strafed - measured
+	# at 0.8px a frame, exactly his walk speed, until she was two tiles off her route - while
+	# an NPC walking UP into him was untouched, because from below he is a ceiling and
+	# ceilings carry nobody.
+	#
+	# This is deliberately narrower than MOTION_MODE_FLOATING, which would ALSO be defensible
+	# and is what Godot recommends for top-down. Floating changes how every body slides along
+	# every wall, which is movement feel nobody has played yet - see docs/DECISIONS.md.
+	platform_floor_layers = 0
+
+
 func _ready() -> void:
 	if view.get_parent() == null:
 		add_child(view)

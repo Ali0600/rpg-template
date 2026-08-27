@@ -109,6 +109,20 @@ being shown; on a line with choices the box routes input to the choice list inst
 the point of a choice is that one gets picked. So a conversation that loops back THROUGH a
 choice node has no way out of it - both branches of a choice must eventually end the talk.
 
+**No actor is a moving platform, and the default says otherwise.** `platform_floor_layers`
+defaults to every layer, which is a platformer contract: a body touching another from above
+reports `on_floor`, and a body on a MOVING floor inherits its velocity. Top-down, every actor
+is a "floor" to anything touching it from above - so an NPC walking down into the player rode
+along wherever he strafed, at exactly his walk speed, while one walking UP into him was
+untouched (from below he is a ceiling, and ceilings carry nobody). `ActorBody._init` clears it.
+An unset engine property is not a neutral one; it is whatever genre the engine assumed.
+
+Deliberately NOT `MOTION_MODE_FLOATING`, which Godot recommends for top-down and which would
+also fix this: floating changes how every body slides along every wall, and the eleven play
+sessions are calibrated against the current sliding - switching it diverged
+`finish_the_quest` at the hermit into 16 cascading failures. That is a movement-feel decision
+for a person who has played the game, not a side effect of a bug fix. See `docs/DECISIONS.md`.
+
 **Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step_pixels` at
 zero is free pixel movement; set to the map's tile size it is one press = one tile. Both go
 through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so nothing
