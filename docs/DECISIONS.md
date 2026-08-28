@@ -1169,3 +1169,43 @@ two rounds or four - and `finish_the_quest` made zero `assert_xp` calls at all.
 `mutate_check.sh` now drives a play session as a "suite" when the suite column points at
 `tests/fixtures/qa/`, so the play gate is mutation-proven like everything else. That only became
 reasonable when M14.1 made a session cost two seconds instead of ninety.
+
+## Equipment is a screen of its own, and the flow is slot-first — *M20*
+
+**The fork:** where does the verb "wear this" live, now that M19's answer has been played?
+
+- **A page of its own, entered from a top-level `Equipment` row, slot-first** — *chosen.*
+  A slot list showing what is in each slot, each opening the gear that fits it. Two reasons,
+  and the first outranks the second: the person who asked for equipment played M19 and said
+  it should be its own screen like Items; and every reference game agrees — FF I–VI, Chrono
+  Trigger and the DQ SNES remakes all put Equip beside Item and none of them equip from the
+  item list. "What am I wearing" becomes a glance rather than a scan of the whole bag.
+- **The M19 bag toggle** — *rejected, and removed.* Confirming gear in the bag toggled
+  Wear/Take-off. It was fully tested and fully green, which is exactly why it is worth
+  recording: no gate can see a screen that is in the wrong place. Its good parts were kept —
+  the `(E)` marker stays in the bag, and the stat preview moved to the candidate list.
+- **Keeping both** (equip from either surface, the Dragon Quest III shape) — *rejected.* Two
+  surfaces owning one verb drift: the bag's toggle and the picker's take-off row would have
+  to agree forever about what a confirm means, and the wording already differs ("Take off"
+  vs a row that removes). One verb, one owner.
+- **Item-first** (pick gear, then be told where it goes) — *rejected.* It reads as an
+  inventory with extra steps, and it cannot show an empty slot, which is the thing a player
+  most needs to see.
+- **Optimize / best-equip** — *deferred — worth trying.* An FF convenience for games with
+  five slots and forty items; at two slots it is a button that does what one press already
+  does. **Revisit hook:** `ItemDef.SLOTS` growing past three.
+
+**Where a third slot plugs in:** `ItemDef.SLOTS` is the one list. Adding `&"trinket"` to it
+grows the equipment page a row, teaches `problems()` the new word, and needs no screen edit.
+
+## The stats readout is worded by the world, not composed by the menu — *M20*
+
+**The fork:** the equip screen shows "Atk 5+3 Def 1+0". Who builds that string?
+
+- **The world builds it and hands the menu text** — *chosen.* Naming a stat is a question
+  about what a game calls things, and `PauseMenu` may not touch the Registry or a manifest.
+  It is the `_gold` and `_sound` precedent exactly: a readout arrives as text.
+- **The menu composes it from numbers it is handed** — *rejected.* It would need to know that
+  "Atk" is what this game calls attack, and that a game with no `CombatDef` has neither.
+- **The view reads the world directly** — *rejected outright.* A view that names an autoload
+  drops itself, and every suite that depends on it, out of `check.sh`'s per-file parse gate.

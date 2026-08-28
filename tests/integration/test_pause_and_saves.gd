@@ -362,3 +362,30 @@ func test_the_slot_page_draws_a_row_for_every_slot() -> void:
 			slots += 1
 	assert_int(slots).override_failure_message(
 		"the slot list drew %d of 2 rows: %s" % [slots, drawn]).is_equal(2)
+
+
+func test_the_equipment_page_draws_what_the_numbers_are() -> void:
+	# The readout is the whole reason a preview is a preview: "Atk +3" against nothing is a
+	# number, and against "Atk 5+0" it is a decision. Asserted on the RENDERED label, because
+	# the world composing the string proves nothing about the screen showing it - and the
+	# mutation harness found exactly that hole, with the world's wording fully tested.
+	await _boot()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	var on_top := _drawn_rows()
+	for text in on_top:
+		assert_str(text).override_failure_message(
+			"the stats readout is drawn on the top page, where it means nothing") \
+			.not_contains("Atk")
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"interact")
+	var found := ""
+	for text in _drawn_rows():
+		if text.contains("Atk"):
+			found = text
+	assert_str(found).override_failure_message(
+		"the equipment page says nothing about the player's numbers; it drew %s"
+		% [_drawn_rows()]).is_not_empty()
+	assert_str(found).override_failure_message(
+		"the readout does not separate the gear from the level: '%s'" % found).contains("+")

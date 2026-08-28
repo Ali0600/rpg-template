@@ -185,16 +185,38 @@ effects and then pops the dialog overlay, so a counter opened inline would be th
 pop closed. The menu is the only affordability check; `spend_gold` behind it is the invariant,
 and it says so loudly rather than overdrawing anyone.
 
-**The bag's confirm is the equip verb, and only for gear.** `PauseMenu.confirm()` on the
-ITEMS page answered NONE for three milestones with a comment saying a use verb was a game's
-business; equipment is the answer that goes there, and a SLOTLESS row still answers nothing -
-a potion heals in every RPG ever written, where "use the rope on the well" is a puzzle. The
-row carries an `(E)` marker and the line under the list shows what the press would DO before
-it does it ("Take off: Atk +3 (now Atk +3 Def +0)"), worded by the world because naming a
-stat is a Registry question. Equipping is a TOGGLE - one list, one confirm; a second key for
-"unequip" is a control nobody would find. **What is worn is not on the sell counter**, and
-that refusal lives in the world rather than in ShopMenu: the counter has no business knowing
-what equipment is, and a spare copy stays sellable while one is worn.
+**Equipment is a menu command of its own, and the flow is SLOT-FIRST.** `Row.EQUIP` sits
+between Items and Save, which is the order every classic command menu uses and the one thing
+a player navigates by muscle memory. It opens a slot list built from `ItemDef.SLOTS` -
+"Weapon: Bronze sword", "Armor: (nothing)" - and a slot opens the carried gear that FITS it
+plus a `(take off)` row. M19 shipped this as a confirm-toggle inside the bag instead; it was
+fully tested, fully green, and the first person to play it said it should be its own screen,
+because that is where every game it was modelled on keeps it. See `docs/GENRE_CONVENTIONS.md`.
+
+The filter is what makes the page safe: a slotless item is never a candidate, so a tonic
+cannot be offered as armour - the offer is never made, rather than refused at confirm time.
+The take-off row is always drawn (so no slot can strand a cursor) and taking off an EMPTY
+slot is refused, the empty-slot-load rule. Both answers pop back to the slot list before the
+world hears them, so every refresh lands on a page whose rows are the template's own
+vocabulary rather than on a candidate list built from a bag that is about to change.
+
+**The preview is a SWAP, and the readout is what makes it one.** `_candidate_effect` words
+the delta against what the slot already holds, so wearing what is already worn reads "no
+change" rather than promising its stats a second time; `_stats_label` puts "Atk 5+3 Def 1+0"
+beside the purse, because a delta needs a number to be a delta OF. Both are worded by the
+WORLD - naming a stat is a Registry question and `PauseMenu` may not ask one. A game with no
+`CombatDef` gets no readout at all rather than a screen inventing a stat it does not have.
+
+`Kind.UNEQUIP` carries the slot rather than an EQUIP carrying an empty item: a verb spelled
+as the absence of its opposite is one every listener has to remember to decode, and the one
+that forgets equips nothing and reports success.
+
+**The bag keeps the marker and loses the verb.** An `(E)` on the row still finds what is worn
+at a glance, but `confirm()` on the ITEMS page answers NONE again - a potion heals in every
+RPG ever written, where "use the rope on the well" is a puzzle, so a use verb stays a game's
+business. **What is worn is not on the sell counter**, and that refusal lives in the world
+rather than in ShopMenu: the counter has no business knowing what equipment is, and a spare
+copy stays sellable while one is worn.
 
 **Gear is a MODIFIER, never a stat, and it never leaves the bag.** Player attack and defense
 are DERIVED (`CombatDef.attack_at(level)`), so equipment cannot be stored as a stat without
@@ -301,7 +323,11 @@ validator that has only ever passed is decoration.
   An action left held is still held at the next press, and the engine sees no change.
 - **Never navigate a menu by counting presses.** `move(PauseMenu.Row.SAVE)` and not `move(1)`:
   inserting a row re-aims every counting test at whatever now sits there, silently and while
-  still passing. M12 turned a "refuse to load" test into one that SAVED a slot that way.
+  still passing. M12 turned a "refuse to load" test into one that SAVED a slot that way. The
+  two places that DO count - `_to_the_third_slot()` and the QA sessions, which drive real
+  keys and have no enum to name - write the count out with the row list in a comment above
+  it, so inserting a row moves them deliberately. M20 inserted Equipment and paid exactly
+  that price, in three files, on purpose.
 - **A QA leg is held until a WALL or a BODY stops it**, never for a computed number of tiles.
   An arriving hold carries the player onward into the next map, so a leg that follows a warp
   must re-anchor against geometry rather than assume where the last one left off. The one
