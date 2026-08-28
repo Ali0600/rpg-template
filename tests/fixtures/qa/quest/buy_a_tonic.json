@@ -996,7 +996,7 @@
 		},
 		{
 			"op": "note",
-			"text": "33 gold, and the keeper asks HOW MANY before anything moves"
+			"text": "33 gold, and the shelf now opens with the gear: sword 20, vest 15"
 		},
 		{
 			"op": "assert_gold",
@@ -1012,7 +1012,7 @@
 		},
 		{
 			"op": "note",
-			"text": "picking the tonic opens the count - it does not buy, and these two assertions are what say so"
+			"text": "the sword is the first row - picking it opens the count, it does not buy"
 		},
 		{
 			"op": "press",
@@ -1028,12 +1028,29 @@
 		},
 		{
 			"op": "assert_item",
-			"id": "tonic",
+			"id": "bronze_sword",
 			"count": 0
 		},
 		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_gold",
+			"value": 13
+		},
+		{
+			"op": "assert_item",
+			"id": "bronze_sword",
+			"count": 1
+		},
+		{
 			"op": "note",
-			"text": "one step up: two tonics, 20g, agreed as a single deal"
+			"text": "13 left, and the vest is 15 - so the very next press is refused"
 		},
 		{
 			"op": "press",
@@ -1057,74 +1074,8 @@
 		},
 		{
 			"op": "assert_item",
-			"id": "tonic",
-			"count": 2
-		},
-		{
-			"op": "note",
-			"text": "the second thing on his shelf is cheaper - a short purse is not an empty shop"
-		},
-		{
-			"op": "press",
-			"action": "move_down"
-		},
-		{
-			"op": "wait",
-			"frames": 6
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 8
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 10
-		},
-		{
-			"op": "assert_gold",
-			"value": 7
-		},
-		{
-			"op": "assert_item",
-			"id": "waybread",
-			"count": 1
-		},
-		{
-			"op": "note",
-			"text": "7 gold against a 10g tonic: the press changes nothing, and the keeper says why"
-		},
-		{
-			"op": "press",
-			"action": "move_up"
-		},
-		{
-			"op": "wait",
-			"frames": 6
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 10
-		},
-		{
-			"op": "assert_gold",
-			"value": 7
-		},
-		{
-			"op": "assert_item",
-			"id": "tonic",
-			"count": 2
+			"id": "leather_vest",
+			"count": 0
 		},
 		{
 			"op": "assert_state",
@@ -1132,7 +1083,7 @@
 		},
 		{
 			"op": "note",
-			"text": "and out the way we came in"
+			"text": "out of the shop and into the bag - the sword is carried, not yet worn"
 		},
 		{
 			"op": "press",
@@ -1155,8 +1106,91 @@
 			"state": "world"
 		},
 		{
-			"op": "assert_map",
-			"map": "quest_town"
+			"op": "assert_equipped",
+			"slot": "weapon",
+			"id": ""
+		},
+		{
+			"op": "note",
+			"text": "pause, into Items, past the gate key (the bag is in pickup order), and wear the sword"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 12
+		},
+		{
+			"op": "assert_state",
+			"state": "paused"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_equipped",
+			"slot": "weapon",
+			"id": "bronze_sword"
+		},
+		{
+			"op": "note",
+			"text": "and it is still in the bag - equipping marks, it never moves"
+		},
+		{
+			"op": "assert_item",
+			"id": "bronze_sword",
+			"count": 1
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
 		}
 	]
 }

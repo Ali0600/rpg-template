@@ -176,9 +176,37 @@ func test_the_item_page_opens_even_when_a_game_has_no_save_slots() -> void:
 	assert_int(menu.page()).is_equal(PauseMenu.Page.ITEMS)
 
 
-func test_confirming_an_item_does_nothing_yet() -> void:
-	# There is no "use" verb. Answering anything here would be the world acting on a press
-	# that has no meaning.
+func test_confirming_a_slotted_item_asks_to_equip_it() -> void:
+	# The hook docs/DECISIONS.md recorded: the ITEMS page returned NONE "where the answer
+	# would go", and equipment is the answer that goes there.
+	var menu := PauseMenu.of(_slots([]),
+		[PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon")])
+	# Named, never counted - the suite's own rule.
+	menu.move(PauseMenu.Row.ITEMS)
+	menu.confirm()
+	var pick := menu.confirm()
+	assert_int(pick.kind).override_failure_message(
+		"a confirm on a weapon did nothing").is_equal(PauseMenu.Kind.EQUIP)
+	assert_str(String(pick.item)).is_equal("sword")
+
+func test_an_equipped_row_is_marked() -> void:
+	var worn := PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon", true)
+	assert_str(PauseMenu.item_label(worn)).override_failure_message(
+		"nothing in the list says which sword is the one you are holding").contains("(E)")
+	var spare := PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon", false)
+	assert_str(PauseMenu.item_label(spare)).not_contains("(E)")
+
+func test_the_marker_survives_a_stack_count() -> void:
+	# The near miss: two swords, one worn, must read as both marked AND counted.
+	var row := PauseMenu.ItemRow.of(&"sword", "Sword", 2, "", &"weapon", true)
+	var label := PauseMenu.item_label(row)
+	assert_str(label).contains("(E)")
+	assert_str(label).contains("x2")
+
+func test_confirming_a_carried_thing_still_does_nothing() -> void:
+	# There is still no general "use" verb - a potion heals in every RPG ever written, where
+	# "use the rope on the well" is a puzzle. Only equipment answers here; a slotless row
+	# answering anything would be the world acting on a press that has no meaning.
 	var menu := PauseMenu.of(_slots([]), _bag([[&"gate_key", "Gate key", 1]]))
 	menu.move(PauseMenu.Row.ITEMS)
 	menu.confirm()

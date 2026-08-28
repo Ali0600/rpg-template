@@ -721,6 +721,7 @@ func open_pause() -> bool:
 	_pause.resumed.connect(_close_pause)
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
+	_pause.equip_requested.connect(_on_equip_requested)
 	add_child(_pause)
 	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label()),
 		_style, get_viewport_rect().size)
@@ -755,7 +756,9 @@ func _item_rows() -> Array:
 		var def := Registry.get_resource(&"ItemDef", item_id) as ItemDef
 		var item_name := def.name if def != null else String(item_id)
 		var description := def.description if def != null else ""
-		out.append(PauseMenu.ItemRow.of(item_id, item_name, GameState.item_count(item_id), description))
+		var slot := def.slot if def != null else &""
+		out.append(PauseMenu.ItemRow.of(item_id, item_name, GameState.item_count(item_id),
+			description, slot, GameState.is_equipped(item_id), _equip_effect(def)))
 	return out
 
 
@@ -851,8 +854,16 @@ func _sellable_rows() -> Array:
 		var item := Registry.get_resource(&"ItemDef", carried_id) as ItemDef
 		if item == null or not ShopMenu.tradable(item.price):
 			continue
+		# What is WORN is not on the counter. Selling the sword off your own back is the
+		# classic shop bug, and the refusal belongs here rather than in ShopMenu: the counter
+		# has no business knowing what equipment is, and the world already knows.
+		var spare := GameState.item_count(item.id)
+		if GameState.is_equipped(item.id):
+			spare -= 1
+		if spare <= 0:
+			continue
 		out.append(ShopMenu.ShopRow.of(item.id, item.name, ShopMenu.sell_price(item.price),
-			GameState.item_count(item.id), item.description))
+			spare, item.description))
 	return out
 
 
@@ -894,6 +905,23 @@ func _close_shop() -> void:
 	_shop.queue_free()
 	_shop = null
 	Router.close_overlay()
+
+
+## What equipping this would do, in words, for the line under the list. Worded HERE because
+## naming a stat is a Registry-shaped question and PauseMenu may not ask one - and shown
+## BEFORE the press that equips, which is the compare an equip screen exists for.
+func _equip_effect(def: ItemDef) -> String:
+	if def == null or String(def.slot).is_empty():
+		return ""
+	var verb := "Take off" if GameState.is_equipped(def.id) else "Wear"
+	var parts: Array[String] = []
+	if def.attack != 0:
+		parts.append("Atk %+d" % def.attack)
+	if def.defense != 0:
+		parts.append("Def %+d" % def.defense)
+	# The totals ALREADY worn, so the delta is read against something rather than in a vacuum.
+	var now := "now Atk %+d Def %+d" % [_equip_mod(&"attack"), _equip_mod(&"defense")]
+	return "%s: %s  (%s)" % [verb, ", ".join(parts) if not parts.is_empty() else "no change", now]
 
 
 ## What the worn gear adds to one stat. Resolved HERE because it means asking the Registry
@@ -1052,6 +1080,20 @@ func _close_pause() -> void:
 	Router.close_overlay()
 
 
+## Wear it, or take it off if it is already on. A toggle rather than two verbs because the
+## list has one confirm, and a second key for "unequip" is a control nobody would find.
+func _on_equip_requested(item_id: StringName) -> void:
+	var def := Registry.get_resource(&"ItemDef", item_id) as ItemDef
+	if def == null or String(def.slot).is_empty():
+		return
+	if GameState.is_equipped(item_id):
+		GameState.unequip(def.slot)
+	else:
+		GameState.equip(def.slot, item_id)
+	if _pause != null:
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
+
+
 func _on_save_requested(slot: int) -> void:
 	SaveManager.save(slot, GameState.to_save())
 	# The menu stays up and is told what the slots hold NOW, so the row the player is looking
@@ -1114,6 +1156,10 @@ func dialog_box() -> DialogBox:
 
 func pause_screen() -> PauseScreen:
 	return _pause
+
+
+func shop_screen() -> ShopScreen:
+	return _shop
 
 
 func battle_screen() -> BattleScreen:

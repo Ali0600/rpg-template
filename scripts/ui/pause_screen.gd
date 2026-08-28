@@ -24,6 +24,9 @@ signal sound_wanted(id: StringName)
 signal resumed
 signal save_requested(slot: int)
 signal load_requested(slot: int)
+## The player asked to wear or take off the thing they are pointing at. The world owns the
+## slot map - a view that wrote it would be a second writer for state that outlives the scene.
+signal equip_requested(item: StringName)
 
 const LAYER := 15
 const MARGIN := 8
@@ -173,6 +176,10 @@ func _help_for(page: PauseMenu.Page) -> String:
 		# The selected thing describes itself here rather than in the row: a list of names is
 		# scannable, and a list of names plus sentences is not.
 		var row: PauseMenu.ItemRow = _menu.item(_menu.index())
+		if row != null and not row.effect.is_empty():
+			# What equipping would DO, shown before the press that does it - the compare every
+			# equip screen has, and the reason this line beats the description for gear.
+			return row.effect
 		if row != null and not row.description.is_empty():
 			return row.description
 		return "W/S to choose    Esc to go back"
@@ -221,6 +228,10 @@ func _act(pick: PauseMenu.Pick) -> void:
 		PauseMenu.Kind.LOAD:
 			_committed = true
 			load_requested.emit(pick.slot)
+		PauseMenu.Kind.EQUIP:
+			# Not committed: equipping leaves the menu open and the world calls refresh(), so
+			# the row shows its new marker - the save-row and sound-row rule.
+			equip_requested.emit(pick.item)
 		PauseMenu.Kind.SOUND:
 			# Not committed: turning the sound down leaves the menu open, and the world calls
 			# refresh() so the row shows what it now says - the save-row rule.

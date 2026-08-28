@@ -187,7 +187,7 @@ scripts/world/world_scene.gd	s|^\t_apply_effects\(effects\)$|\tpass|	tests/integ
 scripts/ui/pause_menu.gd	s|return maxi\(_items.size\(\), 1\)|return _items.size()|	tests/unit/test_pause_menu.gd	an empty bag has no row, so the page cannot be stood on or escaped from
 scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.ITEMS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the bag lands the cursor on Save instead of Items
 scripts/ui/pause_menu.gd	s|\t\tif _index == Row.ITEMS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot look in its own bag
-scripts/ui/pause_menu.gd	s|return "%s x%d" % \[row.name, row.count\]|return row.name|	tests/unit/test_pause_menu.gd	the bag stops saying how many of a thing is in it
+scripts/ui/pause_menu.gd	s|return "%s%s x%d" % \[worn, row.name, row.count\]|return worn + row.name|	tests/unit/test_pause_menu.gd	the bag stops saying how many of a thing is in it
 scripts/ui/pause_menu.gd	s|return "\(nothing carried\)"|return ""|	tests/unit/test_pause_menu.gd	an empty bag draws a blank row, which reads as a menu that failed
 scripts/world/world_scene.gd	s|for item_id in GameState.inventory.ids\(\):|for item_id in []:|	tests/integration/test_pause_and_saves.gd	the pause menu never lists anything the player is carrying
 
@@ -337,3 +337,7 @@ scripts/autoload/game_state.gd	s|if inventory.count\(id\) == 0:|if false:|	tests
 scripts/data/migrations.gd	s|d\["equipment"\] = \{\}|pass|	tests/unit/test_saves.gd	an old save loads with no equipment map at all
 scripts/data/save_data.gd	s|elif int\(items.get\(worn, 0\)\) <= 0:|elif false:|	tests/unit/test_saves.gd	a hand-edited save equipping what it does not carry loads without complaint
 scripts/data/item_def.gd	s|if slot != &"" and slot != &"weapon" and slot != &"armor":|if false:|	tests/unit/test_items.gd	a typo'd slot name becomes a trinket that never equips
+scripts/ui/pause_menu.gd	s|if row == null or String\(row.slot\).is_empty\(\):|if false:|	tests/unit/test_pause_menu.gd	a tonic is equipped as if it were armour
+scripts/ui/pause_menu.gd	s|var worn := "\(E\) " if row.equipped else ""|var worn := ""|	tests/unit/test_pause_menu.gd	nothing in the bag says which sword is the one you are holding
+scripts/world/world_scene.gd	s|if GameState\.is_equipped\(item\.id\):|if false:|	tests/integration/test_world_equipment.gd	the sword on your own back is offered for sale
+scripts/world/world_scene.gd	s|var verb := "Take off" if GameState.is_equipped\(def.id\) else "Wear"|var verb := "Wear"|	tests/integration/test_world_equipment.gd	the bag offers to wear what is already worn

@@ -23,7 +23,7 @@ enum Row { RESUME, ITEMS, SAVE, LOAD, SOUND }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
-enum Kind { NONE, RESUME, SAVE, LOAD, SOUND }
+enum Kind { NONE, RESUME, SAVE, LOAD, SOUND, EQUIP }
 
 
 ## One answer, carried as a value the way Locomotion.Step is. The slot is explicit rather than
@@ -32,11 +32,15 @@ enum Kind { NONE, RESUME, SAVE, LOAD, SOUND }
 class Pick:
 	var kind: Kind = Kind.NONE
 	var slot: int = -1
+	## Which item an EQUIP asked about. Explicit for the reason `slot` is: reading it back off
+	## index() afterwards would be a second reading of a cursor that may already have moved.
+	var item: StringName = &""
 
-	static func of(kind_value: Kind, slot_value: int = -1) -> Pick:
+	static func of(kind_value: Kind, slot_value: int = -1, item_id: StringName = &"") -> Pick:
 		var out := Pick.new()
 		out.kind = kind_value
 		out.slot = slot_value
+		out.item = item_id
 		return out
 
 
@@ -48,14 +52,26 @@ class ItemRow:
 	var name: String = ""
 	var count: int = 0
 	var description: String = ""
+	## Which slot this occupies, or empty for a thing that is only carried. Resolved by the
+	## world, like the name and the description: asking what an item IS means the Registry.
+	var slot: StringName = &""
+	var equipped: bool = false
+	## What equipping this would do, already worded by the world - "Atk +3 (now +0)". The
+	## delta a player is shown BEFORE they confirm, which is the whole point of an equip
+	## screen; wording it here would mean this class knowing what a stat is called.
+	var effect: String = ""
 
 	static func of(item_id: StringName, item_name: String, item_count: int,
-			item_description: String = "") -> ItemRow:
+			item_description: String = "", item_slot: StringName = &"",
+			is_equipped: bool = false, item_effect: String = "") -> ItemRow:
 		var out := ItemRow.new()
 		out.id = item_id
 		out.name = item_name
 		out.count = item_count
 		out.description = item_description
+		out.slot = item_slot
+		out.equipped = is_equipped
+		out.effect = item_effect
 		return out
 
 
@@ -175,10 +191,15 @@ func confirm() -> Pick:
 		_page = Page.SAVE if _index == Row.SAVE else Page.LOAD
 		_index = 0
 		return Pick.of(Kind.NONE)
-	# Looking at a thing is not doing anything with it. There is no "use" yet, and a confirm
-	# that silently did nothing would be indistinguishable from one that failed.
+	# Equipment answers here; anything else is still only looked at. A general "use" verb
+	# remains a game's own business - a potion heals in every RPG ever written, where "use the
+	# rope on the well" is a puzzle - so a slotless row keeps returning NONE, and a confirm on
+	# it does nothing rather than doing something arbitrary.
 	if _page == Page.ITEMS:
-		return Pick.of(Kind.NONE)
+		var row := item(_index)
+		if row == null or String(row.slot).is_empty():
+			return Pick.of(Kind.NONE)
+		return Pick.of(Kind.EQUIP, -1, row.id)
 	# Loading nothing is REFUSED, never nudged to a neighbouring slot. The precedent is
 	# DialogRunner.choose(): clamping turns a UI mistake into a plausible-looking wrong answer,
 	# and here the wrong answer would be loading a game the player did not ask for.
@@ -240,9 +261,12 @@ static func clock(seconds: float) -> String:
 static func item_label(row: ItemRow) -> String:
 	if row == null:
 		return "(nothing carried)"
+	# The marker goes first so a glance down the list finds what is worn without reading every
+	# line - the convention every equip screen shares.
+	var worn := "(E) " if row.equipped else ""
 	if row.count <= 1:
-		return row.name
-	return "%s x%d" % [row.name, row.count]
+		return worn + row.name
+	return "%s%s x%d" % [worn, row.name, row.count]
 
 
 ## One row of the slot list. The slot is displayed one-based because a player counts from one;

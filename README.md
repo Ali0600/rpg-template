@@ -82,6 +82,7 @@ Regenerate the art after editing a rig or a style:
 | What can be picked up and carried | `data/items/*.tres` | no |
 | What a fight pays, and what the player starts with | `data/enemies/*.tres`, `data/games/*.tres` | no |
 | What a shopkeeper sells, and for how much | `data/shops/*.tres`, `price` on `data/items/*.tres` | no |
+| What can be worn, and what it is worth in a fight | `slot`/`attack`/`defense` on `data/items/*.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts | `data/rigs/*.json` | no |
 | New terrain — a floor, a door, a cliff | `data/tiles/*.json` | no |
@@ -183,6 +184,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M17** — NPCs move: `behavior` on a map record is `static`, `wander` or `patrol`, driven through the same Locomotion the player uses, and the whole town freezes with the player so nobody wanders off mid-sentence
 - [x] **M18** — money: gold that a fight drops and a save carries, and a shopkeeper opened from a dialog choice who refuses what you cannot afford and will not touch a quest item
 - [x] **M18.1** — the shop became a counter: an item list with a price column, a purse, a description bar, a keeper who talks, and a "how many?" step, all in windows over the world you are standing in
+- [x] **M19** — equipment: a weapon and an armour slot whose stats reach the fight as modifiers, worn from the bag with an (E) marker and a stat preview, and refused by the shop counter while you are wearing it
 
 ## Experience Gained
 
