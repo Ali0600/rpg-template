@@ -1,128 +1,48 @@
 class_name GameOverMenu
-extends RefCounted
-## What a beaten player is pointing at. No nodes, no autoloads, no files.
+extends SlotMenu
+## What a beaten player is pointing at. The rules are SlotMenu's; this is the wording, and one
+## extra way on that a title screen does not need.
 ##
 ## The same shape as PauseMenu and split for the same reason, but it answers a different
 ## question: a pause asks "what do you want to do while you are here", and this asks "how do
 ## you want to carry on", where staying is not one of the options.
-##
-## That is the whole difference in the rules. Cancel on the top page RESUMES nothing - there is
-## no world left to go back to - so it answers NONE rather than PauseMenu's RESUME.
 
-## The pages. TOP is the two ways on; LOAD is the slot list.
-enum Page { TOP, LOAD }
-
-## The TOP page's rows, in the order they are drawn. The view indexes its labels by this.
-enum Row { CONTINUE, NEW_GAME }
-
-## What a press asked the world for. NONE covers "that moved the cursor" and "that was
-## refused" alike: neither is something the world has to act on.
-enum Kind { NONE, LOAD, NEW_GAME }
-
-
-## One answer, carried as a value. The slot is explicit rather than read back off index()
-## afterwards, which would be a second reading of a cursor that may have moved.
-class Pick:
-	var kind: Kind = Kind.NONE
-	var slot: int = -1
-
-	static func of(kind_value: Kind, slot_value: int = -1) -> Pick:
-		var out := Pick.new()
-		out.kind = kind_value
-		out.slot = slot_value
-		return out
-
-
-var _slots: Array[SaveData] = []
-var _page := Page.TOP
-var _index := 0
+## The third way on, one past the rows every slot menu has. A CONSTANT rather than a second
+## Row enum, because GDScript refuses to let a subclass redeclare an inherited member - and
+## re-listing Continue and New game here in order to append one row would be two lists that
+## have to agree about the first two. Appended rather than slotted in, so the one scripted
+## session that counts presses down this page keeps landing where it did.
+const ROW_TITLE := Row.NEW_GAME + 1
 
 
 static func of(slots: Array[SaveData]) -> GameOverMenu:
 	var menu := GameOverMenu.new()
 	menu._slots = slots.duplicate()
+	# Deliberately NOT _open_on_a_pressable_row(), which the title does. The argument for it
+	# there is that a player's very first press of the game should not be a dud; the argument
+	# AGAINST it here is stronger, and a scripted session proved it: this screen arrives at the
+	# end of a lost fight, where a player is already pressing, and opening on "Start again"
+	# turns one more press into a restarted run with no beat in between. A refusal that says
+	# "nothing saved" is the better thing to walk into.
 	return menu
 
 
-func page() -> Page:
-	return _page
+func row_count() -> int:
+	return ROW_TITLE + 1
 
 
-func index() -> int:
-	return _index
+## The third way on. Answered here rather than in SlotMenu because a title screen cannot offer
+## a route to itself, and a row that only one of two screens has is exactly what this seam is
+## for.
+func top_pick(at: int) -> Pick:
+	if at == ROW_TITLE:
+		return Pick.of(Kind.TITLE)
+	return super(at)
 
 
-func slot_count() -> int:
-	return _slots.size()
-
-
-func size() -> int:
-	return Row.size() if _page == Page.TOP else _slots.size()
-
-
-func slot(at: int) -> SaveData:
-	if at < 0 or at >= _slots.size():
-		return null
-	return _slots[at]
-
-
-func move(delta: int) -> bool:
-	if size() < 2:
-		return false
-	_index = posmod(_index + delta, size())
-	return true
-
-
-## What the confirm button asked for.
-func confirm() -> Pick:
-	if _page == Page.TOP:
-		if _index == Row.NEW_GAME:
-			return Pick.of(Kind.NEW_GAME)
-		# Nothing saved is nothing to continue from. Refusing here rather than opening an empty
-		# list is the honest answer: a page of three "empty" rows invites three more presses
-		# that also do nothing.
-		if _slots.is_empty() or not _has_any_save():
-			return Pick.of(Kind.NONE)
-		_page = Page.LOAD
-		_index = 0
-		return Pick.of(Kind.NONE)
-	# Loading nothing is REFUSED, never nudged to a neighbouring slot - the PauseMenu rule, and
-	# it matters more here: the player has already lost something, and a load they did not ask
-	# for would take the rest.
-	if slot(_index) == null:
-		return Pick.of(Kind.NONE)
-	return Pick.of(Kind.LOAD, _index)
-
-
-## What the cancel button asked for. On the slot list it is "back". On the top page it is
-## NOTHING, and that is the one place this differs from a pause menu: backing out of a pause
-## resumes, and there is nothing here to resume into.
-func cancel() -> Pick:
-	if _page != Page.TOP:
-		_page = Page.TOP
-		_index = Row.CONTINUE
-		return Pick.of(Kind.NONE)
-	return Pick.of(Kind.NONE)
-
-
-## New slot contents, same cursor. Called after a refused load, so the row the player is
-## looking at shows what the slots hold now - which is one fewer, and that is the honest thing.
-func refresh(slots: Array[SaveData]) -> void:
-	_slots = slots.duplicate()
-	if _index >= size():
-		_index = maxi(size() - 1, 0)
-
-
-func _has_any_save() -> bool:
-	for data in _slots:
-		if data != null:
-			return true
-	return false
-
-
-## One row of the top page. Continue says what it would continue from, because "Continue" over
-## three empty slots is a promise the menu cannot keep.
 func top_label(at: int) -> String:
+	if at == ROW_TITLE:
+		return "Title"
 	if at == Row.NEW_GAME:
 		return "Start again"
-	return "Continue" if _has_any_save() else "Continue (nothing saved)"
+	return _continue_label()

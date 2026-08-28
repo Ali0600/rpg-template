@@ -22,12 +22,15 @@ func test_a_fresh_menu_opens_on_continue() -> void:
 	var menu := GameOverMenu.of(_slots([0]))
 	assert_int(menu.page()).is_equal(GameOverMenu.Page.TOP)
 	assert_int(menu.index()).is_equal(GameOverMenu.Row.CONTINUE)
-	assert_int(menu.size()).is_equal(2)
+	# Three since M22: Continue, Start again, and the Title this screen now routes to.
+	assert_int(menu.size()).is_equal(3)
 
 func test_the_cursor_wraps_both_ways() -> void:
 	var menu := GameOverMenu.of(_slots([0]))
 	assert_bool(menu.move(-1)).is_true()
-	assert_int(menu.index()).is_equal(GameOverMenu.Row.NEW_GAME)
+	# Wrapping backwards from the first row lands on the LAST, which is Title now that there
+	# are three - named by the enum rather than counted, so a fourth way on moves this itself.
+	assert_int(menu.index()).is_equal(GameOverMenu.ROW_TITLE)
 	assert_bool(menu.move(1)).is_true()
 	assert_int(menu.index()).is_equal(GameOverMenu.Row.CONTINUE)
 
@@ -99,3 +102,19 @@ func test_refreshing_keeps_the_cursor_where_it_was() -> void:
 	menu.move(1)
 	menu.refresh(_slots([0, 2]))
 	assert_int(menu.index()).is_equal(1)
+
+
+func test_a_game_over_opens_on_continue_even_with_nothing_saved() -> void:
+	# The opposite of the title's rule, on purpose. This screen arrives at the end of a lost
+	# fight, where the player is already pressing - opening on "Start again" would turn one
+	# more press into a restarted run. A scripted session found exactly that.
+	var menu := GameOverMenu.of(_slots([]))
+	assert_int(menu.index()).override_failure_message(
+		"a mashed press at the game over would restart the run").is_equal(GameOverMenu.Row.CONTINUE)
+
+
+func test_the_title_row_asks_to_go_back_to_the_title() -> void:
+	var menu := GameOverMenu.of(_slots([]))
+	menu.move(GameOverMenu.ROW_TITLE - menu.index())
+	assert_int(menu.confirm().kind).is_equal(GameOverMenu.Kind.TITLE)
+	assert_str(menu.top_label(GameOverMenu.ROW_TITLE)).is_equal("Title")

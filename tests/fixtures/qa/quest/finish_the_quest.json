@@ -21,6 +21,18 @@
 	"steps": [
 		{
 			"op": "note",
+			"text": "the title opens the game now. A --qa-script run points saves at user://qa_saves and empties it at boot, so there is never anything to Continue - and the cursor opens on the row a press will actually do something with, which is New game. Rows: Continue, New game. One press starts the run."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "note",
 			"text": "the warden opens the game now - hear her out before anything else"
 		},
 		{

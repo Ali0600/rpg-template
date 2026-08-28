@@ -46,7 +46,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
-| [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Game-over overlay; **no title screen** | **gap** |
+| [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | Nothing | **gap** — biggest one |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | `play_music` exists, nothing calls it | **gap** |
 
@@ -265,10 +265,15 @@ movement code — `NpcBrain` answers with an intent vector, the same axis pair a
 produces — so nothing about movement is written twice. The town freezes during dialog, pause,
 fights and game-over, because a speaker who wanders off mid-sentence is a bug.
 
-**Gap:** **no inn.** The genre's HP economy is fight → lose HP → pay gold at an inn → fight
-again, and this template has the first, second and fourth. Gold currently only buys items.
-This is the highest-value gap in the table: it is small (a dialog choice, a price, a heal), it
-closes the loop, and it gives gold a second use.
+**The inn, added in M21**, closes the loop — fight → lose HP → pay gold → fight again — and
+gives gold its second use. It is a **conversation, not a counter**: DQ and FF innkeepers greet,
+name a price, ask yes/no and fade to night, and there is nothing to browse, so it is built from
+the dialog grammar (`spend_gold` with a mandatory `poor_next`, and `rest`) rather than from the
+shop's screen. It is also the game's first **interior**, because an inn in the genre is a place
+rather than a person standing in a square.
+
+**Gap:** the inn does not save (deliberate — see §8), and there is no innkeeper flavour beyond
+the transaction.
 
 ---
 
@@ -295,8 +300,19 @@ impression.
 **This template.** `GameOverScreen` is an overlay with Continue / Start again, because the game
 boots straight into the world. `Router.State.TITLE` exists and means "nothing to drive yet".
 
-**Gap:** a real title screen. Small, and it would give `TITLE` its meaning and the music seam
-its first caller. Backlog.
+**Added in M22.** The title carries the game's own name from its manifest, Continue and New
+game, and says *"Continue (nothing saved)"* rather than offering a page of empty rows. It is an
+**overlay over an empty world**, not a second scene: the world node is what resolves which game
+is running, and it does that exactly once per process — a title scene with its own boot would
+be a second answer to that question. The game-over screen gained the Title row its own comment
+had promised since M13.
+
+One asymmetry worth knowing, because it looks like an inconsistency and is not: the title opens
+its cursor on a row a press will *do* something with, and the game over deliberately does not.
+A dud first press is friction; an accidental restart of a run you just lost is a loss. A
+scripted session found that one.
+
+**Gap:** none. There is still no quit — a game that wants one ships it.
 
 ---
 

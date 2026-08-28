@@ -13,44 +13,153 @@
 	],
 	"game": "quest",
 	"steps": [
-		{ "op": "note", "text": "the opening line is forced, so dismiss it first" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "assert_state", "state": "world" },
-
-		{ "op": "note", "text": "the voice can actually play what it names - the assertion that only bites against a packed build" },
-		{ "op": "assert_audio_ready" },
-
-		{ "op": "note", "text": "walking asks for footsteps" },
-		{ "op": "sound_mark" },
-		{ "op": "hold", "action": "move_down" },
-		{ "op": "wait", "frames": 30 },
-		{ "op": "release", "action": "move_down" },
-		{ "op": "assert_sound", "id": "footstep" },
-
-		{ "op": "note", "text": "standing still does not" },
-		{ "op": "sound_mark" },
-		{ "op": "wait", "frames": 30 },
-		{ "op": "assert_sound", "id": "footstep", "expect": false },
-
-		{ "op": "note", "text": "talking to the warden asks for the page and the blip" },
-		{ "op": "sound_mark" },
-		{ "op": "hold", "action": "move_up" },
-		{ "op": "wait", "frames": 60 },
-		{ "op": "release", "action": "move_up" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "wait", "frames": 20 },
-		{ "op": "assert_state", "state": "dialog" },
-		{ "op": "assert_sound", "id": "talk" },
-
-		{ "op": "note", "text": "the press that OPENS a dialog belongs to the world, not to the box - so the page turn is the NEXT one" },
-		{ "op": "sound_mark" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "wait", "frames": 5 },
-		{ "op": "assert_sound", "id": "page" }
+		{
+			"op": "note",
+			"text": "the title opens the game now. A --qa-script run points saves at user://qa_saves and empties it at boot, so there is never anything to Continue - and the cursor opens on the row a press will actually do something with, which is New game. Rows: Continue, New game. One press starts the run."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "note",
+			"text": "the opening line is forced, so dismiss it first"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "the voice can actually play what it names - the assertion that only bites against a packed build"
+		},
+		{
+			"op": "assert_audio_ready"
+		},
+		{
+			"op": "note",
+			"text": "walking asks for footsteps"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "hold",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "release",
+			"action": "move_down"
+		},
+		{
+			"op": "assert_sound",
+			"id": "footstep"
+		},
+		{
+			"op": "note",
+			"text": "standing still does not"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "assert_sound",
+			"id": "footstep",
+			"expect": false
+		},
+		{
+			"op": "note",
+			"text": "talking to the warden asks for the page and the blip"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "hold",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 60
+		},
+		{
+			"op": "release",
+			"action": "move_up"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "assert_sound",
+			"id": "talk"
+		},
+		{
+			"op": "note",
+			"text": "the press that OPENS a dialog belongs to the world, not to the box - so the page turn is the NEXT one"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_sound",
+			"id": "page"
+		}
 	]
 }
