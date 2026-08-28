@@ -184,6 +184,10 @@ choice. Uniquely, **the build measures every shipped line against the box** and 
 would not fit — a `RichTextLabel` clips silently, so a fact written into the data would never
 reach the player and every headless gate would still pass.
 
+A choice can also carry money: `spend_gold` with a mandatory `poor_next`, which is the
+refusal the player hears. See `DECISIONS.md` for why money is shown-and-refused where an item
+requirement is hidden.
+
 **Gap:** no portraits, no per-player text speed. Both are candidates; neither is load-bearing.
 
 ---

@@ -26,6 +26,12 @@ const OP_TAKE_ITEM := &"take_item"
 const OP_PARTY := &"party"
 const OP_GOLD := &"gold"
 const OP_SHOP := &"shop"
+## Money out. Separate from OP_GOLD (which only ever gives) because the two fail differently:
+## a gift that cannot happen is a malformed effect, where a spend that cannot happen means
+## something upstream offered a deal it could not cover.
+const OP_SPEND_GOLD := &"spend_gold"
+## A full night's sleep. Carries nothing: what "full" means is the running game's CombatDef.
+const OP_REST := &"rest"
 
 ## Where the player is, at the moment the hook was called.
 var map_id: StringName = &""

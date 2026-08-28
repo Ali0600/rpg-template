@@ -162,6 +162,26 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**Money can leave through a conversation, and a refusal is SAID.** A dialog choice carrying
+`spend_gold` is checked against the purse before anything is collected, and a choice that
+charges MUST carry `poor_next` naming a node - the `locked_dialog` rule applied to
+conversations. This is the one requirement that is shown-and-refused rather than hidden:
+`requires_item` hides, because offering to hand over what you are not carrying can only go
+wrong when taken, but a price is quoted out loud and a player who says yes to one they cannot
+meet has to hear why not. The check counts what earlier choices in the same conversation have
+already committed, for the reason `_flag_known` counts flags earned earlier - nothing has
+reached live state yet, so two spends would otherwise both be checked against an untouched
+purse. `_collect_reachable` follows `poor_next` too, or every correct refusal fails the build
+as unreachable.
+
+**A rest is a full heal, through the one party writer.** `{"op": "rest"}` carries no amount:
+what "full" means is the running game's own `CombatDef`, which is why it cannot live in a
+dialog file or a menu. It goes through `set_party`, which takes all three numbers because
+they are one fact, so a rest hands xp and level back unchanged and moves only the hp - the
+`_ensure_party` shape. A game with no `CombatDef` has no notion of full and nothing to heal,
+so the op says so rather than quietly doing nothing. Deliberately NOT a parameterised
+`heal(amount)`: a partial heal is a field-item verb this template does not have.
+
 **A shop is a COUNTER, not a list.** The screen is the anatomy every classic shop converges
 on, and M18 shipped without most of it: an item list with prices RIGHT-ALIGNED in their own
 column and the owned count beside them, a purse panel that becomes the running total while a

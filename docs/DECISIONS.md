@@ -1236,3 +1236,28 @@ navigations (the `_to_the_third_slot` helper and `save_and_load.json`) twice in 
 That is the price of putting rows where the genre puts them, and it is the right price: a row's
 position is what a player navigates by muscle memory, and the counted tests write their counts
 out longhand precisely so that this moves deliberately rather than silently.
+
+## Money leaves through a conversation, and a rest is a full heal — *M21*
+
+**The fork:** the genre's inn needs to charge gold and restore HP. Neither could happen from
+data before this: `OP_GOLD` only ever gave, and the only writer of `player_hp` outside a fight
+was `OP_PARTY`, which demands xp and level too.
+
+- **Two effect verbs on a dialog choice — `spend_gold` and `rest`** — *chosen.* An inn is a
+  **conversation**, not a counter (see `GENRE_CONVENTIONS.md` §10 — DQ and FF innkeepers greet,
+  name a price, ask yes/no and fade to night; there is nothing to browse), so it is built out
+  of the grammar every other conversation uses rather than out of the shop's trio.
+- **An `InnDef` + `InnMenu` + `InnScreen`, mirroring the shop** — *rejected.* It would be a
+  counter with one item on it. The shop's shape earns its keep because a shop has a list, a
+  price column, quantities and two pages; an inn has a yes and a no.
+- **A parameterised `heal(amount)`** — *deferred — worth trying.* It would cover a field-use
+  verb for potions, which §4 records as deliberately absent, and "restore to full" is the only
+  amount the genre's inn ever uses. **Revisit hook:** `GameContext.OP_REST` and the `_rest()`
+  handler in `world_scene` — an amount would ride the effect dict.
+- **Hiding the choice when the purse is short**, the way `requires_item` hides — *rejected.*
+  A hidden room is a price the player can never discover. The shop already settled this: its
+  `poor_line` exists because a refusal that makes no words reads as a dead key. So a spend
+  requires a `poor_next`, and the build refuses a keeper who charges and says nothing.
+- **Saving at the inn**, which the genre pairs with resting — *rejected.* This template
+  deliberately diverges on saves (pause menu, anywhere — recorded above and in §8), and an
+  inn save would quietly relitigate that decision as a side effect of a healing feature.

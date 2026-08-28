@@ -362,3 +362,11 @@ scripts/world/world_scene.gd	s|\t\tout.append\("Level %d" % level\)|\t\tpass|	te
 scripts/world/world_scene.gd	s|\t\tout.append\("HP %d/%d" % \[GameState.player_hp, _game.combat.max_hp\(level\)\]\)|\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how hurt the player is
 scripts/world/world_scene.gd	s|\t\t\tout.append\("XP %d  \(next in %d\)" % \[|\t\t\tout.append("" % [|	tests/integration/test_world_equipment.gd	the line a player opens the status page FOR is missing
 scripts/world/world_scene.gd	s|\t\tout.append\(PauseMenu.gear_label\(row\)\)|\t\tpass|	tests/integration/test_world_equipment.gd	the status page cannot tell you what you are wearing
+scripts/ui/dialog_runner.gd	s|\tif not _can_afford\(choice\):|\tif false:|	tests/unit/test_dialog_runner.gd	a player with no coin sleeps anyway and the purse goes wherever it likes
+scripts/ui/dialog_runner.gd	s|\treturn spend \+ _gold_committed\(\) <= _known_gold|\treturn spend <= _known_gold|	tests/unit/test_dialog_runner.gd	ten gold pays for two six-gold nights, because each is checked against an untouched purse
+scripts/ui/dialog_runner.gd	s|\t\t_effects.append\(\{"op": GameContext.OP_SPEND_GOLD, "amount": spend\}\)|\t\tpass|	tests/unit/test_dialog_runner.gd	the keeper is agreed with and never paid
+scripts/ui/dialog_runner.gd	s|\t\t_effects.append\(\{"op": GameContext.OP_REST\}\)|\t\tpass|	tests/unit/test_dialog_runner.gd	the player pays for a night and wakes up as hurt as they went to bed
+scripts/ui/dialog_runner.gd	s|\t\t\tif costs > 0 and refusal.is_empty\(\):|\t\t\tif false:|	tests/unit/test_dialog_runner.gd	a keeper charges money and says nothing at all when the player cannot pay
+scripts/ui/dialog_runner.gd	s|\t\t_collect_reachable\(str\(\(entry as Dictionary\).get\("poor_next", ""\)\), seen\)|\t\tpass|	tests/unit/test_dialog_runner.gd	every correctly-written refusal fails the build as unreachable
+scripts/world/world_scene.gd	s|\t\t\t\tif GameState.spend_gold\(int\(effect.get\("amount", 0\)\)\):|\t\t\t\tif false:|	tests/integration/test_world_items.gd	a spend reaches the sink and the money stays in the purse
+scripts/world/world_scene.gd	s|\tGameState.set_party\(_game.combat.max_hp\(level\), GameState.player_xp, level\)|\tpass|	tests/integration/test_world_items.gd	a night at the inn costs money and heals nothing

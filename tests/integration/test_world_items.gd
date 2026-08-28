@@ -121,3 +121,48 @@ func test_what_is_carried_survives_a_save_and_a_load() -> void:
 	GameState.reset()
 	GameState.from_save(data)
 	assert_int(GameState.item_count(&"gate_key")).is_equal(3)
+
+
+# --- money out, and a night's sleep ---------------------------------------------------------
+#
+# The two ops an inn needs. Both go through the same sink every gift and every flag does, so a
+# keeper and a chest cannot end up with two different ideas of what happens.
+
+
+func test_a_spend_takes_the_money() -> void:
+	var world := _boot()
+	GameState.give_gold(20)
+	assert_bool(world._apply_effects([{"op": GameContext.OP_SPEND_GOLD, "amount": 6}])).is_true()
+	assert_int(GameState.gold).is_equal(14)
+
+
+func test_a_spend_beyond_the_purse_moves_nothing() -> void:
+	# The runner refuses it upstream, so this is the invariant behind that rather than a second
+	# copy of it - and the purse is left alone rather than clamped to zero.
+	var world := _boot()
+	GameState.give_gold(5)
+	world._apply_effects([{"op": GameContext.OP_SPEND_GOLD, "amount": 6}])
+	assert_int(GameState.gold).override_failure_message(
+		"an uncoverable spend still moved money").is_equal(5)
+
+
+func test_a_rest_fills_the_player_up() -> void:
+	var world := _boot()
+	GameState.set_party(3, 0, 1)
+	assert_bool(world._apply_effects([{"op": GameContext.OP_REST}])).is_true()
+	var full: int = (load(GAME) as GameManifest).combat.max_hp(1)
+	assert_int(GameState.player_hp).override_failure_message(
+		"a night at the inn did not restore the player").is_equal(full)
+	assert_int(full).override_failure_message(
+		"the fixture starts full, so this test could not tell a rest from a no-op") \
+		.is_greater(3)
+
+
+func test_a_rest_leaves_the_level_and_the_experience_alone() -> void:
+	# set_party carries all three because they are one fact, so a rest has to hand the other
+	# two back unchanged - a night that reset the player's level would be a very bad night.
+	var world := _boot()
+	GameState.set_party(3, 42, 2)
+	world._apply_effects([{"op": GameContext.OP_REST}])
+	assert_int(GameState.player_xp).is_equal(42)
+	assert_int(GameState.player_level).is_equal(2)
