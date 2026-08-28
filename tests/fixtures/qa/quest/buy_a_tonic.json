@@ -996,17 +996,13 @@
 		},
 		{
 			"op": "note",
-			"text": "the walk here paid for itself - every fight on the way dropped coin"
+			"text": "33 gold, and the keeper asks HOW MANY before anything moves"
 		},
 		{
 			"op": "assert_gold",
 			"value": 33
 		},
 		{
-			"op": "note",
-			"text": "onto the buy page"
-		},
-		{
 			"op": "press",
 			"action": "interact"
 		},
@@ -1016,7 +1012,7 @@
 		},
 		{
 			"op": "note",
-			"text": "a tonic is 10, and the world is what moves the money - the counter only asked"
+			"text": "picking the tonic opens the count - it does not buy, and these two assertions are what say so"
 		},
 		{
 			"op": "press",
@@ -1028,41 +1024,90 @@
 		},
 		{
 			"op": "assert_gold",
-			"value": 23
+			"value": 33
 		},
 		{
 			"op": "assert_item",
 			"id": "tonic",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "one step up: two tonics, 20g, agreed as a single deal"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_gold",
+			"value": 13
+		},
+		{
+			"op": "assert_item",
+			"id": "tonic",
+			"count": 2
+		},
+		{
+			"op": "note",
+			"text": "the second thing on his shelf is cheaper - a short purse is not an empty shop"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_gold",
+			"value": 7
+		},
+		{
+			"op": "assert_item",
+			"id": "waybread",
 			"count": 1
 		},
 		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 8
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 8
-		},
-		{
-			"op": "assert_gold",
-			"value": 3
-		},
-		{
-			"op": "assert_item",
-			"id": "tonic",
-			"count": 3
-		},
-		{
 			"op": "note",
-			"text": "3 gold left and a tonic costs 10, so the next press is the refusal - and the assertions after it are what prove nothing moved"
+			"text": "7 gold against a 10g tonic: the press changes nothing, and the keeper says why"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 6
 		},
 		{
 			"op": "press",
@@ -1070,16 +1115,16 @@
 		},
 		{
 			"op": "wait",
-			"frames": 8
+			"frames": 10
 		},
 		{
 			"op": "assert_gold",
-			"value": 3
+			"value": 7
 		},
 		{
 			"op": "assert_item",
 			"id": "tonic",
-			"count": 3
+			"count": 2
 		},
 		{
 			"op": "assert_state",

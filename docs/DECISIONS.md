@@ -140,6 +140,25 @@ one-glance menu of things still worth trying.
   `slot_defaults`. All three styles dropped their dict entirely, which the drift gate proved
   was a no-op.
 
+## The shop screen is windows over the world, and asks "how many"
+
+- **Chosen: panels over the live world, with a quantity step.** M18 shipped a full-screen dim
+  with three lines of floating text; the user played it and said, correctly, that it was not
+  a shop. Researched afterwards rather than before (the process failure is in
+  docs/learnings.md): the JRPG UI survey, Game UI Database's buying screens, and shop-flow
+  write-ups converge on list + prices + purse + description + keeper, with pick -> how many ->
+  confirm as the buy flow.
+- *Full-screen shop screen* — rejected: it reads as the game changing screens rather than the
+  player walking up to a counter, and it hides the town the shop belongs to.
+- *A shopping cart (accumulate, then check out)* — deferred, worth trying if a game wants bulk
+  trading: it is the other convention the research turned up. Rejected now because it needs a
+  second confirm surface and a cart to draw, for a template whose shops sell two things.
+  Revisit hook: `ShopMenu.Deal` already carries a count and a total, so a cart is a list of
+  Deals rather than a redesign.
+- **Rotating stock, synthesis shops and deal boards** (the jrpg-design-codex's shop patterns)
+  are GAME design, not template scope: they are what a game builds on `ShopDef`, and baking
+  any of them in would be designing somebody's game.
+
 ## A price belongs to the item, not to the shop
 
 - **Chosen: `ItemDef.price`, with `ShopDef` listing ids only.** One price per item is what

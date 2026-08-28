@@ -819,8 +819,8 @@ func open_shop(shop_id: StringName) -> bool:
 	_shop.left.connect(_close_shop)
 	_shop.stock = def
 	add_child(_shop)
-	_shop.setup(ShopMenu.of(_stock_rows(def), _sellable_rows(), GameState.gold),
-		_style, get_viewport_rect().size)
+	_shop.setup(ShopMenu.of(_stock_rows(def), _sellable_rows(), GameState.gold,
+		def.greeting, def.thanks, def.poor_line), _style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.SHOP)
 	return true
 
@@ -837,7 +837,7 @@ func _stock_rows(def: ShopDef) -> Array:
 		if item == null or not ShopMenu.tradable(item.price):
 			continue
 		out.append(ShopMenu.ShopRow.of(item.id, item.name, item.price,
-			GameState.item_count(item.id)))
+			GameState.item_count(item.id), item.description))
 	return out
 
 
@@ -851,32 +851,33 @@ func _sellable_rows() -> Array:
 		if item == null or not ShopMenu.tradable(item.price):
 			continue
 		out.append(ShopMenu.ShopRow.of(item.id, item.name, ShopMenu.sell_price(item.price),
-			GameState.item_count(item.id)))
+			GameState.item_count(item.id), item.description))
 	return out
 
 
 ## The world is the only thing that moves money or items. The screen reported a deal; this
 ## decides whether it happens, and tells the counter what it looks like afterwards.
-func _on_shop_bought(item_id: StringName, price: int) -> void:
-	if _shop == null:
+func _on_shop_bought(item_id: StringName, count: int, total: int) -> void:
+	if _shop == null or count <= 0:
 		return
 	# The menu already refused what could not be afforded. This is the invariant behind that
 	# guard rather than a second copy of it: if an impossible deal ever arrives, it is a bug
 	# in the menu and it says so instead of quietly overdrawing the player.
-	if not GameState.spend_gold(price):
-		push_error("World: a shop sold '%s' for %d the player did not have" % [item_id, price])
+	if not GameState.spend_gold(total):
+		push_error("World: a shop sold %d of '%s' for %d the player did not have"
+			% [count, item_id, total])
 		return
-	GameState.give_item(item_id, 1)
+	GameState.give_item(item_id, count)
 	_refresh_shop()
 
 
-func _on_shop_sold(item_id: StringName, price: int) -> void:
-	if _shop == null:
+func _on_shop_sold(item_id: StringName, count: int, total: int) -> void:
+	if _shop == null or count <= 0:
 		return
-	if not GameState.take_item(item_id, 1):
-		push_error("World: a shop bought '%s' the player is not carrying" % item_id)
+	if not GameState.take_item(item_id, count):
+		push_error("World: a shop bought %d of '%s' the player is not carrying" % [count, item_id])
 		return
-	GameState.give_gold(price)
+	GameState.give_gold(total)
 	_refresh_shop()
 
 
