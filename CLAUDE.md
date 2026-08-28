@@ -177,6 +177,17 @@ effects and then pops the dialog overlay, so a counter opened inline would be th
 pop closed. The menu is the only affordability check; `spend_gold` behind it is the invariant,
 and it says so loudly rather than overdrawing anyone.
 
+**The bag's confirm is the equip verb, and only for gear.** `PauseMenu.confirm()` on the
+ITEMS page answered NONE for three milestones with a comment saying a use verb was a game's
+business; equipment is the answer that goes there, and a SLOTLESS row still answers nothing -
+a potion heals in every RPG ever written, where "use the rope on the well" is a puzzle. The
+row carries an `(E)` marker and the line under the list shows what the press would DO before
+it does it ("Take off: Atk +3 (now Atk +3 Def +0)"), worded by the world because naming a
+stat is a Registry question. Equipping is a TOGGLE - one list, one confirm; a second key for
+"unequip" is a control nobody would find. **What is worn is not on the sell counter**, and
+that refusal lives in the world rather than in ShopMenu: the counter has no business knowing
+what equipment is, and a spare copy stays sellable while one is worn.
+
 **Gear is a MODIFIER, never a stat, and it never leaves the bag.** Player attack and defense
 are DERIVED (`CombatDef.attack_at(level)`), so equipment cannot be stored as a stat without
 two sources of truth for one number; it arrives at `BattleLogic.of()` as two already-summed

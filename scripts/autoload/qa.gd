@@ -15,7 +15,7 @@ extends Node
 ##
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
 ## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
-## assert_level · assert_gold · sound_mark · assert_sound · assert_audio_ready · mark · assert_moved ·
+## assert_level · assert_gold · assert_equipped · sound_mark · assert_sound · assert_audio_ready · mark · assert_moved ·
 ## screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
@@ -174,6 +174,8 @@ func _run(step: Dictionary) -> void:
 				_fail("expected flag '%s' to be %s, it is %s" % [key, wanted, actual])
 			else:
 				_log.append("flag '%s' is %s" % [key, actual])
+		"assert_equipped":
+			_assert_equipped(step)
 		"assert_item":
 			# An EXACT count, not "at least": a lantern that drank the oil and a lantern that
 			# did not are one and zero, and "at least zero" cannot tell them apart.
@@ -270,6 +272,18 @@ func _assert_party(op: String, step: Dictionary) -> void:
 		_fail("expected %s %d, found %d" % [op.trim_prefix("assert_"), expected, actual])
 	else:
 		_log.append("%s is %d" % [op.trim_prefix("assert_"), actual])
+
+
+## What is worn in one slot. An EMPTY id asserts the slot is bare, which is the assertion a
+## take-off needs - the assert_item shape, where zero is a real answer rather than "no check".
+func _assert_equipped(step: Dictionary) -> void:
+	var slot := StringName(str(step.get("slot", "")))
+	var expected := str(step.get("id", ""))
+	var actual := str(GameState.equipped(slot))
+	if actual != expected:
+		_fail("expected '%s' equipped in slot '%s', found '%s'" % [expected, slot, actual])
+	else:
+		_log.append("slot '%s' holds '%s'" % [slot, actual])
 
 
 func _assert_position(step: Dictionary) -> void:

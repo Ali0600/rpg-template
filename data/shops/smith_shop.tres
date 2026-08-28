@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_shop")
 id = &"smith_shop"
-stock = Array[StringName]([&"tonic", &"waybread"])
+stock = Array[StringName]([&"bronze_sword", &"leather_vest", &"tonic", &"waybread"])
 greeting = "Shelf's behind me. Coin's in front of you."
 thanks = "Anything else, or is that you done?"
 poor_line = "Not for that, it isn't. Come back heavier."
