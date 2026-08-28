@@ -232,3 +232,125 @@ func test_a_conversation_lists_every_item_it_names() -> void:
 	var refs := DialogRunner.from_dict(_hermit()).item_refs()
 	assert_array(refs).is_equal([&"lamp_oil"])
 
+
+
+# --- paying for something, and being told no ------------------------------------------------
+#
+# Money is the one requirement that is SHOWN and refused rather than hidden. A requires_item
+# hides the choice, because offering to hand over what you are not carrying can only go wrong
+# when taken - but a price is quoted out loud, so a player who says yes to one they cannot
+# meet has to hear why not. That is `poor_next`, and it is mandatory.
+
+
+func _keeper(gold: int) -> DialogRunner:
+	return DialogRunner.from_dict({
+		"id": "keeper",
+		"start": "ask",
+		"nodes": {
+			"ask": {"speaker": "K", "text": "Six gold for the night.", "choices": [
+				{"text": "Yes, please.", "next": "slept", "spend_gold": 6, "rest": true,
+					"poor_next": "poor", "set_flag": "slept_once"},
+				{"text": "Not tonight.", "next": "bye"},
+			]},
+			"slept": {"speaker": "K", "text": "Morning."},
+			"poor": {"speaker": "K", "text": "Come back with the coin."},
+			"bye": {"speaker": "K", "text": "Suit yourself."},
+		},
+	}, {}, {}, gold)
+
+
+func test_paying_for_a_night_spends_and_rests() -> void:
+	var runner := _keeper(10)
+	assert_bool(runner.begin()).is_true()
+	assert_bool(runner.choose(0)).is_true()
+	assert_str(runner.line().text).is_equal("Morning.")
+	var ops: Array[String] = []
+	for effect in runner.effects():
+		ops.append(str(effect.get("op", "")))
+	assert_array(ops).contains(["spend_gold", "rest"])
+	for effect in runner.effects():
+		if str(effect.get("op", "")) == "spend_gold":
+			assert_int(int(effect.get("amount", 0))).is_equal(6)
+
+
+func test_a_purse_that_cannot_cover_it_is_told_so_and_charged_nothing() -> void:
+	# The whole point of the refusal being a NODE: the player hears the answer. And nothing is
+	# collected - not the spend, not the rest, and not the flag riding the same choice, which
+	# is the all-or-nothing rule a take already follows.
+	var runner := _keeper(5)
+	runner.begin()
+	assert_bool(runner.choose(0)).is_true()
+	assert_str(runner.line().text).override_failure_message(
+		"a player who cannot pay was not told why").is_equal("Come back with the coin.")
+	assert_array(runner.effects()).override_failure_message(
+		"a refused deal left something behind: %s" % [runner.effects()]).is_empty()
+
+
+func test_the_choice_is_still_offered_when_the_purse_is_short() -> void:
+	# Shown, not hidden - the opposite of requires_item, and deliberately. A keeper who stops
+	# offering a room is a keeper the player cannot find out the price from.
+	var runner := _keeper(0)
+	runner.begin()
+	assert_int(runner.line().choices.size()).is_equal(2)
+
+
+func test_a_second_night_is_checked_against_what_the_first_already_committed() -> void:
+	# Nothing has reached the game state yet, so a conversation spending twice would otherwise
+	# be checked twice against the same untouched purse - the reason _flag_known counts flags
+	# earned earlier in the same conversation.
+	var runner := DialogRunner.from_dict({
+		"id": "twice",
+		"start": "a",
+		"nodes": {
+			"a": {"text": "again?", "choices": [
+				{"text": "pay", "next": "b", "spend_gold": 6, "poor_next": "poor"}]},
+			"b": {"text": "and again?", "choices": [
+				{"text": "pay", "next": "c", "spend_gold": 6, "poor_next": "poor"}]},
+			"c": {"text": "done"},
+			"poor": {"text": "no coin"},
+		},
+	}, {}, {}, 10)
+	runner.begin()
+	assert_bool(runner.choose(0)).is_true()
+	assert_bool(runner.choose(0)).is_true()
+	assert_str(runner.line().text).override_failure_message(
+		"ten gold paid for two six-gold nights").is_equal("no coin")
+	assert_int(runner.effects().size()).override_failure_message(
+		"the second night was collected as well as refused").is_equal(1)
+
+
+func test_a_price_with_nothing_to_say_when_refused_is_a_content_error() -> void:
+	var runner := DialogRunner.from_dict({
+		"id": "mute", "start": "a", "nodes": {
+			"a": {"text": "pay up", "choices": [{"text": "ok", "next": "b", "spend_gold": 6}]},
+			"b": {"text": "done"},
+		}})
+	assert_array(runner.problems()).override_failure_message(
+		"a keeper that charges and says nothing when refused passed the gate").is_not_empty()
+
+
+func test_a_refusal_pointing_nowhere_is_a_content_error() -> void:
+	var runner := DialogRunner.from_dict({
+		"id": "dangling", "start": "a", "nodes": {
+			"a": {"text": "pay up", "choices": [
+				{"text": "ok", "next": "b", "spend_gold": 6, "poor_next": "nowhere"}]},
+			"b": {"text": "done"},
+		}})
+	assert_array(runner.problems()).is_not_empty()
+
+
+func test_a_price_of_nothing_is_a_content_error() -> void:
+	var runner := DialogRunner.from_dict({
+		"id": "free", "start": "a", "nodes": {
+			"a": {"text": "pay up", "choices": [
+				{"text": "ok", "next": "b", "spend_gold": 0, "poor_next": "b"}]},
+			"b": {"text": "done"},
+		}})
+	assert_array(runner.problems()).is_not_empty()
+
+
+func test_a_refusal_node_is_reachable() -> void:
+	# It is reached only by being unable to pay, which is still reached. Miss this and every
+	# correctly-written refusal fails the build as unreachable - a gate refusing correct data.
+	assert_array(_keeper(10).problems()).override_failure_message(
+		"a well-formed keeper failed the content gate").is_empty()

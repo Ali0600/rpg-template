@@ -673,6 +673,17 @@ func _apply_effects(effects: Array) -> bool:
 				# chained conversation - which is a far wider change than the bug.
 				open_shop.call_deferred(StringName(str(effect.get("shop", ""))))
 				did = true
+			GameContext.OP_SPEND_GOLD:
+				# The runner already refused a price the purse could not meet, so arriving
+				# here and failing means the two disagreed - a bug, said out loud, rather
+				# than a silent no-op. The shop's buy handler is the same shape for the same
+				# reason.
+				if GameState.spend_gold(int(effect.get("amount", 0))):
+					did = true
+				else:
+					push_error("World: spent %d the player does not have" % effect.get("amount", 0))
+			GameContext.OP_REST:
+				did = _rest() or did
 			GameContext.OP_GOLD:
 				# give_gold refuses a non-positive amount, so a malformed effect changes
 				# nothing rather than quietly subtracting.
@@ -692,7 +703,7 @@ func _apply_effects(effects: Array) -> bool:
 
 func _open_dialog(dialog_id: StringName) -> bool:
 	var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, GameState.flags,
-		GameState.inventory.to_dict())
+		GameState.inventory.to_dict(), GameState.gold)
 	if not runner.ok:
 		push_error("World: %s" % runner.error)
 		return false
@@ -1101,6 +1112,20 @@ func _close_battle() -> void:
 ## THE one place "no party yet" becomes a real hero, and it lives here because the curve is a
 ## CombatDef - which GameState may not load and a save file may not reach. Zero hp is the
 ## signal, so this is safe to call on every entry: a player mid-run is left exactly as they are.
+## A full night. Through set_party because that is the one writer, and it takes all three
+## numbers because they are one fact - so a rest passes xp and level back unchanged and moves
+## only the hp. What "full" means is the running game's own curve, which is why this cannot
+## live in a menu or a dialog: a game with no CombatDef has no notion of full, and has nothing
+## to heal either, so it says so rather than quietly doing nothing.
+func _rest() -> bool:
+	if _game == null or _game.combat == null:
+		push_error("World: a rest was asked for by a game that has no fighting in it")
+		return false
+	var level := GameState.player_level
+	GameState.set_party(_game.combat.max_hp(level), GameState.player_xp, level)
+	return true
+
+
 func _ensure_party() -> void:
 	if _game == null or _game.combat == null or GameState.player_hp > 0:
 		return

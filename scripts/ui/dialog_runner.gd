@@ -44,9 +44,13 @@ var _known_flags: Dictionary = {}
 ## What the player is carrying, used the same way. A choice asking for something they do not
 ## have is hidden rather than shown-and-refused.
 var _known_items: Dictionary = {}
+## What is in the purse. Money is the one requirement that is NOT hidden when unmet - see
+## `poor_next` on _collect. Read-only to this class, like the two above.
+var _known_gold: int = 0
 
 
-static func load_from(path: String, known_flags: Dictionary = {}, known_items: Dictionary = {}) -> DialogRunner:
+static func load_from(path: String, known_flags: Dictionary = {}, known_items: Dictionary = {},
+		known_gold: int = 0) -> DialogRunner:
 	var runner := DialogRunner.new()
 	var file := JsonFile.read(path)
 	if not file.ok:
@@ -57,17 +61,20 @@ static func load_from(path: String, known_flags: Dictionary = {}, known_items: D
 	runner._start = file.get_string("start", "")
 	runner._known_flags = known_flags
 	runner._known_items = known_items
+	runner._known_gold = known_gold
 	runner.ok = true
 	return runner
 
 
-static func from_dict(data: Dictionary, known_flags: Dictionary = {}, known_items: Dictionary = {}) -> DialogRunner:
+static func from_dict(data: Dictionary, known_flags: Dictionary = {}, known_items: Dictionary = {},
+		known_gold: int = 0) -> DialogRunner:
 	var runner := DialogRunner.new()
 	runner.id = StringName(str(data.get("id", "inline")))
 	runner._nodes = data.get("nodes", {})
 	runner._start = str(data.get("start", ""))
 	runner._known_flags = known_flags
 	runner._known_items = known_items
+	runner._known_gold = known_gold
 	runner.ok = true
 	return runner
 
@@ -130,6 +137,11 @@ func choose(index: int) -> bool:
 	if index < 0 or index >= choices.size():
 		return false
 	var choice: Dictionary = choices[index]
+	# Checked BEFORE anything is collected, so a refused deal leaves nothing behind - the
+	# all-or-nothing rule a take already follows. The refusal is a node rather than a hidden
+	# choice: see `poor_next` on _collect.
+	if not _can_afford(choice):
+		return _go_to(str(choice.get("poor_next", "")))
 	_collect(choice)
 	return _go_to(str(choice.get("next", "")))
 
@@ -190,6 +202,39 @@ func _collect(choice: Dictionary) -> void:
 	var shop := str(choice.get("open_shop", ""))
 	if not shop.is_empty():
 		_effects.append({"op": GameContext.OP_SHOP, "shop": StringName(shop)})
+	# Money, and the one requirement that is SHOWN and refused rather than hidden. A
+	# requires_item hides, because offering to hand over what you are not carrying can only
+	# go wrong when taken - but a price is quoted out loud, so a player who says yes to one
+	# they cannot meet has to be told why the answer is no. That is what `poor_next` names,
+	# and it is mandatory: a refusal that makes no words reads as a dead key, which is the
+	# same reason a locked door needs a locked_dialog.
+	var spend := int(choice.get("spend_gold", 0))
+	if spend > 0:
+		_effects.append({"op": GameContext.OP_SPEND_GOLD, "amount": spend})
+	# A night's sleep. Carries no amount deliberately: "full" is a number only the running
+	# game knows, from its own CombatDef, and a partial heal is a field-item verb this
+	# template does not have.
+	if bool(choice.get("rest", false)):
+		_effects.append({"op": GameContext.OP_REST})
+
+
+## Whether the purse covers what this choice costs. Counts what earlier choices in this same
+## conversation have ALREADY committed to spending, for the reason _flag_known counts flags
+## earned earlier: nothing has reached the game state yet, so a conversation that spends twice
+## would be checked twice against the same untouched purse.
+func _can_afford(choice: Dictionary) -> bool:
+	var spend := int(choice.get("spend_gold", 0))
+	if spend <= 0:
+		return true
+	return spend + _gold_committed() <= _known_gold
+
+
+func _gold_committed() -> int:
+	var out := 0
+	for effect in _effects:
+		if str(effect.get("op", "")) == str(GameContext.OP_SPEND_GOLD):
+			out += int(effect.get("amount", 0))
+	return out
 
 
 ## A flag the player already had, OR one this conversation has just earned. The second half is
@@ -285,6 +330,20 @@ func problems() -> Array[String]:
 			if not target.is_empty() and not _nodes.has(target):
 				out.append("dialog '%s' node '%s' offers a choice leading to '%s', which does not exist"
 					% [id, node_id, target])
+			var refusal := str(choice.get("poor_next", ""))
+			if not refusal.is_empty() and not _nodes.has(refusal):
+				out.append("dialog '%s' node '%s' refuses to '%s', which does not exist"
+					% [id, node_id, refusal])
+			var costs := int(choice.get("spend_gold", 0))
+			# The locked_dialog rule, for conversations: wherever a refusal can happen, the
+			# words for it are required. Without this the choice silently ends the talk, which
+			# reads as the keeper ignoring the player.
+			if costs > 0 and refusal.is_empty():
+				out.append("dialog '%s' node '%s' charges %d and says nothing when the player cannot pay"
+					% [id, node_id, costs])
+			if choice.has("spend_gold") and costs <= 0:
+				out.append("dialog '%s' node '%s' charges %d, which is not a price"
+					% [id, node_id, costs])
 
 	# A node nothing points at is unreachable: it was written, it is in the file, and no
 	# player will ever see it.
@@ -304,3 +363,6 @@ func _collect_reachable(node_id: String, seen: Array[String]) -> void:
 	_collect_reachable(str(node.get("next", "")), seen)
 	for entry: Variant in node.get("choices", []) as Array:
 		_collect_reachable(str((entry as Dictionary).get("next", "")), seen)
+		# A refusal node is reached only by being unable to pay, which is still reached. Miss
+		# this and every correctly-written refusal reports as unreachable.
+		_collect_reachable(str((entry as Dictionary).get("poor_next", "")), seen)
