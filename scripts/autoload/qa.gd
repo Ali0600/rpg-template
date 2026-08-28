@@ -15,7 +15,7 @@ extends Node
 ##
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
 ## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
-## assert_level · sound_mark · assert_sound · assert_audio_ready · mark · assert_moved ·
+## assert_level · assert_gold · sound_mark · assert_sound · assert_audio_ready · mark · assert_moved ·
 ## screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
@@ -184,7 +184,7 @@ func _run(step: Dictionary) -> void:
 				_fail("expected %d of item '%s', found %d" % [expected, item, carried])
 			else:
 				_log.append("carrying %d of '%s'" % [carried, item])
-		"assert_hp", "assert_xp", "assert_level":
+		"assert_hp", "assert_xp", "assert_level", "assert_gold":
 			_assert_party(op, step)
 		"assert_position":
 			_assert_position(step)
@@ -262,6 +262,8 @@ func _assert_party(op: String, step: Dictionary) -> void:
 			actual = GameState.player_hp
 		"assert_xp":
 			actual = GameState.player_xp
+		"assert_gold":
+			actual = GameState.gold
 		_:
 			actual = GameState.player_level
 	if actual != expected:

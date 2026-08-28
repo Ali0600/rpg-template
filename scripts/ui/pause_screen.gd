@@ -48,6 +48,7 @@ var _backdrop := ColorRect.new()
 var _title := Label.new()
 var _help := Label.new()
 var _rows: Array[Label] = []
+var _purse := Label.new()
 
 ## The duplicate-event guard every view here has: this TOGGLES a screen, and acting twice on
 ## one press puts it back where it started, which reads as a dead key.
@@ -72,10 +73,11 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 
 ## New slot contents from the world, cursor untouched. After a save that is what makes the row
 ## the player is looking at show what they just wrote.
-func refresh(slots: Array[SaveData], items: Array = [], sound: String = "") -> void:
+func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
+		gold: String = "") -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots, items, sound)
+	_menu.refresh(slots, items, sound, gold)
 	_committed = false
 	_paint()
 
@@ -97,6 +99,13 @@ func _build(viewport_size: Vector2i) -> void:
 		row.add_theme_font_size_override("font_size", ROW_SIZE)
 		add_child(row)
 		_rows.append(row)
+
+	# The purse sits on the title line rather than in the row list, because it is a READOUT:
+	# the cursor must not be able to land on it, and every test that names a row by its enum
+	# stays aimed at the same row.
+	_purse.position = Vector2(MARGIN, MARGIN + 10)
+	_purse.add_theme_font_size_override("font_size", HELP_SIZE)
+	add_child(_purse)
 
 	_help.position = Vector2(MARGIN, viewport_size.y - 14)
 	_help.add_theme_font_size_override("font_size", HELP_SIZE)
@@ -131,6 +140,8 @@ func _paint() -> void:
 		var selected := i == _menu.index()
 		row.text = ("> " if selected else "  ") + label
 		row.add_theme_color_override("font_color", text if selected else dim)
+	_purse.text = _menu.gold_label()
+	_purse.add_theme_color_override("font_color", dim)
 
 
 ## The row's text on whichever page is up. One function, so the three sources cannot drift

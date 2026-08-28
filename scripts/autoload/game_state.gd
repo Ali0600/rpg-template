@@ -28,6 +28,10 @@ var inventory: Inventory = Inventory.new()
 var player_hp: int = 0
 var player_xp: int = 0
 var player_level: int = 1
+## What the player can spend. Unlike player_hp, ZERO IS A REAL VALUE - it means broke, not
+## unset - so gold is a plain field with a plain default rather than something derived. A
+## game with no economy simply never moves it off zero.
+var gold: int = 0
 var play_seconds: float = 0.0
 
 
@@ -57,15 +61,18 @@ func reset() -> void:
 	player_hp = 0
 	player_xp = 0
 	player_level = 1
+	gold = 0
 	play_seconds = 0.0
 
 
-func new_game(game_id: StringName, start_map: StringName, start_position: Vector2, facing: int) -> void:
+func new_game(game_id: StringName, start_map: StringName, start_position: Vector2, facing: int,
+		starting_gold: int = 0) -> void:
 	reset()
 	game = game_id
 	current_map = start_map
 	player_position = start_position
 	player_facing = facing
+	gold = maxi(starting_gold, 0)
 
 
 func set_flag(key: StringName, value: bool) -> void:
@@ -108,6 +115,24 @@ func item_count(id: StringName) -> int:
 	return inventory.count(id)
 
 
+## Money, through the one writer, in the same all-or-nothing shape the bag uses. A spend that
+## cannot be covered is REFUSED rather than clamped: clamping turns "the player could not
+## afford it" into "the player bought it and now has nothing", which is a different game.
+## Gold therefore cannot go negative by construction rather than by a check somewhere later.
+func give_gold(n: int) -> bool:
+	if n <= 0:
+		return false
+	gold += n
+	return true
+
+
+func spend_gold(n: int) -> bool:
+	if n <= 0 or n > gold:
+		return false
+	gold -= n
+	return true
+
+
 ## What a fight left the player as. All three together, through one writer, because they are
 ## one fact: a level without its heal, or xp without the level it bought, is a state no rule
 ## in the game produces and every rule downstream would then have to tolerate.
@@ -134,6 +159,7 @@ func to_save() -> SaveData:
 	out.party = {} if player_hp <= 0 else {
 		"hp": player_hp, "xp": player_xp, "level": player_level,
 	}
+	out.gold = gold
 	out.play_seconds = play_seconds
 	return out
 
@@ -154,4 +180,5 @@ func from_save(data: SaveData) -> void:
 	player_hp = int(data.party.get("hp", 0))
 	player_xp = int(data.party.get("xp", 0))
 	player_level = maxi(int(data.party.get("level", 1)), 1)
+	gold = maxi(data.gold, 0)
 	play_seconds = data.play_seconds

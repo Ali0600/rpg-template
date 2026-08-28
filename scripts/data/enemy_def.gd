@@ -29,6 +29,10 @@ extends Resource
 ## Granted on defeat. Zero is legal: a fight can be an obstacle rather than a reward.
 @export var xp: int = 0
 
+## Coin dropped on defeat, on the same terms as xp - zero is legal and is what a game with no
+## economy leaves it at.
+@export var gold: int = 0
+
 ## A boss cannot be fled. It is a property of the ENEMY rather than of the encounter because
 ## a designer thinking "can I run from this" is thinking about the thing, not the tile.
 @export var boss: bool = false
@@ -62,6 +66,8 @@ func problems() -> Array[String]:
 		out.append("enemy '%s' has %d defense" % [id, defense])
 	if xp < 0:
 		out.append("enemy '%s' grants %d xp" % [id, xp])
+	if gold < 0:
+		out.append("enemy '%s' drops %d gold" % [id, gold])
 	# An enemy with no moves reaches its turn and has nothing to do, which presents as a
 	# battle that stops rather than as a broken file.
 	if moves.is_empty():

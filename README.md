@@ -80,6 +80,7 @@ Regenerate the art after editing a rig or a style:
 | How it feels to move, incl. free vs grid movement | `data/game_config.tres` | no |
 | How many save slots there are | `data/game_config.tres` | no |
 | What can be picked up and carried | `data/items/*.tres` | no |
+| What a fight pays, and what the player starts with | `data/enemies/*.tres`, `data/games/*.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts | `data/rigs/*.json` | no |
 | New terrain — a floor, a door, a cliff | `data/tiles/*.json` | no |

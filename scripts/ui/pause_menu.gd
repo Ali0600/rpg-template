@@ -69,16 +69,26 @@ var _items: Array = []
 ## SaveData: reading it means asking the settings singleton, and this class may not - the same
 ## rule that keeps it off the disk.
 var _sound := ""
+## What the purse says. Text for the same reason _sound is: reading it means asking an
+## autoload, and this class may not. A readout rather than a Row, so every test that lands on
+## a row by naming it - move(Row.SAVE) - stays aimed at the same row.
+var _gold := ""
 var _page := Page.TOP
 var _index := 0
 
 
-static func of(slots: Array[SaveData], items: Array = [], sound: String = "") -> PauseMenu:
+static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
+		gold: String = "") -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
 	menu._sound = sound
+	menu._gold = gold
 	return menu
+
+
+func gold_label() -> String:
+	return _gold
 
 
 func sound_label() -> String:
@@ -191,10 +201,12 @@ func cancel() -> Pick:
 ## New slot contents, same cursor. Called after a save so the row the player is looking at
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
-func refresh(slots: Array[SaveData], items: Array = [], sound: String = "") -> void:
+func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
+		gold: String = "") -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
 	_sound = sound
+	_gold = gold
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
 

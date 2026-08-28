@@ -427,6 +427,11 @@ func _seal() -> void:
 	if _outcome == Outcome.VICTORY:
 		_effects.append({"op": GameContext.OP_SEEN, "key": _seen_key})
 	_effects.append({"op": GameContext.OP_PARTY, "hp": _hp, "xp": _xp, "level": _level})
+	# Coin is appended only on a WIN, and only when the enemy carries any. It rides the same
+	# collected list as everything else, so a defeat - whose effects world_scene discards
+	# wholesale - pays nothing, and the rule "a fight never writes" is untouched.
+	if _outcome == Outcome.VICTORY and _enemy.gold > 0:
+		_effects.append({"op": GameContext.OP_GOLD, "amount": _enemy.gold})
 
 
 # -- messages ------------------------------------------------------------------------------

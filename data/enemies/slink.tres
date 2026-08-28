@@ -16,5 +16,6 @@ max_hp = 10
 attack = 3
 defense = 1
 xp = 5
+gold = 4
 boss = false
 moves = [{ "name": "Scratch", "power": 0 }, { "name": "Lunge", "power": 2 }]

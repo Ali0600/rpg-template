@@ -39,6 +39,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v3_to_v4(d)
 			4:
 				d = _v4_to_v5(d)
+			5:
+				d = _v5_to_v6(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -97,7 +99,18 @@ static func _v4_to_v5(d: Dictionary) -> Dictionary:
 	return d
 
 
+## v5 -> v6: there was no money before v6.
+##
+## Broke rather than a gift. The same call every step above makes: a fabricated purse would be
+## indistinguishable from earned money later, and handing an old save enough to buy what the
+## game meant it to fight for is a worse lie than "this file predates the economy".
+static func _v5_to_v6(d: Dictionary) -> Dictionary:
+	d["gold"] = 0
+	d["version"] = 6
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3, 4, 5]
+	return [1, 2, 3, 4, 5, 6]

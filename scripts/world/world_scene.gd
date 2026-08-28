@@ -90,6 +90,9 @@ func start_game(manifest: GameManifest) -> bool:
 	# rather than one at zero health. _teardown_game above has already reset the party, so this
 	# is always the fresh-hero case here.
 	_ensure_party()
+	# The purse the game starts with. _teardown_game has just reset state, so this is always
+	# the fresh-game case; a LOAD replaces it wholesale through from_save and never comes here.
+	GameState.give_gold(_game.starting_gold)
 	_camera = Camera2D.new()
 	_dialog = _new_dialog()
 	_hint = ControlsHint.new()
@@ -116,7 +119,7 @@ func _on_sound_changed() -> void:
 	# feedback there is that Off means off.
 	AudioBus.play(Sfx.Cue.MENU_CONFIRM)
 	if _pause != null:
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name())
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
 
 
 func _new_dialog() -> DialogBox:
@@ -653,6 +656,11 @@ func _apply_effects(effects: Array) -> bool:
 					did = true
 				else:
 					push_error("World: took '%s' the player is not carrying" % effect.get("id", ""))
+			GameContext.OP_GOLD:
+				# give_gold refuses a non-positive amount, so a malformed effect changes
+				# nothing rather than quietly subtracting.
+				if GameState.give_gold(int(effect.get("amount", 0))):
+					did = true
 			GameContext.OP_PARTY:
 				GameState.set_party(int(effect.get("hp", 0)), int(effect.get("xp", 0)),
 					int(effect.get("level", 1)))
@@ -697,7 +705,7 @@ func open_pause() -> bool:
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
 	add_child(_pause)
-	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name()),
+	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label()),
 		_style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
@@ -718,6 +726,12 @@ func _slot_summaries() -> Array[SaveData]:
 ## here because PauseMenu may not touch an autoload - and an item with no data file still gets
 ## a row, named by its id: a bag that silently hides something is worse than one that shows a
 ## name nobody wrote.
+## The purse, as the text a menu draws. Resolved here rather than in PauseMenu for the same
+## reason the item rows are: reading it means asking an autoload, and a pure class may not.
+func _gold_label() -> String:
+	return "Gold: %d" % GameState.gold
+
+
 func _item_rows() -> Array:
 	var out: Array = []
 	for item_id in GameState.inventory.ids():
@@ -906,7 +920,7 @@ func _on_save_requested(slot: int) -> void:
 	# at shows what they just wrote. A save whose only feedback is the screen closing is
 	# indistinguishable from one that failed.
 	if _pause != null:
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name())
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
 
 
 func _on_load_requested(slot: int) -> void:
@@ -924,7 +938,7 @@ func _commit_load(slot: int) -> void:
 	if data == null:
 		# load_slot has parked the bytes and said so. The menu stays up showing what the slots
 		# hold now - which is one fewer, and that is the honest thing for it to show.
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name())
+		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
 		return
 	_close_pause()
 	restore(data)

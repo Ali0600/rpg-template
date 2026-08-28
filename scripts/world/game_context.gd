@@ -24,6 +24,7 @@ const OP_SOUND := &"sound"
 const OP_GIVE_ITEM := &"give_item"
 const OP_TAKE_ITEM := &"take_item"
 const OP_PARTY := &"party"
+const OP_GOLD := &"gold"
 
 ## Where the player is, at the moment the hook was called.
 var map_id: StringName = &""
