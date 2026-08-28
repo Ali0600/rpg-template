@@ -286,8 +286,10 @@ one-glance menu of things still worth trying.
 - **Chosen: free movement with four-direction facing**, axis-separated collision so walls
   slide. It feels better to move around in, and it is the model both of the user's earlier
   2D projects used.
-- *Grid-step* — deferred, worth trying (see backlog): deterministic positions make triggers
-  and tests exact, at the cost of a stiffer feel.
+- *Grid-step* — **shipped in M9** as a mode rather than a replacement: `grid_step_pixels` at
+  zero is free movement, and set to the tile size it is one press per tile. See "Grid stepping
+  is a distance, not a timer" below. (This bullet said "deferred" for eleven milestones after
+  the thing it deferred had shipped.)
 
 ## Maps are data files, not scenes
 
@@ -561,7 +563,7 @@ file's backlog, now built.
   which already sees the input every frame and could latch it.
 
 **No shipped game uses it.** `data/game_config.tres` keeps free movement, both manifests keep
-sharing it, and not one of the 8 QA fixtures changed — about 10 of their steps encode
+sharing it, and not one of the QA fixtures changed — about 10 of their steps encode
 "N frames = M tiles" arithmetic that grid mode would void. The honest gap: the scripted play
 gate never exercises the mode. It is covered by 21 unit cases and 8 integration cases driving a
 real body into real walls, plus 15 mutants.
@@ -908,8 +910,10 @@ outranking line now carries the outranked one's facts.
 Losing had to go somewhere. The user asked for "game over → title".
 
 - **A `GAME_OVER` overlay offering Continue and Start again.** *Chosen.* It reuses the slot
-  machinery the pause menu already had, and boot stays world-first — which eight play scripts
-  and every integration suite assume.
+  machinery the pause menu already had, and boot stays world-first — which the play scripts
+  and every integration suite assume. (**Superseded in M22**: boot is title-first now, and the
+  overlay gained the Title row this entry's own screen comment promised. Every scripted session
+  pays one press for it, deliberately.)
 - **Reusing `Router.State.TITLE`.** Rejected. TITLE has meant "nothing to drive yet" since
   M2, and it is the state the router boots in; making it also mean "the run ended" would give
   one honest state two meanings, and `state_name()` feeds QA assertions directly.
@@ -1287,3 +1291,30 @@ was `OP_PARTY`, which demands xp and level too.
   turns it into a fade. A warp transition is the obvious one.
 - **Four gold a night** — chosen as exactly one slink's drop, so an ambient fight pays for the
   night it costs you. A feel number; unjudged until played.
+
+## A game is started FROM a screen, and that screen is an overlay — *M22*
+
+**The fork:** `Router.State.TITLE` has been the router's boot state and meant "nothing to drive
+yet" since M2. Giving it a meaning needed a screen, and a screen needed a boot path.
+
+- **A `TitleScreen` overlay over an empty world** — *chosen.* `world_scene._ready()` resolves
+  which game is running and then *stops*, where for twenty milestones it started one.
+- **`scenes/title/title.tscn` as the main scene** — *rejected*, and the reason is `GameSelect`:
+  four surfaces have to answer "which game is this" identically, and `_ready()` is the one
+  place `resolve()` is called. A title scene with its own boot would be a fifth answer, which
+  is the exact failure that design exists to prevent. New Game would also become a *second
+  mechanism* for a verb `start_game` re-entry already implements, and every integration suite
+  boots `world.tscn` — with the overlay, none of them changed.
+- **A shared `SlotMenu` base for the title and the game over** — *chosen.* They differ in the
+  wording of two rows and nothing else. Two copies of "nothing saved is nothing to continue
+  from" is one screen that eventually offers a list of nothing. GDScript will not let a
+  subclass redeclare an inherited enum, so the game over's extra row is a named constant one
+  past the shared ones rather than a second `Row`.
+- **The cursor opening on a row a press will DO something with** — *chosen for the title, and
+  deliberately rejected for the game over.* At a title a dud first press is pure friction. At a
+  game over the player has just lost and is already pressing, so opening on "Start again" turns
+  one more press into a restarted run. The scripted session that mashes its way to a game over
+  found this within a minute of the change: it restarted the game and then failed looking for a
+  screen that was no longer there.
+- **A Quit row** — *rejected*, still. A game that wants one ships it; the template has nothing
+  to quit *to*, and on the web there is nothing to quit at all.

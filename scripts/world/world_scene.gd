@@ -34,6 +34,16 @@ var _battle: BattleScreen
 var _shop: ShopScreen
 var _game_over: GameOverScreen
 var _night: RestScreen
+## The title, when it is up. NOT part of a running game - it is what a game is started FROM -
+## so _teardown_game frees it for the opposite reason it frees the pause menu: not because it
+## belongs to the game being torn down, but because the thing tearing one down is about to
+## build another over the top of it.
+var _title: TitleScreen
+## The game the title offers. Written at boot by the resolver AND by start_game, so a title
+## reached back from a game-over offers the game that was actually RUNNING - which is the same
+## thing as the resolved one for a player, and is not the same thing for the integration
+## suites that hand start_game a manifest of their own.
+var _offered: GameManifest
 ## Enemy id -> its ActorBody, for the ones still standing on this map.
 var _enemies: Dictionary = {}
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
@@ -60,7 +70,13 @@ func _ready() -> void:
 		# without saying which boots, a guessed game presents as the game you meant to run
 		# behaving strangely - which is a much worse afternoon than an error.
 		return
-	start_game(game)
+	_offered = game
+	# Resolution still happens exactly once per process; what changed is that STARTING is now a
+	# press rather than the next line. A title that cannot be drawn boots the way this always
+	# did rather than not at all - it needs a style, and there is no map yet to supply one, so
+	# the one thing that can fail here fails into the old behaviour instead of a black screen.
+	if not open_title():
+		start_game(game)
 
 
 ## Boots a game from scratch: tears down whatever was running, then builds the new one.
@@ -72,6 +88,7 @@ func _ready() -> void:
 ## precondition each guard was written against instead, so the warp path is untouched.
 func start_game(manifest: GameManifest) -> bool:
 	_teardown_game()
+	_offered = manifest
 	_game = manifest
 	# The one fact a save carries that no map can supply. Set here because this is where "a
 	# game is running" becomes true, and by nothing else: a view that assigned it would be a
@@ -177,6 +194,9 @@ func _teardown_game() -> void:
 	if _battle != null and is_instance_valid(_battle):
 		_battle.free()
 	_battle = null
+	if _title != null and is_instance_valid(_title):
+		_title.free()
+		_title = null
 	if _night != null and is_instance_valid(_night):
 		_night.free()
 		_night = null
@@ -753,12 +773,31 @@ func open_pause() -> bool:
 ## What is in each of this game's slots, for drawing. peek() rather than load_slot(): merely
 ## looking at the menu must not park files or announce loads nobody asked for.
 func _slot_summaries() -> Array[SaveData]:
+	return _slot_summaries_for(_game)
+
+
+## The same, for a game that is not running yet. The title draws a slot list before start_game
+## has ever been called, so it cannot read _game or _config - it reads the manifest it is
+## offering, which is the only thing that exists at that point.
+func _slot_summaries_for(manifest: GameManifest) -> Array[SaveData]:
 	var out: Array[SaveData] = []
-	if _game == null or _config == null:
+	if manifest == null or manifest.config == null:
 		return out
-	for slot in _config.save_slots:
-		out.append(SaveManager.peek(_game.id, slot))
+	for slot in manifest.config.save_slots:
+		out.append(SaveManager.peek(manifest.id, slot))
 	return out
+
+
+## The style a game's FIRST map is drawn in. The title needs colours before a map has been
+## entered, and this is where they come from: a game's look is its starting map's look, which
+## is the same answer enter_map would reach a moment later.
+func _style_for(manifest: GameManifest) -> SpriteStyle:
+	if manifest == null:
+		return null
+	var data := MapData.load_from("res://data/maps/%s.json" % manifest.start_map)
+	if not data.ok:
+		return null
+	return load("res://data/styles/%s.tres" % data.style_id) as SpriteStyle
 
 
 ## What the player is carrying, resolved into rows a menu can draw. The Registry lookup lives
@@ -1169,6 +1208,75 @@ func _ensure_party() -> void:
 
 
 ## Puts up the end of the run. Public for the same reason open_pause() is.
+## The screen a run is started from. Public for the same reason open_pause() is, and because
+## the game-over screen routes back to it.
+##
+## Answers false when it cannot be drawn - no game resolved, or no style to draw it in - so
+## the caller can fall back to starting rather than showing nothing.
+func open_title() -> bool:
+	if _title != null or _offered == null:
+		return false
+	var style := _style_for(_offered)
+	if style == null:
+		return false
+	_teardown_game()
+	_style = style
+	# The letterbox around the viewport, which no map has set yet because no map has been
+	# entered. Without this the title sits in engine grey.
+	RenderingServer.set_default_clear_color(style.ui_color("panel"))
+	_title = TitleScreen.new()
+	_title.sound_wanted.connect(_on_sound_wanted)
+	_title.load_requested.connect(_on_title_load)
+	_title.new_game_requested.connect(_on_title_new_game)
+	add_child(_title)
+	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), style, get_viewport_rect().size,
+		_offered.title)
+	Router.to_title()
+	return true
+
+
+func _close_title() -> void:
+	if _title == null:
+		return
+	_title.queue_free()
+	_title = null
+
+
+func _on_title_load(slot: int) -> void:
+	# Deferred for the reason every load here is: this builds a map, and doing that inside the
+	# screen's own input callback frees nodes the tree is still dispatching to.
+	_commit_title_load.call_deferred(slot)
+
+
+func _commit_title_load(slot: int) -> void:
+	if _title == null or _offered == null:
+		return
+	var data := SaveManager.load_slot(_offered.id, slot)
+	if data == null:
+		# load_slot has parked the bytes and said so. The screen stays up showing what the
+		# slots hold now, and answering again, which refresh() re-enables.
+		_title.refresh(_slot_summaries_for(_offered))
+		return
+	var manifest := _offered
+	_close_title()
+	if start_game(manifest):
+		restore(data)
+
+
+func _on_title_new_game() -> void:
+	_commit_new_game_from_title.call_deferred()
+
+
+func _commit_new_game_from_title() -> void:
+	if _title == null or _offered == null:
+		return
+	var manifest := _offered
+	# Closed before start_game, which tears everything down: the screen is a child of this node
+	# and _teardown_game would free it out from under the deferred call that is running.
+	_close_title()
+	start_game(manifest)
+
+
 func open_game_over() -> bool:
 	if _game_over != null or _game == null:
 		return false
@@ -1176,6 +1284,7 @@ func open_game_over() -> bool:
 	_game_over.sound_wanted.connect(_on_sound_wanted)
 	_game_over.load_requested.connect(_on_game_over_load)
 	_game_over.new_game_requested.connect(_on_game_over_new_game)
+	_game_over.title_requested.connect(_on_game_over_title)
 	add_child(_game_over)
 	_game_over.setup(GameOverMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.GAME_OVER)
@@ -1207,6 +1316,20 @@ func _commit_game_over_load(slot: int) -> void:
 		return
 	_close_game_over()
 	restore(data)
+
+
+func _on_game_over_title() -> void:
+	_commit_title.call_deferred()
+
+
+func _commit_title() -> void:
+	if _game_over == null:
+		return
+	# Closed before open_title, which tears the game down: the screen is a child of this node
+	# and _teardown_game would free it out from under the deferred call that is running. The
+	# _commit_new_game shape exactly, with a different destination.
+	_close_game_over()
+	open_title()
 
 
 func _on_game_over_new_game() -> void:
@@ -1323,6 +1446,11 @@ func shop_screen() -> ShopScreen:
 
 func battle_screen() -> BattleScreen:
 	return _battle
+
+
+## The title, for tests that read what it drew rather than driving keys at it.
+func title_screen() -> TitleScreen:
+	return _title
 
 
 func game_over_screen() -> GameOverScreen:

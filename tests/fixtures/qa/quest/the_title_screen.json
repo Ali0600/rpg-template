@@ -1,0 +1,185 @@
+{
+	"_readme": [
+		"The title screen, driven by real keys.",
+		"",
+		"It cannot prove Continue against a real save, and the reason is worth writing down: a",
+		"--qa-script run points saves at user://qa_saves and empties it at BOOT, so a session can",
+		"never start with one. The with-a-save branch is asserted in tests/integration/test_title.gd,",
+		"which can write a slot and rebuild the title inside one process.",
+		"",
+		"What this proves is the part only real keys can: that the refusal is a refusal, that one",
+		"press starts a run, and that a save written after a title boot is a save like any other."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the title, through the real input map. Continue is refused with nothing saved, and the cursor knows it - it opens on New game rather than on a row a press would bounce off. Rows: Continue, New game."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "up onto Continue and press it: the screen is still here afterwards, which is the refusal. Asserted rather than assumed - a Continue that quietly did nothing and one that quietly loaded nothing look identical from outside."
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "back down onto New game, and the run begins"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "note",
+			"text": "save standing here, so the title has something to offer next time. Rows: Resume, Items, Equipment, Status, Save, Load, Sound - so Save is four move_downs."
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "assert_state",
+			"state": "paused"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "assert_state",
+			"state": "paused"
+		},
+		{
+			"op": "note",
+			"text": "out of the menu, and back to the title the long way round - through the game-over screen's Title row, which is the only route back that does not need a death"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		}
+	]
+}

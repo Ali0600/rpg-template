@@ -12,52 +12,187 @@
 		"movement is behaviour data and her dialog knows nothing about it."
 	],
 	"steps": [
-		{ "op": "note", "text": "the warden opens the game - hear her out first" },
-		{ "op": "wait", "frames": 10 },
-		{ "op": "assert_state", "state": "dialog" },
-		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
-		{ "op": "wait", "frames": 10 },
-		{ "op": "assert_map", "map": "quest_village" },
-
-		{ "op": "note", "text": "village: the warden's body stops us north, then east wall, then south onto the town gate" },
-		{ "op": "hold", "action": "move_up", "frames": 60 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 3 },
-		{ "op": "hold", "action": "move_right", "frames": 120 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 3 },
-		{ "op": "hold", "action": "move_down", "frames": 200 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 10 },
-		{ "op": "assert_map", "map": "quest_town" },
-
-		{ "op": "note", "text": "town: down the north road until the south wall stops us" },
-		{ "op": "hold", "action": "move_down", "frames": 260 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 5 },
-
-		{ "op": "note", "text": "west along the bottom until the well water stops us - that is column 6" },
-		{ "op": "hold", "action": "move_left", "frames": 200 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 5 },
-		{ "op": "mark", "name": "below_her_road" },
-
-		{ "op": "note", "text": "north up column 6: her body is the only thing on it, so it is what stops us" },
-		{ "op": "hold", "action": "move_up", "frames": 200 },
-		{ "op": "release_all" },
-		{ "op": "wait", "frames": 5 },
-		{ "op": "assert_moved", "axis": "y", "expect": "decrease", "since": "below_her_road" },
-
-		{ "op": "note", "text": "and she talks, like any NPC - behaviour is data, her dialog knows nothing of it" },
-		{ "op": "press", "action": "interact" },
-		{ "op": "wait", "frames": 6 },
-		{ "op": "assert_state", "state": "dialog" },
-		{ "op": "mark", "name": "talking" },
-
-		{ "op": "note", "text": "the conversation survives 90 frames of her route - the freeze itself is proven in test_world_npcs" },
-		{ "op": "wait", "frames": 90 },
-		{ "op": "assert_state", "state": "dialog" },
-		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
-		{ "op": "assert_state", "state": "world" }
+		{
+			"op": "note",
+			"text": "the title opens the game now. A --qa-script run points saves at user://qa_saves and empties it at boot, so there is never anything to Continue - and the cursor opens on the row a press will actually do something with, which is New game. Rows: Continue, New game. One press starts the run."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "note",
+			"text": "the warden opens the game - hear her out first"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "village: the warden's body stops us north, then east wall, then south onto the town gate"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "town: down the north road until the south wall stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 260
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "note",
+			"text": "west along the bottom until the well water stops us - that is column 6"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "mark",
+			"name": "below_her_road"
+		},
+		{
+			"op": "note",
+			"text": "north up column 6: her body is the only thing on it, so it is what stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "decrease",
+			"since": "below_her_road"
+		},
+		{
+			"op": "note",
+			"text": "and she talks, like any NPC - behaviour is data, her dialog knows nothing of it"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "mark",
+			"name": "talking"
+		},
+		{
+			"op": "note",
+			"text": "the conversation survives 90 frames of her route - the freeze itself is proven in test_world_npcs"
+		},
+		{
+			"op": "wait",
+			"frames": 90
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		}
 	]
 }

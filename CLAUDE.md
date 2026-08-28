@@ -302,10 +302,24 @@ whether it HAS one, is a manifest question a pure menu may not ask. A game with 
 report)" rather than a page of blanks. At the top of the xp curve the page says so instead of
 promising a level that is not coming.
 
-**Losing ends the run, and TITLE still means nothing.** `Router.State.GAME_OVER` +
-`GameOverScreen` (Continue / Start again) - an overlay, because this game boots straight into
-the world and has no title scene. `TITLE` stays "nothing to drive yet"; giving it a second
-meaning would break `state_name()`, which QA asserts on directly.
+**A game is started FROM a screen, and losing can end back at it.** `TitleScreen` +
+`TitleMenu` over an EMPTY world, in `Router.State.TITLE` - which was the router's boot state
+meaning "nothing to drive yet" from M2 until M22. `world_scene._ready()` resolves which game is
+running and then stops; New Game calls the same `start_game` a game-over restart does. It is an
+overlay rather than a second scene because `_ready()` is the ONE place `GameSelect.resolve()` is
+called, and a title scene with its own boot would be a fifth surface answering "which game is
+this" - the exact failure GameSelect exists to prevent. `GameOverScreen` gained the Title row
+its own class comment had promised since M13.
+
+`SlotMenu` is the base both screens share: they differ in the wording of two rows and nothing
+else, and two copies of "nothing saved is nothing to continue from" is one screen that
+eventually offers a list of nothing. GDScript refuses to let a subclass redeclare an inherited
+enum, so the game-over's third row is a named constant one past the shared ones.
+
+**The title opens its cursor on a pressable row and the game over deliberately does not.** At a
+title a dud first press is friction; at a game over the player has just lost and is already
+pressing, so opening on "Start again" turns one more press into a restarted run. A scripted
+session found that one within a minute.
 
 **A setting is not a save.** `Settings` owns `user://settings.json` - global, outside every
 slot, surviving a new game and a deleted save. It carries no version: one field, an

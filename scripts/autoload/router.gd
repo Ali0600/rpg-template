@@ -9,7 +9,7 @@ extends Node
 ## Appended to, never reordered: flow_changed carries these as ints, and a member inserted in
 ## the middle renames every state after it in anything holding a number.
 enum State {
-	TITLE,  ## nothing to drive yet
+	TITLE,  ## the screen a run is started from, and the one it can be ended back to
 	WORLD,  ## the only state the player moves in
 	DIALOG,  ## a conversation is open; movement is suspended
 	PAUSED,  ## a menu is open over the world
@@ -69,6 +69,16 @@ func set_state(next: State) -> void:
 func open_overlay(overlay: State) -> void:
 	_stack.append(_state)
 	set_state(overlay)
+
+
+## Back to the title, with nothing underneath it. NOT an overlay: the world a title might have
+## covered has been torn down, so there is nothing on the stack worth returning to. Written as
+## reset() plus a state rather than as a second stack-clear, because a second literal clear in
+## this file would make the mutant aimed at the first one ambiguous - and an ambiguous pattern
+## edits whichever copy comes first while reporting a verdict about the other.
+func to_title() -> void:
+	reset()
+	set_state(State.TITLE)
 
 
 func close_overlay() -> void:

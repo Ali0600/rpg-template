@@ -225,8 +225,8 @@ scripts/world/world_scene.gd	s|Router.open_overlay\(Router.State.BATTLE\)|pass|	
 scripts/world/world_scene.gd	s|open_game_over\(\)$|pass|	tests/integration/test_world_battles.gd	losing drops the player back into the world as if nothing happened
 scripts/world/world_scene.gd	s|if _game == null or _game.combat == null or GameState.player_hp > 0:|if true:|	tests/integration/test_world_battles.gd	a new game starts its first fight with a player at nought health
 scripts/ui/battle_screen.gd	s|_committed = true|pass|	tests/integration/test_world_battles.gd	a won fight pays out again on every frame that follows
-scripts/ui/game_over_menu.gd	s|if slot\(_index\) == null:|if false:|	tests/unit/test_game_over_menu.gd	an empty slot is loaded from the game-over screen
-scripts/ui/game_over_menu.gd	s|if _slots.is_empty\(\) or not _has_any_save\(\):|if false:|	tests/unit/test_game_over_menu.gd	a player with no saves is shown a list of nothing
+scripts/ui/slot_menu.gd	s|if slot\(_index\) == null:|if false:|	tests/unit/test_title_menu.gd	an empty slot is loaded from the title or the game-over screen
+scripts/ui/slot_menu.gd	s|if not _has_any_save\(\):|if false:|	tests/unit/test_title_menu.gd	a player with no saves is shown a list of nothing
 scripts/world/map_data.gd	s|"enemy": StringName\(str\(enemy.get\("enemy", ""\)\)\),|"enemy": \&"",|	tests/unit/test_map_data.gd	the projection drops the enemy id, so every fight opens against nothing
 
 # --- M13: the quest, reworked around the fighting ---
@@ -374,3 +374,11 @@ scripts/world/world_scene.gd	s|\topen_rest.call_deferred\(\)|\tpass|	tests/fixtu
 scripts/world/world_scene.gd	s|\tRouter.open_overlay\(Router.State.RESTING\)|\tpass|	tests/fixtures/qa/quest/rest_at_the_inn.json	a night passes with the player free to walk out through the middle of it
 scripts/ui/rest_screen.gd	s|\t\t_done = true|\t\tpass|	tests/unit/test_rest_screen.gd	a night announces it is over on every frame, not once
 scripts/ui/rest_screen.gd	s|\t\t_shade.color.a = float\(_elapsed\) / float\(_fade_frames\)|\t\t_shade.color.a = 0.0|	tests/unit/test_rest_screen.gd	sleep never darkens anything, so a night reads as the game freezing
+scripts/ui/slot_menu.gd	s|\t_index = Row.CONTINUE if _has_any_save\(\) else Row.NEW_GAME|\t_index = Row.CONTINUE|	tests/unit/test_title_menu.gd	a player's first press of the game bounces off a row that refuses
+scripts/ui/slot_menu.gd	s|\t\tvar answer := top_pick\(_index\)|\t\tvar answer: Pick = null|	tests/unit/test_game_over_menu.gd	the game-over screen's own way back to the title answers nothing
+scripts/ui/game_over_menu.gd	s|\treturn ROW_TITLE \+ 1|\treturn Row.size()|	tests/unit/test_game_over_menu.gd	the Title row exists and is never drawn, so nobody can reach it
+scripts/ui/title_screen.gd	s|\t\t\tload_requested.emit\(pick.slot\)|\t\t\tpass|	tests/integration/test_title.gd	Continue is pressed at the title and no save is ever loaded
+scripts/ui/title_screen.gd	s|\t\t\tnew_game_requested.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/the_title_screen.json	New game is pressed and the title just sits there
+scripts/world/world_scene.gd	s|\tif not open_title\(\):|\tif true:|	tests/integration/test_title.gd	the game boots straight into a map and the title is never seen
+scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), style, get_viewport_rect\(\).size,|\t_title.setup(TitleMenu.of([] as Array[SaveData]), style, get_viewport_rect().size,|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
+scripts/world/world_scene.gd	s|^\topen_title\(\)$|\tpass|	tests/integration/test_title.gd	the game-over screen's Title row leads nowhere
