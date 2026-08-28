@@ -32,6 +32,14 @@ regression, however good that game looks.
   forever: sheet rows, animation names, facing values. A raw `"left"` in a script is a
   build failure.
 - **No logic in `.tscn`.** Scenes hold views.
+- **A player-facing surface is researched before it is built, against
+  `docs/GENRE_CONVENTIONS.md`.** Read that surface's section first; if it is thin, do the
+  research and thicken it BEFORE writing the screen. Two milestones shipped fully-green
+  surfaces the person who asked for them rejected on sight - a shop that was three lines of
+  text, and equipment folded into the bag - because the reference pass was skipped, and then
+  because it was scoped to a feature's mechanics rather than to its PLACE. No gate can see a
+  screen missing half of what its genre gives it. The question is "where does this live and
+  what sits beside it", not only "how does it behave".
 
 ## 2. Architecture
 
