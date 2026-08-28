@@ -868,3 +868,28 @@ default-configured engine concept that is itself directional before suspecting y
 Audit what you never set - that list is configuration you have implicitly accepted - and when
 the clean fix and the narrow fix disagree in blast radius, ship the narrow one and write the
 clean one down.
+
+## A player-facing surface needs a reference pass before it is built, not a feel-check after
+
+This project has a good habit for numbers a gate cannot judge: name them, ship them, and say
+plainly that nobody has played them. That habit covers whether a window is 8 frames or 15. It
+does not cover whether the screen should have a window at all.
+
+**Why it came up:** M18 shipped a "shop" that was a transaction engine wearing three lines of
+floating text — buy, sell, refuse and quest-item safety all correct and mutation-tested, with
+no description bar (the field existed and went undisplayed), no quantity step, no keeper
+dialogue, no windowed layout. Every gate passed. The user played it and asked whether I had
+researched what a shop looks like in games. I had not: I had built it from the repo's own
+menu idioms, which is how you get something internally consistent and externally wrong.
+
+The reference pass took about ten minutes once done — a design codex already in the user's
+own projects, a JRPG UI survey, a UI screenshot database — and produced a checklist the
+implementation was then measured against: list with a price column, purse, description,
+keeper voice, pick → how many → confirm.
+
+**Takeaway:** before building a surface a player will look at, spend ten minutes on what that
+surface conventionally IS — three real examples of the genre beats any amount of internal
+consistency. "It matches our other menus" is not evidence that it matches the thing it claims
+to be. And when a data field exists that the new screen could show, showing it is usually the
+cheapest correctness win available.
+

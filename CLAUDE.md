@@ -154,6 +154,18 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**A shop is a COUNTER, not a list.** The screen is the anatomy every classic shop converges
+on, and M18 shipped without most of it: an item list with prices RIGHT-ALIGNED in their own
+column and the owned count beside them, a purse panel that becomes the running total while a
+deal is being sized, a description bar in the item's own words (`ItemDef.description`, which
+existed since items did and no screen showed), and the keeper's window along the bottom in
+the DialogBox's shape. Windows over the LIVE WORLD, never a full-screen dim - a shop is a
+place you walked into. The buy flow is pick -> **how many** -> confirm: the count step is what
+lets a player buy three of something, and the total travels on the Deal so the number they
+agreed to is the number the purse moves by. The keeper's words are `ShopDef` fields with
+template defaults, so a game re-voices a merchant without touching a script, and a refusal is
+SAID as well as thudded.
+
 **A shop is a `ShopDef` and a dialog CHOICE, and `price = 0` means not for sale.**
 `data/shops/<id>.json`-shaped `.tres` lists item ids; the price lives on the `ItemDef`, so two
 keepers cannot disagree about what a tonic is worth. Zero is the DEFAULT, which is what keeps

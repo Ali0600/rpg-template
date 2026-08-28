@@ -324,3 +324,9 @@ scripts/ui/shop_menu.gd	s|return maxi\(buy_price / 2, 1\)|return buy_price|	test
 scripts/ui/shop_menu.gd	s|_index = Row.BUY if _page == Page.BUY else Row.SELL|_index = 0|	tests/unit/test_shop_menu.gd	backing out of a page drops the player at the top of a counter they were halfway down
 scripts/data/shop_def.gd	s|elif seen.has\(item_id\):|elif false:|	tests/unit/test_items.gd	a shop stocks the same thing twice and the cursor lies about what it points at
 scripts/ui/shop_menu.gd	s|return price > 0|return true|	tests/unit/test_shop_menu.gd	unpriced quest items are for sale and a key can be sold away
+scripts/ui/shop_menu.gd	s|_count = clampi\(_count \+ delta, 1, limit\(\)\)|_count = _count + delta|	tests/unit/test_shop_menu.gd	the count runs past what the purse can cover and the keeper offers a deal it must refuse
+scripts/ui/shop_menu.gd	s|return maxi\(_gold / maxi\(r.price, 1\), 1\)|return 99|	tests/unit/test_shop_menu.gd	a player buys eleven tonics with three tonics worth of gold
+scripts/ui/shop_menu.gd	s|return 0 if r == null or _count <= 0 else r.price \* _count|return 0 if r == null else r.price|	tests/unit/test_shop_menu.gd	the total stops multiplying, so the player agrees to one number and pays another
+scripts/ui/shop_menu.gd	s|_saying = Saying.POOR|pass|	tests/unit/test_shop_menu.gd	a refusal makes no words, which reads as a dead key
+scripts/ui/shop_menu.gd	s|return r.description if r != null else ""|return ""|	tests/unit/test_shop_menu.gd	the description bar goes blank and the shop stops saying what it sells
+scripts/ui/shop_menu.gd	s|_saying = Saying.HOW_MANY|pass|	tests/unit/test_shop_menu.gd	the keeper stops asking how many and the count runs unannounced

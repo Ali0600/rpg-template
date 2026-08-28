@@ -17,6 +17,18 @@ extends Resource
 @export var stock: Array[StringName] = []
 
 
+## What the keeper says, so a merchant has a voice without a script. Empty falls back to the
+## template's own lines (ShopMenu.DEFAULT_*), which is what lets a game ship a shop by
+## listing stock and nothing else.
+@export_multiline var greeting: String = ""
+## After a deal. "Anything else?" is the classic, and the point of it is that the counter
+## stays open.
+@export_multiline var thanks: String = ""
+## When the purse is short. Said out loud rather than only thudded: a refusal that makes no
+## words reads as a dead key.
+@export_multiline var poor_line: String = ""
+
+
 ## Everything wrong with this shop on its own terms. What it CANNOT check is whether the ids
 ## resolve or carry a price: that needs the Registry, which a resource has no business
 ## reaching. The content gate does it, the way TileGen.problems(bank, style) does.
