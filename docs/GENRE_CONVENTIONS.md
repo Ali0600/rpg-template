@@ -35,8 +35,8 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 
 | Surface | The convention | This template today | Status |
 | --- | --- | --- | --- |
-| [Menu anatomy](#1-menu-anatomy) | Item / Equip / Status / Save as sibling commands | Resume, Items, Save, Load, Sound | **gap** — no Equip or Status command |
-| [Equip screen](#2-the-equip-screen) | Slot list → candidates → preview the delta | A confirm-toggle inside the bag | **gap** — no screen at all |
+| [Menu anatomy](#1-menu-anatomy) | Item / Equip / Status / Save as sibling commands | Resume, Items, Equipment, Save, Load, Sound | **partial** — no Status command |
+| [Equip screen](#2-the-equip-screen) | Slot list → candidates → preview the delta | Slot list, candidates, take-off row, swap preview, Atk/Def readout | **met** (M20) |
 | [Status screen](#3-the-status-screen) | Level, HP, XP-to-next, stats, worn gear | Nothing outside a fight | **gap** |
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices | All of it | **met** (M18.1) |
@@ -78,10 +78,12 @@ which is the DQ/FF slot-select shape flattened by one level. Sound sits at the b
 Config does, and `Resume` is explicit rather than Escape-only because this game boots straight
 into the world and has no title screen to retreat to.
 
-**Gap: two of the four standard commands are missing.** There is no Equip row (§2) and no
-Status row (§3) — the two the genre puts directly between Item and the system rows. This is
-the gap that produced the M19 rejection: equipment had nowhere to live, so it was folded into
-the bag, which is the one place the reference games never put it.
+Equipment moved here in M20 (§2). It had been folded into the bag, which is the one place the
+reference games never put it — and it was there because the menu had no row for it, which is
+what makes a missing command more than a cosmetic gap.
+
+**Gap: Status.** The genre's fourth standard command (§3) is still missing, so a player cannot
+see their own HP or level outside a fight.
 
 ---
 
@@ -97,14 +99,17 @@ delta has something to be a delta *of*.
 FF adds **Optimize** (best-equip by attack and defence, ignoring everything subtler) and
 Remove-all. Both are conveniences for games with five slots and forty items.
 
-**This template.** There is no equip screen. Gear is worn by confirming it **in the bag**,
-which toggles Wear/Take-off; the row carries an `(E)` marker and the line below previews the
-change. The parts the genre asks for that do exist — a marker, a delta against what is already
-worn — are the *interaction*, and they are all inside the wrong container.
+**This template.** `Row.EQUIP` opens a slot list built from `ItemDef.SLOTS`; each slot opens
+its candidates plus a `(take off)` row; the line under the list previews the swap ("Wear: Atk
++3  (now Atk +0 Def +0)"), and an Atk/Def readout sits beside the purse. Confirming returns to
+the slot list. Slotless items are never candidates, so the picker cannot offer a tonic as
+armour, and taking off an empty slot is refused rather than silently ignored.
 
-**Gap: the screen itself.** No slot list, so "what am I wearing" is a scan of the whole bag
-rather than a glance; no per-slot candidate list; no stats visible while choosing. Optimize is
-a non-goal at two slots.
+Before M20 this was a confirm-toggle inside the bag — the marker and the delta were right and
+the container was wrong. That is the failure this whole file exists to prevent.
+
+**Gap:** Optimize is deferred — at two slots it would be a button that does what one press
+already does. Revisit hook: `ItemDef.SLOTS` growing past three.
 
 ---
 
