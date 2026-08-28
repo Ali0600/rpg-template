@@ -385,6 +385,13 @@ give byte-identical logs with it and without, the suite returns identical verdic
 tests, and all 226 mutants are still killed. The whole gate went 7m35s to 27s. Do NOT add it to
 the generators; they quit in their first frame.
 
+**A WINDOWED run of a QA script needs the flag too, or it is a different session.** Driving a
+play script with `--rendering-driver opengl3` to photograph it, WITHOUT `--fixed-fps 60`,
+diverged from the headless run and failed assertions the gate passes - the waits count physics
+frames, and an unpinned main loop spends them differently. Pass it whenever a session is
+watched or screenshotted, which is also the answer to "why does the player walk so slowly in
+that window".
+
 **The mutation sweep is split by WHERE it runs, never weakened.** A pull request proves the
 mutants its own diff could have broken (`mutants_scope.sh`: rows that mutate a file it touched,
 name a suite it touched, or were added by it); every merge to `main` re-runs all of them, where
