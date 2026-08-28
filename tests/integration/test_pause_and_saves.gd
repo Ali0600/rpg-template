@@ -44,11 +44,13 @@ func _good_save() -> SaveData:
 	return data
 
 
-## Resume, Items, Save, Load: THREE down and in, then two more down to the third slot. Written
-## out rather than looped so the count is a fact about the menu's shape, not a search for a
-## row - and so that inserting a row above Load moves this deliberately rather than silently
-## retargeting the whole test at Save, where every press below would write a slot.
+## Resume, Items, Equipment, Save, Load: FOUR down and in, then two more down to the third
+## slot. Written out rather than looped so the count is a fact about the menu's shape, not a
+## search for a row - and so that inserting a row above Load moves this deliberately rather
+## than silently retargeting the whole test at Save, where every press below would write a
+## slot. M20 inserted Equipment and this is where that was paid for, on purpose.
 func _to_the_third_slot() -> void:
+	await _press(&"move_down")
 	await _press(&"move_down")
 	await _press(&"move_down")
 	await _press(&"move_down")
@@ -326,3 +328,37 @@ func _drawn_rows() -> Array[String]:
 		if label != null and label.visible and not label.text.strip_edges().is_empty():
 			out.append(label.text)
 	return out
+
+
+func test_the_equipment_row_is_drawn_on_the_menu() -> void:
+	# On the RENDERED text, the sound row's rule: a row's label lives in a table the view
+	# indexes by the enum, so a row inserted in one and not the other draws as a blank line
+	# and pushes every label below it onto the wrong row.
+	await _boot()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	var drawn := _drawn_rows()
+	var found := ""
+	for text in drawn:
+		if text.contains("Equipment"):
+			found = text
+	assert_str(found).override_failure_message(
+		"no row offered equipment; the screen drew %s" % [drawn]).is_not_empty()
+
+
+func test_the_slot_page_draws_a_row_for_every_slot() -> void:
+	# The page is built from the template's own vocabulary rather than from what the player
+	# happens to be carrying, so an empty slot is a row that says so.
+	await _boot()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"interact")
+	var drawn := _drawn_rows()
+	var slots := 0
+	for text in drawn:
+		if text.contains("Weapon:") or text.contains("Armor:"):
+			slots += 1
+	assert_int(slots).override_failure_message(
+		"the slot list drew %d of 2 rows: %s" % [slots, drawn]).is_equal(2)

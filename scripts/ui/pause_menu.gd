@@ -13,17 +13,22 @@ extends RefCounted
 ## answer differently.
 
 ## The pages. TOP is the menu itself; the rest are lists entered from one of its rows.
-enum Page { TOP, ITEMS, SAVE, LOAD }
+## EQUIP_PICK is the only page entered from another page rather than from TOP: it is the
+## candidates for ONE slot, so it needs the slot the player just pointed at.
+enum Page { TOP, ITEMS, SAVE, LOAD, EQUIP, EQUIP_PICK }
 
 ## The TOP page's rows, in the order they are drawn. The view indexes its labels by this, so
 ## the order lives in one place rather than in a list beside a list.
 ## SOUND is appended rather than slotted in beside Resume, so every existing test that lands
 ## on a row by naming it - move(Row.SAVE) - still lands on the same one.
-enum Row { RESUME, ITEMS, SAVE, LOAD, SOUND }
+## EQUIP is the exception, and it is slotted in DELIBERATELY: Item then Equip is the order
+## every classic command menu uses, and a row's position is the one thing a player navigates
+## by muscle memory. The cost is paid once, in the scripted sessions that count presses.
+enum Row { RESUME, ITEMS, EQUIP, SAVE, LOAD, SOUND }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
-enum Kind { NONE, RESUME, SAVE, LOAD, SOUND, EQUIP }
+enum Kind { NONE, RESUME, SAVE, LOAD, SOUND, EQUIP, UNEQUIP }
 
 
 ## One answer, carried as a value the way Locomotion.Step is. The slot is explicit rather than
@@ -35,12 +40,18 @@ class Pick:
 	## Which item an EQUIP asked about. Explicit for the reason `slot` is: reading it back off
 	## index() afterwards would be a second reading of a cursor that may already have moved.
 	var item: StringName = &""
+	## Which slot an UNEQUIP asked about. A field of its own rather than an EQUIP carrying an
+	## empty item: a sentinel that means "the opposite verb" is a reading every call site has
+	## to remember to make, and one that forgets equips nothing and reports success.
+	var gear: StringName = &""
 
-	static func of(kind_value: Kind, slot_value: int = -1, item_id: StringName = &"") -> Pick:
+	static func of(kind_value: Kind, slot_value: int = -1, item_id: StringName = &"",
+			gear_slot: StringName = &"") -> Pick:
 		var out := Pick.new()
 		out.kind = kind_value
 		out.slot = slot_value
 		out.item = item_id
+		out.gear = gear_slot
 		return out
 
 
@@ -75,6 +86,30 @@ class ItemRow:
 		return out
 
 
+## One line of the equipment page: a slot, and what is in it. Resolved by the world for the
+## reason ItemRow is - naming the thing worn in a slot means asking the Registry, and this
+## class may not. The label is passed in rather than derived from the id, because "armor" ->
+## "Armor" is a decision about words and this class does not make those.
+class GearRow:
+	var slot_id: StringName = &""
+	var label: String = ""
+	## What is worn there, already named. Empty means the slot is bare - which is a fact worth
+	## drawing, not a row to hide.
+	var worn_name: String = ""
+	## What taking the current one off would do, worded by the world. Empty when nothing is
+	## worn, which is also how the page knows a take-off has nothing to take.
+	var takeoff_effect: String = ""
+
+	static func of(id: StringName, slot_label: String, worn: String = "",
+			takeoff: String = "") -> GearRow:
+		var out := GearRow.new()
+		out.slot_id = id
+		out.label = slot_label
+		out.worn_name = worn
+		out.takeoff_effect = takeoff
+		return out
+
+
 ## Indexed by slot id, which is 0-based like SaveManager's. Only the LABEL says "Slot 1" - a
 ## menu that renumbered would make a bug report and a filename disagree.
 var _slots: Array[SaveData] = []
@@ -89,17 +124,29 @@ var _sound := ""
 ## autoload, and this class may not. A readout rather than a Row, so every test that lands on
 ## a row by naming it - move(Row.SAVE) - stays aimed at the same row.
 var _gold := ""
+## One GearRow per slot the template knows about, in the world's order. Untyped for the
+## reason _items is: a typed default for a nested class is not a constant expression.
+var _gear: Array = []
+## What the equipment page says the player's numbers are - "Atk 5+3  Def 1+2". Text, and a
+## readout rather than a row, for the same two reasons _gold is: composing it means asking
+## what a stat is called, and a row is something a cursor can land on.
+var _stats := ""
+## Which slot the candidate page is showing. Set when a slot is confirmed and read by
+## everything the page draws, so the page cannot be entered without one.
+var _pick_slot: StringName = &""
 var _page := Page.TOP
 var _index := 0
 
 
 static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
-		gold: String = "") -> PauseMenu:
+		gold: String = "", gear: Array = [], stats: String = "") -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
 	menu._sound = sound
 	menu._gold = gold
+	menu._gear = gear.duplicate()
+	menu._stats = stats
 	return menu
 
 
@@ -134,6 +181,71 @@ func item(at: int) -> ItemRow:
 	return _items[at]
 
 
+func gear_count() -> int:
+	return _gear.size()
+
+
+## The nth slot, or null past the end - drawable for the reason item() is.
+func gear(at: int) -> GearRow:
+	if at < 0 or at >= _gear.size():
+		return null
+	return _gear[at]
+
+
+func stats_label() -> String:
+	return _stats
+
+
+func pick_slot() -> StringName:
+	return _pick_slot
+
+
+## What the candidate page is answering a question about, for its title. Empty when the page
+## was never entered, which the view draws as nothing rather than as a slot called "".
+func pick_slot_label() -> String:
+	for row: GearRow in _gear:
+		if row.slot_id == _pick_slot:
+			return row.label
+	return ""
+
+
+## What is worn in the slot being picked for, or empty. The take-off row asks this rather than
+## the world, because a refusal must be decided by the same data the row was drawn from.
+func pick_worn_name() -> String:
+	for row: GearRow in _gear:
+		if row.slot_id == _pick_slot:
+			return row.worn_name
+	return ""
+
+
+## What taking off the current gear in this slot would do, or empty. Read by the take-off
+## row's preview, and answered from the same rows the page was drawn from.
+func pick_takeoff_effect() -> String:
+	for row: GearRow in _gear:
+		if row.slot_id == _pick_slot:
+			return row.takeoff_effect
+	return ""
+
+
+## The carried things that FIT the slot being picked for. A slotless item is not a candidate,
+## which is what stops the page offering a tonic as armour - and it is a filter rather than a
+## check at confirm time, so the offer is never made in the first place.
+func _candidates() -> Array:
+	var out: Array = []
+	for row: ItemRow in _items:
+		if row.slot == _pick_slot:
+			out.append(row)
+	return out
+
+
+## The nth candidate, or null for the take-off row that always sits at the end.
+func pick_row(at: int) -> ItemRow:
+	var rows := _candidates()
+	if at < 0 or at >= rows.size():
+		return null
+	return rows[at]
+
+
 ## How many rows the CURRENT page has. The cursor wraps over this, so it is one function
 ## rather than a branch at every call site.
 func size() -> int:
@@ -144,6 +256,13 @@ func size() -> int:
 			# An empty bag still has one row - the line that says it is empty. A page with no
 			# rows at all is one the cursor cannot stand on and the player cannot escape from.
 			return maxi(_items.size(), 1)
+		Page.EQUIP:
+			return _gear.size()
+		Page.EQUIP_PICK:
+			# Candidates plus the take-off row, which is always drawn. It is what makes this
+			# page impossible to strand a cursor on: a slot whose gear you are not carrying
+			# still has one row, the same rule the empty bag gets.
+			return _candidates().size() + 1
 		_:
 			return _slots.size()
 
@@ -183,23 +302,53 @@ func confirm() -> Pick:
 			_page = Page.ITEMS
 			_index = 0
 			return Pick.of(Kind.NONE)
-		# A game configured with no slots has nowhere to go. The two rows above are exempt: an
-		# empty bag is a fact worth showing, where an empty slot list is a menu with nothing in
-		# it.
+		if _index == Row.EQUIP:
+			_page = Page.EQUIP
+			_index = 0
+			return Pick.of(Kind.NONE)
+		# A game configured with no slots has nowhere to go. The three rows above are exempt:
+		# an empty bag is a fact worth showing and a player can still dress themselves, where
+		# an empty slot list is a menu with nothing in it.
 		if _slots.is_empty():
 			return Pick.of(Kind.NONE)
 		_page = Page.SAVE if _index == Row.SAVE else Page.LOAD
 		_index = 0
 		return Pick.of(Kind.NONE)
-	# Equipment answers here; anything else is still only looked at. A general "use" verb
-	# remains a game's own business - a potion heals in every RPG ever written, where "use the
-	# rope on the well" is a puzzle - so a slotless row keeps returning NONE, and a confirm on
-	# it does nothing rather than doing something arbitrary.
+	# The bag is a list of what is carried, and nothing more. Equipment moved to a page of its
+	# own because that is where the whole genre keeps it - and a general "use" verb remains a
+	# game's own business: a potion heals in every RPG ever written, where "use the rope on the
+	# well" is a puzzle. So a confirm here does nothing rather than something arbitrary.
 	if _page == Page.ITEMS:
-		var row := item(_index)
-		if row == null or String(row.slot).is_empty():
+		return Pick.of(Kind.NONE)
+	# A slot opens its own candidates, and asks the world for nothing - the same shape as
+	# opening a save page.
+	if _page == Page.EQUIP:
+		var slot_row := gear(_index)
+		if slot_row == null:
 			return Pick.of(Kind.NONE)
-		return Pick.of(Kind.EQUIP, -1, row.id)
+		_pick_slot = slot_row.slot_id
+		_page = Page.EQUIP_PICK
+		_index = 0
+		return Pick.of(Kind.NONE)
+	if _page == Page.EQUIP_PICK:
+		var chosen := pick_row(_index)
+		# The take-off row. Taking nothing off is REFUSED rather than shrugged at, the same
+		# rule an empty save slot gets: a menu that accepts a press and does nothing reads as
+		# a menu that broke.
+		if chosen == null:
+			if pick_worn_name().is_empty():
+				return Pick.of(Kind.NONE)
+			var answer := Pick.of(Kind.UNEQUIP, -1, &"", _pick_slot)
+			_back_to_slots()
+			return answer
+		if String(chosen.slot).is_empty():
+			return Pick.of(Kind.NONE)
+		var worn_answer := Pick.of(Kind.EQUIP, -1, chosen.id)
+		# Back to the slot list before the world hears a word of it. Every refresh therefore
+		# lands on a page whose rows are the template's own vocabulary, rather than on a
+		# candidate list that was built from a bag the world is about to change.
+		_back_to_slots()
+		return worn_answer
 	# Loading nothing is REFUSED, never nudged to a neighbouring slot. The precedent is
 	# DialogRunner.choose(): clamping turns a UI mistake into a plausible-looking wrong answer,
 	# and here the wrong answer would be loading a game the player did not ask for.
@@ -212,6 +361,9 @@ func confirm() -> Pick:
 ## row that opened the page rather than to the top of the menu - the player is where they were.
 ## On the top page there is nothing left to back out of, and backing out of a pause IS resuming.
 func cancel() -> Pick:
+	if _page == Page.EQUIP_PICK:
+		_back_to_slots()
+		return Pick.of(Kind.NONE)
 	if _page != Page.TOP:
 		_index = _opened_from(_page)
 		_page = Page.TOP
@@ -223,13 +375,28 @@ func cancel() -> Pick:
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
 func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
-		gold: String = "") -> void:
+		gold: String = "", gear: Array = [], stats: String = "") -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
 	_sound = sound
 	_gold = gold
+	_gear = gear.duplicate()
+	_stats = stats
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
+
+
+## Leaves the candidate page for the slot list, cursor on the slot that was being answered.
+## One function because three paths need it - equipping, taking off, and backing out - and a
+## player who lands somewhere different depending on which is a player who has to look.
+func _back_to_slots() -> void:
+	_page = Page.EQUIP
+	_index = 0
+	for at in _gear.size():
+		var row: GearRow = _gear[at]
+		if row.slot_id == _pick_slot:
+			_index = at
+			break
 
 
 ## The row a page was opened from, so backing out lands the cursor where the player left it
@@ -238,6 +405,8 @@ static func _opened_from(page: Page) -> Row:
 	match page:
 		Page.ITEMS:
 			return Row.ITEMS
+		Page.EQUIP:
+			return Row.EQUIP
 		Page.SAVE:
 			return Row.SAVE
 		_:
@@ -269,7 +438,25 @@ static func item_label(row: ItemRow) -> String:
 	return "%s%s x%d" % [worn, row.name, row.count]
 
 
-## One row of the slot list. The slot is displayed one-based because a player counts from one;
+## One row of the equipment page. A bare slot SAYS it is bare, for the reason the empty bag
+## says so: a blank where a value belongs reads as a draw that failed.
+static func gear_label(row: GearRow) -> String:
+	if row == null:
+		return ""
+	if row.worn_name.is_empty():
+		return "%s: (nothing)" % row.label
+	return "%s: %s" % [row.label, row.worn_name]
+
+
+## One row of the candidate list. Null is the take-off row rather than an emptiness, which is
+## why it is worded as a verb: it is the one row on the page that removes something.
+static func pick_label(row: ItemRow) -> String:
+	if row == null:
+		return "(take off)"
+	return item_label(row)
+
+
+## One row of the save slot list. The slot is displayed one-based because a player counts from one;
 ## everything else - the filename, the API, a bug report - stays zero-based.
 static func slot_label(at: int, data: SaveData) -> String:
 	if data == null:

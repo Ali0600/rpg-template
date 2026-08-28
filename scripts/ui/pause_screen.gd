@@ -27,6 +27,10 @@ signal load_requested(slot: int)
 ## The player asked to wear or take off the thing they are pointing at. The world owns the
 ## slot map - a view that wrote it would be a second writer for state that outlives the scene.
 signal equip_requested(item: StringName)
+## The player asked to take off whatever is in a slot. A signal of its own rather than an
+## equip carrying nothing, for the reason the answer it comes from has its own kind: a verb
+## spelled as the absence of its opposite is one every listener has to remember to decode.
+signal unequip_requested(slot: StringName)
 
 const LAYER := 15
 const MARGIN := 8
@@ -43,7 +47,12 @@ const BACKDROP_ALPHA := 0.85
 ## Indexed by PauseMenu.Row. Sound is empty here because its text changes with the setting,
 ## and the menu carries that - a view cannot ask the settings singleton without dropping this
 ## file, and every suite that depends on it, out of the per-file parse gate.
-const TOP_LABELS: Array[String] = ["Resume", "Items", "Save", "Load", ""]
+const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Save", "Load", ""]
+
+## Where the stats readout sits on the title line, to the right of the purse. A constant for
+## the reason MARGIN is: it is a layout fact, and a number written into a position call is a
+## number nobody can find again.
+const STATS_X := 96
 
 var _menu: PauseMenu = null
 var _style: SpriteStyle = null
@@ -52,6 +61,7 @@ var _title := Label.new()
 var _help := Label.new()
 var _rows: Array[Label] = []
 var _purse := Label.new()
+var _stats := Label.new()
 
 ## The duplicate-event guard every view here has: this TOGGLES a screen, and acting twice on
 ## one press puts it back where it started, which reads as a dead key.
@@ -77,10 +87,10 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 ## New slot contents from the world, cursor untouched. After a save that is what makes the row
 ## the player is looking at show what they just wrote.
 func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
-		gold: String = "") -> void:
+		gold: String = "", gear: Array = [], stats: String = "") -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots, items, sound, gold)
+	_menu.refresh(slots, items, sound, gold, gear, stats)
 	_committed = false
 	_paint()
 
@@ -96,7 +106,9 @@ func _build(viewport_size: Vector2i) -> void:
 
 	# Enough rows for the widest page, built once. A page change repaints them rather than
 	# rebuilding the tree, so there is no frame on which the screen is half-built.
-	for i in maxi(TOP_LABELS.size(), maxi(_menu.slot_count(), _menu.item_count())):
+	# The candidate page is the widest a bag can make it - every carried thing plus the row
+	# that takes the current one off - so it is what the pool is sized against.
+	for i in maxi(TOP_LABELS.size(), maxi(_menu.slot_count(), _menu.item_count() + 1)):
 		var row := Label.new()
 		row.position = Vector2(MARGIN, MARGIN + 22 + i * ROW_PITCH)
 		row.add_theme_font_size_override("font_size", ROW_SIZE)
@@ -109,6 +121,12 @@ func _build(viewport_size: Vector2i) -> void:
 	_purse.position = Vector2(MARGIN, MARGIN + 10)
 	_purse.add_theme_font_size_override("font_size", HELP_SIZE)
 	add_child(_purse)
+
+	# What the gear is worth, beside the purse and on the same terms: a readout, not a row.
+	# It is what makes a preview a preview - a delta needs a number to be a delta of.
+	_stats.position = Vector2(MARGIN + STATS_X, MARGIN + 10)
+	_stats.add_theme_font_size_override("font_size", HELP_SIZE)
+	add_child(_stats)
 
 	_help.position = Vector2(MARGIN, viewport_size.y - 14)
 	_help.add_theme_font_size_override("font_size", HELP_SIZE)
@@ -145,6 +163,14 @@ func _paint() -> void:
 		row.add_theme_color_override("font_color", text if selected else dim)
 	_purse.text = _menu.gold_label()
 	_purse.add_theme_color_override("font_color", dim)
+	# Only where a delta means something, and only when there is one to show. A game with no
+	# fighting in it hands nothing, and a readout saying "Atk 0" would be naming a stat that
+	# game does not have.
+	var equipping := _menu.page() == PauseMenu.Page.EQUIP \
+		or _menu.page() == PauseMenu.Page.EQUIP_PICK
+	_stats.text = _menu.stats_label() if equipping else ""
+	_stats.visible = equipping and not _menu.stats_label().is_empty()
+	_stats.add_theme_color_override("font_color", dim)
 
 
 ## The row's text on whichever page is up. One function, so the three sources cannot drift
@@ -155,6 +181,10 @@ func _label_for(at: int) -> String:
 			return _menu.sound_label() if at == PauseMenu.Row.SOUND else TOP_LABELS[at]
 		PauseMenu.Page.ITEMS:
 			return PauseMenu.item_label(_menu.item(at))
+		PauseMenu.Page.EQUIP:
+			return PauseMenu.gear_label(_menu.gear(at))
+		PauseMenu.Page.EQUIP_PICK:
+			return PauseMenu.pick_label(_menu.pick_row(at))
 		_:
 			return PauseMenu.slot_label(at, _menu.slot(at))
 
@@ -163,6 +193,12 @@ func _title_for(page: PauseMenu.Page) -> String:
 	match page:
 		PauseMenu.Page.ITEMS:
 			return "CARRYING"
+		PauseMenu.Page.EQUIP:
+			return "EQUIPMENT"
+		PauseMenu.Page.EQUIP_PICK:
+			# The slot being answered, so the page says which question it is asking rather
+			# than making the player remember what they pressed.
+			return _menu.pick_slot_label().to_upper()
 		PauseMenu.Page.SAVE:
 			return "SAVE TO"
 		PauseMenu.Page.LOAD:
@@ -176,13 +212,17 @@ func _help_for(page: PauseMenu.Page) -> String:
 		# The selected thing describes itself here rather than in the row: a list of names is
 		# scannable, and a list of names plus sentences is not.
 		var row: PauseMenu.ItemRow = _menu.item(_menu.index())
-		if row != null and not row.effect.is_empty():
-			# What equipping would DO, shown before the press that does it - the compare every
-			# equip screen has, and the reason this line beats the description for gear.
-			return row.effect
 		if row != null and not row.description.is_empty():
 			return row.description
 		return "W/S to choose    Esc to go back"
+	if page == PauseMenu.Page.EQUIP_PICK:
+		# What the press would DO, before the press that does it - the compare every equip
+		# screen has, and the whole reason a candidate list is worth walking.
+		var candidate: PauseMenu.ItemRow = _menu.pick_row(_menu.index())
+		if candidate != null:
+			return candidate.effect if not candidate.effect.is_empty() else candidate.description
+		var takeoff := _menu.pick_takeoff_effect()
+		return takeoff if not takeoff.is_empty() else "Nothing worn here"
 	if page == PauseMenu.Page.TOP:
 		return "W/S to choose    E to pick    Esc to resume"
 	return "W/S to choose    E to pick    Esc to go back"
@@ -232,6 +272,10 @@ func _act(pick: PauseMenu.Pick) -> void:
 			# Not committed: equipping leaves the menu open and the world calls refresh(), so
 			# the row shows its new marker - the save-row and sound-row rule.
 			equip_requested.emit(pick.item)
+		PauseMenu.Kind.UNEQUIP:
+			# Not committed, for the reason equipping is not: the page stays up and the world
+			# refreshes it, so the slot the player just emptied says so.
+			unequip_requested.emit(pick.gear)
 		PauseMenu.Kind.SOUND:
 			# Not committed: turning the sound down leaves the menu open, and the world calls
 			# refresh() so the row shows what it now says - the save-row rule.
