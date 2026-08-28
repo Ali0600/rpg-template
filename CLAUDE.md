@@ -154,6 +154,17 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**A shop is a `ShopDef` and a dialog CHOICE, and `price = 0` means not for sale.**
+`data/shops/<id>.json`-shaped `.tres` lists item ids; the price lives on the `ItemDef`, so two
+keepers cannot disagree about what a tonic is worth. Zero is the DEFAULT, which is what keeps
+quest items off both counters - a key that can be sold is a door that can be locked for the
+rest of the run, and the failure lands hours later. `ShopMenu.tradable()` is that rule, once,
+so the buy page and the sell page cannot drift. A keeper is opened by `"open_shop": "<id>"` on
+a dialog choice, and the arm in `_apply_effects` DEFERS the open: `_on_dialog_closed` applies
+effects and then pops the dialog overlay, so a counter opened inline would be the thing that
+pop closed. The menu is the only affordability check; `spend_gold` behind it is the invariant,
+and it says so loudly rather than overdrawing anyone.
+
 **Money has ONE writer and a spend is refused, never clamped.** `GameState.gold` sits beside
 hp/xp, but zero is a REAL value there (broke) rather than the "unset" hp uses, so it is a
 plain field with a plain default. `give_gold`/`spend_gold` are the whole vocabulary and both

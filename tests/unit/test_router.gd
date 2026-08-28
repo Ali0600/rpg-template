@@ -105,6 +105,8 @@ func test_the_new_flow_states_name_themselves() -> void:
 	assert_str(Router.state_name()).is_equal("battle")
 	Router.set_state(Router.State.GAME_OVER)
 	assert_str(Router.state_name()).is_equal("game_over")
+	Router.set_state(Router.State.SHOP)
+	assert_str(Router.state_name()).is_equal("shop")
 
 func test_the_player_moves_in_neither_of_them() -> void:
 	Router.set_state(Router.State.BATTLE)
@@ -113,3 +115,8 @@ func test_the_player_moves_in_neither_of_them() -> void:
 		"the pause menu could be opened during a fight").is_false()
 	Router.set_state(Router.State.GAME_OVER)
 	assert_bool(Router.player_can_move()).is_false()
+	Router.set_state(Router.State.SHOP)
+	assert_bool(Router.player_can_move()).override_failure_message(
+		"the player walked away while standing at a counter").is_false()
+	assert_bool(Router.accepts_world_input()).override_failure_message(
+		"the pause menu could be opened over a shop").is_false()

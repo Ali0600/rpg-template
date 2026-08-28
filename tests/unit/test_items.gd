@@ -157,6 +157,60 @@ func test_every_item_a_conversation_names_exists() -> void:
 				"dialog '%s' names item '%s', which no file in %s describes"
 				% [runner.id, item_id, ITEM_DIR]).is_true()
 
+func test_every_shop_a_conversation_names_exists() -> void:
+	# The item_refs precedent: a misspelt shop id opens an empty counter, which reads as a
+	# broken conversation rather than as a typo in a data file.
+	var known: Array[StringName] = []
+	for path in ContentScan.files_of("res://data/shops", "tres"):
+		var shop := load(path) as ShopDef
+		if shop != null:
+			known.append(shop.id)
+	for path in ContentScan.files_of("res://data/dialog", "json"):
+		var runner := DialogRunner.load_from(path)
+		for shop_id in runner.shop_refs():
+			assert_bool(known.has(shop_id)).override_failure_message(
+				"dialog '%s' names shop '%s', which no file in data/shops describes"
+				% [runner.id, shop_id]).is_true()
+
+func test_every_shipped_shop_is_valid_and_sells_only_priced_things() -> void:
+	# A stocked item with no price is dropped by the counter rather than drawn at zero, so
+	# without this the shop would simply come up short and nothing would say why.
+	var found := 0
+	for path in ContentScan.files_of("res://data/shops", "tres"):
+		var shop := load(path) as ShopDef
+		assert_object(shop).override_failure_message("%s is not a ShopDef" % path).is_not_null()
+		assert_array(shop.problems()).override_failure_message(
+			"shop '%s': %s" % [shop.id, shop.problems()]).is_empty()
+		for item_id in shop.stock:
+			var item := Registry.get_resource(&"ItemDef", item_id) as ItemDef
+			assert_object(item).override_failure_message(
+				"shop '%s' stocks '%s', which no item describes" % [shop.id, item_id]).is_not_null()
+			assert_int(item.price).override_failure_message(
+				"shop '%s' stocks '%s', which has no price - the counter would drop the row"
+				% [shop.id, item_id]).is_greater(0)
+		found += 1
+	# A gate that scanned nothing reports the same green as a gate that scanned everything.
+	assert_int(found).override_failure_message("no shops were scanned at all").is_greater(0)
+
+func test_a_shop_that_stocks_the_same_thing_twice_is_refused() -> void:
+	# A duplicate draws one row twice and makes the cursor lie about what it points at.
+	var shop := ShopDef.new()
+	shop.id = &"double"
+	shop.stock = [&"tonic", &"tonic"]
+	assert_str(str(shop.problems())).contains("twice")
+
+func test_a_shop_with_nothing_to_sell_is_refused() -> void:
+	var shop := ShopDef.new()
+	shop.id = &"empty"
+	assert_str(str(shop.problems())).contains("stocks nothing")
+
+func test_an_item_priced_below_zero_is_refused() -> void:
+	var item := ItemDef.new()
+	item.id = &"cursed"
+	item.name = "Cursed thing"
+	item.price = -1
+	assert_str(str(item.problems())).contains("priced at -1")
+
 func test_an_item_that_heals_a_negative_amount_is_refused() -> void:
 	# A weapon wearing a potion's clothes. A game that wants one wants a different verb, not a
 	# sign flip on this one - and battle_heal doubles as "does this belong in the fight menu",

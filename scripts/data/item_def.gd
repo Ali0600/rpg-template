@@ -39,6 +39,15 @@ extends Resource
 @export var battle_heal: int = 0
 
 
+## What a shop charges for one of these. ZERO MEANS NOT TRADABLE, the same "zero is off"
+## shape battle_heal uses - so a shop cannot stock it and the sell page will not list it.
+##
+## Off by default on purpose: a quest item that becomes sellable is a quest that can be sold
+## away, and the failure lands hours later on a locked door. An item joins the economy by
+## being given a price, never by being forgotten.
+@export var price: int = 0
+
+
 ## Everything wrong with this item, in the idiom of every other problems() here: all of them,
 ## not the first, so "what is broken about this item" is one read rather than three runs.
 func problems() -> Array[String]:
@@ -51,4 +60,6 @@ func problems() -> Array[String]:
 	# different verb, not a sign flip on this one.
 	if battle_heal < 0:
 		out.append("item '%s' heals %d" % [id, battle_heal])
+	if price < 0:
+		out.append("item '%s' is priced at %d" % [id, price])
 	return out

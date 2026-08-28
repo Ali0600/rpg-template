@@ -183,6 +183,13 @@ func _collect(choice: Dictionary) -> void:
 	if not takes.is_empty():
 		_effects.append({"op": GameContext.OP_TAKE_ITEM, "id": StringName(takes),
 			"count": int(choice.get("take_count", 1))})
+	# A counter, opened AFTER the conversation ends. It rides the effect list rather than
+	# opening anything here for the reason nothing else here writes either: the runner decides,
+	# the world acts - and _on_dialog_closed applies this list before closing the dialog, so
+	# the shop arrives over a conversation that has already finished.
+	var shop := str(choice.get("open_shop", ""))
+	if not shop.is_empty():
+		_effects.append({"op": GameContext.OP_SHOP, "shop": StringName(shop)})
 
 
 ## A flag the player already had, OR one this conversation has just earned. The second half is
@@ -193,6 +200,19 @@ func _flag_known(name: String) -> bool:
 
 
 ## Every item id this conversation names. Read by the content gate, like a map's.
+## Every ShopDef this conversation names, for the content gate. The item_refs precedent
+## exactly: a misspelt shop id opens an empty counter, which reads as a broken menu rather
+## than as a typo in a data file.
+func shop_refs() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for node_id: Variant in _nodes.keys():
+		var node: Dictionary = _nodes[node_id]
+		for entry: Variant in node.get("choices", []) as Array:
+			var choice: Dictionary = entry
+			_add_ref(out, choice.get("open_shop", ""))
+	return out
+
+
 func item_refs() -> Array[StringName]:
 	var out: Array[StringName] = []
 	for node_id: Variant in _nodes.keys():

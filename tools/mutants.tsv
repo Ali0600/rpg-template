@@ -318,3 +318,9 @@ scripts/autoload/game_state.gd	s|gold -= n|pass|	tests/unit/test_saves.gd	spendi
 scripts/data/migrations.gd	s|d\["gold"\] = 0|pass|	tests/unit/test_saves.gd	an old save loads with no purse at all
 scripts/ui/battle_logic.gd	s|if _outcome == Outcome.VICTORY and _enemy.gold > 0:|if false:|	tests/unit/test_battle_logic.gd	winning a fight pays nothing
 scripts/data/save_data.gd	s|if gold < 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save carrying a negative purse loads without complaint
+scripts/ui/shop_menu.gd	s|if _page == Page.BUY and not affordable\(_index\):|if false:|	tests/unit/test_shop_menu.gd	a player buys what they cannot afford and the purse decides afterwards
+scripts/ui/shop_menu.gd	s|return r != null and r.price <= _gold|return r != null|	tests/unit/test_shop_menu.gd	every row reads as affordable, so the refusal never fires
+scripts/ui/shop_menu.gd	s|return maxi\(buy_price / 2, 1\)|return buy_price|	tests/unit/test_shop_menu.gd	a shop pays full price for what it resells and money is infinite
+scripts/ui/shop_menu.gd	s|_index = Row.BUY if _page == Page.BUY else Row.SELL|_index = 0|	tests/unit/test_shop_menu.gd	backing out of a page drops the player at the top of a counter they were halfway down
+scripts/data/shop_def.gd	s|elif seen.has\(item_id\):|elif false:|	tests/unit/test_items.gd	a shop stocks the same thing twice and the cursor lies about what it points at
+scripts/ui/shop_menu.gd	s|return price > 0|return true|	tests/unit/test_shop_menu.gd	unpriced quest items are for sale and a key can be sold away

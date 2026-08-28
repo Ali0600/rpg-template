@@ -31,6 +31,7 @@ var _hint: ControlsHint
 ## game's - so _teardown_game frees it.
 var _pause: PauseScreen
 var _battle: BattleScreen
+var _shop: ShopScreen
 var _game_over: GameOverScreen
 ## Enemy id -> its ActorBody, for the ones still standing on this map.
 var _enemies: Dictionary = {}
@@ -175,6 +176,9 @@ func _teardown_game() -> void:
 	if _battle != null and is_instance_valid(_battle):
 		_battle.free()
 	_battle = null
+	if _shop != null and is_instance_valid(_shop):
+		_shop.free()
+	_shop = null
 	if _game_over != null and is_instance_valid(_game_over):
 		_game_over.free()
 	_game_over = null
@@ -656,6 +660,19 @@ func _apply_effects(effects: Array) -> bool:
 					did = true
 				else:
 					push_error("World: took '%s' the player is not carrying" % effect.get("id", ""))
+			GameContext.OP_SHOP:
+				# DEFERRED, and this is the whole reason: _on_dialog_closed applies effects and
+				# THEN pops the dialog overlay, so a counter opened here would be the thing
+				# that pop closed - the shop would flash and vanish, leaving the conversation
+				# up. Deferring lets the close finish first; the _commit_new_game precedent in
+				# this file defers a rebuild for the same reason. No input is processed in
+				# between, so there is no frame the player can act on.
+				#
+				# The narrow fix on purpose. Applying effects AFTER the close would also work
+				# and would change the order for every dialog effect there is - a warp, a
+				# chained conversation - which is a far wider change than the bug.
+				open_shop.call_deferred(StringName(str(effect.get("shop", ""))))
+				did = true
 			GameContext.OP_GOLD:
 				# give_gold refuses a non-positive amount, so a malformed effect changes
 				# nothing rather than quietly subtracting.
@@ -749,7 +766,7 @@ func _item_rows() -> Array:
 ## `seen_key` is what a victory will mark, passed in rather than rebuilt here because the
 ## caller already knows which record this came from.
 func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
-	if _battle != null or _game_over != null or _game == null or def == null:
+	if _battle != null or _shop != null or _game_over != null or _game == null or def == null:
 		return false
 	if _game.combat == null:
 		# A map placed an enemy in a game that has no combat definition. Said out loud: the
@@ -775,6 +792,106 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
 	return true
+
+
+## Opens a counter. Public for the same reason open_pause() is: a game's hook may want one
+## without a conversation in front of it.
+func open_shop(shop_id: StringName) -> bool:
+	if _shop != null or _battle != null or _game_over != null or _game == null:
+		return false
+	var def := Registry.get_resource(&"ShopDef", shop_id) as ShopDef
+	if def == null:
+		# Said out loud: the alternative is a counter that silently never opens, which reads
+		# as a broken conversation rather than as a misspelt id.
+		push_error("World: nothing describes shop '%s'" % shop_id)
+		return false
+	var faults := def.problems()
+	if not faults.is_empty():
+		push_error("World: shop '%s' is not fit to open: %s" % [shop_id, ", ".join(faults)])
+		return false
+
+	_player.halt()
+	_shop = ShopScreen.new()
+	# Constructed and connected in one function, the open_battle_with rule.
+	_shop.sound_wanted.connect(_on_sound_wanted)
+	_shop.bought.connect(_on_shop_bought)
+	_shop.sold.connect(_on_shop_sold)
+	_shop.left.connect(_close_shop)
+	_shop.stock = def
+	add_child(_shop)
+	_shop.setup(ShopMenu.of(_stock_rows(def), _sellable_rows(), GameState.gold),
+		_style, get_viewport_rect().size)
+	Router.open_overlay(Router.State.SHOP)
+	return true
+
+
+## What the keeper offers, resolved into rows. The Registry lookup lives here because ShopMenu
+## may not touch an autoload - the _battle_items and _item_rows precedent.
+##
+## An unpriced or unknown item is DROPPED rather than drawn at zero: a free row is a row that
+## empties the shop, and the content gate has already refused to let one ship.
+func _stock_rows(def: ShopDef) -> Array:
+	var out: Array = []
+	for item_id in def.stock:
+		var item := Registry.get_resource(&"ItemDef", item_id) as ItemDef
+		if item == null or not ShopMenu.tradable(item.price):
+			continue
+		out.append(ShopMenu.ShopRow.of(item.id, item.name, item.price,
+			GameState.item_count(item.id)))
+	return out
+
+
+## What the player may sell: what they are carrying that CARRIES A PRICE. A quest item has
+## none, so it never appears - which is what stops a key being sold and a door being locked
+## for the rest of the run.
+func _sellable_rows() -> Array:
+	var out: Array = []
+	for carried_id in GameState.inventory.ids():
+		var item := Registry.get_resource(&"ItemDef", carried_id) as ItemDef
+		if item == null or not ShopMenu.tradable(item.price):
+			continue
+		out.append(ShopMenu.ShopRow.of(item.id, item.name, ShopMenu.sell_price(item.price),
+			GameState.item_count(item.id)))
+	return out
+
+
+## The world is the only thing that moves money or items. The screen reported a deal; this
+## decides whether it happens, and tells the counter what it looks like afterwards.
+func _on_shop_bought(item_id: StringName, price: int) -> void:
+	if _shop == null:
+		return
+	# The menu already refused what could not be afforded. This is the invariant behind that
+	# guard rather than a second copy of it: if an impossible deal ever arrives, it is a bug
+	# in the menu and it says so instead of quietly overdrawing the player.
+	if not GameState.spend_gold(price):
+		push_error("World: a shop sold '%s' for %d the player did not have" % [item_id, price])
+		return
+	GameState.give_item(item_id, 1)
+	_refresh_shop()
+
+
+func _on_shop_sold(item_id: StringName, price: int) -> void:
+	if _shop == null:
+		return
+	if not GameState.take_item(item_id, 1):
+		push_error("World: a shop bought '%s' the player is not carrying" % item_id)
+		return
+	GameState.give_gold(price)
+	_refresh_shop()
+
+
+func _refresh_shop() -> void:
+	if _shop == null or _shop.stock == null:
+		return
+	_shop.refresh(_stock_rows(_shop.stock), _sellable_rows(), GameState.gold)
+
+
+func _close_shop() -> void:
+	if _shop == null:
+		return
+	_shop.queue_free()
+	_shop = null
+	Router.close_overlay()
 
 
 ## What the player could drink mid-fight, resolved into rows. The Registry lookup lives here
