@@ -46,6 +46,10 @@ extends Resource
 
 ## The one line of on-screen help. It belongs to the game because it names the game's verbs:
 ## "E or space to talk" is wrong for a game whose button does anything else.
+## What the player starts with in their purse. Beside start_map and start_spawn because it is
+## the same kind of fact - where the game begins - and a game with no economy leaves it zero.
+@export var starting_gold: int = 0
+
 @export var controls_hint: String = ""
 
 ## This game's own code: a GameHooks subclass, living under games/<id>/. Null is normal - a
@@ -78,6 +82,8 @@ func problems() -> Array[String]:
 	var out: Array[String] = []
 	if String(id).is_empty():
 		out.append("manifest has no id")
+	if starting_gold < 0:
+		out.append("manifest '%s' starts the player %d gold in debt" % [id, starting_gold])
 	if String(start_map).is_empty():
 		out.append("manifest '%s' names no start_map" % id)
 		return out

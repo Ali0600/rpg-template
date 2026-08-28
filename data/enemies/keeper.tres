@@ -22,5 +22,6 @@ max_hp = 30
 attack = 8
 defense = 3
 xp = 25
+gold = 25
 boss = true
 moves = [{ "name": "Bar", "power": 0 }, { "name": "Crush", "power": 4 }]

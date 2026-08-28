@@ -211,6 +211,14 @@
 			"value": 5
 		},
 		{
+			"op": "note",
+			"text": "and the coin that fight dropped - asserted HERE because before it the purse is zero whether drops work or not"
+		},
+		{
+			"op": "assert_gold",
+			"value": 4
+		},
+		{
 			"op": "assert_item",
 			"id": "gate_key",
 			"count": 0

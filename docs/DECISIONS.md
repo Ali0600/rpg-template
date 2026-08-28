@@ -140,6 +140,22 @@ one-glance menu of things still worth trying.
   `slot_defaults`. All three styles dropped their dict entirely, which the drift gate proved
   was a no-op.
 
+## Gold is party state, not an item
+
+- **Chosen: `GameState.gold` as its own field, saved as its own key (v6).** It reads like an
+  item ("a thing you carry, counted"), and the Inventory would have held it for free — but an
+  item is something `ItemDef` describes, `Registry` resolves and the bag can refuse; money is
+  none of those. Making it an item would have put a currency in the item list, in the pause
+  bag page, and in every `requires_item` check that was never written to think about it.
+- *Gold as an inventory entry* — rejected: free to build, and it leaks into every surface that
+  iterates the bag. The one real benefit (saves and hooks carry it automatically) is one field
+  and one migration step here.
+- *A `Wallet` class beside `Inventory`* — rejected as premature: a wallet with one currency is
+  an integer with ceremony. Revisit hook if a second currency ever appears: `GameState.gold`
+  plus its two verbs are the only places that would change.
+- **A spend is refused, never clamped**, matching `Inventory.remove`'s all-or-nothing rule —
+  so a purse cannot go negative by construction, and no downstream check has to tolerate one.
+
 ## Engine and language
 
 - **Chosen: Godot 4.7 with typed GDScript.** The user's other 2D RPG (saltcharter) is

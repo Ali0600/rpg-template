@@ -31,7 +31,8 @@ func _combat(curve: Array[int] = [10, 12]) -> CombatDef:
 	out.message_frames = MESSAGE
 	return out
 
-func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false) -> EnemyDef:
+func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false,
+		gold := 0) -> EnemyDef:
 	var out := EnemyDef.new()
 	out.id = &"test_enemy"
 	out.name = "Test Enemy"
@@ -40,6 +41,7 @@ func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false) -> Enem
 	out.attack = attack
 	out.defense = defense
 	out.xp = xp
+	out.gold = gold
 	out.boss = boss
 	out.moves = [{"name": "Scratch", "power": 0}, {"name": "Lunge", "power": 2}]
 	return out
@@ -340,6 +342,44 @@ func test_winning_ends_the_fight_and_marks_the_enemy_beaten() -> void:
 			seen.append(effect)
 	assert_int(seen.size()).is_equal(1)
 	assert_str(str(seen[0].get("key", ""))).is_equal("map/foe")
+
+func test_winning_drops_the_enemys_coin() -> void:
+	var battle := _fight(_enemy(4, 3, 1, 5, false, 7))
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	var paid := 0
+	for effect: Dictionary in battle.effects():
+		if effect.get("op") == GameContext.OP_GOLD:
+			paid += int(effect.get("amount", 0))
+	assert_int(paid).override_failure_message(
+		"a won fight paid %d, not the enemy's 7" % paid).is_equal(7)
+
+func test_an_enemy_with_no_coin_appends_no_gold_at_all() -> void:
+	# The near miss for the rule above. A zero-gold effect would be harmless downstream -
+	# give_gold refuses it - but an effect list that carries entries meaning nothing is how
+	# a list stops being readable.
+	var battle := _fight(_enemy(4))
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	for effect: Dictionary in battle.effects():
+		assert_str(str(effect.get("op"))).is_not_equal(String(GameContext.OP_GOLD))
+
+func test_losing_pays_nothing() -> void:
+	# A defeat's effects are discarded wholesale by the world, but the list itself must not
+	# claim a payout either - the fight never writes, and that includes what it says it did.
+	var battle := _fight(_enemy(99, 40, 0, 5, false, 7), 3)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.outcome()).override_failure_message(
+		"the fight did not end in defeat, so this proves nothing about a loss") \
+		.is_equal(BattleLogic.Outcome.DEFEAT)
+	for effect: Dictionary in battle.effects():
+		assert_str(str(effect.get("op"))).is_not_equal(String(GameContext.OP_GOLD))
 
 func test_winning_reports_the_party_it_leaves_behind() -> void:
 	var battle := _fight(_enemy(4))

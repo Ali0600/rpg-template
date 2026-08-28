@@ -313,3 +313,8 @@ scripts/world/map_data.gd	s|if kind < 0:|if false:|	tests/unit/test_map_data.gd	
 scripts/world/map_data.gd	s|if solid_tiles.has\(ground_at\(point\)\) or solid_tiles.has\(decor_at\(point\)\):|if false:|	tests/unit/test_map_data.gd	a patrol waypoint inside a wall is accepted and the NPC walks into it forever
 scripts/world/world_scene.gd	s|\t_drive_npcs\(\)|\tpass|	tests/integration/test_world_npcs.gd	behaviour is read from the map and then nothing ever moves
 scripts/world/actor_body.gd	s|platform_floor_layers = 0|platform_floor_layers = 0xFFFFFFFF|	tests/integration/test_world_npcs.gd	an NPC walking into the player from the north is dragged wherever the player strafes
+scripts/autoload/game_state.gd	s|if n <= 0 or n > gold:|if false:|	tests/unit/test_saves.gd	a player buys what they cannot afford and the purse goes negative
+scripts/autoload/game_state.gd	s|gold -= n|pass|	tests/unit/test_saves.gd	spending pays for nothing and money is infinite
+scripts/data/migrations.gd	s|d\["gold"\] = 0|pass|	tests/unit/test_saves.gd	an old save loads with no purse at all
+scripts/ui/battle_logic.gd	s|if _outcome == Outcome.VICTORY and _enemy.gold > 0:|if false:|	tests/unit/test_battle_logic.gd	winning a fight pays nothing
+scripts/data/save_data.gd	s|if gold < 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save carrying a negative purse loads without complaint

@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 5
+const VERSION := 6
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -32,6 +32,9 @@ var items: Dictionary = {}
 ## combat at all, carries no party - and inventing a level-1 hero for it here would be this
 ## class deciding a rule that belongs to the game's CombatDef, which it cannot see.
 var party: Dictionary = {}
+## What the player can spend. Added in v6. A plain integer rather than a dictionary like
+## `party`: zero is a real answer here (broke), so there is no "unset" to represent.
+var gold: int = 0
 ## Seconds of play. Added in v2, which is what the v1 migration exists to demonstrate.
 var play_seconds: float = 0.0
 
@@ -47,6 +50,7 @@ func to_dict() -> Dictionary:
 		"seen": seen,
 		"items": items,
 		"party": party,
+		"gold": gold,
 		"play_seconds": play_seconds,
 	}
 
@@ -69,6 +73,9 @@ static func from_dict(d: Dictionary) -> SaveData:
 	# tidy away. Inventory.from_dict does the tidying, once the file has been accepted.
 	out.items = d.get("items", {}) if d.get("items", {}) is Dictionary else {}
 	out.party = d.get("party", {}) if d.get("party", {}) is Dictionary else {}
+	# Copied as written, not clamped - a negative purse is a fault to REPORT, the same call
+	# the item counts above make.
+	out.gold = int(d.get("gold", 0))
 	out.play_seconds = float(d.get("play_seconds", 0.0))
 	return out
 
@@ -87,6 +94,8 @@ func problems() -> Array[String]:
 		out.append("save has facing %d, which is not a direction" % facing)
 	if play_seconds < 0.0:
 		out.append("save has negative play time")
+	if gold < 0:
+		out.append("save carries %d gold" % gold)
 	for key: Variant in items.keys():
 		# A zero or negative count is a file that has been edited by hand or written by a
 		# broken build. Carrying "minus one key" is not a state the game can be in.

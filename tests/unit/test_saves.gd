@@ -352,6 +352,56 @@ func test_a_version_4_save_is_carried_forward() -> void:
 	assert_str(String(data.map)).is_equal("quest_keep")
 	assert_bool(bool(data.seen.get("quest_hollow/keystash", false))).is_true()
 
+func test_a_version_5_save_is_carried_forward() -> void:
+	var file := JsonFile.read(FIXTURES + "v5.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	assert_bool(migrated.has("gold")).override_failure_message(
+		"a migrated save arrived with no gold field at all").is_true()
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# Broke rather than a gift, the same call every step above makes: handing an old save
+	# enough to buy what the game meant it to fight for is the lie this avoids.
+	assert_int(data.gold).is_equal(0)
+	# And the step must not drop what v5 already knew - the fixture carries both a bag and a
+	# party on purpose, because with either missing a step that wiped it would still pass.
+	assert_int(int(data.items.get("tonic", 0))).override_failure_message(
+		"the v5->v6 step lost the bag it was handed").is_equal(2)
+	assert_int(int(data.party.get("level", 0))).override_failure_message(
+		"the v5->v6 step lost the party it was handed").is_equal(3)
+
+func test_gold_survives_a_round_trip() -> void:
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	assert_bool(GameState.give_gold(30)).is_true()
+	var reloaded := SaveData.from_dict(GameState.to_save().to_dict())
+	assert_array(reloaded.problems()).is_empty()
+	GameState.reset()
+	GameState.from_save(reloaded)
+	assert_int(GameState.gold).is_equal(30)
+
+func test_a_purse_cannot_go_negative() -> void:
+	# Refused, never clamped: clamping turns "could not afford it" into "bought it and has
+	# nothing", which is a different game.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.give_gold(10)
+	assert_bool(GameState.spend_gold(11)).override_failure_message(
+		"a spend beyond the purse was allowed").is_false()
+	assert_int(GameState.gold).is_equal(10)
+	assert_bool(GameState.spend_gold(10)).is_true()
+	assert_int(GameState.gold).is_equal(0)
+	# Nonsense amounts change nothing rather than subtracting.
+	assert_bool(GameState.give_gold(0)).is_false()
+	assert_bool(GameState.spend_gold(-5)).is_false()
+	assert_int(GameState.gold).is_equal(0)
+
+func test_a_negative_purse_in_a_file_is_reported() -> void:
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_keep"
+	data.gold = -1
+	assert_str(str(data.problems())).contains("carries -1 gold")
+
 func test_a_party_survives_a_round_trip() -> void:
 	var data := SaveData.new()
 	data.game = &"quest"

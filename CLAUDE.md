@@ -154,6 +154,17 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**Money has ONE writer and a spend is refused, never clamped.** `GameState.gold` sits beside
+hp/xp, but zero is a REAL value there (broke) rather than the "unset" hp uses, so it is a
+plain field with a plain default. `give_gold`/`spend_gold` are the whole vocabulary and both
+report whether they happened; a spend beyond the purse returns false and moves nothing,
+because clamping turns "could not afford it" into "bought it and has nothing". Gold therefore
+cannot go negative by construction rather than by a check somewhere downstream. An enemy's
+`gold` rides the same collected effect list a fight already uses, so a DEFEAT - whose effects
+the world discards wholesale - still pays nothing, and "a fight never writes" is untouched.
+The purse is drawn on the pause screen as a READOUT, not a row: the cursor cannot land on it,
+so every test that names a row by its enum stays aimed at the same row.
+
 **An NPC's behaviour is data, and a moving one is driven by the player's own code.**
 `behavior` on a map's npc record is `static` (the default), `wander` (bounded drift around
 where it was placed) or `patrol` (an authored `path` of tiles, `loop` or ping-pong).
