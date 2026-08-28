@@ -120,7 +120,7 @@ func _on_sound_changed() -> void:
 	# feedback there is that Off means off.
 	AudioBus.play(Sfx.Cue.MENU_CONFIRM)
 	if _pause != null:
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
+		_refresh_pause()
 
 
 func _new_dialog() -> DialogBox:
@@ -722,8 +722,10 @@ func open_pause() -> bool:
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
 	_pause.equip_requested.connect(_on_equip_requested)
+	_pause.unequip_requested.connect(_on_unequip_requested)
 	add_child(_pause)
-	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label()),
+	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
+		_gold_label(), _gear_rows(), _stats_label()),
 		_style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
@@ -758,7 +760,7 @@ func _item_rows() -> Array:
 		var description := def.description if def != null else ""
 		var slot := def.slot if def != null else &""
 		out.append(PauseMenu.ItemRow.of(item_id, item_name, GameState.item_count(item_id),
-			description, slot, GameState.is_equipped(item_id), _equip_effect(def)))
+			description, slot, GameState.is_equipped(item_id), _candidate_effect(def)))
 	return out
 
 
@@ -907,21 +909,84 @@ func _close_shop() -> void:
 	Router.close_overlay()
 
 
-## What equipping this would do, in words, for the line under the list. Worded HERE because
-## naming a stat is a Registry-shaped question and PauseMenu may not ask one - and shown
-## BEFORE the press that equips, which is the compare an equip screen exists for.
-func _equip_effect(def: ItemDef) -> String:
+## Everything the paused screen draws, in one call. Four places refresh it - a save, a sound
+## step, a refused load, and any change to what is worn - and four copies of the same six
+## arguments is four places to forget the one that was just added.
+func _refresh_pause() -> void:
+	_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label(),
+		_gear_rows(), _stats_label())
+
+
+## One row per slot the template knows about, each naming what is in it. Built HERE for the
+## reason the bag's rows are: asking what the thing worn in a slot is called means asking the
+## Registry, and PauseMenu may not.
+func _gear_rows() -> Array:
+	var out: Array = []
+	for slot in ItemDef.SLOTS:
+		var worn := GameState.equipped(slot)
+		var worn_name := ""
+		if not String(worn).is_empty():
+			var def := Registry.get_resource(&"ItemDef", worn) as ItemDef
+			# An item with no data file still names itself by its id, the _item_rows rule: a
+			# blank row would read as an empty slot, which is a different fact entirely.
+			worn_name = def.name if def != null and not def.name.is_empty() else String(worn)
+		out.append(PauseMenu.GearRow.of(slot, String(slot).capitalize(), worn_name,
+			_takeoff_effect(slot)))
+	return out
+
+
+## What the player's numbers are, gear counted separately so the contribution is legible.
+## Empty for a game with no fighting in it - naming an attack stat a game does not have would
+## be the screen inventing a system.
+func _stats_label() -> String:
+	if _game == null or _game.combat == null:
+		return ""
+	return "Atk %d+%d  Def %d+%d" % [
+		_game.combat.attack_at(GameState.player_level), _equip_mod(&"attack"),
+		_game.combat.defense_at(GameState.player_level), _equip_mod(&"defense")]
+
+
+## What wearing this INSTEAD of what is in its slot would do, for the line under the candidate
+## list. Worded HERE because naming a stat is a Registry-shaped question and PauseMenu may not
+## ask one - and shown BEFORE the press, which is the compare an equip screen exists for.
+##
+## The delta is against what the slot already holds rather than against nothing, so the thing
+## already worn reads "no change" instead of promising its own stats a second time.
+func _candidate_effect(def: ItemDef) -> String:
 	if def == null or String(def.slot).is_empty():
 		return ""
-	var verb := "Take off" if GameState.is_equipped(def.id) else "Wear"
+	var attack_delta := def.attack
+	var defense_delta := def.defense
+	var current := Registry.get_resource(&"ItemDef", GameState.equipped(def.slot)) as ItemDef
+	if current != null:
+		attack_delta -= current.attack
+		defense_delta -= current.defense
+	return "Wear: %s  (%s)" % [_delta_words(attack_delta, defense_delta), _totals_words()]
+
+
+## What taking off whatever is in this slot would do. Empty when the slot is bare, which is
+## also how the page knows a take-off there has nothing to take.
+func _takeoff_effect(slot: StringName) -> String:
+	var worn := Registry.get_resource(&"ItemDef", GameState.equipped(slot)) as ItemDef
+	if worn == null:
+		return ""
+	return "Take off: %s  (%s)" % [_delta_words(-worn.attack, -worn.defense), _totals_words()]
+
+
+## A change to the two stats, in words. Shared by both previews so a wear and a take-off
+## cannot end up phrased differently for the same pair of numbers.
+func _delta_words(attack_delta: int, defense_delta: int) -> String:
 	var parts: Array[String] = []
-	if def.attack != 0:
-		parts.append("Atk %+d" % def.attack)
-	if def.defense != 0:
-		parts.append("Def %+d" % def.defense)
-	# The totals ALREADY worn, so the delta is read against something rather than in a vacuum.
-	var now := "now Atk %+d Def %+d" % [_equip_mod(&"attack"), _equip_mod(&"defense")]
-	return "%s: %s  (%s)" % [verb, ", ".join(parts) if not parts.is_empty() else "no change", now]
+	if attack_delta != 0:
+		parts.append("Atk %+d" % attack_delta)
+	if defense_delta != 0:
+		parts.append("Def %+d" % defense_delta)
+	return ", ".join(parts) if not parts.is_empty() else "no change"
+
+
+## The totals ALREADY worn, so a delta is read against something rather than in a vacuum.
+func _totals_words() -> String:
+	return "now Atk %+d Def %+d" % [_equip_mod(&"attack"), _equip_mod(&"defense")]
 
 
 ## What the worn gear adds to one stat. Resolved HERE because it means asking the Registry
@@ -1086,12 +1151,18 @@ func _on_equip_requested(item_id: StringName) -> void:
 	var def := Registry.get_resource(&"ItemDef", item_id) as ItemDef
 	if def == null or String(def.slot).is_empty():
 		return
-	if GameState.is_equipped(item_id):
-		GameState.unequip(def.slot)
-	else:
-		GameState.equip(def.slot, item_id)
+	# Equip, never toggle. The candidate page has a row of its own for taking gear off, so a
+	# confirm here means one thing - and confirming what is already worn is a no-op rather
+	# than the surprise of undressing.
+	GameState.equip(def.slot, item_id)
 	if _pause != null:
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
+		_refresh_pause()
+
+
+func _on_unequip_requested(slot: StringName) -> void:
+	GameState.unequip(slot)
+	if _pause != null:
+		_refresh_pause()
 
 
 func _on_save_requested(slot: int) -> void:
@@ -1100,7 +1171,7 @@ func _on_save_requested(slot: int) -> void:
 	# at shows what they just wrote. A save whose only feedback is the screen closing is
 	# indistinguishable from one that failed.
 	if _pause != null:
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
+		_refresh_pause()
 
 
 func _on_load_requested(slot: int) -> void:
@@ -1118,7 +1189,7 @@ func _commit_load(slot: int) -> void:
 	if data == null:
 		# load_slot has parked the bytes and said so. The menu stays up showing what the slots
 		# hold now - which is one fewer, and that is the honest thing for it to show.
-		_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label())
+		_refresh_pause()
 		return
 	_close_pause()
 	restore(data)

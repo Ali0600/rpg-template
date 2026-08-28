@@ -39,9 +39,15 @@ extends Resource
 @export var battle_heal: int = 0
 
 
-## Which body slot this occupies, or empty for a thing that is only carried. The template's
-## vocabulary is WEAPON and ARMOR; a game wanting a third slot is adding a noun, not flipping
-## a switch, and that is recorded in docs/DECISIONS.md rather than smuggled in here.
+## Every slot the template knows about, in the order the equipment page draws them. The one
+## list: problems() refuses anything outside it, and the world builds a page row per entry -
+## so adding a third slot is one edit, and it grows the screen for free.
+##
+## A game wanting one is adding a noun, not flipping a switch, and that is recorded in
+## docs/DECISIONS.md rather than smuggled in here.
+const SLOTS: Array[StringName] = [&"weapon", &"armor"]
+
+## Which body slot this occupies, or empty for a thing that is only carried.
 @export var slot: StringName = &""
 
 ## Added to the wearer's attack while equipped. Meaningful only with a slot - a modifier on a
@@ -74,7 +80,7 @@ func problems() -> Array[String]:
 		out.append("item '%s' heals %d" % [id, battle_heal])
 	if price < 0:
 		out.append("item '%s' is priced at %d" % [id, price])
-	if slot != &"" and slot != &"weapon" and slot != &"armor":
+	if slot != &"" and not SLOTS.has(slot):
 		# A typo'd slot must fail the build, not quietly become a trinket.
 		out.append("item '%s' names unknown slot '%s'" % [id, slot])
 	if attack < 0 or defense < 0:

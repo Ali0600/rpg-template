@@ -893,3 +893,18 @@ consistency. "It matches our other menus" is not evidence that it matches the th
 to be. And when a data field exists that the new screen could show, showing it is usually the
 cheapest correctness win available.
 
+**It happened again one milestone later, with the habit apparently working.** M19 DID do the
+reference pass, and shipped everything it asked for: an `(E)` marker, a stat delta read
+against what was already worn, a sell-counter refusal. The user played it and said equipment
+should be its own menu screen like Items. The pass had been scoped to the equip
+*interaction* — how it behaves — and never asked where equipment *lives*. Every reference
+game keeps Equip beside Item as a sibling command; none of them equip from the item list. So
+the question is two questions, and the second is the one that gets skipped because the first
+one feels like diligence: **"how should this behave" and "where does this live, and what sits
+beside it".** The fix was to stop re-deriving the answer per feature and write the anatomy
+down once — `docs/GENRE_CONVENTIONS.md`, one section per surface, an audit table of what this
+template has and does not, and named games behind every claim. A surface's section is now
+read before it is built, and the same audit named two gaps nobody had noticed at all: no inn,
+so gold only buys items and nothing outside a fight restores HP; and no way to see your own
+HP or level outside a battle.
+

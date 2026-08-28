@@ -1112,7 +1112,7 @@
 		},
 		{
 			"op": "note",
-			"text": "pause, into Items, past the gate key (the bag is in pickup order), and wear the sword"
+			"text": "pause, into Equipment, pick the weapon slot, and wear the sword"
 		},
 		{
 			"op": "press",
@@ -1136,6 +1136,14 @@
 		},
 		{
 			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
 			"action": "interact"
 		},
 		{
@@ -1144,11 +1152,11 @@
 		},
 		{
 			"op": "press",
-			"action": "move_down"
+			"action": "interact"
 		},
 		{
 			"op": "wait",
-			"frames": 6
+			"frames": 8
 		},
 		{
 			"op": "press",

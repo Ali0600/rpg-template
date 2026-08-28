@@ -336,8 +336,22 @@ scripts/autoload/game_state.gd	s|if String\(slot\).is_empty\(\) or not inventory
 scripts/autoload/game_state.gd	s|if inventory.count\(id\) == 0:|if false:|	tests/unit/test_saves.gd	the last sword leaves the bag and stays equipped as a phantom
 scripts/data/migrations.gd	s|d\["equipment"\] = \{\}|pass|	tests/unit/test_saves.gd	an old save loads with no equipment map at all
 scripts/data/save_data.gd	s|elif int\(items.get\(worn, 0\)\) <= 0:|elif false:|	tests/unit/test_saves.gd	a hand-edited save equipping what it does not carry loads without complaint
-scripts/data/item_def.gd	s|if slot != &"" and slot != &"weapon" and slot != &"armor":|if false:|	tests/unit/test_items.gd	a typo'd slot name becomes a trinket that never equips
-scripts/ui/pause_menu.gd	s|if row == null or String\(row.slot\).is_empty\(\):|if false:|	tests/unit/test_pause_menu.gd	a tonic is equipped as if it were armour
+scripts/data/item_def.gd	s|if slot != &"" and not SLOTS.has\(slot\):|if false:|	tests/unit/test_items.gd	a typo'd slot name becomes a trinket that never equips
+scripts/ui/pause_menu.gd	s|\t\tif row.slot == _pick_slot:|\t\tif true:|	tests/unit/test_pause_menu.gd	a tonic is offered as armour, because the candidate list stopped filtering
 scripts/ui/pause_menu.gd	s|var worn := "\(E\) " if row.equipped else ""|var worn := ""|	tests/unit/test_pause_menu.gd	nothing in the bag says which sword is the one you are holding
 scripts/world/world_scene.gd	s|if GameState\.is_equipped\(item\.id\):|if false:|	tests/integration/test_world_equipment.gd	the sword on your own back is offered for sale
-scripts/world/world_scene.gd	s|var verb := "Take off" if GameState.is_equipped\(def.id\) else "Wear"|var verb := "Wear"|	tests/integration/test_world_equipment.gd	the bag offers to wear what is already worn
+scripts/world/world_scene.gd	s|\treturn "Take off: %s  \(%s\)" % \[_delta_words\(-worn.attack, -worn.defense\), _totals_words\(\)\]|\treturn ""|	tests/integration/test_world_equipment.gd	taking gear off promises nothing, so the row is a press into silence
+scripts/ui/pause_menu.gd	s|\t\tif _index == Row.EQUIP:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot open its own wardrobe
+scripts/ui/pause_menu.gd	s|\t\t_pick_slot = slot_row.slot_id|\t\tpass|	tests/unit/test_pause_menu.gd	picking a slot opens a candidate list that is answering about nowhere
+scripts/ui/pause_menu.gd	s|\t\t\tvar answer := Pick.of\(Kind.UNEQUIP, -1, &"", _pick_slot\)|\t\t\tvar answer := Pick.of(Kind.NONE)|	tests/unit/test_pause_menu.gd	the take-off row is decoration, so gear once worn is worn forever
+scripts/ui/pause_menu.gd	s|\t\t\tif pick_worn_name\(\).is_empty\(\):|\t\t\tif false:|	tests/unit/test_pause_menu.gd	taking off an empty slot is asked for, and the world shrugs
+scripts/ui/pause_menu.gd	s|\t\tvar worn_answer := Pick.of\(Kind.EQUIP, -1, chosen.id\)|\t\tvar worn_answer := Pick.of(Kind.NONE)|	tests/unit/test_pause_menu.gd	a confirm on a candidate equips nothing
+scripts/ui/pause_menu.gd	s|^\t_page = Page.EQUIP$|\tpass|	tests/unit/test_pause_menu.gd	equipping strands the cursor on a candidate list built from a bag that just changed
+scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.EQUIP$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the wardrobe lands the cursor on Save
+scripts/ui/pause_menu.gd	s|\t\treturn "%s: \(nothing\)" % row.label|\t\treturn ""|	tests/unit/test_pause_menu.gd	an empty slot draws a blank row, which reads as a menu that failed
+scripts/ui/pause_menu.gd	s|\t\treturn "\(take off\)"|\t\treturn ""|	tests/unit/test_pause_menu.gd	the one row that removes gear is drawn as an empty line
+scripts/world/world_scene.gd	s|\tGameState.equip\(def.slot, item_id\)|\tpass|	tests/integration/test_world_equipment.gd	a confirm on the equipment screen never reaches the slot map
+scripts/world/world_scene.gd	s|\tGameState.unequip\(slot\)|\tpass|	tests/integration/test_world_equipment.gd	the world hears the take-off and leaves the gear on
+scripts/world/world_scene.gd	s|\t\tattack_delta -= current.attack|\t\tpass|	tests/integration/test_world_equipment.gd	a candidate promises its own stats again instead of the swap it would be
+scripts/world/world_scene.gd	s|\t\t_game.combat.attack_at\(GameState.player_level\), _equip_mod\(&"attack"\),|\t\t0, 0,|	tests/integration/test_world_equipment.gd	the equip screen stops saying what the player's numbers actually are
+scripts/ui/pause_screen.gd	s|\t_stats.visible = equipping and not _menu.stats_label\(\).is_empty\(\)|\t_stats.visible = false|	tests/integration/test_pause_and_saves.gd	the stats readout never draws, so a delta has nothing to be a delta of

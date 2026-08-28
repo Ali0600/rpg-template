@@ -176,18 +176,18 @@ func test_the_item_page_opens_even_when_a_game_has_no_save_slots() -> void:
 	assert_int(menu.page()).is_equal(PauseMenu.Page.ITEMS)
 
 
-func test_confirming_a_slotted_item_asks_to_equip_it() -> void:
-	# The hook docs/DECISIONS.md recorded: the ITEMS page returned NONE "where the answer
-	# would go", and equipment is the answer that goes there.
+func test_confirming_gear_in_the_bag_does_nothing_now_that_it_has_a_page() -> void:
+	# M19 answered EQUIP here; M20 moved the verb to a page of its own, which is where every
+	# game this is modelled on keeps it. The bag is a list of what is carried and nothing more,
+	# so a confirm on a sword is as inert as a confirm on a key.
 	var menu := PauseMenu.of(_slots([]),
 		[PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon")])
 	# Named, never counted - the suite's own rule.
 	menu.move(PauseMenu.Row.ITEMS)
 	menu.confirm()
-	var pick := menu.confirm()
-	assert_int(pick.kind).override_failure_message(
-		"a confirm on a weapon did nothing").is_equal(PauseMenu.Kind.EQUIP)
-	assert_str(String(pick.item)).is_equal("sword")
+	assert_int(menu.confirm().kind).override_failure_message(
+		"the bag still equips, so two screens own one verb").is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.ITEMS)
 
 func test_an_equipped_row_is_marked() -> void:
 	var worn := PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon", true)
@@ -284,3 +284,181 @@ func test_the_sound_row_says_what_the_setting_is() -> void:
 func test_a_menu_told_nothing_about_sound_still_draws_the_row() -> void:
 	# A blank label would render as an empty line, which reads as a menu that failed to draw.
 	assert_str(PauseMenu.of(_slots([])).sound_label()).is_not_empty()
+
+
+# --- the equipment pages ------------------------------------------------------------------
+#
+# The verb the bag used to answer lives here now: a list of slots, each opening the carried
+# gear that fits it. Slot-first because that is what every reference game does, and because
+# "what am I wearing" should be a glance rather than a scan of the whole bag.
+
+
+func _gear(entries: Array) -> Array:
+	var out: Array = []
+	for entry: Array in entries:
+		out.append(PauseMenu.GearRow.of(entry[0], entry[1],
+			entry[2] if entry.size() > 2 else "", entry[3] if entry.size() > 3 else ""))
+	return out
+
+
+func _dressed() -> PauseMenu:
+	# A weapon slot holding a sword, an empty armour slot, and a bag with one candidate for
+	# each plus something that fits neither.
+	return PauseMenu.of(_slots([]), [
+			PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon", true),
+			PauseMenu.ItemRow.of(&"vest", "Vest", 1, "", &"armor"),
+			PauseMenu.ItemRow.of(&"gate_key", "Gate key", 1),
+		], "", "", _gear([
+			[&"weapon", "Weapon", "Sword", "Take off: Atk -3  (now Atk +0 Def +0)"],
+			[&"armor", "Armor"],
+		]), "Atk 5+3  Def 1+0")
+
+
+func test_confirming_the_equipment_row_opens_the_slot_list() -> void:
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP)
+	assert_int(menu.index()).is_equal(0)
+	assert_int(menu.size()).override_failure_message(
+		"the slot list is not one row per slot").is_equal(2)
+
+
+func test_the_equipment_page_opens_in_a_game_with_no_save_slots() -> void:
+	# The Items and Sound exemption, for the same reason: dressing yourself has nothing to do
+	# with saves. Its control is below - Save still refuses.
+	var menu := PauseMenu.of([], [], "", "", _gear([[&"weapon", "Weapon"]]))
+	menu.move(PauseMenu.Row.EQUIP)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP)
+
+
+func test_a_game_with_no_save_slots_still_cannot_save() -> void:
+	# The control for the test above: the exemption is for three named rows, not a hole.
+	var menu := PauseMenu.of([], [], "", "", _gear([[&"weapon", "Weapon"]]))
+	menu.move(PauseMenu.Row.SAVE)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
+
+
+func test_confirming_a_slot_opens_its_candidates_and_asks_for_nothing() -> void:
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP_PICK)
+	assert_str(String(menu.pick_slot())).is_equal("weapon")
+
+
+func test_the_candidate_list_holds_only_what_fits_the_slot() -> void:
+	# The bag has a sword, a vest and a key. The weapon page offers the sword and the row that
+	# takes it off - never the vest, and never the key.
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.confirm()
+	assert_int(menu.size()).override_failure_message(
+		"the weapon page is offering things that are not weapons").is_equal(2)
+	assert_str(menu.pick_row(0).name).is_equal("Sword")
+	assert_object(menu.pick_row(1)).override_failure_message(
+		"the last row is a candidate, so there is no way to take gear off").is_null()
+
+
+func test_the_take_off_row_answers_with_the_slot() -> void:
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.confirm()
+	menu.move(1)
+	var pick := menu.confirm()
+	assert_int(pick.kind).override_failure_message(
+		"the take-off row is decoration and gear is forever").is_equal(PauseMenu.Kind.UNEQUIP)
+	assert_str(String(pick.gear)).is_equal("weapon")
+
+
+func test_taking_off_an_empty_slot_is_refused() -> void:
+	# Refused rather than shrugged at, the empty-save-slot rule: a menu that accepts a press
+	# and does nothing reads as a menu that broke.
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.move(1)  # the armour slot, which is bare
+	menu.confirm()
+	assert_int(menu.size()).is_equal(2)
+	menu.move(1)  # past the vest, onto the take-off row
+	assert_int(menu.confirm().kind).override_failure_message(
+		"taking nothing off was accepted").is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).override_failure_message(
+		"a refusal left the page anyway").is_equal(PauseMenu.Page.EQUIP_PICK)
+
+
+func test_confirming_a_candidate_equips_it_and_returns_to_the_slots() -> void:
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.move(1)  # the armour slot
+	menu.confirm()
+	var pick := menu.confirm()
+	assert_int(pick.kind).is_equal(PauseMenu.Kind.EQUIP)
+	assert_str(String(pick.item)).is_equal("vest")
+	assert_int(menu.page()).override_failure_message(
+		"equipping stranded the cursor on the candidate list").is_equal(PauseMenu.Page.EQUIP)
+	assert_int(menu.index()).override_failure_message(
+		"the cursor came back to the wrong slot").is_equal(1)
+
+
+func test_cancel_on_the_candidates_returns_to_the_slot_it_was_asked_about() -> void:
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.move(1)
+	menu.confirm()
+	assert_int(menu.cancel().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP)
+	assert_int(menu.index()).is_equal(1)
+
+
+func test_cancel_on_the_slot_list_returns_to_the_equipment_row() -> void:
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	assert_int(menu.cancel().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
+	assert_int(menu.index()).override_failure_message(
+		"backing out of the wardrobe landed on the wrong row").is_equal(PauseMenu.Row.EQUIP)
+
+
+func test_a_slot_says_what_is_in_it_and_says_when_it_is_bare() -> void:
+	assert_str(PauseMenu.gear_label(PauseMenu.GearRow.of(&"weapon", "Weapon", "Sword"))) \
+		.is_equal("Weapon: Sword")
+	assert_str(PauseMenu.gear_label(PauseMenu.GearRow.of(&"armor", "Armor"))) \
+		.override_failure_message("a bare slot draws a blank, which reads as a failed draw") \
+		.is_equal("Armor: (nothing)")
+
+
+func test_the_take_off_row_is_worded_as_a_verb() -> void:
+	assert_str(PauseMenu.pick_label(null)).is_equal("(take off)")
+	assert_str(PauseMenu.pick_label(PauseMenu.ItemRow.of(&"sword", "Sword", 1))) \
+		.is_equal("Sword")
+
+
+func test_the_stats_readout_is_whatever_the_world_worded() -> void:
+	# The menu does not compose it: naming a stat means asking what the game calls one.
+	assert_str(_dressed().stats_label()).is_equal("Atk 5+3  Def 1+0")
+	assert_str(PauseMenu.of(_slots([])).stats_label()).override_failure_message(
+		"a menu told nothing about stats invented some").is_equal("")
+
+
+func test_refreshing_keeps_the_equipment_page_and_clamps_a_shrunken_list() -> void:
+	# The bag can change under the page - a fight, a hook, a load. The cursor must land on a
+	# row that exists rather than past the end of one that no longer does.
+	var menu := _dressed()
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.confirm()
+	menu.move(1)
+	menu.refresh(_slots([]), [], "", "", _gear([[&"weapon", "Weapon"]]), "Atk 5+0  Def 1+0")
+	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP_PICK)
+	assert_int(menu.size()).is_equal(1)
+	assert_int(menu.index()).override_failure_message(
+		"the cursor is past the end of the list it is drawn over").is_equal(0)

@@ -45,7 +45,7 @@ func _press(action: StringName) -> void:
 	Input.parse_input_event(up)
 	await _steps(1)
 
-func test_a_press_on_a_sword_in_the_bag_puts_it_on() -> void:
+func test_presses_on_the_equipment_screen_put_the_sword_on() -> void:
 	# Driven through the real menu rather than by calling equip(): the rule under test is that
 	# a CONFIRM on that row reaches the slot map, and calling the writer directly would prove
 	# the writer and nothing about the press.
@@ -53,18 +53,63 @@ func test_a_press_on_a_sword_in_the_bag_puts_it_on() -> void:
 	GameState.give_item(&"bronze_sword", 1)
 	assert_bool(world.open_pause()).is_true()
 	await _steps(2)
-	var pause: PauseScreen = world.pause_screen()
-	var rows: Array = world._item_rows()
-	pause.refresh([], rows, "", "")
-	await _steps(1)
-	# Driven by real presses: down to Items, confirm to open the bag, confirm to wear.
+	# Two downs to Equipment, in to the slots, in to the weapon slot's candidates, in to wear
+	# the only one there.
 	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"interact")
 	await _press(&"interact")
 	await _press(&"interact")
 	assert_str(String(GameState.equipped(&"weapon"))).override_failure_message(
 		"a confirm on the sword row did not reach the slot map").is_equal("bronze_sword")
 	# And it is still carried - equipping marks, it never moves.
 	assert_int(GameState.item_count(&"bronze_sword")).is_equal(1)
+
+func test_presses_on_the_take_off_row_empty_the_slot() -> void:
+	# The other half of the verb, and the half M19 could not have: the toggle it shipped meant
+	# taking off was the same press as putting on, which is a control nobody would find.
+	var world := _boot()
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	assert_bool(world.open_pause()).is_true()
+	await _steps(2)
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"interact")
+	await _press(&"interact")
+	# Past the sword, onto the row that takes it off.
+	await _press(&"move_down")
+	await _press(&"interact")
+	assert_str(String(GameState.equipped(&"weapon"))).override_failure_message(
+		"the take-off row was pressed and the sword is still on").is_equal("")
+	assert_int(GameState.item_count(&"bronze_sword")).override_failure_message(
+		"taking gear off threw it away").is_equal(1)
+
+func test_the_slot_list_names_what_is_worn_and_says_when_it_is_bare() -> void:
+	var world := _boot()
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	var worn := ""
+	var bare := "unset"
+	for row: PauseMenu.GearRow in world._gear_rows():
+		if row.slot_id == &"weapon":
+			worn = row.worn_name
+		if row.slot_id == &"armor":
+			bare = row.worn_name
+	assert_str(worn).override_failure_message(
+		"the weapon slot does not name the sword in it").is_equal("Bronze sword")
+	assert_str(bare).override_failure_message(
+		"the empty slot claims to hold something").is_equal("")
+
+func test_the_readout_shows_the_gear_apart_from_the_level() -> void:
+	# Two numbers rather than one total: a player deciding whether to buy a sword needs to see
+	# what the sword is worth, not what they add up to.
+	var world := _boot()
+	assert_str(world._stats_label()).override_failure_message(
+		"nothing worn should still read as nothing added").contains("Atk 5+0")
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	assert_str(world._stats_label()).contains("Atk 5+3")
 
 func test_what_you_are_wearing_is_not_on_the_sell_counter() -> void:
 	# The classic shop bug: selling the sword off your own back. The refusal lives in the
@@ -134,39 +179,47 @@ func test_a_fight_with_nothing_worn_gets_nothing() -> void:
 	assert_int(logic.attack_mod()).is_equal(0)
 	assert_int(logic.defense_mod()).is_equal(0)
 
-func test_the_bag_offers_to_take_off_what_is_already_on() -> void:
-	# The line under the list is the only place the player learns what a press will DO. Offering
-	# to "wear" the sword already on your back is a menu lying about its own verb.
+func test_the_slot_offers_to_take_off_what_is_in_it() -> void:
+	# The line under the list is the only place the player learns what a press will DO, and a
+	# take-off is the one row whose effect is a subtraction.
 	var world := _boot()
 	GameState.give_item(&"bronze_sword", 1)
-	var before: Array = world._item_rows()
+	var bare := ""
+	for row: PauseMenu.GearRow in world._gear_rows():
+		if row.slot_id == &"weapon":
+			bare = row.takeoff_effect
+	assert_str(bare).override_failure_message(
+		"an empty slot offered to take something off: '%s'" % bare).is_empty()
+
+	GameState.equip(&"weapon", &"bronze_sword")
 	var offer := ""
-	for row: PauseMenu.ItemRow in before:
-		if row.id == &"bronze_sword":
-			offer = row.effect
+	for row: PauseMenu.GearRow in world._gear_rows():
+		if row.slot_id == &"weapon":
+			offer = row.takeoff_effect
+	assert_str(offer).contains("Take off")
 	assert_str(offer).override_failure_message(
-		"an unworn sword did not offer to be worn: '%s'" % offer).contains("Wear")
+		"taking off a +3 sword did not read as losing 3: '%s'" % offer).contains("Atk -3")
 
-	GameState.equip(&"weapon", &"bronze_sword")
-	var after: Array = world._item_rows()
-	var worn_offer := ""
-	for row: PauseMenu.ItemRow in after:
-		if row.id == &"bronze_sword":
-			worn_offer = row.effect
-	assert_str(worn_offer).override_failure_message(
-		"a worn sword still offered to be worn: '%s'" % worn_offer).contains("Take off")
-
-func test_the_delta_reads_against_what_is_already_worn() -> void:
-	# "Atk +3" means little without "now +0" beside it - the compare is the point.
+func test_a_candidate_reads_as_the_swap_it_would_be() -> void:
+	# The delta is against what the slot ALREADY holds, not against nothing. Wearing the sword
+	# you are already wearing changes nothing, and the line has to say so - the M19 wording
+	# promised "+3" a second time, which is a menu describing a fight the player cannot have.
 	var world := _boot()
 	GameState.give_item(&"bronze_sword", 1)
-	GameState.equip(&"weapon", &"bronze_sword")
-	var rows: Array = world._item_rows()
-	var line := ""
-	for row: PauseMenu.ItemRow in rows:
+	var fresh := ""
+	for row: PauseMenu.ItemRow in world._item_rows():
 		if row.id == &"bronze_sword":
-			line = row.effect
-	assert_str(line).contains("Atk +3")
-	assert_str(line).override_failure_message(
-		"the delta was shown with nothing to read it against: '%s'" % line).contains("now Atk +3")
+			fresh = row.effect
+	assert_str(fresh).contains("Atk +3")
+	assert_str(fresh).override_failure_message(
+		"the delta was shown with nothing to read it against: '%s'" % fresh).contains("now Atk +0")
+
+	GameState.equip(&"weapon", &"bronze_sword")
+	var again := ""
+	for row: PauseMenu.ItemRow in world._item_rows():
+		if row.id == &"bronze_sword":
+			again = row.effect
+	assert_str(again).override_failure_message(
+		"wearing what is already worn promised its stats twice: '%s'" % again).contains("no change")
+	assert_str(again).contains("now Atk +3")
 
