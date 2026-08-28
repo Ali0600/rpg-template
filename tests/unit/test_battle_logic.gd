@@ -47,9 +47,10 @@ func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false,
 	return out
 
 func _fight(enemy: EnemyDef = null, hp := 20, xp := 0, level := 1, items: Array = [],
-		curve: Array[int] = [10, 12]) -> BattleLogic:
+		curve: Array[int] = [10, 12], attack_mod := 0, defense_mod := 0) -> BattleLogic:
 	var foe := enemy if enemy != null else _enemy()
-	return BattleLogic.of(_combat(curve), foe, hp, xp, level, items, "map/foe", 7)
+	return BattleLogic.of(_combat(curve), foe, hp, xp, level, items, "map/foe", 7,
+		attack_mod, defense_mod)
 
 func _tonic(count := 1, heal := 10) -> BattleLogic.ItemRow:
 	return BattleLogic.ItemRow.of(&"tonic", "Tonic", count, heal)
@@ -342,6 +343,33 @@ func test_winning_ends_the_fight_and_marks_the_enemy_beaten() -> void:
 			seen.append(effect)
 	assert_int(seen.size()).is_equal(1)
 	assert_str(str(seen[0].get("key", ""))).is_equal("map/foe")
+
+func test_a_weapon_adds_to_every_blow() -> void:
+	# Stats are DERIVED from level here, so gear can only ever be a modifier on that
+	# derivation - and this is the site that proves the modifier arrives.
+	var bare := _fight(_enemy(99))
+	var armed := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 4, 0)
+	bare.press()
+	armed.press()
+	_until_leaves(bare, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(armed, BattleLogic.Phase.PLAYER_ACT)
+	assert_int(armed.enemy_hp()).override_failure_message(
+		"a sword changed nothing: bare left %d, armed left %d" % [bare.enemy_hp(), armed.enemy_hp()]) \
+		.is_less(bare.enemy_hp())
+	assert_int(armed.attack_mod()).is_equal(4)
+
+func test_armour_takes_the_edge_off_every_hit() -> void:
+	var bare := _fight(_enemy(99, 20))
+	var plated := _fight(_enemy(99, 20), 20, 0, 1, [], [10, 12], 0, 3)
+	for battle in [bare, plated]:
+		battle.press()
+		_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+		_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+		_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	assert_int(plated.player_hp()).override_failure_message(
+		"armour changed nothing: bare %d hp, plated %d hp" % [bare.player_hp(), plated.player_hp()]) \
+		.is_greater(bare.player_hp())
+	assert_int(plated.defense_mod()).is_equal(3)
 
 func test_winning_drops_the_enemys_coin() -> void:
 	var battle := _fight(_enemy(4, 3, 1, 5, false, 7))

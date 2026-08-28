@@ -371,6 +371,45 @@ func test_a_version_5_save_is_carried_forward() -> void:
 	assert_int(int(data.party.get("level", 0))).override_failure_message(
 		"the v5->v6 step lost the party it was handed").is_equal(3)
 
+func test_a_version_6_save_is_carried_forward() -> void:
+	var file := JsonFile.read(FIXTURES + "v6.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	assert_bool(migrated.has("equipment")).override_failure_message(
+		"a migrated save arrived with no equipment field at all").is_true()
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# Nothing worn rather than a gift, the call every step before it made.
+	assert_dict(data.equipment).is_empty()
+	# And the step must not drop what v6 already knew - the fixture carries a bag, a party
+	# and a purse on purpose, because with any of them missing a step that wiped it would pass.
+	assert_int(int(data.items.get("tonic", 0))).override_failure_message(
+		"the v6->v7 step lost the bag it was handed").is_equal(2)
+	assert_int(int(data.party.get("level", 0))).override_failure_message(
+		"the v6->v7 step lost the party it was handed").is_equal(3)
+	assert_int(data.gold).override_failure_message(
+		"the v6->v7 step lost the purse it was handed").is_equal(41)
+
+func test_equipment_survives_a_round_trip() -> void:
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.give_item(&"tonic", 1)
+	assert_bool(GameState.equip(&"weapon", &"tonic")).is_true()
+	var reloaded := SaveData.from_dict(GameState.to_save().to_dict())
+	assert_array(reloaded.problems()).is_empty()
+	GameState.reset()
+	GameState.from_save(reloaded)
+	assert_str(String(GameState.equipped(&"weapon"))).is_equal("tonic")
+
+func test_a_save_that_equips_what_it_does_not_carry_is_reported() -> void:
+	# The file checked against ITSELF. A hand-edited save describing a player wearing a sword
+	# they do not own would arm a phantom on load, and nothing downstream could tell.
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_keep"
+	data.equipment = {"weapon": "bronze_sword"}
+	assert_str(str(data.problems())).contains("carries none")
+
 func test_gold_survives_a_round_trip() -> void:
 	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
 	assert_bool(GameState.give_gold(30)).is_true()
@@ -379,6 +418,38 @@ func test_gold_survives_a_round_trip() -> void:
 	GameState.reset()
 	GameState.from_save(reloaded)
 	assert_int(GameState.gold).is_equal(30)
+
+func test_you_cannot_equip_what_you_are_not_carrying() -> void:
+	# A slot map pointing at a phantom is the dangling reference every other rule here exists
+	# to prevent.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	assert_bool(GameState.equip(&"weapon", &"tonic")).override_failure_message(
+		"the player equipped something they do not have").is_false()
+	assert_str(String(GameState.equipped(&"weapon"))).is_empty()
+
+func test_equipping_into_a_full_slot_swaps() -> void:
+	# The item never left the bag, so there is nothing to put back - the DQ model.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.give_item(&"tonic", 1)
+	GameState.give_item(&"waybread", 1)
+	GameState.equip(&"weapon", &"tonic")
+	GameState.equip(&"weapon", &"waybread")
+	assert_str(String(GameState.equipped(&"weapon"))).is_equal("waybread")
+	assert_int(GameState.item_count(&"tonic")).override_failure_message(
+		"swapping gear consumed the item that came off").is_equal(1)
+
+func test_losing_the_last_copy_takes_the_marker_with_it() -> void:
+	# By a sale, a dialog take, anything: without this the slot map points at an item the
+	# player no longer has, and the phantom re-arms the moment they pick another one up.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.give_item(&"tonic", 2)
+	GameState.equip(&"weapon", &"tonic")
+	GameState.take_item(&"tonic", 1)
+	assert_str(String(GameState.equipped(&"weapon"))).override_failure_message(
+		"selling a spare unequipped the one still carried").is_equal("tonic")
+	GameState.take_item(&"tonic", 1)
+	assert_str(String(GameState.equipped(&"weapon"))).override_failure_message(
+		"the last copy left the bag and stayed equipped").is_empty()
 
 func test_a_purse_cannot_go_negative() -> void:
 	# Refused, never clamped: clamping turns "could not afford it" into "bought it and has

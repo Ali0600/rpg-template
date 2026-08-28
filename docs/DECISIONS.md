@@ -159,6 +159,25 @@ one-glance menu of things still worth trying.
   are GAME design, not template scope: they are what a game builds on `ShopDef`, and baking
   any of them in would be designing somebody's game.
 
+## Equipment stays in the bag, and arrives at a fight as two ints
+
+- **Chosen: `GameState.equipment` is slot -> id, and the item never leaves the inventory.**
+  The Dragon Quest model. Moving an item out of the bag on equip would make the bag a
+  half-truth ("what you have, except what you are using"), and every existing reader — the
+  pause list, the sell counter, `requires_item` — would need to learn about a second place
+  things live.
+- *Equipment as its own container* — rejected for that reason; revisit hook is
+  `GameState.equipment`, which would become a second Inventory.
+- **Mods reach `BattleLogic` through `of()`'s parameters, already summed.** Stats are derived
+  from level, so gear must be a modifier or there are two sources of truth for one number;
+  and BattleLogic may not reach the Registry, so the world does the resolving.
+- *A stats struct passed into the fight* — deferred, worth it the day a third modifier source
+  appears (a buff, a status effect): the revisit hook is `of()`'s two int parameters, which
+  would become one object. Rejected now because two ints need no ceremony.
+- **Cursed gear (negative mods) is refused** by `ItemDef.problems()`. A game that wants it
+  wants a different noun with its own rules — the same call `battle_heal` made about negative
+  healing.
+
 ## A price belongs to the item, not to the shop
 
 - **Chosen: `ItemDef.price`, with `ShopDef` listing ids only.** One price per item is what
