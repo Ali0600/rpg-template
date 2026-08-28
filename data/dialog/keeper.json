@@ -11,7 +11,13 @@
 		"poor_next is REQUIRED on a choice that charges - the build refuses a keeper who takes",
 		"money and says nothing when they cannot have it.",
 		"",
-		"Four gold is exactly what one slink drops, which is the whole economy in one line: an ambient fight pays for the night it costs you."
+		"Four gold is exactly what one slink drops, which is the whole economy in one line: an ambient fight pays for the night it costs you.",
+		"",
+		"The line after the yes is a GOING-TO-BED line, not a good-morning one, and that ordering",
+		"is forced rather than chosen: a conversation's effects are applied when it CLOSES, so",
+		"everything on this chain is said while the player is still standing there awake. The",
+		"night comes after the last word. A 'Morning already' here read as waking up before going",
+		"to sleep."
 	],
 	"id": "keeper",
 	"start": "greet",
@@ -22,7 +28,7 @@
 			"choices": [
 				{
 					"text": "I'll take it.",
-					"next": "slept",
+					"next": "abed",
 					"spend_gold": 4,
 					"rest": true,
 					"poor_next": "poor"
@@ -33,10 +39,6 @@
 				}
 			]
 		},
-		"slept": {
-			"speaker": "Innkeeper",
-			"text": "Morning already. You slept\nlike the dead - the good kind."
-		},
 		"poor": {
 			"speaker": "Innkeeper",
 			"text": "Four gold, I said. Come back\nwhen your purse agrees."
@@ -44,6 +46,10 @@
 		"bye": {
 			"speaker": "Innkeeper",
 			"text": "Suit yourself. Bed's here."
+		},
+		"abed": {
+			"speaker": "Innkeeper",
+			"text": "Bed's the one by the window.\nSleep well."
 		}
 	}
 }
