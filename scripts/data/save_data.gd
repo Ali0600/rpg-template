@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 6
+const VERSION := 7
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -35,6 +35,10 @@ var party: Dictionary = {}
 ## What the player can spend. Added in v6. A plain integer rather than a dictionary like
 ## `party`: zero is a real answer here (broke), so there is no "unset" to represent.
 var gold: int = 0
+## What is worn, as slot -> item id. Added in v7. A dictionary rather than two fields because
+## the slots are the game's vocabulary, not this class's: a save from a game with three slots
+## carries three keys and this file needs no edit to hold them.
+var equipment: Dictionary = {}
 ## Seconds of play. Added in v2, which is what the v1 migration exists to demonstrate.
 var play_seconds: float = 0.0
 
@@ -51,6 +55,7 @@ func to_dict() -> Dictionary:
 		"items": items,
 		"party": party,
 		"gold": gold,
+		"equipment": equipment,
 		"play_seconds": play_seconds,
 	}
 
@@ -76,6 +81,7 @@ static func from_dict(d: Dictionary) -> SaveData:
 	# Copied as written, not clamped - a negative purse is a fault to REPORT, the same call
 	# the item counts above make.
 	out.gold = int(d.get("gold", 0))
+	out.equipment = d.get("equipment", {}) if d.get("equipment", {}) is Dictionary else {}
 	out.play_seconds = float(d.get("play_seconds", 0.0))
 	return out
 
@@ -96,6 +102,14 @@ func problems() -> Array[String]:
 		out.append("save has negative play time")
 	if gold < 0:
 		out.append("save carries %d gold" % gold)
+	# The file checked against ITSELF: a save that equips what its own bag does not carry is
+	# describing a player who cannot exist, and loading it would arm a phantom.
+	for slot: Variant in equipment.keys():
+		var worn := str(equipment[slot])
+		if worn.is_empty():
+			out.append("save equips nothing in slot '%s'" % slot)
+		elif int(items.get(worn, 0)) <= 0:
+			out.append("save equips '%s' in slot '%s' but carries none" % [worn, slot])
 	for key: Variant in items.keys():
 		# A zero or negative count is a file that has been edited by hand or written by a
 		# broken build. Carrying "minus one key" is not a state the game can be in.

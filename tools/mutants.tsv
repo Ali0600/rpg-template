@@ -330,3 +330,10 @@ scripts/ui/shop_menu.gd	s|return 0 if r == null or _count <= 0 else r.price \* _
 scripts/ui/shop_menu.gd	s|_saying = Saying.POOR|pass|	tests/unit/test_shop_menu.gd	a refusal makes no words, which reads as a dead key
 scripts/ui/shop_menu.gd	s|return r.description if r != null else ""|return ""|	tests/unit/test_shop_menu.gd	the description bar goes blank and the shop stops saying what it sells
 scripts/ui/shop_menu.gd	s|_saying = Saying.HOW_MANY|pass|	tests/unit/test_shop_menu.gd	the keeper stops asking how many and the count runs unannounced
+scripts/ui/battle_logic.gd	s|damage\(_combat.attack_at\(_level\) \+ _attack_mod, _enemy.defense\)|damage(_combat.attack_at(_level), _enemy.defense)|	tests/unit/test_battle_logic.gd	a sword changes nothing and gear is decoration
+scripts/ui/battle_logic.gd	s|_combat.defense_at\(_level\) \+ _defense_mod\)|_combat.defense_at(_level))|	tests/unit/test_battle_logic.gd	armour changes nothing and gear is decoration
+scripts/autoload/game_state.gd	s|if String\(slot\).is_empty\(\) or not inventory.has\(id\):|if false:|	tests/unit/test_saves.gd	the player equips a sword they do not own
+scripts/autoload/game_state.gd	s|if inventory.count\(id\) == 0:|if false:|	tests/unit/test_saves.gd	the last sword leaves the bag and stays equipped as a phantom
+scripts/data/migrations.gd	s|d\["equipment"\] = \{\}|pass|	tests/unit/test_saves.gd	an old save loads with no equipment map at all
+scripts/data/save_data.gd	s|elif int\(items.get\(worn, 0\)\) <= 0:|elif false:|	tests/unit/test_saves.gd	a hand-edited save equipping what it does not carry loads without complaint
+scripts/data/item_def.gd	s|if slot != &"" and slot != &"weapon" and slot != &"armor":|if false:|	tests/unit/test_items.gd	a typo'd slot name becomes a trinket that never equips

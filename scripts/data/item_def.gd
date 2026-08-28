@@ -39,6 +39,18 @@ extends Resource
 @export var battle_heal: int = 0
 
 
+## Which body slot this occupies, or empty for a thing that is only carried. The template's
+## vocabulary is WEAPON and ARMOR; a game wanting a third slot is adding a noun, not flipping
+## a switch, and that is recorded in docs/DECISIONS.md rather than smuggled in here.
+@export var slot: StringName = &""
+
+## Added to the wearer's attack while equipped. Meaningful only with a slot - a modifier on a
+## slotless item would silently do nothing, so problems() refuses the combination.
+@export var attack: int = 0
+
+## Added to the wearer's defense while equipped, on the same terms.
+@export var defense: int = 0
+
 ## What a shop charges for one of these. ZERO MEANS NOT TRADABLE, the same "zero is off"
 ## shape battle_heal uses - so a shop cannot stock it and the sell page will not list it.
 ##
@@ -62,4 +74,12 @@ func problems() -> Array[String]:
 		out.append("item '%s' heals %d" % [id, battle_heal])
 	if price < 0:
 		out.append("item '%s' is priced at %d" % [id, price])
+	if slot != &"" and slot != &"weapon" and slot != &"armor":
+		# A typo'd slot must fail the build, not quietly become a trinket.
+		out.append("item '%s' names unknown slot '%s'" % [id, slot])
+	if attack < 0 or defense < 0:
+		# Cursed gear is a game's design decision, not a sign flip here - see DECISIONS.
+		out.append("item '%s' has negative equipment stats" % id)
+	if slot == &"" and (attack != 0 or defense != 0):
+		out.append("item '%s' has equipment stats but no slot - they would do nothing" % id)
 	return out

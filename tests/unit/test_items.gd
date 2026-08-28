@@ -204,6 +204,34 @@ func test_a_shop_with_nothing_to_sell_is_refused() -> void:
 	shop.id = &"empty"
 	assert_str(str(shop.problems())).contains("stocks nothing")
 
+func test_an_unknown_slot_name_is_refused() -> void:
+	# A typo'd slot must fail the build rather than quietly becoming a trinket that never
+	# equips - the failure would otherwise be "why is my sword doing nothing", hours later.
+	var item := ItemDef.new()
+	item.id = &"wonky"
+	item.name = "Wonky blade"
+	item.slot = &"wepon"
+	assert_str(str(item.problems())).contains("unknown slot")
+
+func test_the_two_real_slots_are_accepted() -> void:
+	# The near miss for the rule above: a rule that refused everything would pass the test
+	# above and refuse the whole vocabulary.
+	for slot in [&"weapon", &"armor"]:
+		var item := ItemDef.new()
+		item.id = &"fine"
+		item.name = "Fine thing"
+		item.slot = slot
+		assert_array(item.problems()).override_failure_message(
+			"slot '%s' was refused" % slot).is_empty()
+
+func test_equipment_stats_without_a_slot_are_refused() -> void:
+	# They would silently do nothing, which is the worst of both: authored, and inert.
+	var item := ItemDef.new()
+	item.id = &"odd"
+	item.name = "Odd thing"
+	item.attack = 3
+	assert_str(str(item.problems())).contains("no slot")
+
 func test_an_item_priced_below_zero_is_refused() -> void:
 	var item := ItemDef.new()
 	item.id = &"cursed"

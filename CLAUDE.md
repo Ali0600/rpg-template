@@ -177,6 +177,17 @@ effects and then pops the dialog overlay, so a counter opened inline would be th
 pop closed. The menu is the only affordability check; `spend_gold` behind it is the invariant,
 and it says so loudly rather than overdrawing anyone.
 
+**Gear is a MODIFIER, never a stat, and it never leaves the bag.** Player attack and defense
+are DERIVED (`CombatDef.attack_at(level)`), so equipment cannot be stored as a stat without
+two sources of truth for one number; it arrives at `BattleLogic.of()` as two already-summed
+ints, because that class may not reach the Registry. The world resolves them (`_equip_mod`),
+which is the `_battle_items`/`_item_rows` precedent. `GameState.equipment` is slot -> item id
+and the item STAYS in the inventory - equipping marks it, so the bag remains the one list of
+what the player has, and a swap has nothing to put back. `take_item` clears the marker when
+the last copy leaves by ANY path, because a slot map pointing at a phantom re-arms the moment
+another copy is picked up; `SaveData.problems()` checks the same invariant against the file
+itself, since a hand-edited save can describe a player who cannot exist.
+
 **Money has ONE writer and a spend is refused, never clamped.** `GameState.gold` sits beside
 hp/xp, but zero is a REAL value there (broke) rather than the "unset" hp uses, so it is a
 plain field with a plain default. `give_gold`/`spend_gold` are the whole vocabulary and both

@@ -41,6 +41,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v4_to_v5(d)
 			5:
 				d = _v5_to_v6(d)
+			6:
+				d = _v6_to_v7(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -110,7 +112,18 @@ static func _v5_to_v6(d: Dictionary) -> Dictionary:
 	return d
 
 
+## v6 -> v7: nothing was worn before v7.
+##
+## An empty slot map, the call every step above makes. Handing an old save a sword it never
+## earned is the same lie as handing it gold, with an extra edge: the equipment map must
+## agree with the bag, and this step cannot know what is in one.
+static func _v6_to_v7(d: Dictionary) -> Dictionary:
+	d["equipment"] = {}
+	d["version"] = 7
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3, 4, 5, 6]
+	return [1, 2, 3, 4, 5, 6, 7]

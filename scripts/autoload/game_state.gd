@@ -32,6 +32,10 @@ var player_level: int = 1
 ## unset - so gold is a plain field with a plain default rather than something derived. A
 ## game with no economy simply never moves it off zero.
 var gold: int = 0
+## What is worn, as slot -> item id. The item STAYS in the bag - equipping marks it, never
+## moves it - so the bag remains the one list of what the player has, and this map is only
+## the answer to "which of them are on". Empty is the normal state and means nothing worn.
+var equipment: Dictionary = {}
 var play_seconds: float = 0.0
 
 
@@ -62,6 +66,7 @@ func reset() -> void:
 	player_xp = 0
 	player_level = 1
 	gold = 0
+	equipment = {}
 	play_seconds = 0.0
 
 
@@ -104,7 +109,16 @@ func give_item(id: StringName, n: int = 1) -> bool:
 
 
 func take_item(id: StringName, n: int = 1) -> bool:
-	return inventory.remove(id, n)
+	if not inventory.remove(id, n):
+		return false
+	# The last copy leaving the bag - by a sale, a dialog take, anything - takes the marker
+	# with it. Without this, the slot map points at an item the player no longer has, and the
+	# phantom re-arms the moment they pick another one up.
+	if inventory.count(id) == 0:
+		for slot: Variant in equipment.keys():
+			if equipment[slot] == id:
+				equipment.erase(slot)
+	return true
 
 
 func has_item(id: StringName, n: int = 1) -> bool:
@@ -131,6 +145,29 @@ func spend_gold(n: int) -> bool:
 		return false
 	gold -= n
 	return true
+
+
+## What is worn, through the one writer. Equip refuses what the bag does not hold - a slot
+## map pointing at a phantom item is the dangling reference every other rule here exists to
+## prevent. Equipping into an occupied slot swaps: the old item was never out of the bag, so
+## there is nothing to put back.
+func equip(slot: StringName, id: StringName) -> bool:
+	if String(slot).is_empty() or not inventory.has(id):
+		return false
+	equipment[slot] = id
+	return true
+
+
+func unequip(slot: StringName) -> bool:
+	return equipment.erase(slot)
+
+
+func equipped(slot: StringName) -> StringName:
+	return StringName(str(equipment.get(slot, "")))
+
+
+func is_equipped(id: StringName) -> bool:
+	return equipment.values().has(id)
 
 
 ## What a fight left the player as. All three together, through one writer, because they are
@@ -160,6 +197,7 @@ func to_save() -> SaveData:
 		"hp": player_hp, "xp": player_xp, "level": player_level,
 	}
 	out.gold = gold
+	out.equipment = equipment.duplicate(true)
 	out.play_seconds = play_seconds
 	return out
 
@@ -181,4 +219,5 @@ func from_save(data: SaveData) -> void:
 	player_xp = int(data.party.get("xp", 0))
 	player_level = maxi(int(data.party.get("level", 1)), 1)
 	gold = maxi(data.gold, 0)
+	equipment = data.equipment.duplicate(true)
 	play_seconds = data.play_seconds

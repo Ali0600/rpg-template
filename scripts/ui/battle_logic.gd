@@ -54,6 +54,11 @@ var _hp: int = 0
 var _xp: int = 0
 var _level: int = 1
 var _enemy_hp: int = 0
+## What the player's gear is worth, already summed by the world. Handed in rather than looked
+## up: this class may not reach the Registry, and stats here are DERIVED from level, so
+## equipment can only ever be a modifier on that derivation - never a stored stat.
+var _attack_mod: int = 0
+var _defense_mod: int = 0
 ## Cues asked for and not yet drained by the view.
 var _sounds: Array[StringName] = []
 
@@ -81,7 +86,8 @@ var _effects: Array[Dictionary] = []
 ## `seen_key` is the map-scoped id the world will mark on victory, carried rather than
 ## rebuilt so the logic never has to know how a seen key is spelled.
 static func of(combat: CombatDef, enemy: EnemyDef, hp: int, xp: int, level: int,
-		items: Array, seen_key: String, seed_value: int) -> BattleLogic:
+		items: Array, seen_key: String, seed_value: int,
+		attack_mod: int = 0, defense_mod: int = 0) -> BattleLogic:
 	var out := BattleLogic.new()
 	out._combat = combat
 	out._enemy = enemy
@@ -91,10 +97,22 @@ static func of(combat: CombatDef, enemy: EnemyDef, hp: int, xp: int, level: int,
 	out._enemy_hp = enemy.max_hp
 	out._items = items.duplicate()
 	out._seen_key = seen_key
+	out._attack_mod = maxi(attack_mod, 0)
+	out._defense_mod = maxi(defense_mod, 0)
 	# Its own derived stream, so a later randomised feature - a crit, a drop - cannot reshuffle
 	# the moves an existing fight already draws.
 	out._moves_rng = SeededRng.new(seed_value).derive("moves")
 	return out
+
+
+## What the gear is contributing, so the wiring from the world is assertable rather than only
+## visible in the damage it happens to produce.
+func attack_mod() -> int:
+	return _attack_mod
+
+
+func defense_mod() -> int:
+	return _defense_mod
 
 
 func phase() -> Phase:
@@ -356,7 +374,7 @@ func _begin_cue(next: Phase, frames: int) -> void:
 
 
 func _land_player_hit() -> void:
-	var base := damage(_combat.attack_at(_level), _enemy.defense)
+	var base := damage(_combat.attack_at(_level) + _attack_mod, _enemy.defense)
 	var timed := pressed_in_time()
 	var dealt := base * 2 if timed else base
 	# The IMPACT is the feedback, not the press. A click the moment the button went down would
@@ -372,7 +390,8 @@ func _land_player_hit() -> void:
 
 func _land_enemy_hit() -> void:
 	var move := _pick_move()
-	var base := damage(_enemy.attack + int(move.get("power", 0)), _combat.defense_at(_level))
+	var base := damage(_enemy.attack + int(move.get("power", 0)),
+		_combat.defense_at(_level) + _defense_mod)
 	var blocked := pressed_in_time()
 	var taken := maxi(base / 2, 1) if blocked else base
 	_want(Sfx.Cue.BLOCK if blocked else Sfx.Cue.HURT)

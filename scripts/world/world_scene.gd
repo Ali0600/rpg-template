@@ -787,7 +787,8 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	_battle.finished.connect(_on_battle_finished)
 	add_child(_battle)
 	_battle.setup(BattleLogic.of(_game.combat, def, GameState.player_hp, GameState.player_xp,
-		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key)),
+		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key),
+		_equip_mod(&"attack"), _equip_mod(&"defense")),
 		_style, get_viewport_rect().size, _source, _game.player_character, def.character)
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
@@ -893,6 +894,25 @@ func _close_shop() -> void:
 	_shop.queue_free()
 	_shop = null
 	Router.close_overlay()
+
+
+## What the worn gear adds to one stat. Resolved HERE because it means asking the Registry
+## what an item is, and BattleLogic may not - the _battle_items and _item_rows precedent.
+##
+## An id the bag no longer holds contributes nothing rather than erroring: GameState clears
+## the marker when the last copy leaves, so this is belt-and-braces against a save edited by
+## hand, which SaveData.problems() reports separately.
+func _equip_mod(stat: StringName) -> int:
+	var total := 0
+	for slot: Variant in GameState.equipment.keys():
+		var worn := StringName(str(GameState.equipment[slot]))
+		if not GameState.has_item(worn):
+			continue
+		var item := Registry.get_resource(&"ItemDef", worn) as ItemDef
+		if item == null:
+			continue
+		total += item.attack if stat == &"attack" else item.defense
+	return total
 
 
 ## What the player could drink mid-fight, resolved into rows. The Registry lookup lives here
