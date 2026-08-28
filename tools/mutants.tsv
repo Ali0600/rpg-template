@@ -370,3 +370,7 @@ scripts/ui/dialog_runner.gd	s|\t\t\tif costs > 0 and refusal.is_empty\(\):|\t\t\
 scripts/ui/dialog_runner.gd	s|\t\t_collect_reachable\(str\(\(entry as Dictionary\).get\("poor_next", ""\)\), seen\)|\t\tpass|	tests/unit/test_dialog_runner.gd	every correctly-written refusal fails the build as unreachable
 scripts/world/world_scene.gd	s|\t\t\t\tif GameState.spend_gold\(int\(effect.get\("amount", 0\)\)\):|\t\t\t\tif false:|	tests/integration/test_world_items.gd	a spend reaches the sink and the money stays in the purse
 scripts/world/world_scene.gd	s|\tGameState.set_party\(_game.combat.max_hp\(level\), GameState.player_xp, level\)|\tpass|	tests/integration/test_world_items.gd	a night at the inn costs money and heals nothing
+scripts/world/world_scene.gd	s|\topen_rest.call_deferred\(\)|\tpass|	tests/fixtures/qa/quest/rest_at_the_inn.json	the player pays for a room and the night never comes
+scripts/world/world_scene.gd	s|\tRouter.open_overlay\(Router.State.RESTING\)|\tpass|	tests/fixtures/qa/quest/rest_at_the_inn.json	a night passes with the player free to walk out through the middle of it
+scripts/ui/rest_screen.gd	s|\t\t_done = true|\t\tpass|	tests/unit/test_rest_screen.gd	a night announces it is over on every frame, not once
+scripts/ui/rest_screen.gd	s|\t\t_shade.color.a = float\(_elapsed\) / float\(_fade_frames\)|\t\t_shade.color.a = 0.0|	tests/unit/test_rest_screen.gd	sleep never darkens anything, so a night reads as the game freezing

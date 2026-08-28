@@ -25,12 +25,13 @@
 		"-": "path",
 		"#": "wall",
 		"~": "water",
-		"*": "bush"
+		"*": "bush",
+		"+": "door"
 	},
 	"ground": [
 		"##########-#########",
-		"#..,.....------....#",
-		"#....,...------..,.#",
+		"#..#####.------....#",
+		"#..#+###.------..,.#",
 		"#........--..--....#",
 		"#..,.....--..--....#",
 		"#--------------.,..#",
@@ -56,15 +57,31 @@
 		"                    "
 	],
 	"spawns": {
-		"start": [4, 6],
-		"east_gate": [18, 6],
-		"north_gate": [10, 1]
+		"start": [
+			4,
+			6
+		],
+		"east_gate": [
+			18,
+			6
+		],
+		"north_gate": [
+			10,
+			1
+		],
+		"inn_door": [
+			4,
+			3
+		]
 	},
 	"npcs": [
 		{
 			"id": "elder",
 			"character": "town_elder",
-			"tile": [11, 2],
+			"tile": [
+				11,
+				2
+			],
 			"facing": "down",
 			"dialog": "elder",
 			"behavior": "static"
@@ -72,7 +89,10 @@
 		{
 			"id": "kid",
 			"character": "town_kid",
-			"tile": [8, 8],
+			"tile": [
+				8,
+				8
+			],
 			"facing": "right",
 			"dialog": "kid",
 			"behavior": "static"
@@ -80,7 +100,10 @@
 		{
 			"id": "smith",
 			"character": "town_smith",
-			"tile": [15, 4],
+			"tile": [
+				15,
+				4
+			],
 			"facing": "left",
 			"dialog": "smith",
 			"behavior": "static"
@@ -88,20 +111,63 @@
 		{
 			"id": "carter",
 			"character": "town_carter",
-			"tile": [6, 3],
+			"tile": [
+				6,
+				3
+			],
 			"facing": "down",
 			"dialog": "carter",
 			"behavior": "patrol",
-			"path": [[6, 3], [6, 8]],
+			"path": [
+				[
+					6,
+					3
+				],
+				[
+					6,
+					8
+				]
+			],
 			"dwell_min": 45,
 			"dwell_max": 90
 		}
 	],
 	"objects": [
-		{ "id": "well_sign", "tile": [4, 9], "kind": "sign", "dialog": "well_sign", "set_flag": "read_the_notice" }
+		{
+			"id": "well_sign",
+			"tile": [
+				4,
+				9
+			],
+			"kind": "sign",
+			"dialog": "well_sign",
+			"set_flag": "read_the_notice"
+		}
 	],
 	"warps": [
-		{ "tile": [19, 6], "map": "quest_cave", "spawn": "west_gate" },
-		{ "tile": [10, 0], "map": "quest_village", "spawn": "from_town" }
+		{
+			"tile": [
+				19,
+				6
+			],
+			"map": "quest_cave",
+			"spawn": "west_gate"
+		},
+		{
+			"tile": [
+				10,
+				0
+			],
+			"map": "quest_village",
+			"spawn": "from_town"
+		},
+		{
+			"tile": [
+				4,
+				2
+			],
+			"map": "quest_inn",
+			"spawn": "door"
+		}
 	]
 }

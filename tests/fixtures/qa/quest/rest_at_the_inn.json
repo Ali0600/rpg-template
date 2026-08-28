@@ -1,0 +1,643 @@
+{
+	"_readme": [
+		"A night at the inn, and the loop the whole economy rests on: fight, lose hit points,",
+		"pay to get them back.",
+		"",
+		"The route is long on purpose. This session has to arrive at the counter WOUNDED, and",
+		"the only window in this game where the player is neither full at the start nor",
+		"refilled by a level-up is straight after the first slink - one fight worth 5xp against",
+		"a curve that levels at 10. So the opening legs are the walkthrough's own, verbatim,",
+		"as far as that fight; everything after it is the walk home.",
+		"",
+		"That fight also drops exactly four gold, which is exactly what a night costs. Asserting",
+		"a full bar after a rest would prove nothing at all - it is the 14 BEFORE it that makes",
+		"the 20 after it mean something.",
+		"",
+		"Every leg is held until a wall, a body or the water stops it. The town's are the",
+		"fussiest: the carter patrols the column between the plaza and the inn, so the walk",
+		"north up her column may end a row early - which is why nothing downstream depends on",
+		"the row, only on the column."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "the village, carrying nothing and owed an explanation"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				5,
+				5
+			]
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "the warden stands at [5,3]; walk north until her body stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "dialog",
+			"limit": 12
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "east along row 5 into the barred gate - refused, and we do not move"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "west through the other door - and the arriving hold carries us straight into what is standing in the gap"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 600
+		},
+		{
+			"op": "note",
+			"text": "beaten, and its body is gone from the gap"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "note",
+			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all"
+		},
+		{
+			"op": "assert_hp",
+			"value": 14
+		},
+		{
+			"op": "note",
+			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3"
+		},
+		{
+			"op": "assert_xp",
+			"value": 5
+		},
+		{
+			"op": "note",
+			"text": "and the coin that fight dropped - asserted HERE because before it the purse is zero whether drops work or not"
+		},
+		{
+			"op": "assert_gold",
+			"value": 4
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "out of the hollow: north until the water stops us, east to the wall, one south onto the door"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				10,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 12
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "the village, anchored the whole way: the bush at [2,8] stops the walk south, the water stops the walk east, then the south wall - and the bottom row runs onto the town gate"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 240
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 340
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 240
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				9
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 340
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 12
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "the town. The carter patrols the column between the plaza and the inn, so this takes the long way round and never counts a tile until it has a wall to count from: bottom row, west to the water, north up her column (she may stop us early - the column is what matters, not the row), west wall, north wall"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				6,
+				10
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				1
+			]
+		},
+		{
+			"op": "note",
+			"text": "row 1 carries a bush at [2,1], so drop to row 2 and let the INN'S OWN west wall stop us - the building we are walking to is the anchor"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				2,
+				2
+			]
+		},
+		{
+			"op": "note",
+			"text": "one south, two east, and the door is directly overhead"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 40
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 12
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_inn"
+		},
+		{
+			"op": "note",
+			"text": "inside. The keeper stands on the door's own column, so north until a body stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "what a night is being bought WITH: four gold, and fourteen of twenty hit points. The hp is the whole point of asserting here - it was read after a fight that did not level anyone, so it is neither full at the start nor refilled by a level-up, and a rest that quietly did nothing would be invisible against a full bar"
+		},
+		{
+			"op": "assert_hp",
+			"value": 14
+		},
+		{
+			"op": "assert_gold",
+			"value": 4
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "dialog",
+			"limit": 12
+		},
+		{
+			"op": "note",
+			"text": "the first choice is the room; pressing through takes it"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "resting",
+			"limit": 200
+		},
+		{
+			"op": "wait",
+			"frames": 2
+		},
+		{
+			"op": "note",
+			"text": "and the night itself - an overlay, so the player cannot walk out of a fade"
+		},
+		{
+			"op": "assert_state",
+			"state": "resting"
+		},
+		{
+			"op": "wait",
+			"frames": 150
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "morning: full, and four gold lighter"
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_gold",
+			"value": 0
+		},
+		{
+			"op": "assert_sound",
+			"id": "heal"
+		},
+		{
+			"op": "note",
+			"text": "and again, with nothing in the purse. The keeper says so and the night never comes - if the price stopped being checked, this would be a second free night and the state below would read 'resting'"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "dialog",
+			"limit": 12
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 200
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_gold",
+			"value": 0
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		}
+	]
+}

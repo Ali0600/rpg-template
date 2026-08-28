@@ -182,6 +182,17 @@ they are one fact, so a rest hands xp and level back unchanged and moves only th
 so the op says so rather than quietly doing nothing. Deliberately NOT a parameterised
 `heal(amount)`: a partial heal is a field-item verb this template does not have.
 
+**An inn is a CONVERSATION, and the night is the thing the player experiences.** Not a counter:
+the genre's innkeeper greets, names a price, asks yes or no and fades to black - there is
+nothing to browse, so an inn is a dialog carrying `spend_gold` + `rest` + `poor_next`, and it
+needs no `InnDef`, no menu and no list. `RestScreen` is the whole surface, and it exists
+because the heal is not what a player experiences - the night is; a rest that snapped from
+wounded to full with no beat between would read as a menu transaction. It is opened DEFERRED,
+the `open_shop` precedent exactly, and it is a `Router` state so nobody can walk out through
+the middle of a fade. Its frames come from `GameConfig`, never seconds. Kept as a rest screen
+rather than a general fade because there is one caller; the day a second wants it is the day
+it becomes a `FadeScreen`.
+
 **A shop is a COUNTER, not a list.** The screen is the anatomy every classic shop converges
 on, and M18 shipped without most of it: an item list with prices RIGHT-ALIGNED in their own
 column and the owned count beside them, a purse panel that becomes the running total while a

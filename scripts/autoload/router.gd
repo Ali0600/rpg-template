@@ -14,10 +14,13 @@ enum State {
 	DIALOG,  ## a conversation is open; movement is suspended
 	PAUSED,  ## a menu is open over the world
 	BATTLE,  ## a fight has the screen; the world is still there underneath
-	GAME_OVER,
+	GAME_OVER,  ## the run ended; the only ways on are a save or a fresh start
 	## A counter is open. An overlay like every other: the world is still there behind it
 	## and the player cannot walk, which player_can_move() already answers without an edit.
-	SHOP,  ## the run ended; the only ways on are a save or a fresh start
+	SHOP,
+	## A night is passing. An overlay with nothing to press: it ends on its own, and the
+	## point of it being a state at all is that the player cannot walk out of a fade.
+	RESTING,
 }
 
 var _state: State = State.TITLE

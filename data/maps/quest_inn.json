@@ -1,0 +1,70 @@
+{
+	"_readme": [
+		"The inn's one room, and the first interior in the game. It is also the first map to",
+		"use the floor / wall_rough / door / table / rug tiles, all of which the tile bank has",
+		"carried since M16 while no shipped map used any of them.",
+		"",
+		"The door at [4,6] is the only way in or out, and the spawn beside it sits one tile",
+		"inside so that arriving does not immediately send the player back out - the rule every",
+		"gate pair in this game follows.",
+		"",
+		"The keeper stands in FRONT of the counter rather than behind it: a table is solid, and",
+		"a keeper walled off behind one is a keeper nobody can talk to. They stand on the door's own column, so walking in and holding north finds them."
+	],
+	"id": "quest_inn",
+	"style": "dusk16",
+	"legend": {
+		".": "floor",
+		"#": "wall_rough",
+		"+": "door",
+		"t": "table",
+		"r": "rug"
+	},
+	"ground": [
+		"#########",
+		"#.......#",
+		"#.......#",
+		"#.......#",
+		"#.......#",
+		"#.......#",
+		"####+####"
+	],
+	"decor": [
+		"         ",
+		"  ttt    ",
+		"         ",
+		"  rr  rr ",
+		"  rr  rr ",
+		"         ",
+		"         "
+	],
+	"spawns": {
+		"door": [
+			4,
+			5
+		]
+	},
+	"npcs": [
+		{
+			"id": "keeper",
+			"character": "inn_keeper",
+			"tile": [
+				4,
+				2
+			],
+			"facing": "down",
+			"dialog": "keeper",
+			"behavior": "static"
+		}
+	],
+	"warps": [
+		{
+			"tile": [
+				4,
+				6
+			],
+			"map": "quest_town",
+			"spawn": "inn_door"
+		}
+	]
+}

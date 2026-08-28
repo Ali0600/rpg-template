@@ -44,7 +44,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, solo | **diverges deliberately** |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
-| [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop | **partial** — no inn |
+| [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Game-over overlay; **no title screen** | **gap** |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | Nothing | **gap** — biggest one |
@@ -231,8 +231,9 @@ with a *silent* read, so drawing a menu never parks a file or announces a load.
 That is a *game's* decision, and a template that forced it would be making it for every game
 built on it. A game wanting save points ships them as an object with a `GameHooks` interaction.
 
-**Gap:** no inn, which in the genre is where HP comes back for money. Currently nothing
-restores HP outside a fight's own item use. That is a real hole in the loop — see §10.
+**On the inn:** M21 added one (§10), and it deliberately does NOT offer to save. The genre
+pairs the two; this template does not, because save-anywhere is a decision already recorded
+above and pairing them would relitigate it as a side effect of a healing feature.
 
 ---
 
