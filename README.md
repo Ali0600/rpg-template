@@ -158,6 +158,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the seams, and what each one protects
 - [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) — the art rules, and how to change the look
 - [docs/DECISIONS.md](docs/DECISIONS.md) — design forks, with a backlog of what's worth trying
+- [docs/GENRE_CONVENTIONS.md](docs/GENRE_CONVENTIONS.md) — what 2D JRPGs converge on, and where this template sits against it
 - [docs/learnings.md](docs/learnings.md) — the bugs that were interesting
 
 ## Milestones
