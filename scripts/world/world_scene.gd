@@ -87,6 +87,44 @@ func _ready() -> void:
 ## facing for no reason. Loosening them would be fixing the wrong thing. This restores the
 ## precondition each guard was written against instead, so the warp path is untouched.
 func start_game(manifest: GameManifest) -> bool:
+	if not _build_game(manifest):
+		return false
+	# Before the first map, so a hook or an encounter on the opening tile finds a real player
+	# rather than one at zero health. _teardown_game has already reset the party, so this is
+	# always the fresh-hero case here.
+	_ensure_party()
+	# The purse the game starts with. Fresh-game only: a LOAD replaces it wholesale through
+	# from_save, which is why this is here and not in _build_game.
+	GameState.give_gold(_game.starting_gold)
+	return enter_map(_game.start_map, _game.start_spawn)
+
+
+## Boots a game FROM A SAVE: the same machinery, then the save's own map - and never the start
+## map in between. It exists because the title's Continue once went through start_game first,
+## which enters the start map with a FRESH GameState on its way to the restore: the map-entry
+## hooks fired against a player who had no flags, and the game's opening conversation replayed
+## over the loaded save. A load must not travel THROUGH the beginning of a game to reach its
+## middle.
+##
+## Two functions rather than a flag on one, because the endings share nothing: one enters a
+## spawn fresh, the other restores a position. A boolean that changes what a function's ending
+## MEANS is two functions wearing one name.
+func boot_from_save(manifest: GameManifest, data: SaveData) -> bool:
+	if not _build_game(manifest):
+		return false
+	# No _ensure_party and no starting gold: the save is about to say what the player is worth,
+	# and restore()'s own _ensure_party covers a file written by a game that had no combat.
+	return restore(data)
+
+
+## Everything a running game needs before it has a map: the teardown, who is running, the
+## config, the hooks, the voice, and the nodes every map re-parents. ONE copy, because the two
+## ways in differ only in their last step - and the day they were two copies, the duplicated
+## line that records which game is running made the mutant guarding it AMBIGUOUS, which is the
+## aim check saying out loud that a fact had come to live in two places. (Note this comment
+## may not quote that line: the aim check greps text, so prose repeating an anchor breaks it
+## exactly the way a second copy of the code does.)
+func _build_game(manifest: GameManifest) -> bool:
 	_teardown_game()
 	_offered = manifest
 	_game = manifest
@@ -105,18 +143,11 @@ func start_game(manifest: GameManifest) -> bool:
 	# here rather than at boot. A null voice is a silent game and is a legal shape - AudioBus
 	# then resolves only whatever a game dropped in data/audio, which may be nothing at all.
 	AudioBus.use_style(_game.sound_style)
-	# Before the first map, so a hook or an encounter on the opening tile finds a real player
-	# rather than one at zero health. _teardown_game above has already reset the party, so this
-	# is always the fresh-hero case here.
-	_ensure_party()
-	# The purse the game starts with. _teardown_game has just reset state, so this is always
-	# the fresh-game case; a LOAD replaces it wholesale through from_save and never comes here.
-	GameState.give_gold(_game.starting_gold)
 	_camera = Camera2D.new()
 	_dialog = _new_dialog()
 	_hint = ControlsHint.new()
 	add_child(_hint)
-	return enter_map(_game.start_map, _game.start_spawn)
+	return true
 
 
 ## Building the box and hearing its one signal are ONE statement, because they were two and
@@ -1259,8 +1290,7 @@ func _commit_title_load(slot: int) -> void:
 		return
 	var manifest := _offered
 	_close_title()
-	if start_game(manifest):
-		restore(data)
+	boot_from_save(manifest, data)
 
 
 func _on_title_new_game() -> void:
