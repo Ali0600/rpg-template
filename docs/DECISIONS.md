@@ -1209,3 +1209,30 @@ grows the equipment page a row, teaches `problems()` the new word, and needs no 
   "Atk" is what this game calls attack, and that a game with no `CombatDef` has neither.
 - **The view reads the world directly** — *rejected outright.* A view that names an autoload
   drops itself, and every suite that depends on it, out of `check.sh`'s per-file parse gate.
+
+## The status page is a readout the world words, not a screen that computes — *M20*
+
+**The fork:** the genre's fourth standard command. Who builds "Level 3 / HP 28/28 / XP 35"?
+
+- **The world builds the lines and hands the menu an array of strings** — *chosen.* Identical
+  to the `_gold`, `_sound` and `_stats` precedents, and for the same reason: knowing that this
+  game calls it a "Level", and whether it has one at all, means reading a manifest, which a
+  pure `PauseMenu` may not do. It also makes the degenerate cases free — a game with no
+  `CombatDef` simply produces fewer lines, rather than the page needing to know what a
+  combat-less game looks like.
+- **The menu composes from numbers** — *rejected.* It would need the vocabulary and the
+  `CombatDef`, and every game that names things differently would need a menu change.
+- **A structured `StatusRow` type** (label + value, so the view can column-align them) —
+  *deferred — worth trying.* It buys right-aligned values like the shop's price column. Not
+  taken now because the lines are short and one array of strings is the smallest thing that
+  works. **Revisit hook:** `_status_lines()` — change its return type and the view's
+  `_label_for` branch.
+- **Making the page interactive** (confirm on a row to do something) — *rejected.* A status
+  screen that acts is a different screen. `confirm()` answers NONE and the view draws no
+  cursor at all, so the page cannot imply a verb it does not have.
+
+**On the ordering cost:** inserting Equipment and then Status moved the two deliberately-counted
+navigations (the `_to_the_third_slot` helper and `save_and_load.json`) twice in one milestone.
+That is the price of putting rows where the genre puts them, and it is the right price: a row's
+position is what a player navigates by muscle memory, and the counted tests write their counts
+out longhand precisely so that this moves deliberately rather than silently.

@@ -725,7 +725,7 @@ func open_pause() -> bool:
 	_pause.unequip_requested.connect(_on_unequip_requested)
 	add_child(_pause)
 	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
-		_gold_label(), _gear_rows(), _stats_label()),
+		_gold_label(), _gear_rows(), _stats_label(), _status_lines()),
 		_style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
@@ -914,7 +914,7 @@ func _close_shop() -> void:
 ## arguments is four places to forget the one that was just added.
 func _refresh_pause() -> void:
 	_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label(),
-		_gear_rows(), _stats_label())
+		_gear_rows(), _stats_label(), _status_lines())
 
 
 ## One row per slot the template knows about, each naming what is in it. Built HERE for the
@@ -932,6 +932,34 @@ func _gear_rows() -> Array:
 			worn_name = def.name if def != null and not def.name.is_empty() else String(worn)
 		out.append(PauseMenu.GearRow.of(slot, String(slot).capitalize(), worn_name,
 			_takeoff_effect(slot)))
+	return out
+
+
+## Everything the status page says, one line per row, worded HERE for the reason every other
+## readout is: naming a level or a stat means knowing what this game calls one, and whether it
+## has one at all. A game with no CombatDef gets the gear lines and nothing else - inventing
+## an HP row for a game with no fighting in it would be the screen describing a system that
+## does not exist.
+func _status_lines() -> Array[String]:
+	var out: Array[String] = []
+	if _game != null and _game.combat != null:
+		var level := GameState.player_level
+		out.append("Level %d" % level)
+		out.append("HP %d/%d" % [GameState.player_hp, _game.combat.max_hp(level)])
+		# The line a player actually opens this page for: "am I strong enough" as a number.
+		# At the top of the curve there is no next level, and saying so is the honest answer -
+		# a game that keeps promising one is a game whose numbers stopped meaning anything.
+		var next_at := _game.combat.xp_for_next(level)
+		if next_at < 0:
+			out.append("XP %d  (fully grown)" % GameState.player_xp)
+		else:
+			out.append("XP %d  (next in %d)" % [
+				GameState.player_xp, maxi(next_at - GameState.player_xp, 0)])
+		out.append("Atk %d+%d   Def %d+%d" % [
+			_game.combat.attack_at(level), _equip_mod(&"attack"),
+			_game.combat.defense_at(level), _equip_mod(&"defense")])
+	for row: PauseMenu.GearRow in _gear_rows():
+		out.append(PauseMenu.gear_label(row))
 	return out
 
 

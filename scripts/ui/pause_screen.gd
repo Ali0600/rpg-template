@@ -47,7 +47,7 @@ const BACKDROP_ALPHA := 0.85
 ## Indexed by PauseMenu.Row. Sound is empty here because its text changes with the setting,
 ## and the menu carries that - a view cannot ask the settings singleton without dropping this
 ## file, and every suite that depends on it, out of the per-file parse gate.
-const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Save", "Load", ""]
+const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Status", "Save", "Load", ""]
 
 ## Where the stats readout sits on the title line, to the right of the purse. A constant for
 ## the reason MARGIN is: it is a layout fact, and a number written into a position call is a
@@ -87,10 +87,11 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 ## New slot contents from the world, cursor untouched. After a save that is what makes the row
 ## the player is looking at show what they just wrote.
 func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
-		gold: String = "", gear: Array = [], stats: String = "") -> void:
+		gold: String = "", gear: Array = [], stats: String = "",
+		status: Array[String] = []) -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots, items, sound, gold, gear, stats)
+	_menu.refresh(slots, items, sound, gold, gear, stats, status)
 	_committed = false
 	_paint()
 
@@ -108,7 +109,8 @@ func _build(viewport_size: Vector2i) -> void:
 	# rebuilding the tree, so there is no frame on which the screen is half-built.
 	# The candidate page is the widest a bag can make it - every carried thing plus the row
 	# that takes the current one off - so it is what the pool is sized against.
-	for i in maxi(TOP_LABELS.size(), maxi(_menu.slot_count(), _menu.item_count() + 1)):
+	for i in maxi(TOP_LABELS.size(),
+			maxi(_menu.status_count(), maxi(_menu.slot_count(), _menu.item_count() + 1))):
 		var row := Label.new()
 		row.position = Vector2(MARGIN, MARGIN + 22 + i * ROW_PITCH)
 		row.add_theme_font_size_override("font_size", ROW_SIZE)
@@ -158,6 +160,12 @@ func _paint() -> void:
 		if not row.visible:
 			continue
 		var label := _label_for(i)
+		# The status page is a readout, so no row is "chosen" - a cursor on a page with
+		# nothing to press points at a verb that does not exist.
+		if _menu.page() == PauseMenu.Page.STATUS:
+			row.text = "  " + label
+			row.add_theme_color_override("font_color", text)
+			continue
 		var selected := i == _menu.index()
 		row.text = ("> " if selected else "  ") + label
 		row.add_theme_color_override("font_color", text if selected else dim)
@@ -181,6 +189,8 @@ func _label_for(at: int) -> String:
 			return _menu.sound_label() if at == PauseMenu.Row.SOUND else TOP_LABELS[at]
 		PauseMenu.Page.ITEMS:
 			return PauseMenu.item_label(_menu.item(at))
+		PauseMenu.Page.STATUS:
+			return _menu.status_line(at)
 		PauseMenu.Page.EQUIP:
 			return PauseMenu.gear_label(_menu.gear(at))
 		PauseMenu.Page.EQUIP_PICK:
@@ -193,6 +203,8 @@ func _title_for(page: PauseMenu.Page) -> String:
 	match page:
 		PauseMenu.Page.ITEMS:
 			return "CARRYING"
+		PauseMenu.Page.STATUS:
+			return "STATUS"
 		PauseMenu.Page.EQUIP:
 			return "EQUIPMENT"
 		PauseMenu.Page.EQUIP_PICK:
@@ -215,6 +227,10 @@ func _help_for(page: PauseMenu.Page) -> String:
 		if row != null and not row.description.is_empty():
 			return row.description
 		return "W/S to choose    Esc to go back"
+	if page == PauseMenu.Page.STATUS:
+		# No "E to pick": there is nothing on this page to press, and a hint offering a verb
+		# the page does not have is the menu lying about itself.
+		return "Esc to go back"
 	if page == PauseMenu.Page.EQUIP_PICK:
 		# What the press would DO, before the press that does it - the compare every equip
 		# screen has, and the whole reason a candidate list is worth walking.

@@ -35,9 +35,9 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 
 | Surface | The convention | This template today | Status |
 | --- | --- | --- | --- |
-| [Menu anatomy](#1-menu-anatomy) | Item / Equip / Status / Save as sibling commands | Resume, Items, Equipment, Save, Load, Sound | **partial** — no Status command |
+| [Menu anatomy](#1-menu-anatomy) | Item / Equip / Status / Save as sibling commands | Resume, Items, Equipment, Status, Save, Load, Sound | **met** (M20) |
 | [Equip screen](#2-the-equip-screen) | Slot list → candidates → preview the delta | Slot list, candidates, take-off row, swap preview, Atk/Def readout | **met** (M20) |
-| [Status screen](#3-the-status-screen) | Level, HP, XP-to-next, stats, worn gear | Nothing outside a fight | **gap** |
+| [Status screen](#3-the-status-screen) | Level, HP, XP-to-next, stats, worn gear | A page of world-worded lines | **met** (M20) |
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices | All of it | **met** (M18.1) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices | Bottom box, reveal, choice band, size-gated | **met** |
@@ -78,12 +78,10 @@ which is the DQ/FF slot-select shape flattened by one level. Sound sits at the b
 Config does, and `Resume` is explicit rather than Escape-only because this game boots straight
 into the world and has no title screen to retreat to.
 
-Equipment moved here in M20 (§2). It had been folded into the bag, which is the one place the
-reference games never put it — and it was there because the menu had no row for it, which is
-what makes a missing command more than a cosmetic gap.
-
-**Gap: Status.** The genre's fourth standard command (§3) is still missing, so a player cannot
-see their own HP or level outside a fight.
+**Gap:** none. Equipment and Status both moved here in M20 (§2, §3). Equipment had been folded
+into the bag, which is the one place the reference games never put it — and it was there
+because the menu had no row for it, which is what makes a missing command more than a cosmetic
+gap. Sound sits at the bottom where Config does.
 
 ---
 
@@ -121,13 +119,16 @@ is the one players actually open the menu for — it turns "am I strong enough" 
 Present in every reference game; FF and DQ both put equipment on it, which makes it the
 screen you check before shopping.
 
-**This template.** Nothing. `GameState` holds `player_hp`, `player_xp` and `player_level`,
-and `CombatDef` can derive `max_hp`, `attack_at`, `defense_at` and `xp_for_next` — every number
-the convention asks for already exists and is only ever shown **inside a fight**. A player
-cannot answer "how hurt am I" without starting one.
+**This template.** `Row.STATUS` opens a read-only page of lines the world words: level, HP
+against the maximum, XP with how much is left to the next level (or that there is no next
+one), Atk/Def with the gear's contribution shown separately, and each slot's contents. A game
+with no `CombatDef` shows only what it actually has, down to "(nothing to report)".
 
-**Gap: the page.** MP and a portrait stay out of scope (no magic — §13; and a portrait would
-be a second art pipeline beside the generated sprites).
+Before M20 every one of those numbers already existed and was only ever shown **inside a
+fight** — a player could not answer "how hurt am I" without starting one.
+
+**Gap:** no MP row (no magic — §13) and no portrait, which would be a second art pipeline
+beside the generated sprites.
 
 ---
 

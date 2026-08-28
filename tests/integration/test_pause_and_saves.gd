@@ -44,12 +44,14 @@ func _good_save() -> SaveData:
 	return data
 
 
-## Resume, Items, Equipment, Save, Load: FOUR down and in, then two more down to the third
-## slot. Written out rather than looped so the count is a fact about the menu's shape, not a
-## search for a row - and so that inserting a row above Load moves this deliberately rather
-## than silently retargeting the whole test at Save, where every press below would write a
-## slot. M20 inserted Equipment and this is where that was paid for, on purpose.
+## Resume, Items, Equipment, Status, Save, Load: FIVE down and in, then two more down to the
+## third slot. Written out rather than looped so the count is a fact about the menu's shape,
+## not a search for a row - and so that inserting a row above Load moves this deliberately
+## rather than silently retargeting the whole test at Save, where every press below would
+## write a slot. M20 inserted Equipment and then Status, and this is where both were paid
+## for, on purpose.
 func _to_the_third_slot() -> void:
+	await _press(&"move_down")
 	await _press(&"move_down")
 	await _press(&"move_down")
 	await _press(&"move_down")
@@ -389,3 +391,28 @@ func test_the_equipment_page_draws_what_the_numbers_are() -> void:
 		% [_drawn_rows()]).is_not_empty()
 	assert_str(found).override_failure_message(
 		"the readout does not separate the gear from the level: '%s'" % found).contains("+")
+
+
+func test_the_status_page_is_drawn_with_the_players_numbers_on_it() -> void:
+	# On the RENDERED text: the world composing a line proves nothing about the screen showing
+	# it, which is exactly the hole the mutation harness found in the equipment readout.
+	await _boot()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"interact")
+	var drawn := _drawn_rows()
+	var found := ""
+	for text in drawn:
+		if text.contains("Level"):
+			found = text
+	assert_str(found).override_failure_message(
+		"the status page says nothing about the player; it drew %s" % [drawn]).is_not_empty()
+	var hp := ""
+	for text in drawn:
+		if text.contains("HP "):
+			hp = text
+	assert_str(hp).override_failure_message(
+		"nothing on the page says how hurt the player is; it drew %s" % [drawn]).is_not_empty()
