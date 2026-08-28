@@ -81,6 +81,7 @@ Regenerate the art after editing a rig or a style:
 | How many save slots there are | `data/game_config.tres` | no |
 | What can be picked up and carried | `data/items/*.tres` | no |
 | What a fight pays, and what the player starts with | `data/enemies/*.tres`, `data/games/*.tres` | no |
+| What a shopkeeper sells, and for how much | `data/shops/*.tres`, `price` on `data/items/*.tres` | no |
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts | `data/rigs/*.json` | no |
 | New terrain — a floor, a door, a cliff | `data/tiles/*.json` | no |
@@ -180,6 +181,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M15** — the gate finally looks at what ships: the exported .pck is booted and played on every run, and the played game now notices its own combat arithmetic
 - [x] **M16** — terrain became data: tiles are authored pixel art in `data/tiles/*.json` in the rig's own alphabet, the six procedural ones ported losslessly, and a floor, a rough wall, a door, steps, a table and a rug added without touching a script
 - [x] **M17** — NPCs move: `behavior` on a map record is `static`, `wander` or `patrol`, driven through the same Locomotion the player uses, and the whole town freezes with the player so nobody wanders off mid-sentence
+- [x] **M18** — money: gold that a fight drops and a save carries, and a shopkeeper opened from a dialog choice who refuses what you cannot afford and will not touch a quest item
 
 ## Experience Gained
 

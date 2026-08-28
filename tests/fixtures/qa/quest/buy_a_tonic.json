@@ -1,0 +1,1117 @@
+{
+	"_readme": [
+		"Money, earned and spent, in the running game.",
+		"",
+		"The route to the smith is finish_the_quest's own prefix, copied rather than",
+		"re-derived: those legs are geometry-anchored and already survive every run, and a",
+		"second hand-written path to the same counter is a second thing to re-tune whenever",
+		"the town changes.",
+		"",
+		"Nothing here pokes the shop directly. It opens from a dialog CHOICE, which is the",
+		"whole seam: a shopkeeper is an NPC, and the world is what moves the money."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "the village, carrying nothing and owed an explanation"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				5,
+				5
+			]
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "the warden stands at [5,3]; walk north until her body stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "dialog",
+			"limit": 12
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "east along row 5 into the barred gate - refused, and we do not move"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "west through the other door - and the arriving hold carries us straight into what is standing in the gap"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 600
+		},
+		{
+			"op": "note",
+			"text": "beaten, and its body is gone from the gap"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "note",
+			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all"
+		},
+		{
+			"op": "assert_hp",
+			"value": 14
+		},
+		{
+			"op": "note",
+			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3"
+		},
+		{
+			"op": "assert_xp",
+			"value": 5
+		},
+		{
+			"op": "note",
+			"text": "and the coin that fight dropped - asserted HERE because before it the purse is zero whether drops work or not"
+		},
+		{
+			"op": "assert_gold",
+			"value": 4
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "a fight stops you where you stood, which is rarely on a tile centre - and the gap below is one tile wide, so an off-centre body clips the wall beside it. Re-anchor on the west wall, then three tiles east puts us squarely on the gap's column."
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "note",
+			"text": "south through the gap; the second one is beside the stash"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 80
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 600
+		},
+		{
+			"op": "note",
+			"text": "two slinks is exactly a level, which is exactly what the keep will want"
+		},
+		{
+			"op": "assert_level",
+			"value": 2
+		},
+		{
+			"op": "assert_hp",
+			"value": 24
+		},
+		{
+			"op": "note",
+			"text": "re-anchor again after the fight: south wall, then west wall, then one tile north puts the stash's bush directly east of us"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				6
+			]
+		},
+		{
+			"op": "note",
+			"text": "press east into the bush the stash lives on"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 6
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 1
+		},
+		{
+			"op": "note",
+			"text": "and it opens once: pressing again does nothing at all"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "back out of the hollow: the bush pins us to the west, so south wall, east wall, then west onto the gap's column again and north through it"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				10,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "note",
+			"text": "east along row 4 and out. An arriving hold carries the player onward into the next map, and here that is exactly what we want: the hollow's door opens onto the village's row 5, and row 5 runs east to the gate - so ONE held key does both legs, and the gate now opens on the key we are carrying."
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_keep"
+		},
+		{
+			"op": "note",
+			"text": "the keep's inner wall leaves one way east, and the thing the gate was barred against is standing in it"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "four rounds, every press on the cue: a clean hit is worth double, and a blocked one costs half. The waits come from data/combat/quest_combat.tres - see the QA notes in this file's header for the arithmetic."
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 56
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 121
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 62
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 56
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 121
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 62
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 56
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 121
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 62
+		},
+		{
+			"op": "note",
+			"text": "and the swing that ends it - no block after, because there is no enemy turn left"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 56
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 90
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "beating it is the rest of a level, and a level restores you completely"
+		},
+		{
+			"op": "assert_level",
+			"value": 3
+		},
+		{
+			"op": "assert_hp",
+			"value": 28
+		},
+		{
+			"op": "note",
+			"text": "the fight left us off-centre again, and the way east is a one-row gap in the inner wall - so press south into the outer wall first, which puts us squarely on that row"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "note",
+			"text": "then east wall, north up it, and one tile west puts the lantern below us"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 180
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				8,
+				1
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				7,
+				1
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 6
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "dry, and it says so: nothing is lit"
+		},
+		{
+			"op": "assert_flag",
+			"key": "lit_the_lantern",
+			"expect": false
+		},
+		{
+			"op": "note",
+			"text": "out of the keep the way we came in - east off the lantern's own bush first, since it is standing directly below us - then down, west along the open row, and north out"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 150
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 240
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "south wall, east along the bottom, then north up to the top row and one tile back west onto the smith's column"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 260
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 280
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				16,
+				1
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				15,
+				1
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				15,
+				4
+			]
+		},
+		{
+			"op": "note",
+			"text": "the counter is a dialog CHOICE, not a verb of its own - so it opens from a conversation the player was already having"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "note",
+			"text": "waiting out each reveal rather than counting presses: a press mid-reveal COMPLETES the line instead of advancing, so a counted press is a press that lands somewhere else when the writing changes"
+		},
+		{
+			"op": "wait",
+			"frames": 180
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 180
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 180
+		},
+		{
+			"op": "note",
+			"text": "on the choice line now - his three offers, with the shop last"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "shop"
+		},
+		{
+			"op": "note",
+			"text": "the walk here paid for itself - every fight on the way dropped coin"
+		},
+		{
+			"op": "assert_gold",
+			"value": 33
+		},
+		{
+			"op": "note",
+			"text": "onto the buy page"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "note",
+			"text": "a tonic is 10, and the world is what moves the money - the counter only asked"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "assert_gold",
+			"value": 23
+		},
+		{
+			"op": "assert_item",
+			"id": "tonic",
+			"count": 1
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "assert_gold",
+			"value": 3
+		},
+		{
+			"op": "assert_item",
+			"id": "tonic",
+			"count": 3
+		},
+		{
+			"op": "note",
+			"text": "3 gold left and a tonic costs 10, so the next press is the refusal - and the assertions after it are what prove nothing moved"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "assert_gold",
+			"value": 3
+		},
+		{
+			"op": "assert_item",
+			"id": "tonic",
+			"count": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "shop"
+		},
+		{
+			"op": "note",
+			"text": "and out the way we came in"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		}
+	]
+}

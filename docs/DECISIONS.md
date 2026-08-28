@@ -140,6 +140,22 @@ one-glance menu of things still worth trying.
   `slot_defaults`. All three styles dropped their dict entirely, which the drift gate proved
   was a no-op.
 
+## A price belongs to the item, not to the shop
+
+- **Chosen: `ItemDef.price`, with `ShopDef` listing ids only.** One price per item is what
+  makes the sell side honest without a second table: a shop that named its own prices would
+  need a buy price and a sell price per keeper, and the two would drift.
+- *Prices on the shop's stock rows* — deferred, worth trying the day a game wants a haggling
+  keeper or a discount: the revisit hook is `ShopDef.stock`, which would become an array of
+  dictionaries instead of ids. Rejected now because one keeper needs none of it.
+- **`price = 0` means not tradable, and it is the default** — the same "zero is off" shape
+  `ItemDef.battle_heal` and `GameConfig.grid_step_pixels` already use. An item joins the
+  economy by being priced, never by being forgotten, so quest items are safe by construction.
+- *The shop opening inline from the effect list* — rejected because it does not work:
+  `_on_dialog_closed` applies effects and THEN closes the dialog overlay, so the counter is
+  what the close pops. Deferred instead, which is the narrow fix; applying effects after the
+  close would reorder every dialog effect there is, for a bug that is only about shops.
+
 ## Gold is party state, not an item
 
 - **Chosen: `GameState.gold` as its own field, saved as its own key (v6).** It reads like an

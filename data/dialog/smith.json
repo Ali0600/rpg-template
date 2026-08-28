@@ -29,7 +29,8 @@
 			"choices": [
 				{ "text": "Thank you.", "next": "took", "give_item": "tonic", "give_count": 2,
 				  "set_flag": "took_tonics", "hidden_if_flag": "took_tonics" },
-				{ "text": "I'll manage.", "next": "manage" }
+				{ "text": "I'll manage.", "next": "manage" },
+				{ "text": "What do you sell?", "open_shop": "smith_shop" }
 			]
 		},
 		"took": { "speaker": "Smith", "text": "Drink one when you are losing, not after. That is the whole art." },
