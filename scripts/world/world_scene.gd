@@ -33,6 +33,7 @@ var _pause: PauseScreen
 var _battle: BattleScreen
 var _shop: ShopScreen
 var _game_over: GameOverScreen
+var _night: RestScreen
 ## Enemy id -> its ActorBody, for the ones still standing on this map.
 var _enemies: Dictionary = {}
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
@@ -176,6 +177,9 @@ func _teardown_game() -> void:
 	if _battle != null and is_instance_valid(_battle):
 		_battle.free()
 	_battle = null
+	if _night != null and is_instance_valid(_night):
+		_night.free()
+		_night = null
 	if _shop != null and is_instance_valid(_shop):
 		_shop.free()
 	_shop = null
@@ -409,6 +413,10 @@ func _configure_camera(data: MapData) -> void:
 func _physics_process(_delta: float) -> void:
 	if _player == null:
 		return
+	# Stepped ABOVE the gate, unlike anything else here: a night runs precisely while the
+	# player cannot walk, so putting it below would freeze the fade it is meant to play.
+	if _night != null:
+		_night.step()
 	if not Router.player_can_move():
 		_player.halt()
 		# The halt may have put a grid step back on its cell, and this is the write that gets
@@ -811,6 +819,30 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	return true
 
 
+## A night, over the world. Deferred by its caller for the same reason a counter is: the
+## dialog close pops an overlay, and a screen opened before that pop is the thing it closes.
+func open_rest() -> bool:
+	if _night != null or _game == null:
+		return false
+	_player.halt()
+	_night = RestScreen.new()
+	_night.sound_wanted.connect(_on_sound_wanted)
+	_night.finished.connect(_close_rest)
+	add_child(_night)
+	_night.setup(_style, get_viewport_rect().size, _config.rest_fade_frames,
+		_config.rest_hold_frames, "The night passes.")
+	Router.open_overlay(Router.State.RESTING)
+	return true
+
+
+func _close_rest() -> void:
+	if _night == null:
+		return
+	_night.queue_free()
+	_night = null
+	Router.close_overlay()
+
+
 ## Opens a counter. Public for the same reason open_pause() is: a game's hook may want one
 ## without a conversation in front of it.
 func open_shop(shop_id: StringName) -> bool:
@@ -1123,6 +1155,9 @@ func _rest() -> bool:
 		return false
 	var level := GameState.player_level
 	GameState.set_party(_game.combat.max_hp(level), GameState.player_xp, level)
+	# Deferred, the open_shop precedent exactly: _on_dialog_closed applies these effects and
+	# THEN pops the dialog overlay, so a night opened here is what that pop would close.
+	open_rest.call_deferred()
 	return true
 
 

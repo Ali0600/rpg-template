@@ -64,6 +64,13 @@ extends Resource
 ## constant in the view.
 @export var save_slots: int = 3
 
+## How long the night takes, in FRAMES rather than seconds - the clock every timed thing here
+## counts on, so a rest lasts the same length on a slow machine as on a fast one. Split into
+## the fade and the pause at full black because they are tuned against different things: the
+## fade is how abrupt sleep feels, the hold is how long a night reads as.
+@export var rest_fade_frames: int = 24
+@export var rest_hold_frames: int = 30
+
 
 func problems() -> Array[String]:
 	var out: Array[String] = []
@@ -83,4 +90,8 @@ func problems() -> Array[String]:
 		out.append("grid_step_seconds cannot be negative, got %f" % grid_step_seconds)
 	if save_slots < 1:
 		out.append("save_slots must be at least 1, got %d" % save_slots)
+	if rest_fade_frames < 1:
+		out.append("rest_fade_frames must be at least 1, got %d" % rest_fade_frames)
+	if rest_hold_frames < 1:
+		out.append("rest_hold_frames must be at least 1, got %d" % rest_hold_frames)
 	return out

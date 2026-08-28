@@ -1261,3 +1261,29 @@ was `OP_PARTY`, which demands xp and level too.
 - **Saving at the inn**, which the genre pairs with resting — *rejected.* This template
   deliberately diverges on saves (pause menu, anywhere — recorded above and in §8), and an
   inn save would quietly relitigate that decision as a side effect of a healing feature.
+
+## The inn is a room you walk into, and the night is a screen — *M21*
+
+**The fork:** where does the inn live, and what does resting look like?
+
+- **A room, entered through a door in the town** — *chosen*, by the user, against the cheaper
+  option. An inn in the genre is a **place**; the template's only previous keeper (the smith)
+  stands in the square, and a second keeper in the same square would have been an innkeeper
+  rather than an inn. It is also the game's first interior, and the first map to use the
+  `floor` / `wall_rough` / `door` / `table` / `rug` tiles, which the bank has carried since M16
+  with nothing using them.
+- **An innkeeper standing in the town square** — *rejected*: one NPC record and one dialog
+  file, no map change, no risk to the shipped sessions. Cheap, and not an inn.
+- **Where the building went was MEASURED, not chosen.** A building makes tiles solid, and a
+  solid tile under an existing leg breaks sessions that have nothing to do with inns. The M17
+  method: print on the tile-change hook, run all twelve sessions, overlay every tile the gate
+  actually walks. The footprint sits in the top-left quadrant, which nothing walked.
+- **`RestScreen`, a fade held for a beat** — *chosen.* Every reference inn spends a moment in
+  the dark before the "good morning".
+- **No screen at all — heal and print a line** — *rejected*: it is the M18 shop mistake in
+  miniature, shipping the mechanic without the surface the genre gives it.
+- **A general `FadeScreen`** — *deferred — worth trying.* There is one caller. **Revisit hook:**
+  `RestScreen.setup()` already takes its text as an argument, so the second caller is what
+  turns it into a fade. A warp transition is the obvious one.
+- **Four gold a night** — chosen as exactly one slink's drop, so an ambient fight pays for the
+  night it costs you. A feel number; unjudged until played.

@@ -1,0 +1,49 @@
+{
+	"_readme": [
+		"The inn, and the first conversation that takes money. The shape is the genre's: a",
+		"greeting, the price said OUT LOUD, a yes and a no - and a refusal in the keeper's own",
+		"words when the purse is short.",
+		"",
+		"The yes carries spend_gold, rest and poor_next together. All three are one decision:",
+		"the runner checks the purse before collecting anything, so a night nobody can afford",
+		"costs nothing and heals nothing, and the player is told which.",
+		"",
+		"poor_next is REQUIRED on a choice that charges - the build refuses a keeper who takes",
+		"money and says nothing when they cannot have it.",
+		"",
+		"Four gold is exactly what one slink drops, which is the whole economy in one line: an ambient fight pays for the night it costs you."
+	],
+	"id": "keeper",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Innkeeper",
+			"text": "Room's yours for four gold.\nBed's warm and the door bolts.",
+			"choices": [
+				{
+					"text": "I'll take it.",
+					"next": "slept",
+					"spend_gold": 4,
+					"rest": true,
+					"poor_next": "poor"
+				},
+				{
+					"text": "Just looking.",
+					"next": "bye"
+				}
+			]
+		},
+		"slept": {
+			"speaker": "Innkeeper",
+			"text": "Morning already. You slept\nlike the dead - the good kind."
+		},
+		"poor": {
+			"speaker": "Innkeeper",
+			"text": "Four gold, I said. Come back\nwhen your purse agrees."
+		},
+		"bye": {
+			"speaker": "Innkeeper",
+			"text": "Suit yourself. Bed's here."
+		}
+	}
+}
