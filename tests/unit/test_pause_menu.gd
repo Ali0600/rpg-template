@@ -462,3 +462,60 @@ func test_refreshing_keeps_the_equipment_page_and_clamps_a_shrunken_list() -> vo
 	assert_int(menu.size()).is_equal(1)
 	assert_int(menu.index()).override_failure_message(
 		"the cursor is past the end of the list it is drawn over").is_equal(0)
+
+
+# --- the status page ----------------------------------------------------------------------
+#
+# The genre's fourth standard command, and the one a player opens the menu FOR: how hurt am I,
+# how close to the next level. Read-only - every line is worded by the world, because knowing
+# what a game calls a level means knowing whether it has one.
+
+
+func test_confirming_the_status_row_opens_the_page() -> void:
+	var menu := PauseMenu.of(_slots([]), [], "", "", [], "",
+		["Level 3", "HP 12/24", "XP 40  (next in 10)"] as Array[String])
+	menu.move(PauseMenu.Row.STATUS)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.STATUS)
+	assert_int(menu.size()).is_equal(3)
+	assert_str(menu.status_line(0)).is_equal("Level 3")
+
+
+func test_the_status_page_opens_in_a_game_with_no_save_slots() -> void:
+	# The Items, Equipment and Sound exemption, for the same reason: asking how you are has
+	# nothing to do with saves.
+	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"] as Array[String])
+	menu.move(PauseMenu.Row.STATUS)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.STATUS)
+
+
+func test_there_is_nothing_on_the_status_page_to_press() -> void:
+	# A readout. A page that DID something on confirm would be a different screen, and a menu
+	# that accepts a press and does nothing reads as one that broke.
+	var menu := PauseMenu.of(_slots([]), [], "", "", [], "", ["Level 3"] as Array[String])
+	menu.move(PauseMenu.Row.STATUS)
+	menu.confirm()
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).override_failure_message(
+		"a press on the status page left it").is_equal(PauseMenu.Page.STATUS)
+
+
+func test_a_status_with_nothing_to_say_still_says_so() -> void:
+	# The empty-bag rule: a page of blanks reads as a page that failed to draw. A game with no
+	# fighting in it has no level and no HP, and that is a fact rather than an error.
+	var menu := PauseMenu.of(_slots([]), [], "", "", [], "", [] as Array[String])
+	menu.move(PauseMenu.Row.STATUS)
+	menu.confirm()
+	assert_int(menu.size()).is_equal(1)
+	assert_str(menu.status_line(0)).is_equal("(nothing to report)")
+
+
+func test_cancel_on_the_status_page_returns_to_the_status_row() -> void:
+	var menu := PauseMenu.of(_slots([]), [], "", "", [], "", ["Level 3"] as Array[String])
+	menu.move(PauseMenu.Row.STATUS)
+	menu.confirm()
+	assert_int(menu.cancel().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
+	assert_int(menu.index()).override_failure_message(
+		"backing out of the status page landed on the wrong row").is_equal(PauseMenu.Row.STATUS)

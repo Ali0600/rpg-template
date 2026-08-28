@@ -15,16 +15,17 @@ extends RefCounted
 ## The pages. TOP is the menu itself; the rest are lists entered from one of its rows.
 ## EQUIP_PICK is the only page entered from another page rather than from TOP: it is the
 ## candidates for ONE slot, so it needs the slot the player just pointed at.
-enum Page { TOP, ITEMS, SAVE, LOAD, EQUIP, EQUIP_PICK }
+enum Page { TOP, ITEMS, SAVE, LOAD, EQUIP, EQUIP_PICK, STATUS }
 
 ## The TOP page's rows, in the order they are drawn. The view indexes its labels by this, so
 ## the order lives in one place rather than in a list beside a list.
 ## SOUND is appended rather than slotted in beside Resume, so every existing test that lands
 ## on a row by naming it - move(Row.SAVE) - still lands on the same one.
-## EQUIP is the exception, and it is slotted in DELIBERATELY: Item then Equip is the order
-## every classic command menu uses, and a row's position is the one thing a player navigates
-## by muscle memory. The cost is paid once, in the scripted sessions that count presses.
-enum Row { RESUME, ITEMS, EQUIP, SAVE, LOAD, SOUND }
+## EQUIP and STATUS are the exceptions, and they are slotted in DELIBERATELY: Item, Equip,
+## Status is the order every classic command menu uses, and a row's position is the one thing
+## a player navigates by muscle memory. The cost is paid once, in the sessions that count
+## presses.
+enum Row { RESUME, ITEMS, EQUIP, STATUS, SAVE, LOAD, SOUND }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
@@ -134,12 +135,16 @@ var _stats := ""
 ## Which slot the candidate page is showing. Set when a slot is confirmed and read by
 ## everything the page draws, so the page cannot be entered without one.
 var _pick_slot: StringName = &""
+## What the status page says, one line per row, already worded. Text for the reason _stats is:
+## composing "Level 3" means knowing what this game calls a level, and whether it has one.
+var _status: Array[String] = []
 var _page := Page.TOP
 var _index := 0
 
 
 static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
-		gold: String = "", gear: Array = [], stats: String = "") -> PauseMenu:
+		gold: String = "", gear: Array = [], stats: String = "",
+		status: Array[String] = []) -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
@@ -147,6 +152,7 @@ static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
 	menu._gold = gold
 	menu._gear = gear.duplicate()
 	menu._stats = stats
+	menu._status = status.duplicate()
 	return menu
 
 
@@ -194,6 +200,21 @@ func gear(at: int) -> GearRow:
 
 func stats_label() -> String:
 	return _stats
+
+
+func status_count() -> int:
+	return _status.size()
+
+
+## The nth status line, or the line that says there is nothing to report. Null is not an
+## option here for the reason the empty bag draws a sentence: a page of blanks reads as a page
+## that failed rather than as a page with nothing on it.
+func status_line(at: int) -> String:
+	if _status.is_empty():
+		return "(nothing to report)"
+	if at < 0 or at >= _status.size():
+		return ""
+	return _status[at]
 
 
 func pick_slot() -> StringName:
@@ -258,6 +279,10 @@ func size() -> int:
 			return maxi(_items.size(), 1)
 		Page.EQUIP:
 			return _gear.size()
+		Page.STATUS:
+			# Read-only, so the cursor is only here to be somewhere. An empty status still has
+			# the row that says so - the empty-bag rule.
+			return maxi(_status.size(), 1)
 		Page.EQUIP_PICK:
 			# Candidates plus the take-off row, which is always drawn. It is what makes this
 			# page impossible to strand a cursor on: a slot whose gear you are not carrying
@@ -306,9 +331,13 @@ func confirm() -> Pick:
 			_page = Page.EQUIP
 			_index = 0
 			return Pick.of(Kind.NONE)
-		# A game configured with no slots has nowhere to go. The three rows above are exempt:
-		# an empty bag is a fact worth showing and a player can still dress themselves, where
-		# an empty slot list is a menu with nothing in it.
+		if _index == Row.STATUS:
+			_page = Page.STATUS
+			_index = 0
+			return Pick.of(Kind.NONE)
+		# A game configured with no slots has nowhere to go. The four rows above are exempt: an
+		# empty bag is a fact worth showing, a player can still dress themselves and still ask
+		# how they are, where an empty slot list is a menu with nothing in it.
 		if _slots.is_empty():
 			return Pick.of(Kind.NONE)
 		_page = Page.SAVE if _index == Row.SAVE else Page.LOAD
@@ -319,6 +348,10 @@ func confirm() -> Pick:
 	# game's own business: a potion heals in every RPG ever written, where "use the rope on the
 	# well" is a puzzle. So a confirm here does nothing rather than something arbitrary.
 	if _page == Page.ITEMS:
+		return Pick.of(Kind.NONE)
+	# A readout. There is nothing here to press, which is a fact about the page rather than a
+	# thing left to build - a status screen that DID something would be a different screen.
+	if _page == Page.STATUS:
 		return Pick.of(Kind.NONE)
 	# A slot opens its own candidates, and asks the world for nothing - the same shape as
 	# opening a save page.
@@ -375,13 +408,15 @@ func cancel() -> Pick:
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
 func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
-		gold: String = "", gear: Array = [], stats: String = "") -> void:
+		gold: String = "", gear: Array = [], stats: String = "",
+		status: Array[String] = []) -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
 	_sound = sound
 	_gold = gold
 	_gear = gear.duplicate()
 	_stats = stats
+	_status = status.duplicate()
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
 
@@ -407,6 +442,8 @@ static func _opened_from(page: Page) -> Row:
 			return Row.ITEMS
 		Page.EQUIP:
 			return Row.EQUIP
+		Page.STATUS:
+			return Row.STATUS
 		Page.SAVE:
 			return Row.SAVE
 		_:

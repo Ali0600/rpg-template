@@ -223,3 +223,27 @@ func test_a_candidate_reads_as_the_swap_it_would_be() -> void:
 		"wearing what is already worn promised its stats twice: '%s'" % again).contains("no change")
 	assert_str(again).contains("now Atk +3")
 
+
+func test_the_status_lines_carry_the_players_real_numbers() -> void:
+	# Read from the same CombatDef the fight reads, so the page cannot say one thing while a
+	# battle says another - the two-paths-one-answer trap.
+	var world := _boot()
+	var lines: Array[String] = world._status_lines()
+	var joined := "\n".join(lines)
+	assert_str(joined).override_failure_message(
+		"the status page does not say what level the player is: %s" % [lines]).contains("Level 1")
+	assert_str(joined).override_failure_message(
+		"nothing says how hurt the player is: %s" % [lines]).contains("HP ")
+	assert_str(joined).override_failure_message(
+		"the line a player opens this page FOR is missing: %s" % [lines]).contains("next in")
+
+func test_the_status_page_shows_what_is_worn() -> void:
+	var world := _boot()
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	var joined := "\n".join(world._status_lines())
+	assert_str(joined).override_failure_message(
+		"the status page does not name the gear: '%s'" % joined).contains("Weapon: Bronze sword")
+	assert_str(joined).override_failure_message(
+		"the gear's contribution is not shown apart from the level: '%s'" % joined) \
+		.contains("Atk 5+3")

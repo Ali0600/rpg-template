@@ -355,3 +355,10 @@ scripts/world/world_scene.gd	s|\tGameState.unequip\(slot\)|\tpass|	tests/integra
 scripts/world/world_scene.gd	s|\t\tattack_delta -= current.attack|\t\tpass|	tests/integration/test_world_equipment.gd	a candidate promises its own stats again instead of the swap it would be
 scripts/world/world_scene.gd	s|\t\t_game.combat.attack_at\(GameState.player_level\), _equip_mod\(&"attack"\),|\t\t0, 0,|	tests/integration/test_world_equipment.gd	the equip screen stops saying what the player's numbers actually are
 scripts/ui/pause_screen.gd	s|\t_stats.visible = equipping and not _menu.stats_label\(\).is_empty\(\)|\t_stats.visible = false|	tests/integration/test_pause_and_saves.gd	the stats readout never draws, so a delta has nothing to be a delta of
+scripts/ui/pause_menu.gd	s|\t\tif _index == Row.STATUS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot ask how its player is doing
+scripts/ui/pause_menu.gd	s|\t\treturn "\(nothing to report\)"|\t\treturn ""|	tests/unit/test_pause_menu.gd	a status page with nothing to say draws blanks, which reads as a failed draw
+scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.STATUS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the status page lands the cursor on Save
+scripts/world/world_scene.gd	s|\t\tout.append\("Level %d" % level\)|\t\tpass|	tests/integration/test_world_equipment.gd	the status page never says what level the player is
+scripts/world/world_scene.gd	s|\t\tout.append\("HP %d/%d" % \[GameState.player_hp, _game.combat.max_hp\(level\)\]\)|\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how hurt the player is
+scripts/world/world_scene.gd	s|\t\t\tout.append\("XP %d  \(next in %d\)" % \[|\t\t\tout.append("" % [|	tests/integration/test_world_equipment.gd	the line a player opens the status page FOR is missing
+scripts/world/world_scene.gd	s|\t\tout.append\(PauseMenu.gear_label\(row\)\)|\t\tpass|	tests/integration/test_world_equipment.gd	the status page cannot tell you what you are wearing

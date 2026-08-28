@@ -9,7 +9,7 @@
 		"or a real player, wrote can be loaded here.",
 		"",
 		"Every open builds a fresh menu with the cursor on Resume, so the counts below are exact:",
-		"the rows are Resume, Items, Equipment, Save, Load, so Save is three move_downs and Load is four."
+		"the rows are Resume, Items, Equipment, Status, Save, Load, so Save is four move_downs and Load is five."
 	],
 	"steps": [
 		{
@@ -77,6 +77,14 @@
 		{
 			"op": "wait",
 			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
 		},
 		{
 			"op": "press",
@@ -204,6 +212,14 @@
 		},
 		{
 			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
 			"frames": 3
 		},
 		{
@@ -307,6 +323,14 @@
 		{
 			"op": "wait",
 			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
 		},
 		{
 			"op": "press",

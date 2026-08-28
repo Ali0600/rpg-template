@@ -261,6 +261,16 @@ leg), so a shipped NPC that started wandering would break sessions that look unr
 typo'd behaviour FAILS THE BUILD rather than standing still, and a patrol waypoint in a wall
 or on a warp is refused - an NPC parked on the only exit is a door that cannot be used.
 
+**The status page is a READOUT, and every line of it is worded by the world.** `Row.STATUS`
+sits after Equipment - Item, Equip, Status is the genre's order - and opens a page with
+nothing on it to press: `confirm()` answers NONE, and the view draws no cursor, because a
+cursor on a page with no verb points at something that does not exist. The lines come from
+`world_scene._status_lines()`, because knowing that "Level" is what this game calls one, and
+whether it HAS one, is a manifest question a pure menu may not ask. A game with no
+`CombatDef` gets the gear lines only, and a game with nothing at all gets "(nothing to
+report)" rather than a page of blanks. At the top of the xp curve the page says so instead of
+promising a level that is not coming.
+
 **Losing ends the run, and TITLE still means nothing.** `Router.State.GAME_OVER` +
 `GameOverScreen` (Continue / Start again) - an overlay, because this game boots straight into
 the world and has no title scene. `TITLE` stays "nothing to drive yet"; giving it a second
@@ -326,8 +336,8 @@ validator that has only ever passed is decoration.
   still passing. M12 turned a "refuse to load" test into one that SAVED a slot that way. The
   two places that DO count - `_to_the_third_slot()` and the QA sessions, which drive real
   keys and have no enum to name - write the count out with the row list in a comment above
-  it, so inserting a row moves them deliberately. M20 inserted Equipment and paid exactly
-  that price, in three files, on purpose.
+  it, so inserting a row moves them deliberately. M20 inserted Equipment and then Status,
+  and paid exactly that price, in three files, twice, on purpose.
 - **A QA leg is held until a WALL or a BODY stops it**, never for a computed number of tiles.
   An arriving hold carries the player onward into the next map, so a leg that follows a warp
   must re-anchor against geometry rather than assume where the last one left off. The one
