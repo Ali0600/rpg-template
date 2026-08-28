@@ -302,6 +302,14 @@ whether it HAS one, is a manifest question a pure menu may not ask. A game with 
 report)" rather than a page of blanks. At the top of the xp curve the page says so instead of
 promising a level that is not coming.
 
+**A load must not travel THROUGH the beginning of a game to reach its middle.** `start_game`
+and `boot_from_save` share `_build_game` and differ only in their last step: one enters the
+start spawn fresh, the other restores a position. Continue from the title once called
+`start_game` and then `restore`, which entered the START map with a fresh state on the way -
+so the map-entry hooks fired against a player with no flags and the game's opening
+conversation replayed over the loaded save. Two functions rather than a flag, because a
+boolean that changes what a function's ending MEANS is two functions wearing one name.
+
 **A game is started FROM a screen, and losing can end back at it.** `TitleScreen` +
 `TitleMenu` over an EMPTY world, in `Router.State.TITLE` - which was the router's boot state
 meaning "nothing to drive yet" from M2 until M22. `world_scene._ready()` resolves which game is

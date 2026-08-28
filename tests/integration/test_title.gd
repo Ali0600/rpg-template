@@ -162,3 +162,35 @@ func test_pressing_continue_on_a_real_save_loads_it_through_the_screen() -> void
 	assert_int(GameState.player_hp).is_equal(9)
 	var gone: TitleScreen = world.title_screen()
 	assert_object(gone).is_null()
+
+
+func test_continue_resumes_the_run_instead_of_replaying_its_opening() -> void:
+	# The bug this pins was found by the user in play: Continue loaded the save UNDER the
+	# warden's intro, because the load path passed through the start map with a fresh state on
+	# its way to the save's map - and the entry hook, seeing no flags, opened her dialog.
+	#
+	# The fixture is built to make that impossible to miss where the first version of this
+	# suite tolerated it: the save sits in a DIFFERENT map from the start map, with the met
+	# flag set - so the right outcome is that map, that position, and NOBODY talking.
+	var world := _boot()
+	world._commit_new_game_from_title()
+	await get_tree().physics_frame
+	GameState.set_flag(&"met_the_warden", true)
+	GameState.current_map = &"quest_town"
+	GameState.player_position = Vector2(72.0, 88.0)
+	GameState.set_party(9, 5, 1)
+	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
+
+	assert_bool(world.open_title()).is_true()
+	world._commit_title_load(0)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	assert_str(String(GameState.current_map)).override_failure_message(
+		"Continue went to the start map, not the save's").is_equal("quest_town")
+	assert_bool(GameState.has_flag(&"met_the_warden")).override_failure_message(
+		"the save's flags did not survive the load").is_true()
+	var box: DialogBox = world.dialog_box()
+	var talking := box != null and box.visible
+	assert_bool(talking).override_failure_message(
+		"Continue replayed the game's opening conversation over the loaded save").is_false()
