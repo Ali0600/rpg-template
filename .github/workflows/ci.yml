@@ -3,6 +3,27 @@ name: check
 # Every push and pull request runs the same gate a developer runs locally, on a machine
 # that has never seen this project before. That is the point: tools/check.sh passing on the
 # laptop that wrote the code proves less than it appears to.
+#
+# ## Why a merge shows TWO `check` runs
+#
+# Because a merge IS two events: `pull_request` while the branch is open, then `push` when it
+# lands on main. They cost about nine minutes each and they are not the same run.
+#
+#   pull_request  gate + the mutants THIS DIFF could have broken (mutants_scope.sh). Fast,
+#                 because somebody is waiting on it to merge.
+#   push (main)   gate + ALL of them. Nobody is waiting, and it is the only run that proves
+#                 the mutants a change made decorative SOMEWHERE ELSE - which scoping cannot
+#                 see by construction.
+#
+# The main run does two more things the PR run cannot. It is the green signal `pages.yml`
+# deploys from, so deleting it would leave the deploy racing the tests instead of waiting for
+# them. And it tests the tree that actually exists: the PR run tested a MERGE PREVIEW, so if
+# main moved in between, the squashed commit is a tree nobody has ever run the gate against.
+#
+# The tempting trim - skip check.sh on main and run only the sweep - is self-defeating. The
+# sweep passes --assume-green, which is sound only because check.sh has just proven every
+# suite green in the same job; without it the sweep has to re-prove each baseline itself, and
+# runs the suites anyway.
 on:
   push:
     branches: [main]
