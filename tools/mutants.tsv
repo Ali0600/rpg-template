@@ -423,6 +423,22 @@ scripts/ui/battle_logic.gd	s|\tout._mp = clampi\(mp, 0, combat.max_mp\(out._leve
 scripts/ui/battle_logic.gd	s|\t\t_mp = player_max_mp\(\)|\t\tpass|	tests/unit/test_battle_logic.gd	levelling up restores the health and leaves the caster empty
 scripts/ui/battle_logic.gd	s|\t\t\"mp\": _mp\}\)|\}\)|	tests/unit/test_battle_logic.gd	a fight seals without saying what magic it left, so the sink writes nought over it
 scripts/world/world_scene.gd	s|int\(effect.get\(\"level\", 1\)\), int\(effect.get\(\"mp\", 0\)\)\)|int(effect.get(\"level\", 1)), 0)|	tests/integration/test_world_battles.gd	the one sink ignores the magic a fight reported and empties the player
-scripts/world/world_scene.gd	s|_equip_mod\(\&\"defense\"\), GameState.player_mp\),|_equip_mod(\&\"defense\")),|	tests/integration/test_world_battles.gd	every fight opens with an empty caster, whatever the player was carrying
+scripts/world/world_scene.gd	s|GameState.player_mp, _battle_spells\(\)\),|0, _battle_spells()),|	tests/integration/test_world_battles.gd	every fight opens with an empty caster, whatever the player was carrying
 scripts/world/world_scene.gd	s|\t\t_game.combat.max_mp\(starting\)\)|\t\t0)|	tests/integration/test_world_battles.gd	a player who has never fought starts with no magic at all
 scripts/world/world_scene.gd	s|\tGameState.set_party\(_game.combat.max_hp\(starting\)|\tGameState.set_party(1|	tests/integration/test_world_battles.gd	a player who has never fought starts on one hit point
+
+# --- M25: magic in a fight ---
+scripts/ui/battle_logic.gd	s|\treturn row != null and row.cost <= _mp|\treturn row != null|	tests/unit/test_battle_logic.gd	a spell beyond the player's magic is offered and cast anyway
+scripts/ui/battle_logic.gd	s|\tif not can_afford\(row\):|\tif false:|	tests/unit/test_battle_logic.gd	casting past the purse goes through and the magic runs negative
+scripts/ui/battle_logic.gd	s|\t_mp -= row.cost|\tpass|	tests/fixtures/qa/quest/cast_a_spell_in_a_fight.json	every spell is free, so the magic is a number that never moves
+scripts/ui/battle_logic.gd	s|\t\t\t_phase = Phase.SPELLS|\t\t\tpass|	tests/unit/test_battle_logic.gd	the Magic command opens nothing at all
+scripts/ui/battle_logic.gd	s|\t\t\t_enemy_asleep_turns = row.status_turns|\t\t\tpass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
+scripts/ui/battle_logic.gd	s|\t\t\t_enemy_hp = maxi\(_enemy_hp - row.power, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
+scripts/ui/battle_logic.gd	s|\tif _enemy_asleep_turns > 0:|\tif false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
+scripts/ui/battle_logic.gd	s|\t\t_enemy_asleep_turns -= 1|\t\tpass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
+scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tests/unit/test_battle_logic.gd	backing out of the spells lands the cursor on Attack instead of Magic
+scripts/world/world_scene.gd	s|if def == null or def.learn_level > GameState.player_level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
+scripts/ui/battle_screen.gd	s|\tvar deepest := maxi\(COMMANDS.size\(\),|\tvar deepest := mini(COMMANDS.size(),|	tests/integration/test_world_battles.gd	a page longer than the command list silently stops being drawn
+scripts/ui/battle_screen.gd	s|\tif _logic.player_max_mp\(\) > 0:|\tif false:|	tests/integration/test_world_battles.gd	the battle screen never says how much magic the player has left
+scripts/ui/battle_screen.gd	s|\t\treturn \"%s  %d MP\" % \[spell.name, spell.cost\]|\t\treturn spell.name|	tests/integration/test_world_battles.gd	the spell page names no prices, so the choice is made blind
+scripts/world/world_scene.gd	s|\t\t\tout.append\(\"MP %d/%d\" % \[GameState.player_mp, _game.combat.max_mp\(level\)\]\)|\t\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how much magic is left

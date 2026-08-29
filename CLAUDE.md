@@ -162,6 +162,30 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**Magic is a level curve, and knowing a spell is DERIVED from level.** `CombatDef.base_mp`/
+`mp_per_level` size the pool the way `attack_at` sizes a swing - zero is the default and means
+a game with no magic. A spell is a `SpellDef` under `data/spells/`, and `learn_level` is the
+whole learning mechanism: `world_scene._battle_spells()` filters the registered spells by the
+player's level every time it opens a fight, so there is NO known-spells list to save, migrate,
+hand out twice or let drift from the level that bought it. Dragon Quest and Chrono Trigger both
+do exactly this. MP joined `set_party(hp, xp, level, mp)` rather than getting gold's
+give/spend pair, and the argument is REQUIRED: gold moves on its own, where MP only ever moves
+alongside hp - a fight, an inn, a level - so a call site that forgot it would silently empty
+the player. Saves are v8; mp rides inside the `party` dict, because a game with no party has no
+magic either.
+
+**Three spell kinds, and a cast has no timing window.** `SpellDef.Kind` is `ATTACK | HEAL |
+SLEEP`, closed the way `ItemDef.SLOTS` is. Three rather than two because every reference game
+ships a non-damage, non-heal effect among its FIRST spells - Sleep is tier one in Final
+Fantasy, and Dragon Quest 1's whole eight-spell list still has it. An ATTACK deals FLAT damage
+that ignores the enemy's armour, which is what gives magic a job beside a stronger swing; the
+timed press stays a property of SWINGING, or the whole fight becomes one reflex test and the
+menu decides nothing. `Row.MAGIC` sits between Attack and Item - every reference game's order,
+and the row every counting test and play session below it had to move for. A cast the purse
+cannot cover is refused, SAID and costs no turn (money's precedent), and `can_afford()` is the
+one function the screen dims by and the press refuses by, so the two cannot disagree. There is
+no targeting step: fights are 1v1, so an offense spell hits *the* enemy.
+
 **Money can leave through a conversation, and a refusal is SAID.** A dialog choice carrying
 `spend_gold` is checked against the purse before anything is collected, and a choice that
 charges MUST carry `poor_next` naming a node - the `locked_dialog` rule applied to

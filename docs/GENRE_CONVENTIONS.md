@@ -47,7 +47,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
-| [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | Nothing | **gap** — biggest one |
+| [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, three spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | A generated theme, per style, played by the title and the settled maps | **met** (M24) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -322,11 +322,58 @@ scripted session found that one.
 beside Attack, and out-of-battle utility spells (heal, warp, light). Present in every reference
 game — it is arguably the defining JRPG system after "turns".
 
-**This template.** Nothing. Fights are Attack / Item / Flee.
+**The resource.** A pool sized by level, not farmed separately. Final Fantasy VI, Dragon Quest
+and Chrono Trigger all derive MP from the level (Chrono Trigger via the Magic stat); EarthBound
+calls it PP and does the same. The one true outlier is Pokémon, which gives every *move* its
+own PP counter rather than the caster one pool. Worth knowing: FF1 originally shipped D&D-style
+spell CHARGES per tier, refilled at an inn, and the remakes retrofitted MP onto it — so even
+the series that defines the convention did not start with it.
 
-**Gap:** the largest one in the table, and the most invasive: MP on the player, a spell
-resource type, a battle command, a status row, and probably a targeting step. Worth doing as
-its own milestone, not as an addition to another.
+**Learning.** Automatic, at a level threshold, is the majority convention: Dragon Quest learns
+Heal at level 3 and Hurt at 4 from a flat table, and Chrono Trigger's baseline Techs unlock at
+a Tech-Point threshold with no instructor. Teach-by-item is real but historically a *supplement*
+— DQ2's Words of Wisdom, later scrolls. Equip-a-pool (FFVII Materia, FFVI's Espers, which teach
+at a percentage rate until the spell is permanent) arrives late in the series and is a system of
+its own.
+
+**The battle command.** Second, immediately after Attack, without exception across the games
+surveyed: FF1's Fight / Magic / Drink / Item, FF3(VI)'s Fight / Magic / Items / Row, Dragon
+Quest's Fight / Run / Spell / Item, Chrono Trigger's Att / Tech / Item. Pokémon is the one that
+merges them — "Fight" *is* the move list, with no separate physical attack.
+
+**Categories.** Elements are near-universal but shallow-to-deep: FF1's first tier is Fire / Ice
+/ Lightning, Dragon Quest bakes the element into the spell NAME (the Frizz line is fire, the
+Crack line ice), Chrono Trigger binds an element per character and makes it load-bearing for
+combo Techs, and Pokémon runs a full 18-type matrix. EarthBound is the legitimate counterexample:
+PSI is organised by FUNCTION — Offense / Recover / Assist / Other — with named damage types and
+shallow resistance.
+
+**The floor.** "A damage spell and a heal spell" is thinner than anything the genre shipped.
+Dragon Quest 1 has one character and eight spells total, and even that set is damage, heal,
+*Sleep* and *Stopspell*; Sleep is a tier-1 spell in FF1. A non-damage, non-heal effect is
+present from the earliest unlocks, not added later.
+
+**A standalone Magic screen** splits two ways. FF6 and Dragon Quest give it its own field-menu
+command (FF6's greys out battle-only spells and shows Esper learning progress per spell);
+EarthBound and Chrono Trigger fold it into the Status screen instead.
+
+**This template.** MP is a `CombatDef` curve (`base_mp`/`mp_per_level`), so it is derived from
+level exactly as attack and defense are, and it refills at an inn and on a level-up. A spell is
+a `SpellDef` under `data/spells/`, and **knowing one is derived from level too** — `learn_level`
+is the whole mechanism, so nothing is stored, migrated or handed out twice. `Magic` is the
+second battle command, between Attack and Item. Three kinds — attack, heal, sleep — with the
+attack kind dealing FLAT damage that ignores armour, which is what gives magic a job beside a
+stronger swing. The Status page carries an `MP` line beside `HP`.
+
+**Divergences, each recorded in `DECISIONS.md`:** no field-menu Magic page (an inn already
+covers the out-of-battle restore, and there is no warp/light utility to hook one to), no
+elemental resistance system (the spell's name carries the flavour, EarthBound-style), no
+targeting step (fights are 1v1, so single-enemy and single-ally are unambiguous), and no
+teach-by-item or equip-a-pool learning.
+
+**Remaining gap:** buffs and debuffs. Sleep is the only status effect, and it acts on the enemy
+only. EarthBound gives a whole quarter of its PSI to Assist; this template has no stat-modifying
+spell and no duration system to hang one on.
 
 ---
 

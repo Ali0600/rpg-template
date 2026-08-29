@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SpellDef" load_steps=2 format=3]
+
+; The heal, and the reason the tonic is still worth ten gold.
+;
+; 8 back for 4 MP, against the tonic's 10 for one of a thing you had to buy. So the spell is
+; the cheaper answer that runs out and the tonic is the one you can stock - and at level 1,
+; eight magic buys exactly two mends, which is the same wall a purse is.
+;
+; UNJUDGED: nobody has fought with it.
+
+[ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+id = &"mend"
+name = "Mend"
+description = "Knits what is torn. Quicker than it is thorough."
+mp_cost = 4
+learn_level = 1
+kind = 1
+power = 8

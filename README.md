@@ -191,9 +191,18 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M22** — a title screen: the game's own name, Continue and New game, and a game-over screen that finally routes back to it
 - [x] **M23** — the flow model: the state machine declared as data in `tools/flow_model.json`, a gate that drives every declared move through the real game and compares what the router actually announced, and `docs/FLOW.md` drawn from it
 - [x] **M24** — music: a tune authored as notes in `data/music/`, performed by the same synthesiser the sound effects use, so each style plays the same melody in its own voice
+- [x] **M25** — magic: MP as a level curve, spells in `data/spells/` known by reaching their own level, and a Magic command between Attack and Item with an attack, a heal and a sleep behind it
 
 ## Experience Gained
 
+- Designed a feature's persistence to need no persistence: spell availability is recomputed
+  from the player's level on every use rather than stored, which removed a save field, a
+  migration, a synchronisation invariant and an entire class of drift bug from the design
+  before any of them could be written — after researching how the reference systems in the
+  domain actually behave rather than assuming.
+- Versioned a persisted schema with a forward-only migration chain and proved the new step
+  fail-first against a pinned fixture of the previous version, including that it preserves
+  every field the older format already carried.
 - Encoded the application's state machine as machine-readable data with a conformance gate:
   every declared transition is driven through the running system and the recorded event trace
   is compared against the declaration, so an action that arrives at the right state via an

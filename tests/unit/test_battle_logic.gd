@@ -49,10 +49,11 @@ func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false,
 	return out
 
 func _fight(enemy: EnemyDef = null, hp := 20, xp := 0, level := 1, items: Array = [],
-		curve: Array[int] = [10, 12], attack_mod := 0, defense_mod := 0, mp := 8) -> BattleLogic:
+		curve: Array[int] = [10, 12], attack_mod := 0, defense_mod := 0, mp := 8,
+		spells: Array = []) -> BattleLogic:
 	var foe := enemy if enemy != null else _enemy()
 	return BattleLogic.of(_combat(curve), foe, hp, xp, level, items, "map/foe", 7,
-		attack_mod, defense_mod, mp)
+		attack_mod, defense_mod, mp, spells)
 
 func _tonic(count := 1, heal := 10) -> BattleLogic.ItemRow:
 	return BattleLogic.ItemRow.of(&"tonic", "Tonic", count, heal)
@@ -94,7 +95,9 @@ func test_a_fresh_fight_waits_on_attack() -> void:
 	var battle := _fight()
 	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
 	assert_int(battle.index()).is_equal(BattleLogic.Row.ATTACK)
-	assert_int(battle.size()).is_equal(3)
+	# Attack, Magic, Item, Flee. A literal rather than Row.size(), which is what size() returns -
+	# an assertion written against the thing under test agrees with it however it changes.
+	assert_int(battle.size()).is_equal(4)
 	assert_int(battle.outcome()).is_equal(BattleLogic.Outcome.NONE)
 	assert_bool(battle.finished()).is_false()
 
@@ -232,6 +235,178 @@ func test_a_round_runs_player_then_enemy_then_back_to_the_menu() -> void:
 	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
 	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
 	assert_int(battle.index()).is_equal(BattleLogic.Row.ATTACK)
+
+
+# -- magic ---------------------------------------------------------------------------------
+
+func _spell(kind: int, cost := 3, power := 7, turns := 0, name := "Ember") -> BattleLogic.SpellRow:
+	return BattleLogic.SpellRow.of(StringName(name.to_lower()), name, cost, kind, power, turns)
+
+## Opens the spell page. Named rather than counted, the whole reason Row is an enum.
+func _to_the_spells(battle: BattleLogic) -> void:
+	battle.move(BattleLogic.Row.MAGIC)
+	battle.press()
+	assert_int(battle.phase()).override_failure_message(
+		"the Magic command did not open the spell page").is_equal(BattleLogic.Phase.SPELLS)
+
+func test_the_magic_command_opens_the_spell_page() -> void:
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK)])
+	_to_the_spells(battle)
+	assert_int(battle.index()).is_equal(0)
+	assert_int(battle.size()).is_equal(1)
+
+func test_a_player_who_knows_nothing_still_has_a_page_to_read() -> void:
+	# The empty-bag rule: a page with no rows is one the cursor cannot stand on. It must also
+	# not be pressable, or the confirm falls through to whatever a null row would do.
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 8, [])
+	_to_the_spells(battle)
+	assert_int(battle.size()).is_equal(1)
+	battle.press()
+	assert_int(battle.phase()).override_failure_message(
+		"pressing an empty spell page did something").is_equal(BattleLogic.Phase.SPELLS)
+	assert_int(battle.player_mp()).is_equal(8)
+
+func test_casting_an_attack_spends_the_magic_and_ignores_armour() -> void:
+	# Flat damage is what gives magic a job beside a stronger swing. Asserted against an enemy
+	# with real armour, because against a defenceless one "flat" and "attack minus defense"
+	# agree and the test would prove nothing.
+	var battle := _fight(_enemy(99, 3, 5), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7)])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"the enemy's armour took something off a spell").is_equal(92)
+	assert_int(battle.player_mp()).is_equal(5)
+
+func test_casting_costs_the_turn() -> void:
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK)])
+	_to_the_spells(battle)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"a cast was free - the enemy never got its turn").is_equal(BattleLogic.Phase.ENEMY_ACT)
+
+func test_an_attack_spell_can_finish_a_fight() -> void:
+	var battle := _fight(_enemy(4, 3, 5), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7)])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.outcome()).override_failure_message(
+		"a killing blow from a spell did not win the fight") \
+		.is_equal(BattleLogic.Outcome.VICTORY)
+
+func test_a_heal_spell_restores_and_cannot_overheal() -> void:
+	var battle := _fight(_enemy(99), 5, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.HEAL, 4, 8, 0, "Mend")])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.player_hp()).is_equal(13)
+	assert_int(battle.player_mp()).is_equal(4)
+
+	var full := _fight(_enemy(99), 18, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.HEAL, 4, 8, 0, "Mend")])
+	_to_the_spells(full)
+	full.press()
+	assert_int(full.player_hp()).is_equal(20)
+
+func test_a_spell_beyond_the_purse_is_refused_and_costs_nothing() -> void:
+	# Refused, SAID, and not the turn either - money's precedent. The MP is the assertion that
+	# matters: a refusal that charged would be worse than one that cast.
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 2,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7)])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.player_mp()).override_failure_message(
+		"a refused cast still took the magic").is_equal(2)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"a refused cast still hit something").is_equal(99)
+	assert_str(battle.message()).contains("Not enough")
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"a refused cast cost the turn").is_equal(BattleLogic.Phase.SPELLS)
+
+func test_exactly_enough_magic_casts() -> void:
+	# The control for the refusal above, one point away from it: a check written as `<` rather
+	# than `<=` refuses the spell a player has saved up exactly enough for.
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 3,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7)])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.player_mp()).is_equal(0)
+	assert_int(battle.enemy_hp()).is_equal(92)
+
+func test_a_sleeping_enemy_loses_its_turns_and_then_wakes() -> void:
+	# Two turns means two turns, counted where they are taken. The wake-up is the half that
+	# matters: a sleep that never ended would end the fight, not shape it.
+	var battle := _fight(_enemy(99, 3, 0), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.SLEEP, 5, 0, 2, "Lull")])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.enemy_asleep_turns()).is_equal(2)
+
+	# The cast's own line, and then the skipped turn's, run back to back - _until_leaves walks
+	# both, because leaving a message is what opens the next one. The fight lands back on the
+	# menu having never run an enemy cue at all.
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"a sleeping enemy still telegraphed a blow").is_equal(BattleLogic.Phase.MENU)
+	assert_int(battle.enemy_asleep_turns()).is_equal(1)
+	assert_int(battle.player_hp()).override_failure_message(
+		"a sleeping enemy hit the player anyway").is_equal(20)
+
+	# Swing, and it sleeps through that turn too - the second of the two it was promised.
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
+	assert_int(battle.enemy_asleep_turns()).is_equal(0)
+	assert_int(battle.player_hp()).is_equal(20)
+
+	# Swing again: awake now, and it acts. Without this the test could not tell a sleep from an
+	# enemy that simply never gets a turn.
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"the enemy never woke up").is_equal(BattleLogic.Phase.ENEMY_ACT)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	assert_int(battle.player_hp()).override_failure_message(
+		"the enemy woke and still did nothing").is_less(20)
+
+func test_cancel_backs_out_of_the_spell_page_onto_its_own_row() -> void:
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK)])
+	_to_the_spells(battle)
+	assert_bool(battle.cancel()).is_true()
+	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
+	assert_int(battle.index()).override_failure_message(
+		"backing out of the spells landed the cursor somewhere else") \
+		.is_equal(BattleLogic.Row.MAGIC)
+
+func test_what_the_screen_may_dim_is_what_the_press_will_refuse() -> void:
+	# One function answers both, so a spell drawn as reachable and refused on press - or the
+	# reverse, which is worse - cannot happen.
+	var battle := _fight(_enemy(99), 20, 0, 1, [], [10, 12], 0, 0, 3,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7), _spell(SpellDef.Kind.HEAL, 4, 8, 0, "Mend")])
+	_to_the_spells(battle)
+	assert_bool(battle.can_afford(battle.spell_row(0))).is_true()
+	assert_bool(battle.can_afford(battle.spell_row(1))).is_false()
+	assert_bool(battle.can_afford(battle.spell_row(9))).override_failure_message(
+		"a row that does not exist reported as castable").is_false()
+
+func test_magic_spent_in_a_fight_is_what_the_fight_hands_back() -> void:
+	var battle := _fight(_enemy(4, 3, 5), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7)])
+	_to_the_spells(battle)
+	battle.press()
+	var party := {}
+	for effect: Dictionary in battle.effects():
+		if effect.get("op") == GameContext.OP_PARTY:
+			party = effect
+	assert_int(int(party.get("mp", -1))).override_failure_message(
+		"the fight reported magic it had already spent").is_equal(5)
 
 
 # -- items ---------------------------------------------------------------------------------

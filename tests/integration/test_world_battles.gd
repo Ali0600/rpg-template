@@ -245,6 +245,104 @@ func test_winning_a_fight_leaves_the_player_where_the_fight_left_them() -> void:
 		"the player came out of a fight with more health than they went in with"
 	).is_less_equal(9)
 
+func test_a_fight_is_offered_only_the_spells_the_player_has_reached() -> void:
+	# Knowing a spell is DERIVED, so this is the whole learning mechanism: the same player, one
+	# level apart, gets a different page. Asserted at both ends - a filter written as "all of
+	# them" passes the level-2 half, and one written as "none" passes neither.
+	await _boot()
+	GameState.set_party(9, 0, 1, 8)
+	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	var early: Array = _world.battle_screen().logic().spell_rows()
+	var early_names := PackedStringArray()
+	for row: BattleLogic.SpellRow in early:
+		early_names.append(String(row.id))
+	assert_array(early).override_failure_message(
+		"a level-1 player was offered no spells at all, so nothing here is being filtered") \
+		.is_not_empty()
+	assert_bool(early_names.has("lull")).override_failure_message(
+		"a level-2 spell was offered to a level-1 player").is_false()
+	assert_bool(early_names.has("ember")).is_true()
+
+func test_a_spell_arrives_when_its_level_does() -> void:
+	await _boot()
+	GameState.set_party(9, 0, 2, 11)
+	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	var names := PackedStringArray()
+	for row: BattleLogic.SpellRow in _world.battle_screen().logic().spell_rows():
+		names.append(String(row.id))
+	assert_bool(names.has("lull")).override_failure_message(
+		"levelling past a spell's own level did not hand it over").is_true()
+
+## Every Label the battle screen is currently drawing, as text. The rows are the screen's own
+## nodes, so this is the only way to ask what the PLAYER can see rather than what the rules say.
+func _screen_text() -> PackedStringArray:
+	var out := PackedStringArray()
+	for node in SceneHelpers.find_all_by_class(_world.battle_screen(), "Label"):
+		var label := node as Label
+		if label.visible:
+			out.append(label.text)
+	return out
+
+func test_the_battle_screen_draws_the_magic_and_what_each_spell_costs() -> void:
+	# The mutation sweep's own lesson from the equipment screen: the world's wording was fully
+	# tested and nothing asserted the SCREEN drew it, so hiding the readout left everything
+	# green. A cost the player cannot see is a decision they cannot make.
+	await _boot()
+	GameState.set_party(9, 0, 1, 5)
+	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	var caption := "".join(_screen_text())
+	assert_str(caption).override_failure_message(
+		"the battle screen never says how much magic the player has").contains("MP 5/")
+
+	# Down onto Magic, in, and the page has to name a price ON THE ROW. Asserted as the whole
+	# row text: the hero's caption says "MP" too, so a test looking for that substring alone
+	# passes with every price stripped off the list - the masking path that makes a check
+	# decoration.
+	_open_the_spells()
+	assert_array(_screen_text()).override_failure_message(
+		"the spell page does not price its rows: %s" % [_screen_text()]) \
+		.contains(["> Ember  3 MP"])
+
+## Opens the spell page and repaints, so the labels hold what the page would draw.
+func _open_the_spells() -> void:
+	var screen: BattleScreen = _world.battle_screen()
+	screen.logic().move(BattleLogic.Row.MAGIC)
+	screen.logic().press()
+	assert_int(screen.logic().phase()).is_equal(BattleLogic.Phase.SPELLS)
+	screen._paint()
+
+func test_every_row_of_the_longest_page_is_actually_drawn() -> void:
+	# The pool is built once, at setup, and _paint_rows hides what it has no label for - so a
+	# pool cut short does not error, it silently stops drawing rows. Both pages are asserted:
+	# the commands are the longer list at level 1 and the spells at level 2, so a pool sized
+	# from either one alone would pass half of this and truncate the other.
+	await _boot()
+	GameState.set_party(9, 0, 2, 11)
+	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	var visible := _screen_text()
+	for command in BattleScreen.COMMANDS:
+		assert_bool(_is_drawn(visible, command)).override_failure_message(
+			"the command '%s' is not on screen: %s" % [command, visible]).is_true()
+
+	_open_the_spells()
+	var spells: Array = _world.battle_screen().logic().spell_rows()
+	assert_int(spells.size()).override_failure_message(
+		"a level-2 player was offered no spells, so the page half of this proves nothing") \
+		.is_greater(0)
+	var page := _screen_text()
+	for row: BattleLogic.SpellRow in spells:
+		assert_bool(_is_drawn(page, row.name)).override_failure_message(
+			"the spell '%s' is in the fight and not on the screen: %s" % [row.name, page]) \
+			.is_true()
+
+## Whether any visible line carries this row's name. A row is drawn with a cursor prefix or
+## without one, so matching the whole line would only ever find one of the two.
+func _is_drawn(lines: PackedStringArray, name: String) -> bool:
+	for line in lines:
+		if line.contains(name):
+			return true
+	return false
+
 func test_a_fight_is_handed_the_players_magic_and_gives_it_back() -> void:
 	# Two halves of one wiring, and each is silent on its own: a world that never passed the
 	# player's MP in would start every fight empty, and a fight sealing an mp the sink ignored

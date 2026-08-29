@@ -893,7 +893,7 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	add_child(_battle)
 	_battle.setup(BattleLogic.of(_game.combat, def, GameState.player_hp, GameState.player_xp,
 		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key),
-		_equip_mod(&"attack"), _equip_mod(&"defense"), GameState.player_mp),
+		_equip_mod(&"attack"), _equip_mod(&"defense"), GameState.player_mp, _battle_spells()),
 		_style, get_viewport_rect().size, _source, _game.player_character, def.character)
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
@@ -1070,6 +1070,10 @@ func _status_lines() -> Array[String]:
 		var level := GameState.player_level
 		out.append("Level %d" % level)
 		out.append("HP %d/%d" % [GameState.player_hp, _game.combat.max_hp(level)])
+		# Only for a game that HAS magic. A game with no spells would otherwise carry a line
+		# reading "MP 0/0" forever, which is a system the player is told about and can never find.
+		if _game.combat.max_mp(level) > 0:
+			out.append("MP %d/%d" % [GameState.player_mp, _game.combat.max_mp(level)])
 		# The line a player actually opens this page for: "am I strong enough" as a number.
 		# At the top of the curve there is no next level, and saying so is the honest answer -
 		# a game that keeps promising one is a game whose numbers stopped meaning anything.
@@ -1174,6 +1178,33 @@ func _battle_items() -> Array:
 			continue
 		out.append(BattleLogic.ItemRow.of(carried, def.name, GameState.item_count(carried),
 			def.battle_heal))
+	return out
+
+
+## What the player could cast mid-fight, resolved into rows - and this is where KNOWING a
+## spell is decided, because it is derived rather than stored: everything the game ships whose
+## learn_level the player has reached. There is no list to consult and none to keep in step
+## with the level, which is the whole reason the design is shaped this way.
+##
+## Sorted by the level it arrives at, then by name, so the page reads as the order a player met
+## them in. Registry.ids_of already sorts, so the result does not depend on the filesystem.
+func _battle_spells() -> Array:
+	var out: Array = []
+	if _game == null or _game.combat == null:
+		return out
+	var known: Array[SpellDef] = []
+	for spell_id in Registry.ids_of(&"SpellDef"):
+		var def := Registry.get_resource(&"SpellDef", spell_id) as SpellDef
+		if def == null or def.learn_level > GameState.player_level:
+			continue
+		known.append(def)
+	known.sort_custom(func(a: SpellDef, b: SpellDef) -> bool:
+		if a.learn_level != b.learn_level:
+			return a.learn_level < b.learn_level
+		return a.name < b.name)
+	for def in known:
+		out.append(BattleLogic.SpellRow.of(def.id, def.name, def.mp_cost, def.kind, def.power,
+			def.status_turns))
 	return out
 
 
