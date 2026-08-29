@@ -189,6 +189,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M20** — equipment became a screen: a menu command of its own opening a slot list, each slot offering the gear that fits it plus a way to take it off, with the swap previewed against what you are already wearing — and `docs/GENRE_CONVENTIONS.md`, which is what the genre research now lands in, plus a Status page — level, HP, how far to the next level, and what you are wearing, none of which could be seen outside a fight before
 - [x] **M21** — an inn: the first interior you walk into, a keeper who names a price out loud and refuses in words, a night that fades, and the loop the economy rests on — fight, lose hit points, pay to get them back
 - [x] **M22** — a title screen: the game's own name, Continue and New game, and a game-over screen that finally routes back to it
+- [x] **M23** — the flow model: the state machine declared as data in `tools/flow_model.json`, a gate that drives every declared move through the real game and compares what the router actually announced, and `docs/FLOW.md` drawn from it
 
 ## Experience Gained
 

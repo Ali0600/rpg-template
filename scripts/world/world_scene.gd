@@ -1478,6 +1478,19 @@ func shop_screen() -> ShopScreen:
 	return _shop
 
 
+## The night, for the flow model's gate. It is the one screen with no other reader, which is
+## exactly why the model wants it: a state nothing can look at is a state nothing can check.
+func rest_screen() -> RestScreen:
+	return _night
+
+
+## Whether a game is built behind whatever is on screen. The title is the one state where the
+## answer is no, and several guards elsewhere depend on that being true - so it is worth being
+## able to ask rather than inferring it from a screen that happens to be null.
+func game_is_running() -> bool:
+	return _game != null
+
+
 func battle_screen() -> BattleScreen:
 	return _battle
 
