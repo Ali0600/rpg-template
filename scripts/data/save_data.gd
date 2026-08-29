@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 8
+const VERSION := 9
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -35,6 +35,15 @@ var items: Dictionary = {}
 ## MP is a key in here rather than a field of its own for the same reason: magic is part of
 ## being a fighter, so a game with no party has no magic to record either.
 var party: Dictionary = {}
+## Everyone else in the party, as member id -> `{"hp", "xp", "level", "mp", "equipment"}`.
+## Added in v9. Keyed by member rather than a positional list, because a roster reordered in a
+## game's manifest would then make every existing save describe the wrong person - silently,
+## and only for players who already had a party.
+##
+## The LEADER is not in here; they are `party` above, which is what leaves every v8 reader,
+## every mutant and every QA assertion pointing exactly where it already pointed. Empty is the
+## normal state and is what a game with no party writes forever.
+var companions: Dictionary = {}
 ## What the player can spend. Added in v6. A plain integer rather than a dictionary like
 ## `party`: zero is a real answer here (broke), so there is no "unset" to represent.
 var gold: int = 0
@@ -57,6 +66,7 @@ func to_dict() -> Dictionary:
 		"seen": seen,
 		"items": items,
 		"party": party,
+		"companions": companions,
 		"gold": gold,
 		"equipment": equipment,
 		"play_seconds": play_seconds,
@@ -81,6 +91,7 @@ static func from_dict(d: Dictionary) -> SaveData:
 	# tidy away. Inventory.from_dict does the tidying, once the file has been accepted.
 	out.items = d.get("items", {}) if d.get("items", {}) is Dictionary else {}
 	out.party = d.get("party", {}) if d.get("party", {}) is Dictionary else {}
+	out.companions = d.get("companions", {}) if d.get("companions", {}) is Dictionary else {}
 	# Copied as written, not clamped - a negative purse is a fault to REPORT, the same call
 	# the item counts above make.
 	out.gold = int(d.get("gold", 0))
@@ -106,13 +117,20 @@ func problems() -> Array[String]:
 	if gold < 0:
 		out.append("save carries %d gold" % gold)
 	# The file checked against ITSELF: a save that equips what its own bag does not carry is
-	# describing a player who cannot exist, and loading it would arm a phantom.
-	for slot: Variant in equipment.keys():
-		var worn := str(equipment[slot])
-		if worn.is_empty():
-			out.append("save equips nothing in slot '%s'" % slot)
-		elif int(items.get(worn, 0)) <= 0:
-			out.append("save equips '%s' in slot '%s' but carries none" % [worn, slot])
+	# describing a player who cannot exist, and loading it would arm a phantom. With a party
+	# this is a COUNT rather than a presence - two people wearing one carried sword is exactly
+	# as impossible as one person wearing a sword nobody carries, and only the tally sees it.
+	var claimed: Dictionary = {}
+	out.append_array(_worn_problems(equipment, "", claimed))
+	for id: Variant in companions.keys():
+		var record: Dictionary = companions[id] if companions[id] is Dictionary else {}
+		var worn_by_them: Dictionary = record.get("equipment", {}) \
+			if record.get("equipment", {}) is Dictionary else {}
+		out.append_array(_worn_problems(worn_by_them, str(id), claimed))
+	for worn_id: Variant in claimed.keys():
+		if int(claimed[worn_id]) > int(items.get(worn_id, 0)):
+			out.append("save has %d wearing '%s' but carries %s"
+				% [claimed[worn_id], worn_id, items.get(worn_id, 0)])
 	for key: Variant in items.keys():
 		# A zero or negative count is a file that has been edited by hand or written by a
 		# broken build. Carrying "minus one key" is not a state the game can be in.
@@ -123,7 +141,12 @@ func problems() -> Array[String]:
 	# - whether 40 hp is too much for level 2 is a question for the game's CombatDef, and this
 	# class has no way to reach one.
 	if not party.is_empty():
-		if int(party.get("hp", 0)) < 1:
+		# Zero health is legal ONLY with a companion in the file. Alone it is the shape the
+		# world reads as "never fought" and would refill from the curve; beside somebody who
+		# was left standing it is a player who fell and is being walked to an inn, which is a
+		# state the game produces and must be able to write down.
+		var leader_hp := int(party.get("hp", 0))
+		if leader_hp < 0 or (leader_hp < 1 and companions.is_empty()):
 			out.append("save carries a party at %s hp" % party.get("hp", 0))
 		if int(party.get("xp", 0)) < 0:
 			out.append("save carries %s xp" % party.get("xp", 0))
@@ -134,4 +157,41 @@ func problems() -> Array[String]:
 		# How much is TOO much is a CombatDef question this class still cannot ask.
 		if int(party.get("mp", 0)) < 0:
 			out.append("save carries %s mp" % party.get("mp", 0))
+	# Companions get the same structural read, and one more: a companion beside NO party at all
+	# is a file describing somebody who joined a player who does not exist.
+	if not companions.is_empty() and party.is_empty():
+		out.append("save carries %d companions and no party" % companions.size())
+	for id: Variant in companions.keys():
+		if String(str(id)).is_empty():
+			out.append("save carries a companion with no id")
+		if not companions[id] is Dictionary:
+			out.append("save carries companion '%s' as something other than a record" % id)
+			continue
+		var record: Dictionary = companions[id]
+		# Zero health is legal for a companion with no qualification at all - a fallen one is
+		# the ordinary outcome of a fight the party won, and the inn is what undoes it.
+		if int(record.get("hp", 0)) < 0:
+			out.append("save carries companion '%s' at %s hp" % [id, record.get("hp", 0)])
+		if int(record.get("xp", 0)) < 0:
+			out.append("save carries companion '%s' with %s xp" % [id, record.get("xp", 0)])
+		if int(record.get("level", 0)) < 1:
+			out.append("save carries companion '%s' at level %s" % [id, record.get("level", 0)])
+		if int(record.get("mp", 0)) < 0:
+			out.append("save carries companion '%s' with %s mp" % [id, record.get("mp", 0)])
+	return out
+
+
+## One member's slot map, checked and tallied into `claimed`. Shared by the leader and every
+## companion so the two cannot drift into disagreeing about what a worn slot must look like.
+func _worn_problems(worn: Dictionary, who: String, claimed: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	var whose := "" if who.is_empty() else " for '%s'" % who
+	for slot: Variant in worn.keys():
+		var id := str(worn[slot])
+		if id.is_empty():
+			out.append("save equips nothing in slot '%s'%s" % [slot, whose])
+			continue
+		if int(items.get(id, 0)) <= 0:
+			out.append("save equips '%s' in slot '%s'%s but carries none" % [id, slot, whose])
+		claimed[id] = int(claimed.get(id, 0)) + 1
 	return out

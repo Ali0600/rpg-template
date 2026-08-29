@@ -40,7 +40,23 @@ var gold: int = 0
 ## What is worn, as slot -> item id. The item STAYS in the bag - equipping marks it, never
 ## moves it - so the bag remains the one list of what the player has, and this map is only
 ## the answer to "which of them are on". Empty is the normal state and means nothing worn.
+## This is the LEADER's map; a companion's is in companion_equipment, keyed by member.
 var equipment: Dictionary = {}
+## What each companion is worth in a fight, as member id -> {hp, xp, level, mp}. The leader is
+## NOT in here - they are the four fields above, which is what keeps set_party, every mutant
+## aimed at it and every QA assertion pointing where they already pointed.
+##
+## Absent means "has not joined, or has joined and has not been filled in yet"; the world fills
+## a member from their curve the first time it builds a party with them in it, the way it
+## derives the leader's health from an unset one. WHO is in the party is not stored here at all
+## - that is derived from flags against the manifest's roster (see PartyMemberDef).
+var companions: Dictionary = {}
+## What each companion is wearing, as member id -> slot -> item id. A second map rather than a
+## member key inside `equipment`, because the leader's map is read by name in a dozen places
+## and re-shaping it would be a rename with no gain. Gear is per-member in every reference
+## game - Final Fantasy I's shared bag holds consumables only - and the ITEM still never
+## leaves the one bag, so this is the same marker `equipment` is, once per member.
+var companion_equipment: Dictionary = {}
 var play_seconds: float = 0.0
 
 
@@ -73,6 +89,8 @@ func reset() -> void:
 	player_mp = 0
 	gold = 0
 	equipment = {}
+	companions = {}
+	companion_equipment = {}
 	play_seconds = 0.0
 
 
@@ -117,14 +135,38 @@ func give_item(id: StringName, n: int = 1) -> bool:
 func take_item(id: StringName, n: int = 1) -> bool:
 	if not inventory.remove(id, n):
 		return false
-	# The last copy leaving the bag - by a sale, a dialog take, anything - takes the marker
-	# with it. Without this, the slot map points at an item the player no longer has, and the
-	# phantom re-arms the moment they pick another one up.
-	if inventory.count(id) == 0:
-		for slot: Variant in equipment.keys():
-			if equipment[slot] == id:
-				equipment.erase(slot)
+	# Copies leaving the bag - by a sale, a dialog take, anything - take markers with them.
+	# Without this, a slot map points at an item nobody is carrying, and the phantom re-arms
+	# the moment another copy is picked up.
+	#
+	# With a party this is a COUNT rather than a boolean: selling one of two swords while two
+	# people wear one must strip exactly one marker, not both and not neither. Companions are
+	# stripped first and the LEADER LAST, so the player keeps what they are wearing and the
+	# loss lands where it is least surprising. Reverse insertion order among companions makes
+	# which one deterministic, because "whichever the dictionary offered first" is a rule that
+	# reproduces differently on a different day.
+	_strip_phantom_markers(id)
 	return true
+
+
+## Brings the number of markers on `id` down to the number carried, newest companion first and
+## the leader last. Idempotent, and a no-op whenever the bag already covers what is worn.
+func _strip_phantom_markers(id: StringName) -> void:
+	var carried := inventory.count(id)
+	var members: Array = companion_equipment.keys()
+	members.reverse()
+	for member: Variant in members:
+		var worn: Dictionary = companion_equipment[member]
+		for slot: Variant in worn.keys():
+			if wearers_of(id) <= carried:
+				return
+			if worn[slot] == id:
+				worn.erase(slot)
+	for slot: Variant in equipment.keys():
+		if wearers_of(id) <= carried:
+			return
+		if equipment[slot] == id:
+			equipment.erase(slot)
 
 
 func has_item(id: StringName, n: int = 1) -> bool:
@@ -157,23 +199,62 @@ func spend_gold(n: int) -> bool:
 ## map pointing at a phantom item is the dangling reference every other rule here exists to
 ## prevent. Equipping into an occupied slot swaps: the old item was never out of the bag, so
 ## there is nothing to put back.
-func equip(slot: StringName, id: StringName) -> bool:
+##
+## An empty `member` is the LEADER, everywhere in this file. That default is what keeps every
+## existing call site - and every session that presses through the equip screen - meaning
+## exactly what it meant before there was anyone else to mean.
+##
+## ONE COPY, ONE BACK. A second member cannot wear the sword the first is wearing unless the
+## bag holds two, because the item never leaves the bag and a marker is a claim on a copy.
+## Checked as "what the marker count WOULD be", so re-equipping what is already on is still
+## the no-op it always was rather than a refusal.
+func equip(slot: StringName, id: StringName, member: StringName = &"") -> bool:
 	if String(slot).is_empty() or not inventory.has(id):
 		return false
-	equipment[slot] = id
+	var worn := _worn_map(member, true)
+	var already := 1 if worn.get(slot, &"") == id else 0
+	if wearers_of(id) - already + 1 > inventory.count(id):
+		return false
+	worn[slot] = id
 	return true
 
 
-func unequip(slot: StringName) -> bool:
-	return equipment.erase(slot)
+func unequip(slot: StringName, member: StringName = &"") -> bool:
+	return _worn_map(member, false).erase(slot)
 
 
-func equipped(slot: StringName) -> StringName:
-	return StringName(str(equipment.get(slot, "")))
+func equipped(slot: StringName, member: StringName = &"") -> StringName:
+	return StringName(str(_worn_map(member, false).get(slot, "")))
 
 
+## Whether ANYONE is wearing it. The bag's (E) marker and the shop's refusal to sell what is
+## worn both ask this question about the party rather than about the player, which is what
+## stops a companion's armour being sold out from under them.
 func is_equipped(id: StringName) -> bool:
-	return equipment.values().has(id)
+	return wearers_of(id) > 0
+
+
+## How many copies of `id` are claimed by somebody, across the whole party. The quantity the
+## bag has to cover: two markers on one carried sword is the phantom this counts to prevent.
+func wearers_of(id: StringName) -> int:
+	var total := equipment.values().count(id)
+	for member: Variant in companion_equipment.keys():
+		var worn: Dictionary = companion_equipment[member]
+		total += worn.values().count(id)
+	return total
+
+
+## The slot map a member writes into. `create` is what keeps a read from conjuring an empty
+## record for somebody who has not joined - a menu asking what a stranger is wearing must not
+## make them a member by asking.
+func _worn_map(member: StringName, create: bool) -> Dictionary:
+	if String(member).is_empty():
+		return equipment
+	if not companion_equipment.has(member):
+		if not create:
+			return {}
+		companion_equipment[member] = {}
+	return companion_equipment[member]
 
 
 ## What a fight left the player as. All four together, through one writer, because they are
@@ -197,6 +278,46 @@ func set_party(hp: int, xp: int, level: int, mp: int) -> void:
 	player_mp = maxi(mp, 0)
 
 
+## What a fight left a COMPANION as - set_party for everyone who is not the leader, and every
+## argument required for the same reason: the one you forget is the one that silently empties
+## somebody. Four numbers, one writer, one member.
+func set_companion(id: StringName, hp: int, xp: int, level: int, mp: int) -> void:
+	if String(id).is_empty():
+		# The empty id is the leader's, and routing them through here would be a second writer
+		# for the four fields set_party owns.
+		push_error("set_companion called with no member id - the leader goes through set_party")
+		return
+	companions[id] = {
+		"hp": maxi(hp, 0),
+		"xp": maxi(xp, 0),
+		"level": maxi(level, 1),
+		"mp": maxi(mp, 0),
+	}
+
+
+## A companion's numbers, as a copy. Empty when they have never been filled in, which is the
+## signal the world reads to fill them from their curve - has_companion asks it directly.
+func companion(id: StringName) -> Dictionary:
+	return (companions.get(id, {}) as Dictionary).duplicate()
+
+
+func has_companion(id: StringName) -> bool:
+	return companions.has(id)
+
+
+## Whether anybody has been made real yet. THE signal for "a game with combat has not derived
+## its party from the curve", and the one thing zero health used to mean on its own.
+##
+## It cannot mean that alone any more, and this is the subtlest change M27 makes. With a party,
+## A LEADER AT ZERO HEALTH IS A REAL, SAVEABLE STATE: they fell, a companion finished the
+## fight, and the survivors walk on to buy a night at the inn. Read as "unset", that state
+## would refill them from the curve on the way into the next fight - a silent resurrection that
+## deletes the consequence the player is walking to town to undo, and no test that asks about
+## a solo game can see it. A companion record is the proof somebody else was standing.
+func party_unset() -> bool:
+	return player_hp <= 0 and companions.is_empty()
+
+
 ## The live state as a save. Kept here rather than in SaveManager because this is the object
 ## that OWNS the state - a writer that reached in and read the fields would be a second place
 ## that has to learn about every new one.
@@ -214,9 +335,18 @@ func to_save() -> SaveData:
 	# MP rides INSIDE party rather than beside it like gold, because it shares party's "empty
 	# means no combat here" answer exactly - a game with no fighting has no magic either, and a
 	# top-level mp key would be the one field claiming otherwise.
-	out.party = {} if player_hp <= 0 else {
+	out.party = {} if party_unset() else {
 		"hp": player_hp, "xp": player_xp, "level": player_level, "mp": player_mp,
 	}
+	# Each companion's numbers and gear together, keyed by member, so a roster reordered in the
+	# manifest cannot make a save describe the wrong person - which a positional list would.
+	# Empty is the normal state and is what every game without a party writes forever.
+	var out_companions: Dictionary = {}
+	for id: Variant in companions.keys():
+		var record: Dictionary = (companions[id] as Dictionary).duplicate()
+		record["equipment"] = (companion_equipment.get(id, {}) as Dictionary).duplicate(true)
+		out_companions[id] = record
+	out.companions = out_companions
 	out.gold = gold
 	out.equipment = equipment.duplicate(true)
 	out.play_seconds = play_seconds
@@ -240,6 +370,21 @@ func from_save(data: SaveData) -> void:
 	player_xp = int(data.party.get("xp", 0))
 	player_level = maxi(int(data.party.get("level", 1)), 1)
 	player_mp = maxi(int(data.party.get("mp", 0)), 0)
+	var loaded_companions: Dictionary = {}
+	var loaded_worn: Dictionary = {}
+	for id: Variant in data.companions.keys():
+		var record: Dictionary = data.companions[id]
+		loaded_companions[id] = {
+			"hp": maxi(int(record.get("hp", 0)), 0),
+			"xp": maxi(int(record.get("xp", 0)), 0),
+			"level": maxi(int(record.get("level", 1)), 1),
+			"mp": maxi(int(record.get("mp", 0)), 0),
+		}
+		var worn: Dictionary = record.get("equipment", {})
+		if not worn.is_empty():
+			loaded_worn[id] = worn.duplicate(true)
+	companions = loaded_companions
+	companion_equipment = loaded_worn
 	gold = maxi(data.gold, 0)
 	equipment = data.equipment.duplicate(true)
 	play_seconds = data.play_seconds

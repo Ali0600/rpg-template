@@ -75,3 +75,52 @@ func test_asserting_what_was_asked_for_still_reads_the_log() -> void:
 	assert_bool(_complains({"op": "assert_music", "id": "barred_gate", "now": true})) \
 		.override_failure_message("'now' answered from the log instead of from the device") \
 		.is_true()
+
+
+func test_asserting_a_companions_numbers_can_fail() -> void:
+	GameState.reset()
+	GameState.set_companion(&"scrapper", 11, 14, 2, 3)
+	assert_bool(_complains({"op": "assert_hp", "member": "scrapper", "value": 11})) \
+		.override_failure_message("a correct companion assertion complained").is_false()
+	assert_bool(_complains({"op": "assert_hp", "member": "scrapper", "value": 12})) \
+		.override_failure_message("a wrong companion assertion passed").is_true()
+	GameState.reset()
+
+
+func test_asserting_a_number_of_somebody_who_has_not_joined_fails() -> void:
+	# The default that would have hidden this: reading a missing companion as nought would make
+	# "the person is not here" and "the number is nought" the same finding, and a session
+	# recruiting nobody would still assert its way to green.
+	#
+	# Asserted by the WORDING, not merely by "it complained": with the guard gone, a missing
+	# companion reads as a record of no numbers and the value comparison below it complains
+	# anyway - a masking path that makes a green mutant look like a covered rule.
+	GameState.reset()
+	assert_bool(_complains({"op": "assert_hp", "member": "scrapper", "value": 0})) \
+		.override_failure_message("a companion who never joined answered an assertion").is_true()
+	assert_str("\n".join(Qa._failures)).override_failure_message(
+		"the harness complained about the NUMBER when the person was the thing missing") \
+		.contains("has not joined")
+	Qa._failures.clear()
+
+
+func test_the_leaders_numbers_are_still_what_a_bare_assertion_reads() -> void:
+	# The control every session written before M27 depends on: with no member named, nothing
+	# about these ops moved.
+	GameState.reset()
+	GameState.set_party(20, 0, 1, 8)
+	GameState.set_companion(&"scrapper", 11, 14, 2, 3)
+	assert_bool(_complains({"op": "assert_hp", "value": 20})) \
+		.override_failure_message("a bare hp assertion stopped reading the leader").is_false()
+	GameState.reset()
+
+
+func test_asking_a_member_for_the_purse_fails() -> void:
+	# One purse for the whole party, in every reference game and here - so a member on a gold
+	# assertion is a question with no answer rather than a different answer, and answering it
+	# would be the harness inventing a per-member economy nobody built.
+	GameState.reset()
+	GameState.set_companion(&"scrapper", 11, 14, 2, 3)
+	assert_bool(_complains({"op": "assert_gold", "member": "scrapper", "value": 0})) \
+		.override_failure_message("the harness answered a per-member gold question").is_true()
+	GameState.reset()

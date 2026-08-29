@@ -184,3 +184,67 @@ func test_a_theme_nobody_generated_is_reported() -> void:
 		wrong.set(field, &"no_such_tune")
 		assert_array(wrong.problems()).override_failure_message(
 			"%s names a tune nobody generated and it passed" % field).is_not_empty()
+
+
+func _member(id: StringName) -> PartyMemberDef:
+	var out := PartyMemberDef.new()
+	out.id = id
+	out.name = "Rook"
+	out.character = &"quest_wanderer"
+	return out
+
+
+func test_a_game_with_no_party_is_the_normal_shape() -> void:
+	# The control, and the template's own default: a game with no party is a game with a party
+	# of one, which is Dragon Quest I's shape rather than an absence.
+	var manifest := _valid()
+	assert_array(manifest.party).is_empty()
+	assert_array(manifest.problems()).is_empty()
+
+
+func test_a_party_member_is_checked_the_way_the_leader_is() -> void:
+	var manifest := _valid()
+	manifest.combat = load("res://data/combat/quest_combat.tres") as CombatDef
+	var broken := _member(&"scrapper")
+	broken.name = ""
+	manifest.party = [broken]
+	assert_array(manifest.problems()).is_not_empty()
+
+
+func test_a_party_member_whose_art_was_never_generated_is_reported() -> void:
+	# The player_character check, looped. A member whose sheet does not exist for the START
+	# map's style is an invisible fighter, which reads as a broken screen rather than as
+	# missing content - and art is per style, so the question is only answerable here.
+	var manifest := _valid()
+	manifest.combat = load("res://data/combat/quest_combat.tres") as CombatDef
+	var ghost := _member(&"scrapper")
+	ghost.character = &"nobody_drew_this"
+	manifest.party = [ghost]
+	var faults := manifest.problems()
+	assert_array(faults).is_not_empty()
+	assert_str("\n".join(faults)).contains("no generated art")
+
+
+func test_the_same_member_listed_twice_is_reported() -> void:
+	# Two members under one id means one save record for two people, and the second would
+	# silently inherit the first's health.
+	var manifest := _valid()
+	manifest.combat = load("res://data/combat/quest_combat.tres") as CombatDef
+	manifest.party = [_member(&"scrapper"), _member(&"scrapper")]
+	assert_array(manifest.problems()).is_not_empty()
+
+
+func test_a_party_with_no_combat_definition_is_reported() -> void:
+	# Members grow on a curve, and without a CombatDef there is no curve for them to grow on -
+	# so a party here is a manifest that could never build the fight it implies.
+	var manifest := _valid()
+	manifest.combat = null
+	manifest.party = [_member(&"scrapper")]
+	assert_array(manifest.problems()).is_not_empty()
+
+
+func test_a_valid_party_is_accepted() -> void:
+	var manifest := _valid()
+	manifest.combat = load("res://data/combat/quest_combat.tres") as CombatDef
+	manifest.party = [_member(&"scrapper")]
+	assert_array(manifest.problems()).is_empty()
