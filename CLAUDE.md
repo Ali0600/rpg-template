@@ -368,6 +368,23 @@ session for anything `Sfx` does not name, and the first tune would otherwise hav
 scripted sessions - intermittently, since a 64-entry ring buffer and every `sound_mark` can age
 the id out. A map states its music or states silence, never inherits.
 
+**A VOICE is bound wherever a manifest is presented, and the bus only claims what it started.**
+`use_style` used to be called by `_build_game` alone, so the title - which opens at `_ready`,
+before any game is built - asked for its theme through a bus with nothing bound and played
+nothing at all, on every platform, for four milestones. `open_title` binds it too. Three checks
+watched that happen and each asked a question one step short: `assert_music` reads the request
+LOG and the request is made either way; `music_id()` was set whether or not the track could be
+played, so even the check that reads the live track to avoid trusting the log inherited the
+lie; and `assert_audio_ready` reads `missing_cues()`/`missing_tracks()`, which `reload()` fills
+only when a voice is bound - so with none bound both are empty and the one gate built to catch
+a silent artifact reported green precisely because nothing could make a sound.
+
+So: `play_music` records a track only if `_play` SUCCEEDED, and leaves `_music_id` alone on
+failure rather than clearing it - `_play` returns before touching the player, so whatever was
+playing still is. And `assert_audio_ready` fails outright when no voice is bound; a game that
+is deliberately silent simply does not write that step. **A gate that reports on a set it never
+populated is worse than no gate**, and this is the third time that shape has shipped here.
+
 **The flow is DATA, and it is updated before the code that changes it.** `tools/flow_model.json`
 declares every state, what must be true while the machine is in it, and every way between them -
 including the EXACT sequence of `flow_changed` events each move may emit.
