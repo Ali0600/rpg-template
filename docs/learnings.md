@@ -908,3 +908,48 @@ read before it is built, and the same audit named two gaps nobody had noticed at
 so gold only buys items and nothing outside a fight restores HP; and no way to see your own
 HP or level outside a battle.
 
+
+## Designing a feature so it needs no persistence
+
+Some state does not have to be stored — it can be **recomputed from something already
+stored**. Deciding which of the two a new feature is, before writing it, changes how much
+machinery it needs.
+
+**Why it came up.** M25 added magic. The obvious shape is a known-spells list: the player
+learns a spell, it goes in a set, the set is saved. That shape needs a `GameState` field, a
+`SaveData` field, a migration step, a `problems()` rule, an effect op for learning, a menu
+verb, and an invariant nobody can see — that the set agrees with the level that produced it.
+The genre research killed all of it in one line: Dragon Quest and Chrono Trigger unlock
+spells at a level threshold automatically. So `SpellDef.learn_level` is the whole mechanism,
+the world filters the registered spells by the player's level every time it opens a fight,
+and none of the machinery above exists. A designer retuning `learn_level` retunes every
+existing save, for free, because there was never a second copy of the answer.
+
+The same reasoning already ran through this codebase and it is worth naming as a pattern:
+`CombatDef.attack_at(level)` derives a stat rather than storing one, for exactly this reason —
+gear had to become a MODIFIER rather than a stat, because a stored attack would have been a
+second source of truth for one number.
+
+**Takeaway:** before adding a field to a save, ask what it could be *derived from* instead.
+Anything derivable is a field, a migration, a validator and a drift bug you do not write —
+and the drift bug is the expensive one, because it appears as the two copies disagreeing
+hours into a run. Storage is for facts the system cannot recompute: what the player CHOSE,
+where they are, what they were given. Not for conclusions.
+
+## A cheap alternative is not the same as a cheap fix for the alternative
+
+When a design records a rejected option as "deferred — worth trying", it is worth noting
+*why* it was rejected, because "we did not need it yet" and "it costs more than it looks"
+lead to different decisions later.
+
+**Why it came up.** M25 rejected teach-by-item spell learning (Dragon Quest's scrolls) in
+favour of level thresholds. Both are real conventions and the scroll one is arguably more
+interesting. But it is not a small addition on top: it *requires* the stored known-spells set
+that the chosen design exists to avoid, so picking it up later costs a save field, a
+migration and a validator — the entire cost of the alternative is the thing the chosen
+design was chosen for. Written into `DECISIONS.md` that way, the backlog entry now says what
+it will cost rather than just what it is.
+
+**Takeaway:** in a decision record, price the deferred alternatives, not just name them. An
+option that is one afternoon and an option that reopens a schema both read as "deferred" on
+a backlog, and the difference is the whole reason the list exists.

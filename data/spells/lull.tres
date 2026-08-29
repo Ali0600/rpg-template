@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="SpellDef" load_steps=2 format=3]
+
+; The third kind, and the one that makes this a magic system rather than two numbers.
+;
+; Every reference game ships a non-damage, non-heal effect among its earliest spells - Sleep is
+; tier one in Final Fantasy and comes early in Dragon Quest's eight - so a template shipping
+; only an attack and a heal would be thinner than the smallest of them.
+;
+; Level 2 rather than 1, because two free turns is the strongest thing on the list and it
+; should arrive after the player has met the fight it answers. Two turns for 5 MP against a
+; level-2 pool of 11: one cast a fight, and the pool is what stops it being the whole plan.
+;
+; UNJUDGED: nobody has fought with it.
+
+[ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+id = &"lull"
+name = "Lull"
+description = "A weight behind the eyes. Whatever it lands on stops caring."
+mp_cost = 5
+learn_level = 2
+kind = 2
+power = 0
+status_turns = 2

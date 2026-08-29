@@ -1,0 +1,70 @@
+{
+	"_readme": [
+		"Magic, played rather than unit-tested: the Magic command, an attack spell, a heal, a",
+		"refusal the purse causes, and the swing that finishes the job anyway.",
+		"",
+		"The refusal is the leg that could not be written any other way. BattleLogic proves that",
+		"a cast beyond the MP is refused; only a played fight proves the player can still DO",
+		"something afterwards - that the refusal costs no turn, leaves the page up, and lets a",
+		"cancel back out onto a command that works. A rule that stranded the player there would",
+		"pass every unit test in the file.",
+		"",
+		"The numbers are exact and deterministic: 8 MP at level 1, Ember costs 3, Mend costs 4,",
+		"so the second Ember is one point short. Slink's moves are drawn from the fight's own",
+		"seed, so its damage varies with nothing - but hp is left unasserted anyway, because",
+		"what this script is about is the magic, and MP and the win are what say it worked."
+	],
+	"steps": [
+		{ "op": "assert_state", "state": "title" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "note", "text": "the warden opens the game - hear her out first" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "dialog" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_map", "map": "quest_village" },
+
+		{ "op": "note", "text": "a player who has never fought is filled in from the curve, magic included - 8 at level 1" },
+		{ "op": "assert_mp", "value": 8 },
+		{ "op": "assert_level", "value": 1 },
+
+		{ "op": "note", "text": "west into the hollow, straight into the thing standing in the gap" },
+		{ "op": "hold", "action": "move_left", "frames": 400 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "assert_map", "map": "quest_hollow" },
+		{ "op": "assert_state", "state": "battle" },
+
+		{ "op": "note", "text": "Rows: Attack, Magic, Item, Flee. Magic is the second, so one down then confirm. The spell page is what the player has REACHED: Ember and Mend at level 1, and no Lull, which arrives at 2." },
+		{ "op": "press", "action": "move_down" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "note", "text": "Ember first: 3 MP, and its damage ignores the slink's armour" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 200 },
+
+		{ "op": "note", "text": "hurt now, so Mend: 4 MP, which leaves one - not enough for anything" },
+		{ "op": "press", "action": "move_down" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "press", "action": "move_down" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 200 },
+
+		{ "op": "note", "text": "and now the leg this script exists for: one point short of an Ember. The cast is refused, it is SAID, and it costs no turn - so backing out onto Attack has to still be there to do." },
+		{ "op": "press", "action": "move_down" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 60 },
+		{ "op": "assert_state", "state": "battle" },
+
+		{ "op": "note", "text": "out of the spells, back up onto Attack, and finish it with a swing" },
+		{ "op": "press", "action": "cancel" },
+		{ "op": "press", "action": "move_up" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 600 },
+
+		{ "op": "note", "text": "8 - 3 - 4 = 1, and the refused cast took nothing. A fight that charged for the refusal would say 0 here, and one that never spent anything would say 8." },
+		{ "op": "assert_mp", "value": 1 },
+		{ "op": "note", "text": "five xp is not a level, so nothing refilled the magic on the way out" },
+		{ "op": "assert_level", "value": 1 }
+	]
+}

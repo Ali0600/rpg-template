@@ -36,8 +36,91 @@ one-glance menu of things still worth trying.
   M2, and M13 pointedly did not spend it on the game-over screen. Revisit hook: the day a
   title scene exists, `GameOverScreen` becomes the thing that routes to it rather than an
   overlay over a dead world.
+- **A field-menu Magic page.** M25 kept magic battle-only. Revisit hook: the day a spell is
+  useful outside a fight — a warp, a light, a partial heal cheaper than an inn — it is a
+  `PauseMenu.Row` between Items and Equipment plus a `_spell_rows()` beside `_gear_rows()`.
+- **Elemental resistances.** M25 gave spells element NAMES and no matrix. Revisit hook:
+  `EnemyDef` gains a resistance map and `BattleLogic._confirm_spell`'s attack branch scales
+  `row.power` by it — `SpellDef` would need the element as a field rather than as flavour.
+- **Buffs, debuffs, and status effects on the PLAYER.** `SpellDef.Kind.SLEEP` is the only
+  status verb and it acts on the enemy only. Revisit hook: `_enemy_asleep_turns` is the shape
+  a duration takes, and a second one beside it is where a poison or a guard-up would live.
+- **Teaching a spell with an item.** Dragon Quest's scrolls, as a supplement to level
+  learning. Revisit hook: it needs a stored known-spells set, which M25 deliberately does not
+  have — so this one costs a save field and a migration, not just a verb.
+- **A targeting step.** Unnecessary while fights are 1v1. Revisit hook: whichever lands first
+  of a party or a multi-enemy fight; `SpellDef` would gain a target shape, and the FFVII
+  Materia precedent (the shape is a property of the spell, not a runtime cursor) is the
+  cheaper half of it.
 
 ---
+
+## Knowing a spell is derived from level, never stored
+
+- **Chosen: `SpellDef.learn_level`, filtered per fight by `world_scene._battle_spells()`** —
+  a spell is known the instant the player's level reaches it, computed fresh every time the
+  way `CombatDef.attack_at(level)` is. Dragon Quest learns Heal at level 3 from a flat table
+  and Chrono Trigger unlocks a Tech at a threshold; neither asks the player to do anything.
+  What this buys is everything it does NOT need: no known-spells save field, no migration for
+  it, no learn effect op, no menu verb, and no way for the list to disagree with the level
+  that bought it. A designer retuning `learn_level` retunes every existing save.
+- **Rejected: teach-by-item** (DQ2's Words of Wisdom, later scrolls). It is a real convention
+  and a real supplement, but it *requires* the stored set this design avoids — the whole cost
+  of the alternative is the thing the chosen one is chosen for. `deferred — worth trying`;
+  revisit hook in the backlog above.
+- **Rejected: equip-a-pool** (FFVII Materia, FFVI Espers). Arrives late in its own series and
+  is a system of its own, with its own screen and its own progression. Not a template noun.
+- **Rejected: skill points / a tree.** Not attested in any of the five games surveyed
+  (FF1–6, Dragon Quest, Chrono Trigger, EarthBound, Pokémon) — a later-era and largely
+  different-genre convention.
+
+## Magic is battle-only, and MP joins the party writer rather than the purse
+
+- **Chosen: no field-menu Magic page.** FF6 and Dragon Quest do give Magic its own field
+  command, so this is a real divergence rather than an oversight — but every out-of-battle
+  job such a page would do is already done. A full restore is the inn's entire reason to
+  exist, and there is no warp, light or field-utility mechanic here to hook a spell to. The
+  page would either duplicate the inn or sit empty. `deferred — worth trying`.
+  EarthBound and Chrono Trigger's alternative (fold it into Status) is half-taken already:
+  the Status page carries the MP line, just not the spell list.
+- **Chosen: `set_party(hp, xp, level, mp)`, with mp REQUIRED**, rather than gold's
+  `give_mp`/`spend_mp` pair. Gold moves on its own — a sale, a drop, a purchase — so it needs
+  verbs of its own; MP only ever moves alongside hp, in a fight resolving, a night at an inn,
+  or a level restoring the player. A separate writer would be a second place that has to
+  remember to be called. Required rather than defaulted because a call site that omitted it
+  would silently empty the player, and that reads in play as a bug in whatever spent it.
+- **Chosen: mp inside the save's `party` dict**, not beside it like `gold`. It shares party's
+  "empty means no combat here" answer exactly: a game with no fighting has no magic either,
+  and a top-level key would be the one field claiming otherwise.
+- **Chosen: an old save migrates to nought magic, not full.** The call every migration step
+  before it made — but with a second reason of its own: what "full" is depends on the game's
+  `CombatDef`, which a migration may not reach, so a number invented in `migrations.gd` would
+  be wrong for every game but the one it was copied from.
+
+## A cast has no timing window, and a spell's damage ignores armour
+
+- **Chosen: no timed press on a cast.** The timing window is this template's own invention for
+  swinging a weapon — a thing you aim — where a spell in every game this borrows from resolves
+  because you chose it. Giving magic a window too would make the entire fight one reflex test
+  and leave the menu with nothing to decide.
+- **Chosen: flat damage, ignoring `EnemyDef.defense`.** It is what gives magic a job beside a
+  stronger swing: the answer to something armoured, and a bad deal against something soft.
+  It also means `SpellDef.power` is the damage and nothing else, which is one fewer number to
+  tune against a second one.
+- **Chosen: three kinds — attack, heal, sleep.** Two would have been thinner than anything the
+  genre shipped: Dragon Quest 1 has one character and eight spells, and even that set is
+  damage, heal, Sleep and Stopspell; Sleep is tier one in FF1. `SpellDef.Kind` is a closed
+  enum, `ItemDef.SLOTS`'s shape, so a hand-edited kind fails the build.
+- **Chosen: elements as NAMES, no resistance system.** EarthBound's own shape — PSI Fire and
+  PSI Freeze with shallow mechanical payoff — and it costs nothing where a matrix costs a
+  field on `EnemyDef` and a rule per pairing. `deferred — worth trying`.
+- **Chosen: no targeting step.** Fights here are 1v1, so an offense spell hits *the* enemy and
+  a heal targets *the* player; a cursor would be a mode with one option in it. `deferred` on
+  the day a party or a multi-enemy fight exists.
+- **Chosen: a refused cast is SAID and costs no turn.** Money's precedent exactly — a price is
+  quoted out loud, so a player reaching for what they cannot pay for hears why rather than
+  pressing a key that appears broken. Rejected: hiding unaffordable spells, which would make
+  the list change shape as the player spends, and silently refusing, which is the dead key.
 
 ## NPC movement freezes with the player, and the brain is pure
 

@@ -236,6 +236,10 @@ func test_the_status_lines_carry_the_players_real_numbers() -> void:
 		"nothing says how hurt the player is: %s" % [lines]).contains("HP ")
 	assert_str(joined).override_failure_message(
 		"the line a player opens this page FOR is missing: %s" % [lines]).contains("next in")
+	# Magic sits beside health because it is the other thing a player rations, and this is the
+	# only place outside a fight that says how much of it is left.
+	assert_str(joined).override_failure_message(
+		"nothing outside a fight says how much magic is left: %s" % [lines]).contains("MP ")
 
 func test_the_status_page_shows_what_is_worn() -> void:
 	var world := _boot()

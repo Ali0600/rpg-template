@@ -17,13 +17,21 @@ extends RefCounted
 ## single sink carries it out. That is what makes "a beaten enemy stays beaten" the same
 ## mechanism as "a chest opened once", persisted and migrated for free.
 
-## Where the fight is. MENU and ITEMS are waiting for the player; PLAYER_ACT and ENEMY_ACT are
-## a cue counting down toward an impact; MESSAGE is a line being read; OVER is the result.
-enum Phase { MENU, ITEMS, PLAYER_ACT, ENEMY_ACT, MESSAGE, OVER }
+## Where the fight is. MENU, SPELLS and ITEMS are waiting for the player; PLAYER_ACT and
+## ENEMY_ACT are a cue counting down toward an impact; MESSAGE is a line being read; OVER is
+## the result.
+enum Phase { MENU, SPELLS, ITEMS, PLAYER_ACT, ENEMY_ACT, MESSAGE, OVER }
 
 ## The command menu's rows, in the order they are drawn. The view indexes its labels by this,
 ## so the order lives in one place rather than in a list beside a list.
-enum Row { ATTACK, ITEM, FLEE }
+##
+## MAGIC is INSERTED rather than appended, and that is the genre's order rather than a
+## preference: Final Fantasy's Fight/Magic/Drink/Item, Dragon Quest's Fight/Run/Spell/Item and
+## Chrono Trigger's Att/Tech/Item all put casting immediately after attacking, and a player
+## reaches for the second row by muscle memory. The cost is that every counting test and every
+## play session pressing its way down this menu moves, which is paid deliberately - the
+## Equipment and Status rows in PauseMenu were inserted for the same reason and at the same price.
+enum Row { ATTACK, MAGIC, ITEM, FLEE }
 
 ## How it ended. NONE is "still fighting", so a caller never has to ask two questions.
 enum Outcome { NONE, VICTORY, DEFEAT, FLED }
@@ -48,6 +56,31 @@ class ItemRow:
 		return out
 
 
+## One spell the player can cast, already resolved - and "already resolved" includes WHICH
+## SPELLS THESE ARE. The world filters the registered spells by the player's level before
+## handing them over, because knowing a spell is derived from level and this class may not ask
+## a Registry what exists. A spell the player has not reached is not a dimmed row here; it is
+## simply not in the list, the way an item they are not carrying is not.
+class SpellRow:
+	var id: StringName = &""
+	var name: String = ""
+	var cost: int = 0
+	var kind: int = SpellDef.Kind.ATTACK
+	var power: int = 0
+	var status_turns: int = 0
+
+	static func of(spell_id: StringName, spell_name: String, mp_cost: int, spell_kind: int,
+			spell_power: int, turns: int) -> SpellRow:
+		var out := SpellRow.new()
+		out.id = spell_id
+		out.name = spell_name
+		out.cost = mp_cost
+		out.kind = spell_kind
+		out.power = spell_power
+		out.status_turns = turns
+		return out
+
+
 var _combat: CombatDef
 var _enemy: EnemyDef
 var _hp: int = 0
@@ -69,6 +102,12 @@ var _sounds: Array[StringName] = []
 ## Untyped Array because a typed default for a nested class is not a constant expression -
 ## the same reason PauseMenu._items is untyped.
 var _items: Array = []
+## Untyped for the same reason _items is.
+var _spells: Array = []
+## Enemy turns still owed to a sleep, counted DOWN as each one is skipped. It belongs to the
+## fight and nothing else: a sleep does not survive the battle it was cast in, so there is
+## nothing here to seal, save or migrate.
+var _enemy_asleep_turns: int = 0
 var _seen_key: String = ""
 
 var _phase := Phase.MENU
@@ -91,7 +130,8 @@ var _effects: Array[Dictionary] = []
 ## rebuilt so the logic never has to know how a seen key is spelled.
 static func of(combat: CombatDef, enemy: EnemyDef, hp: int, xp: int, level: int,
 		items: Array, seen_key: String, seed_value: int,
-		attack_mod: int = 0, defense_mod: int = 0, mp: int = 0) -> BattleLogic:
+		attack_mod: int = 0, defense_mod: int = 0, mp: int = 0,
+		spells: Array = []) -> BattleLogic:
 	var out := BattleLogic.new()
 	out._combat = combat
 	out._enemy = enemy
@@ -103,6 +143,7 @@ static func of(combat: CombatDef, enemy: EnemyDef, hp: int, xp: int, level: int,
 	out._mp = clampi(mp, 0, combat.max_mp(out._level))
 	out._enemy_hp = enemy.max_hp
 	out._items = items.duplicate()
+	out._spells = spells.duplicate()
 	out._seen_key = seen_key
 	out._attack_mod = maxi(attack_mod, 0)
 	out._defense_mod = maxi(defense_mod, 0)
@@ -137,6 +178,8 @@ func size() -> int:
 		# An empty bag still has one row: the line saying it is empty. A page with no rows is
 		# one the cursor cannot stand on and the player cannot read.
 		return maxi(_items.size(), 1)
+	if _phase == Phase.SPELLS:
+		return maxi(_spells.size(), 1)
 	return Row.size()
 
 
@@ -148,6 +191,28 @@ func item_row(at: int) -> ItemRow:
 	if at < 0 or at >= _items.size():
 		return null
 	return _items[at]
+
+
+func spell_rows() -> Array:
+	return _spells.duplicate()
+
+
+func spell_row(at: int) -> SpellRow:
+	if at < 0 or at >= _spells.size():
+		return null
+	return _spells[at]
+
+
+## Whether the player could cast this one right now. Read by the view to dim what is out of
+## reach, and by _confirm_spell to refuse it - one function, so what the screen shows and what
+## the press does cannot disagree.
+func can_afford(row: SpellRow) -> bool:
+	return row != null and row.cost <= _mp
+
+
+## Enemy turns still owed to a sleep. Zero is "awake", so a caller never has to ask twice.
+func enemy_asleep_turns() -> int:
+	return _enemy_asleep_turns
 
 
 func player_hp() -> int:
@@ -263,7 +328,7 @@ func _want(cue: Sfx.Cue) -> void:
 ## Moves the cursor by whole steps, WRAPPING, and only while something is waiting for a
 ## choice. A press during a cue is a timing press, not a menu one.
 func move(delta: int) -> bool:
-	if _phase != Phase.MENU and _phase != Phase.ITEMS:
+	if _phase != Phase.MENU and _phase != Phase.ITEMS and _phase != Phase.SPELLS:
 		return false
 	if size() < 2:
 		return false
@@ -278,6 +343,9 @@ func press() -> void:
 		Phase.MENU:
 			_want(Sfx.Cue.MENU_CONFIRM)
 			_confirm_command()
+		Phase.SPELLS:
+			_want(Sfx.Cue.MENU_CONFIRM)
+			_confirm_spell()
 		Phase.ITEMS:
 			_want(Sfx.Cue.MENU_CONFIRM)
 			_confirm_item()
@@ -299,6 +367,11 @@ func press() -> void:
 ## left by winning, losing or fleeing, and a cancel that closed one would be an escape hatch
 ## with no cost. Returns whether it did anything, so a view can stay quiet when it did not.
 func cancel() -> bool:
+	if _phase == Phase.SPELLS:
+		_phase = Phase.MENU
+		_index = Row.MAGIC
+		_want(Sfx.Cue.MENU_MOVE)
+		return true
 	if _phase != Phase.ITEMS:
 		return false
 	_phase = Phase.MENU
@@ -333,6 +406,9 @@ func _confirm_command() -> void:
 	match _index:
 		Row.ATTACK:
 			_begin_cue(Phase.PLAYER_ACT, _combat.attack_cue_frames)
+		Row.MAGIC:
+			_phase = Phase.SPELLS
+			_index = 0
 		Row.ITEM:
 			_phase = Phase.ITEMS
 			_index = 0
@@ -340,6 +416,56 @@ func _confirm_command() -> void:
 			_flee()
 		_:
 			pass
+
+
+## Casting, which is three verbs behind one row.
+##
+## A cast has NO TIMING WINDOW, and that is deliberate rather than unfinished. The timed press
+## is this template's own invention for swinging a weapon - a thing you aim - where a spell in
+## every game this borrows from resolves because you chose it. Giving magic a window too would
+## make the whole fight one reflex test and leave the menu with nothing to decide.
+func _confirm_spell() -> void:
+	var row := spell_row(_index)
+	# An empty page's one row is a statement, not a button - the _confirm_item rule.
+	if row == null:
+		return
+	if not can_afford(row):
+		# SAID, and it costs nothing - not the turn either. Money is the precedent: a price is
+		# quoted out loud, so a player who reaches for something they cannot pay for hears why
+		# not, rather than pressing a key that appears to be broken. Where an item they are not
+		# carrying is simply absent, a spell they know and cannot pay for has to stay on the
+		# page, or the list would change shape as they spend.
+		_want(Sfx.Cue.LOCKED)
+		_say("Not enough magic for %s." % row.name, Phase.SPELLS)
+		return
+	_mp -= row.cost
+	_want(Sfx.Cue.CAST)
+	match row.kind:
+		SpellDef.Kind.HEAL:
+			var healed := mini(_hp + row.power, player_max_hp()) - _hp
+			_hp += healed
+			if healed > 0:
+				_want(Sfx.Cue.HEAL)
+				_say("%s casts %s. %d healed." % [_hero_name(), row.name, healed],
+					Phase.ENEMY_ACT)
+			else:
+				_say("%s casts %s, and is already whole." % [_hero_name(), row.name],
+					Phase.ENEMY_ACT)
+		SpellDef.Kind.SLEEP:
+			_enemy_asleep_turns = row.status_turns
+			_say("%s casts %s. The %s sleeps." % [_hero_name(), row.name, _enemy.name],
+				Phase.ENEMY_ACT)
+		_:
+			# Damage is FLAT - the enemy's defense does not reduce it - and that is what gives
+			# magic a job beside a stronger swing: the answer to something armoured. It is also
+			# one fewer number to tune, because SpellDef.power then means damage and nothing else.
+			_want(Sfx.Cue.HIT)
+			_enemy_hp = maxi(_enemy_hp - row.power, 0)
+			var line := "%s casts %s. %d damage." % [_hero_name(), row.name, row.power]
+			if _enemy_hp <= 0:
+				_win()
+				return
+			_say(line, Phase.ENEMY_ACT)
 
 
 func _confirm_item() -> void:
@@ -380,6 +506,21 @@ func _flee() -> void:
 
 
 # -- the cues ------------------------------------------------------------------------------
+
+
+## The enemy's turn, which it does not always get.
+##
+## The sleep is checked HERE rather than at the impact, because a sleeping enemy must not
+## telegraph a blow the player then has to defend against - the cue is the thing being reacted
+## to, so a skipped turn has to skip the cue and not just the damage. One turn is spent per
+## check, so a two-turn sleep is two turns the enemy does not act, counted where they are
+## actually taken rather than by a clock.
+func _begin_enemy_turn() -> void:
+	if _enemy_asleep_turns > 0:
+		_enemy_asleep_turns -= 1
+		_say("The %s sleeps on." % _enemy.name, Phase.MENU)
+		return
+	_begin_cue(Phase.ENEMY_ACT, _combat.defend_cue_frames)
 
 
 func _begin_cue(next: Phase, frames: int) -> void:
@@ -485,13 +626,19 @@ func _leave_message() -> void:
 	_message = ""
 	match _after_message:
 		Phase.ENEMY_ACT:
-			_begin_cue(Phase.ENEMY_ACT, _combat.defend_cue_frames)
+			_begin_enemy_turn()
 		Phase.MENU:
 			_phase = Phase.MENU
 			_index = Row.ATTACK
 		_:
+			# A refused cast lands here, going back to the page it was refused on with the
+			# cursor where it was left: the player is choosing again, not starting the turn
+			# over. No arm of its own, because "become what you were told to become" is what
+			# the default already does - and a second literal `_phase = Phase.SPELLS` in this
+			# file is a line no mutant could aim at unambiguously.
 			_phase = _after_message
-	_count = 0 if _phase == Phase.MENU or _phase == Phase.OVER else _count
+	_count = 0 if _phase == Phase.MENU or _phase == Phase.OVER or _phase == Phase.SPELLS \
+		else _count
 
 
 func _hero_name() -> String:

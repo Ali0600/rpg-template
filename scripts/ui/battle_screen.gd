@@ -37,7 +37,7 @@ const BAR_WIDTH := 64.0
 const BAR_HEIGHT := 4.0
 
 ## Indexed by BattleLogic.Row, so the order is the enum's rather than a second list's.
-const COMMANDS: Array[String] = ["Attack", "Item", "Flee"]
+const COMMANDS: Array[String] = ["Attack", "Magic", "Item", "Flee"]
 
 var _logic: BattleLogic = null
 var _style: SpriteStyle = null
@@ -119,9 +119,15 @@ func _build(viewport_size: Vector2i, source: SpriteSource, hero_character: Strin
 	_message.add_theme_font_size_override("font_size", ROW_SIZE)
 	add_child(_message)
 
-	for i in COMMANDS.size():
+	# Sized to the LONGEST page this fight can show, not to the command list. _paint_rows hides
+	# rows past the current page's length, so a pool cut to the commands would silently stop
+	# drawing the fifth spell or the fourth tonic - a row the player cannot see is one they
+	# cannot cast, and nothing would say so. The logic is set before _build for this reason.
+	var deepest := maxi(COMMANDS.size(),
+		maxi(_logic.item_rows().size(), _logic.spell_rows().size()))
+	for i in deepest:
 		var row := Label.new()
-		row.position = Vector2(MARGIN, float(viewport_size.y) - 16.0 - (COMMANDS.size() - i) * ROW_PITCH)
+		row.position = Vector2(MARGIN, float(viewport_size.y) - 16.0 - (deepest - i) * ROW_PITCH)
 		row.add_theme_font_size_override("font_size", ROW_SIZE)
 		add_child(row)
 		_rows.append(row)
@@ -191,7 +197,7 @@ func _paint() -> void:
 
 	_paint_bar(_hero_bar, _hero_fill, _hero_label, dim, text,
 		_logic.player_hp(), _logic.player_max_hp(),
-		"You  Lv%d  %d/%d" % [_logic.player_level(), _logic.player_hp(), _logic.player_max_hp()])
+		_hero_caption())
 	_paint_bar(_foe_bar, _foe_fill, _foe_label, dim, text,
 		_logic.enemy_hp(), _logic.enemy_max_hp(),
 		"%s  %d/%d" % [_logic.enemy_name(), _logic.enemy_hp(), _logic.enemy_max_hp()])
@@ -204,6 +210,17 @@ func _paint() -> void:
 
 	_paint_fighters()
 	_paint_rows(text, dim)
+
+
+## What the player is worth, in one line above their bar. The MP half appears only for a game
+## that HAS magic - a "0 MP" on a game with no spells is a stat the player can do nothing about
+## and would spend the whole run wondering at.
+func _hero_caption() -> String:
+	var line := "You  Lv%d  %d/%d" % [_logic.player_level(), _logic.player_hp(),
+		_logic.player_max_hp()]
+	if _logic.player_max_mp() > 0:
+		line += "  MP %d/%d" % [_logic.player_mp(), _logic.player_max_mp()]
+	return line
 
 
 func _paint_bar(back: ColorRect, fill: ColorRect, label: Label, dim: Color, text: Color,
@@ -244,7 +261,8 @@ func _paint_fighters() -> void:
 
 func _paint_rows(text: Color, dim: Color) -> void:
 	var choosing := _logic.phase() == BattleLogic.Phase.MENU \
-		or _logic.phase() == BattleLogic.Phase.ITEMS
+		or _logic.phase() == BattleLogic.Phase.ITEMS \
+		or _logic.phase() == BattleLogic.Phase.SPELLS
 	for i in _rows.size():
 		var row := _rows[i]
 		# Rows past the current page's list are hidden rather than blanked: an empty label
@@ -254,7 +272,13 @@ func _paint_rows(text: Color, dim: Color) -> void:
 			continue
 		var selected := i == _logic.index()
 		row.text = ("> " if selected else "  ") + _label_for(i)
-		row.add_theme_color_override("font_color", text if selected else dim)
+		# A spell out of reach of the purse is drawn dim even under the cursor, so the answer
+		# to "can I cast this" is on screen BEFORE the press rather than only in the refusal.
+		# Affordability is asked of the logic, never recomputed here, or the screen and the
+		# rule could disagree about the same spell.
+		var reachable := _logic.phase() != BattleLogic.Phase.SPELLS \
+			or _logic.can_afford(_logic.spell_row(i))
+		row.add_theme_color_override("font_color", text if selected and reachable else dim)
 
 
 func _label_for(at: int) -> String:
@@ -263,11 +287,20 @@ func _label_for(at: int) -> String:
 		if row == null:
 			return "(nothing useful)"
 		return "%s x%d" % [row.name, row.count] if row.count > 1 else row.name
+	if _logic.phase() == BattleLogic.Phase.SPELLS:
+		var spell: BattleLogic.SpellRow = _logic.spell_row(at)
+		# The empty page is worded as "not yet" rather than "none": spells arrive with levels,
+		# so a player who has none has not failed to find any, they have not got there.
+		if spell == null:
+			return "(nothing learned yet)"
+		return "%s  %d MP" % [spell.name, spell.cost]
 	return COMMANDS[at]
 
 
 func _help_text() -> String:
 	match _logic.phase():
+		BattleLogic.Phase.SPELLS:
+			return "W/S to choose    E to cast    Esc to go back"
 		BattleLogic.Phase.ITEMS:
 			return "W/S to choose    E to use    Esc to go back"
 		BattleLogic.Phase.MENU:

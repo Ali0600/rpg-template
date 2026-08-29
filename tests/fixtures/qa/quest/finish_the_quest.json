@@ -1069,7 +1069,11 @@
 		},
 		{
 			"op": "note",
-			"text": "a tonic, mid-fight, out of the bag - the Item command with something real behind it, and the turn it costs is the reason drinking is a decision"
+			"text": "a tonic, mid-fight, out of the bag - the Item command with something real behind it, and the turn it costs is the reason drinking is a decision Rows: Attack, Magic, Item, Flee - Item is the third, so two downs; the count moved when Magic was inserted above it"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
 		},
 		{
 			"op": "press",

@@ -34,6 +34,7 @@
 		"block": { "wave": "noise", "ms": 70, "attack_ms": 1, "gain": 0.4 },
 		"hurt": { "wave": "tone", "hz": 380, "hz_end": 180, "ms": 200, "attack_ms": 2, "gain": 0.5 },
 		"heal": { "wave": "tone", "hz": 440, "hz_end": 880, "steps": 4, "ms": 260, "gain": 0.4 },
+		"cast": { "wave": "both", "hz": 880, "hz_end": 494, "steps": 4, "ms": 220, "attack_ms": 2, "gain": 0.42 },
 		"level_up": { "wave": "tone", "hz": 440, "hz_end": 1320, "steps": 6, "ms": 420, "gain": 0.5 },
 		"victory": { "wave": "tone", "hz": 523, "hz_end": 1046, "steps": 5, "ms": 520, "gain": 0.5 },
 		"defeat": { "wave": "tone", "hz": 440, "hz_end": 110, "steps": 4, "ms": 640, "attack_ms": 4, "gain": 0.5 }

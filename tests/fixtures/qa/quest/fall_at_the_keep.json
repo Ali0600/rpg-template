@@ -87,7 +87,11 @@
 		},
 		{
 			"op": "note",
-			"text": "Flee is the third command: down twice, then confirm"
+			"text": "Rows: Attack, Magic, Item, Flee. Flee is the fourth, so three downs then confirm - the count moved when Magic was inserted above it, which is the price of putting a command where the genre keeps it"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
 		},
 		{
 			"op": "press",
@@ -453,7 +457,11 @@
 		},
 		{
 			"op": "note",
-			"text": "try to run first: a boss refuses, and the attempt still costs the turn"
+			"text": "try to run first: a boss refuses, and the attempt still costs the turn. Rows: Attack, Magic, Item, Flee - three downs to reach the fourth"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
 		},
 		{
 			"op": "press",
