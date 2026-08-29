@@ -31,6 +31,10 @@ signal equip_requested(item: StringName)
 ## equip carrying nothing, for the reason the answer it comes from has its own kind: a verb
 ## spelled as the absence of its opposite is one every listener has to remember to decode.
 signal unequip_requested(slot: StringName)
+## The player picked whose Equipment or Status page they want. An empty id is the leader. The
+## world answers by re-wording the page for that member and calling refresh(), which is the
+## _stats and _status shape - the menu asks WHO and never learns what a level is.
+signal member_selected(member: StringName)
 
 const LAYER := 15
 const MARGIN := 8
@@ -88,10 +92,10 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 ## the player is looking at show what they just wrote.
 func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = []) -> void:
+		status: Array[String] = [], members: Array = []) -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots, items, sound, gold, gear, stats, status)
+	_menu.refresh(slots, items, sound, gold, gear, stats, status, members)
 	_committed = false
 	_paint()
 
@@ -191,6 +195,8 @@ func _label_for(at: int) -> String:
 			return PauseMenu.item_label(_menu.item(at))
 		PauseMenu.Page.STATUS:
 			return _menu.status_line(at)
+		PauseMenu.Page.MEMBER:
+			return _menu.member_label(at)
 		PauseMenu.Page.EQUIP:
 			return PauseMenu.gear_label(_menu.gear(at))
 		PauseMenu.Page.EQUIP_PICK:
@@ -211,6 +217,9 @@ func _title_for(page: PauseMenu.Page) -> String:
 			# The slot being answered, so the page says which question it is asking rather
 			# than making the player remember what they pressed.
 			return _menu.pick_slot_label().to_upper()
+		PauseMenu.Page.MEMBER:
+			# What the answer is FOR, so the page is a question rather than a list of names.
+			return "EQUIP WHO" if _menu.member_opens_equipment() else "STATUS OF WHO"
 		PauseMenu.Page.SAVE:
 			return "SAVE TO"
 		PauseMenu.Page.LOAD:
@@ -239,6 +248,10 @@ func _help_for(page: PauseMenu.Page) -> String:
 			return candidate.effect if not candidate.effect.is_empty() else candidate.description
 		var takeoff := _menu.pick_takeoff_effect()
 		return takeoff if not takeoff.is_empty() else "Nothing worn here"
+	if page == PauseMenu.Page.EQUIP and _menu.has_members():
+		# Whose gear is on screen. Without it, a party's two equipment pages look identical
+		# until you read the item names.
+		return "%s    Esc to go back" % _menu.member_name()
 	if page == PauseMenu.Page.TOP:
 		return "W/S to choose    E to pick    Esc to resume"
 	return "W/S to choose    E to pick    Esc to go back"
@@ -288,6 +301,11 @@ func _act(pick: PauseMenu.Pick) -> void:
 			# Not committed: equipping leaves the menu open and the world calls refresh(), so
 			# the row shows its new marker - the save-row and sound-row rule.
 			equip_requested.emit(pick.item)
+		PauseMenu.Kind.MEMBER:
+			# Not committed, and not a change: the menu has decided whose page comes next and
+			# is asking the world to word it for them. The world refreshes, and the page the
+			# menu has already opened is filled with the right person's gear and lines.
+			member_selected.emit(pick.gear)
 		PauseMenu.Kind.UNEQUIP:
 			# Not committed, for the reason equipping is not: the page stays up and the world
 			# refreshes it, so the slot the player just emptied says so.

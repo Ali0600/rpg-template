@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="GameManifest" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="GameManifest" load_steps=7 format=3]
 
 ; The game this template ships, and the point of the exercise: it exists entirely as files
 ; ADDED beside the template. Nothing under scripts/, tools/ or scenes/ was changed to make it
@@ -23,6 +23,8 @@
 [ext_resource type="Resource" path="res://data/combat/quest_combat.tres" id="4_combat"]
 [ext_resource type="Resource" path="res://data/sounds/dusk16.tres" id="5_sound"]
 
+[ext_resource type="Resource" path="res://data/party/scrapper.tres" id="9_party"]
+
 [resource]
 script = ExtResource("1_manifest")
 id = &"quest"
@@ -34,6 +36,7 @@ title_music = &"barred_gate"
 battle_music = &"skirmish"
 victory_music = &"triumph"
 config = ExtResource("2_config")
+party = Array[Resource]([ExtResource("9_party")])
 combat = ExtResource("4_combat")
 sound_style = ExtResource("5_sound")
 hooks = ExtResource("3_hooks")

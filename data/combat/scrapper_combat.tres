@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="CombatDef" load_steps=2 format=3]
+
+; Rook's own growth. The xp curve is the SAME two steps as the player's, deliberately: she
+; earns the same awards from the same fights, so a different curve would have her levelling on
+; a different beat for no reason a player could read.
+;
+; Everything else differs, and that is the point of her being a person rather than a copy.
+; Sturdier and slower to grow (24 +3 against 20 +4), a weaker swing (3 +1 against 5 +2),
+; better armour (2 +1), and half the magic (4 +2) - enough for two Mends at level one and no
+; more. She holds a line; she does not win the fight.
+;
+; The timing fields are here because CombatDef has them, and they are IGNORED: a fight's pacing
+; is the manifest's own curve, or a party would be one screen asking the player to react at two
+; speeds. They are set to the game's values so a reader diffing the two files sees no
+; difference where none is meant.
+;
+; UNJUDGED BY EAR. Nobody has played a fight with two people in it.
+
+[ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
+
+[resource]
+script = ExtResource("1_combat")
+id = &"scrapper_combat"
+base_hp = 24
+hp_per_level = 3
+base_attack = 3
+attack_per_level = 1
+base_defense = 2
+defense_per_level = 1
+base_mp = 4
+mp_per_level = 2
+xp_curve = Array[int]([10, 12])
+attack_cue_frames = 72
+defend_cue_frames = 84
+timed_window_frames = 24
+message_frames = 45

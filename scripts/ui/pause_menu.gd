@@ -15,7 +15,12 @@ extends RefCounted
 ## The pages. TOP is the menu itself; the rest are lists entered from one of its rows.
 ## EQUIP_PICK is the only page entered from another page rather than from TOP: it is the
 ## candidates for ONE slot, so it needs the slot the player just pointed at.
-enum Page { TOP, ITEMS, SAVE, LOAD, EQUIP, EQUIP_PICK, STATUS }
+## MEMBER is the "whose?" step in front of Equipment and Status, and it exists ONLY when there
+## is more than one member to ask about - Dragon Warrior II's Equip "brings up a smaller window
+## listing your characters", and EarthBound's Goods cycles them the same way. With one member
+## both rows open their page directly, which is what leaves every counting session and every
+## screenshot taken before there was a party pressing exactly what they pressed.
+enum Page { TOP, ITEMS, SAVE, LOAD, EQUIP, EQUIP_PICK, STATUS, MEMBER }
 
 ## The TOP page's rows, in the order they are drawn. The view indexes its labels by this, so
 ## the order lives in one place rather than in a list beside a list.
@@ -29,7 +34,10 @@ enum Row { RESUME, ITEMS, EQUIP, STATUS, SAVE, LOAD, SOUND }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
-enum Kind { NONE, RESUME, SAVE, LOAD, SOUND, EQUIP, UNEQUIP }
+## MEMBER is a request, not a change: the menu has decided WHO the next page is about and is
+## asking the world to word it for them. It carries the member's id in `gear`, which is the
+## field a slot id already travels in - a second name for "the thing this Pick is about".
+enum Kind { NONE, RESUME, SAVE, LOAD, SOUND, EQUIP, UNEQUIP, MEMBER }
 
 
 ## One answer, carried as a value the way Locomotion.Step is. The slot is explicit rather than
@@ -138,13 +146,23 @@ var _pick_slot: StringName = &""
 ## What the status page says, one line per row, already worded. Text for the reason _stats is:
 ## composing "Level 3" means knowing what this game calls a level, and whether it has one.
 var _status: Array[String] = []
+## Who is in the party, as `{"id", "name"}` per member, resolved by the world. Empty or one
+## member means no member step at all. This carries WHO, never their numbers: a member's gear
+## page and status lines are still the world's words, handed over one member at a time as the
+## selection changes - the _stats and _status shape, which is what keeps this class from ever
+## having to know what a level is.
+var _members: Array = []
+## Which member the Equipment and Status pages are currently about, as an index into _members.
+var _member: int = 0
+## Which page the member step is standing in front of.
+var _member_opens := Page.EQUIP
 var _page := Page.TOP
 var _index := 0
 
 
 static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = []) -> PauseMenu:
+		status: Array[String] = [], members: Array = []) -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
@@ -153,7 +171,52 @@ static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
 	menu._gear = gear.duplicate()
 	menu._stats = stats
 	menu._status = status.duplicate()
+	menu._members = members.duplicate()
 	return menu
+
+
+## Opens a page that is ABOUT somebody, putting the member step in front of it when there is
+## more than one somebody. One function for both rows, so Equipment and Status cannot end up
+## disagreeing about when the step appears.
+func _open_about(page: Page) -> Pick:
+	_index = 0
+	if _members.size() > 1:
+		_member_opens = page
+		_page = Page.MEMBER
+		return Pick.of(Kind.NONE)
+	_page = page
+	return Pick.of(Kind.NONE)
+
+
+## Who the Equipment and Status pages are currently about. Empty is the leader, which is the
+## id every one-member game uses and the one the world reads as "the player".
+func member_id() -> StringName:
+	if _member < 0 or _member >= _members.size():
+		return &""
+	return StringName(str((_members[_member] as Dictionary).get("id", "")))
+
+
+## One row of the member page.
+func member_label(at: int) -> String:
+	if at < 0 or at >= _members.size():
+		return "(nobody else)"
+	return str((_members[at] as Dictionary).get("name", ""))
+
+
+## Whether the member step is part of the flow at all. The view asks so its title and its help
+## line can say so, and the world asks so it knows whether a refresh has a member to re-word.
+func has_members() -> bool:
+	return _members.size() > 1
+
+
+## Which row put the member step up, so the page can say what it is asking for.
+func member_opens_equipment() -> bool:
+	return _member_opens == Page.EQUIP
+
+
+## The name of whoever the pages are currently about.
+func member_name() -> String:
+	return member_label(_member)
 
 
 func gold_label() -> String:
@@ -283,6 +346,8 @@ func size() -> int:
 			# Read-only, so the cursor is only here to be somewhere. An empty status still has
 			# the row that says so - the empty-bag rule.
 			return maxi(_status.size(), 1)
+		Page.MEMBER:
+			return maxi(_members.size(), 1)
 		Page.EQUIP_PICK:
 			# Candidates plus the take-off row, which is always drawn. It is what makes this
 			# page impossible to strand a cursor on: a slot whose gear you are not carrying
@@ -328,13 +393,9 @@ func confirm() -> Pick:
 			_index = 0
 			return Pick.of(Kind.NONE)
 		if _index == Row.EQUIP:
-			_page = Page.EQUIP
-			_index = 0
-			return Pick.of(Kind.NONE)
+			return _open_about(Page.EQUIP)
 		if _index == Row.STATUS:
-			_page = Page.STATUS
-			_index = 0
-			return Pick.of(Kind.NONE)
+			return _open_about(Page.STATUS)
 		# A game configured with no slots has nowhere to go. The four rows above are exempt: an
 		# empty bag is a fact worth showing, a player can still dress themselves and still ask
 		# how they are, where an empty slot list is a menu with nothing in it.
@@ -353,6 +414,15 @@ func confirm() -> Pick:
 	# thing left to build - a status screen that DID something would be a different screen.
 	if _page == Page.STATUS:
 		return Pick.of(Kind.NONE)
+	if _page == Page.MEMBER:
+		# Choosing WHO. The world is asked to re-word the page for them - it owns what a level
+		# is called and what a slot holds, and this class may not ask a Registry either.
+		if _members.is_empty():
+			return Pick.of(Kind.NONE)
+		_member = clampi(_index, 0, _members.size() - 1)
+		_page = _member_opens
+		_index = 0
+		return Pick.of(Kind.MEMBER, -1, &"", member_id())
 	# A slot opens its own candidates, and asks the world for nothing - the same shape as
 	# opening a save page.
 	if _page == Page.EQUIP:
@@ -397,6 +467,14 @@ func cancel() -> Pick:
 	if _page == Page.EQUIP_PICK:
 		_back_to_slots()
 		return Pick.of(Kind.NONE)
+	# A page that was reached THROUGH the member step goes back to it rather than all the way
+	# out - the player is changing their mind about whose page they wanted, not about wanting
+	# one. With one member there was no step to come back to, so this does not fire.
+	if has_members() and (_page == Page.EQUIP or _page == Page.STATUS):
+		_member_opens = _page
+		_page = Page.MEMBER
+		_index = _member
+		return Pick.of(Kind.NONE)
 	if _page != Page.TOP:
 		_index = _opened_from(_page)
 		_page = Page.TOP
@@ -409,7 +487,7 @@ func cancel() -> Pick:
 ## a page they are still using.
 func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = []) -> void:
+		status: Array[String] = [], members: Array = []) -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
 	_sound = sound
@@ -417,6 +495,7 @@ func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
 	_gear = gear.duplicate()
 	_stats = stats
 	_status = status.duplicate()
+	_members = members.duplicate()
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
 
@@ -436,7 +515,7 @@ func _back_to_slots() -> void:
 
 ## The row a page was opened from, so backing out lands the cursor where the player left it
 ## rather than at the top of a menu they were halfway down.
-static func _opened_from(page: Page) -> Row:
+func _opened_from(page: Page) -> Row:
 	match page:
 		Page.ITEMS:
 			return Row.ITEMS
@@ -446,6 +525,10 @@ static func _opened_from(page: Page) -> Row:
 			return Row.STATUS
 		Page.SAVE:
 			return Row.SAVE
+		Page.MEMBER:
+			# Whichever row put the step up. Without this, backing out of the member page
+			# always lands on Load, which is two rows from where the player was.
+			return Row.STATUS if _member_opens == Page.STATUS else Row.EQUIP
 		_:
 			return Row.LOAD
 

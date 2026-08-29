@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CharacterSpec" load_steps=2 format=3]
+
+; The scrapper by the road to town, and the demo's one companion. Moss cloth and copper hair:
+; the warden wears rust and the wanderer wears rust, so a third rust coat by the same gate
+; would read as one person standing in two places - the hermit's own lesson, applied before
+; anybody noticed rather than after.
+;
+; Short hair and a tunic, because a robe is what the two people who live indoors wear.
+
+[ext_resource type="Script" path="res://scripts/data/character_spec.gd" id="1_spec"]
+
+[resource]
+script = ExtResource("1_spec")
+id = &"quest_scrapper"
+style_id = &"dusk16"
+seed = 517
+parts = {
+"body": "body_tunic",
+"hair": "hair_short"
+}
+ramps = {
+"body": "cloth_moss",
+"hair": "hair_copper",
+"head": "skin_dark"
+}

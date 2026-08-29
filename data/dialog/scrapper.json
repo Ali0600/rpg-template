@@ -1,0 +1,57 @@
+{
+	"_readme": [
+		"The demo's one companion, and the whole recruiting mechanism: a CHOICE carrying set_flag,",
+		"with hidden_if_flag on the same choice so a second conversation cannot ask again. There is",
+		"no join op and no roster - the party is whoever's flag is set, computed fresh every time it",
+		"is asked, exactly as knowing a spell is computed fresh from level.",
+		"",
+		"The gift idiom, applied to a person. Both replies END the talk, because a choice line cannot",
+		"be escaped with cancel and a conversation that looped back through one would have no way out.",
+		"",
+		"She says what she is FOR before she is taken, for the reason the hermit names the oil: a",
+		"player who has not fought yet has no way to know what a second sword is worth."
+	],
+	"id": "scrapper",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Rook",
+			"text": "Warden won't have me. Says one sword is enough for a village this size.",
+			"next": "ask"
+		},
+		"ask": {
+			"speaker": "Rook",
+			"text": "The road east disagrees. Two of us come back from it; one doesn't.",
+			"choices": [
+				{
+					"text": "Come with me, then.",
+					"next": "joined",
+					"set_flag": "rook_joins",
+					"hidden_if_flag": "rook_joins"
+				},
+				{
+					"text": "I'll manage.",
+					"next": "alone",
+					"hidden_if_flag": "rook_joins"
+				},
+				{
+					"text": "Still with me?",
+					"next": "along",
+					"requires_flag": "rook_joins"
+				}
+			]
+		},
+		"joined": {
+			"speaker": "Rook",
+			"text": "Right. I'll take the left side. Try to keep up."
+		},
+		"alone": {
+			"speaker": "Rook",
+			"text": "You will, probably. I'll be here either way."
+		},
+		"along": {
+			"speaker": "Rook",
+			"text": "Still here. Still the left side."
+		}
+	}
+}
