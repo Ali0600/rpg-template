@@ -199,12 +199,12 @@ scripts/ui/battle_logic.gd	s|if _pressed_at >= 0:|if false:|	tests/unit/test_bat
 scripts/ui/battle_logic.gd	s|return _count <= _combat.timed_window_frames|return true|	tests/unit/test_battle_logic.gd	the timing window is open for the whole cue
 scripts/ui/battle_logic.gd	s|return _pressed_at >= 0 and _pressed_at <= _combat.timed_window_frames|return _pressed_at >= 0|	tests/unit/test_battle_logic.gd	any press at all counts as a timed one
 scripts/ui/battle_logic.gd	s|_moves_rng.next_int\(0, _enemy.moves.size\(\) - 1\)|0|	tests/unit/test_battle_logic.gd	an enemy only ever uses its first move, so half its content never ships
-scripts/ui/battle_logic.gd	s|^\t\t_hp = player_max_hp\(\)$|\t\tpass|	tests/unit/test_battle_logic.gd	levelling up stops healing, so the boss is unreachable
+scripts/ui/battle_logic.gd	s|^\t\t\twho.hp = who.max_hp\(\)$|\t\t\tpass|	tests/unit/test_battle_logic.gd	levelling up stops healing, so the boss is unreachable
 scripts/ui/battle_logic.gd	s|if _enemy.boss:|if false:|	tests/unit/test_battle_logic.gd	a boss can be walked away from
 scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_SEEN, "key": _seen_key\}\)|pass|	tests/unit/test_battle_logic.gd	a beaten enemy is never marked beaten and comes back
-scripts/ui/battle_logic.gd	s|var healed := mini\(_hp \+ row.heal, player_max_hp\(\)\) - _hp|var healed := row.heal|	tests/unit/test_battle_logic.gd	a tonic heals past the player's own maximum
+scripts/ui/battle_logic.gd	s|var healed := mini\(on.hp \+ row.heal, on.max_hp\(\)\) - on.hp|var healed := row.heal|	tests/unit/test_battle_logic.gd	a tonic heals past the player's own maximum
 scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_TAKE_ITEM, "id": row.id, "count": 1\}\)|pass|	tests/unit/test_battle_logic.gd	a tonic is drunk and never consumed
-scripts/ui/battle_logic.gd	s|if _hp <= 0:|if false:|	tests/unit/test_battle_logic.gd	the player cannot lose a fight
+scripts/ui/battle_logic.gd	s|if on.hp <= 0:|if false:|	tests/unit/test_battle_logic.gd	the player cannot lose a fight
 scripts/data/combat_def.gd	s|return base_hp \+ hp_per_level \* \(maxi\(level, 1\) - 1\)|return base_hp|	tests/unit/test_combat_def.gd	levelling up adds no health
 scripts/data/combat_def.gd	s|spent \+= step|pass|	tests/unit/test_combat_def.gd	every level costs the same as the first, so the curve is not a curve
 scripts/data/combat_def.gd	s|if xp_curve.is_empty\(\):|if false:|	tests/unit/test_combat_def.gd	a game where nothing can ever level up ships unreported
@@ -297,7 +297,7 @@ tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]
 
 # --- M15: the played game, and the artifact it ships as ---
 scripts/ui/battle_logic.gd	s|return maxi\(1, attack - defense\)|return maxi(1, attack - defense + 3)|	tests/fixtures/qa/quest/finish_the_quest.json	combat arithmetic changes and the PLAYED game does not notice
-scripts/ui/battle_logic.gd	s|\t\t_hp = player_max_hp\(\)|\t\tpass|	tests/fixtures/qa/quest/finish_the_quest.json	levelling stops healing, which the played game only sees because it now reads hp mid-run
+scripts/ui/battle_logic.gd	s|\t\t\twho.hp = who.max_hp\(\)|\t\t\tpass|	tests/fixtures/qa/quest/finish_the_quest.json	levelling stops healing, which the played game only sees because it now reads hp mid-run
 scripts/spritegen/tile_bank.gd	s|if row.length\(\) != tile:|if false:|	tests/unit/test_tile_bank.gd	a ragged tile row stops being reported
 scripts/spritegen/tile_bank.gd	s|if rows.size\(\) != tile:|if false:|	tests/unit/test_tile_bank.gd	a tile that is not the bank's size stops being reported
 scripts/spritegen/tile_bank.gd	s|if not known_chars.contains\(ch\):|if false:|	tests/unit/test_tile_bank.gd	a typo'd pixel character stops being reported
@@ -330,8 +330,8 @@ scripts/ui/shop_menu.gd	s|return 0 if r == null or _count <= 0 else r.price \* _
 scripts/ui/shop_menu.gd	s|_saying = Saying.POOR|pass|	tests/unit/test_shop_menu.gd	a refusal makes no words, which reads as a dead key
 scripts/ui/shop_menu.gd	s|return r.description if r != null else ""|return ""|	tests/unit/test_shop_menu.gd	the description bar goes blank and the shop stops saying what it sells
 scripts/ui/shop_menu.gd	s|_saying = Saying.HOW_MANY|pass|	tests/unit/test_shop_menu.gd	the keeper stops asking how many and the count runs unannounced
-scripts/ui/battle_logic.gd	s|damage\(_combat.attack_at\(_level\) \+ _attack_mod, _enemy.defense\)|damage(_combat.attack_at(_level), _enemy.defense)|	tests/unit/test_battle_logic.gd	a sword changes nothing and gear is decoration
-scripts/ui/battle_logic.gd	s|_combat.defense_at\(_level\) \+ _defense_mod\)|_combat.defense_at(_level))|	tests/unit/test_battle_logic.gd	armour changes nothing and gear is decoration
+scripts/ui/battle_logic.gd	s|damage\(swinger.combat.attack_at\(swinger.level\) \+ swinger.attack_mod,|damage(swinger.combat.attack_at(swinger.level),|	tests/unit/test_battle_logic.gd	a sword changes nothing and gear is decoration
+scripts/ui/battle_logic.gd	s|on.combat.defense_at\(on.level\) \+ on.defense_mod\)|on.combat.defense_at(on.level))|	tests/unit/test_battle_logic.gd	armour changes nothing and gear is decoration
 scripts/autoload/game_state.gd	s|if wearers_of\(id\) - already \+ 1 > inventory.count\(id\):|if false:|	tests/unit/test_saves.gd	the player equips a sword they do not own
 scripts/autoload/game_state.gd	s|\t_strip_phantom_markers\(id\)|\tpass|	tests/unit/test_saves.gd	the last sword leaves the bag and stays equipped as a phantom
 scripts/data/migrations.gd	s|d\["equipment"\] = \{\}|pass|	tests/unit/test_saves.gd	an old save loads with no equipment map at all
@@ -419,29 +419,29 @@ scripts/autoload/game_state.gd	s|\"hp\": player_hp, \"xp\": player_xp, \"level\"
 scripts/autoload/game_state.gd	s|\tplayer_mp = maxi\(int\(data.party.get\(\"mp\", 0\)\), 0\)|\tpass|	tests/unit/test_saves.gd	a load ignores the magic in the file it just read
 scripts/data/migrations.gd	s|\t\tparty\[\"mp\"\] = 0|\t\tpass|	tests/unit/test_saves.gd	the v7 step leaves the party with no mp at all, so a migrated save is malformed
 scripts/data/save_data.gd	s|if int\(party.get\(\"mp\", 0\)\) < 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save carrying negative magic loads without a word
-scripts/ui/battle_logic.gd	s|\tout._mp = clampi\(mp, 0, combat.max_mp\(out._level\)\)|\tout._mp = mp|	tests/unit/test_battle_logic.gd	a save claiming more magic than the curve allows fights with all of it
-scripts/ui/battle_logic.gd	s|\t\t_mp = player_max_mp\(\)|\t\tpass|	tests/unit/test_battle_logic.gd	levelling up restores the health and leaves the caster empty
-scripts/ui/battle_logic.gd	s|\t\t\"mp\": _mp\}\)|\}\)|	tests/unit/test_battle_logic.gd	a fight seals without saying what magic it left, so the sink writes nought over it
-scripts/world/world_scene.gd	s|int\(effect.get\(\"level\", 1\)\), int\(effect.get\(\"mp\", 0\)\)\)|int(effect.get(\"level\", 1)), 0)|	tests/integration/test_world_battles.gd	the one sink ignores the magic a fight reported and empties the player
-scripts/world/world_scene.gd	s|GameState.player_mp, _battle_spells\(\)\),|0, _battle_spells()),|	tests/integration/test_world_battles.gd	every fight opens with an empty caster, whatever the player was carrying
+scripts/ui/battle_logic.gd	s|out.mp = clampi\(member_mp, 0, curve.max_mp\(out.level\)\)|out.mp = member_mp|	tests/unit/test_battle_logic.gd	a save claiming more magic than the curve allows fights with all of it
+scripts/ui/battle_logic.gd	s|\t\t\twho.mp = who.max_mp\(\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	levelling up restores the health and leaves the caster empty
+scripts/ui/battle_logic.gd	s|"level": member.level, "mp": member.mp\}\)|"level": member.level})|	tests/unit/test_battle_logic.gd	a fight seals without saying what magic it left, so the sink writes nought over it
+scripts/world/world_scene.gd	s|int\(record.get\("level", 1\)\), int\(record.get\("mp", 0\)\)\)$|int(record.get("level", 1)), 0)|	tests/integration/test_world_battles.gd	the one sink ignores the magic a fight reported and empties the player
+scripts/world/world_scene.gd	s|GameState.player_level, GameState.player_mp,|GameState.player_level, 0,|	tests/integration/test_world_battles.gd	every fight opens with an empty caster, whatever the player was carrying
 scripts/world/world_scene.gd	s|\t\t_game.combat.max_mp\(starting\)\)|\t\t0)|	tests/integration/test_world_battles.gd	a player who has never fought starts with no magic at all
 scripts/world/world_scene.gd	s|\tGameState.set_party\(_game.combat.max_hp\(starting\)|\tGameState.set_party(1|	tests/integration/test_world_battles.gd	a player who has never fought starts on one hit point
 
 # --- M25: magic in a fight ---
-scripts/ui/battle_logic.gd	s|\treturn row != null and row.cost <= _mp|\treturn row != null|	tests/unit/test_battle_logic.gd	a spell beyond the player's magic is offered and cast anyway
+scripts/ui/battle_logic.gd	s|^\treturn row.cost <= _fighter\(_commander\).mp$|\treturn true|	tests/unit/test_battle_logic.gd	a spell beyond the player's magic is offered and cast anyway
 scripts/ui/battle_logic.gd	s|\tif not can_afford\(row\):|\tif false:|	tests/unit/test_battle_logic.gd	casting past the purse goes through and the magic runs negative
-scripts/ui/battle_logic.gd	s|\t_mp -= row.cost|\tpass|	tests/fixtures/qa/quest/cast_a_spell_in_a_fight.json	every spell is free, so the magic is a number that never moves
+scripts/ui/battle_logic.gd	s|^\tcaster.mp -= row.cost$|\tpass|	tests/fixtures/qa/quest/cast_a_spell_in_a_fight.json	every spell is free, so the magic is a number that never moves
 scripts/ui/battle_logic.gd	s|\t\t\t_phase = Phase.SPELLS|\t\t\tpass|	tests/unit/test_battle_logic.gd	the Magic command opens nothing at all
 scripts/ui/battle_logic.gd	s|\t\t\t_enemy_asleep_turns = row.status_turns|\t\t\tpass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
 scripts/ui/battle_logic.gd	s|\t\t\t_enemy_hp = maxi\(_enemy_hp - row.power, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
 scripts/ui/battle_logic.gd	s|\tif _enemy_asleep_turns > 0:|\tif false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
 scripts/ui/battle_logic.gd	s|\t\t_enemy_asleep_turns -= 1|\t\tpass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
 scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tests/unit/test_battle_logic.gd	backing out of the spells lands the cursor on Attack instead of Magic
-scripts/world/world_scene.gd	s|if def == null or def.learn_level > GameState.player_level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
+scripts/world/world_scene.gd	s|if def == null or def.learn_level > at_level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
 scripts/ui/battle_screen.gd	s|\treturn clampi\(_logic.index\(\) - VISIBLE_ROWS \+ 1, 0, count - VISIBLE_ROWS\)|\treturn 0|	tests/integration/test_battle_layout.gd	a page longer than the window never scrolls, so its last rows cannot be reached
 scripts/ui/battle_screen.gd	s|\t\tvar at := first \+ i|\t\tvar at := i|	tests/integration/test_battle_layout.gd	the window is worked out and then ignored, so the rows drawn never move
 scripts/ui/battle_screen.gd	s|\tlabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT|\tpass|	tests/integration/test_battle_layout.gd	the player block runs left across the screen and lands on the command list again
-scripts/ui/battle_screen.gd	s|\tif _logic.player_max_mp\(\) <= 0:|\tif false:|	tests/integration/test_battle_layout.gd	a game with no magic is told about magic it does not have
+scripts/ui/battle_screen.gd	s|if _logic.member_count\(\) != 1 or _logic.member_max_mp\(0\) <= 0:|if false:|	tests/integration/test_battle_layout.gd	a game with no magic is told about magic it does not have
 scripts/ui/battle_screen.gd	s|\t\treturn \"%s  %d MP\" % \[spell.name, spell.cost\]|\t\treturn spell.name|	tests/integration/test_world_battles.gd	the spell page names no prices, so the choice is made blind
 scripts/world/world_scene.gd	s|\t\t\tout.append\(\"MP %d/%d\" % \[GameState.player_mp, _game.combat.max_mp\(level\)\]\)|\t\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how much magic is left
 
@@ -478,5 +478,20 @@ scripts/data/save_data.gd	s|if not companions.is_empty\(\) and party.is_empty\(\
 scripts/data/migrations.gd	s|\td\["companions"\] = \{\}|\tpass|	tests/unit/test_saves.gd	the v8 to v9 step forgets the key it exists to add
 scripts/autoload/qa.gd	s|if not GameState.has_companion\(member\):|if false:|	tests/unit/test_qa_ops.gd	a companion who never joined answers assertions about their health
 scripts/autoload/qa.gd	s|\t\t\t_fail\("assert_gold names member '%s', and there is one purse" % member\)|\t\t\tpass|	tests/unit/test_qa_ops.gd	the harness invents a per-member purse
+scripts/ui/battle_logic.gd	s|^\tif next >= 0:$|\tif false:|	tests/unit/test_battle_logic.gd	the first order resolves before anybody else is asked
+scripts/ui/battle_logic.gd	s|^\t\tvar taken: Order = _orders.pop_back\(\)$|\t\tvar taken: Order = _orders.back()|	tests/unit/test_battle_logic.gd	cancel hands the menu back and keeps the order it took
+scripts/ui/battle_logic.gd	s|^\tif standing.size\(\) < 2:$|\tif false:|	tests/unit/test_battle_logic.gd	a solo heal opens a cursor with one row on it
+scripts/ui/battle_logic.gd	s|\tif row.kind == SpellDef.Kind.HEAL:|\tif false:|	tests/unit/test_battle_logic.gd	a heal in a party lands on whoever cast it
+scripts/ui/battle_logic.gd	s|\tchosen.target = standing\[_index\]|\tchosen.target = _commander|	tests/unit/test_battle_logic.gd	the ally cursor is drawn, read and ignored
+scripts/ui/battle_logic.gd	s|^\t\tif _living\(\).is_empty\(\):$|\t\tif true:|	tests/unit/test_battle_logic.gd	one member falling loses the whole fight
+scripts/ui/battle_logic.gd	s|^\tfor i in _living\(\):$|\tfor i in _members.size():|	tests/unit/test_battle_logic.gd	a member who was down through the fight earns experience
+scripts/ui/battle_logic.gd	s|\t_target = standing\[_target_rng.next_int\(0, standing.size\(\) - 1\)\]|\t_target = 0|	tests/unit/test_battle_logic.gd	the enemy always swings at whoever is first in the party
+scripts/ui/battle_logic.gd	s|\treturn _fighter\(_commander\).spells.duplicate\(\)|\treturn _fighter(0).spells.duplicate()|	tests/unit/test_battle_logic.gd	every member is offered the first member's spells
+scripts/world/world_scene.gd	s|if String\(member.joins_on_flag\).is_empty\(\) or GameState.has_flag\(member.joins_on_flag\):|if true:|	tests/integration/test_world_party.gd	everybody on the roster is in the party from the start
+scripts/world/world_scene.gd	s|^\t\tif not everything and not only.has\(def.id\):$|\t\tif false:|	tests/integration/test_world_party.gd	a companion knows every spell in the game
+scripts/world/world_scene.gd	s|GameState.set_companion\(member.id, curve.max_hp\(level\), earned, level, curve.max_mp\(level\)\)|GameState.set_companion(member.id, 1, 0, 1, 0)|	tests/integration/test_world_party.gd	a companion joins at one hit point whatever their curve says
+scripts/world/world_scene.gd	s|\t\t\t\t\t\tGameState.set_companion\(member, int\(record.get\("hp", 0\)\),|\t\t\t\t\t\tGameState.set_party(int(record.get("hp", 0)),|	tests/integration/test_world_party.gd	a companion's fight result is written over the leader
+scripts/ui/battle_screen.gd	s|\t\tvar mine := acting and player_side and swinging == i|\t\tvar mine := acting and player_side|	tests/integration/test_battle_layout.gd	every member leans when any one of them swings
+scripts/ui/battle_screen.gd	s|\treturn MEMBERS_Y \+ at \* MEMBER_PITCH|\treturn MEMBERS_Y|	tests/integration/test_battle_layout.gd	a party's blocks are all drawn on top of each other
 
 scripts/autoload/game_state.gd	s|^\tif String\(slot\).is_empty\(\):$|\tif false:|	tests/unit/test_party.gd	gear can be equipped into a slot that is not a slot

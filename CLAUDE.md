@@ -162,6 +162,50 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**A party is a LIST even when it is one, and who is in it is derived from a flag.** A game
+with no `party` on its manifest is handed one synthesized member - the manifest's own
+`player_character` and `combat`, named "You", knowing everything its level has reached - so
+`BattleLogic`, the screen and the menus always see a list and there is ONE code path through a
+fight. The proof is that all sixteen scripted sessions pass untouched. A `PartyMemberDef` under
+`data/party/` carries a companion's name, art, own curve, own spell list and `joins_on_flag`;
+**membership is derived from that flag every time it is asked**, the way knowing a spell is
+derived from level - so recruiting is the `set_flag` a dialog choice already carries, and there
+is no roster to save, migrate, or hand out twice. Only each member's NUMBERS are saved
+(`GameState.companions`, save v9). An empty spell list means NONE for a companion where it means
+EVERYTHING for the leader, which is why `_member_spells` and `_battle_spells` are two functions
+rather than one parameter carrying two opposite meanings.
+
+**The round is command-all-then-resolve, in party order.** Every standing member declares before
+anything happens (FF1's manual and Dragon Quest both), then the orders resolve in PARTY order and
+the enemy acts last. Not by a stat: FF1's own turn order is a random shuffle that ignores
+everyone's numbers, and a declared order is the only one a replayed fight can have. `cancel` on
+the menu takes back the previous member's order and hands the menu back to them - with one member
+there is never a previous order, so a solo cancel is still refused exactly as it was. Each
+member's ATTACK gets its own cue and its own first-press-only capture; a cast still has no window.
+
+**The ally cursor exists only at two.** `Phase.ALLY` opens for a heal or an item when more than
+one member is standing, over the STANDING only - reviving in a fight is a verb this template does
+not have. At one member it is skipped wholesale, which is both the genre-honest call (a cursor
+with one row is a question whose answer it already has) and what keeps every session recorded
+before M27 pressing the same keys. There is still no ENEMY cursor: fights are one foe.
+
+**Falling is not losing, and every living member earns the full award.** Zero hp means down, no
+turns, no xp; the fight is lost only when EVERYONE is down. Dragon Quest's xp rule rather than
+Final Fantasy's division - dividing punishes a small party for being small and needs a rounding
+decision one shared curve has nowhere to put. The fallen stay at nought through victory and are
+put back up by the inn, which is the genre's paid town service (DQ's priest, EarthBound's
+hospital) and needed no new mechanism: `_rest()` loops the party. **`party_unset()` is therefore
+"nought health AND nobody standing"** - with a party, a fallen leader beside a standing companion
+is a real saveable state, and reading it as "never fought" would silently resurrect them on the
+way into the next fight.
+
+**The enemy's target is drawn from its OWN seeded stream**, `derive("target")` beside
+`derive("moves")`, so the moves an existing fight draws are untouched and every solo replay is
+byte-identical. Chosen BEFORE the defend cue opens, because the cue is the thing being reacted to
+- the target's armour applies, the halving is theirs, and the screen marks them while there is
+still time to press. `BattleScreen.MAX_PARTY` is the declared capacity a game may not exceed, the
+M13.3 rule; a party of one draws exactly the layout that shipped.
+
 **Magic is a level curve, and knowing a spell is DERIVED from level.** `CombatDef.base_mp`/
 `mp_per_level` size the pool the way `attack_at` sizes a swing - zero is the default and means
 a game with no magic. A spell is a `SpellDef` under `data/spells/`, and `learn_level` is the

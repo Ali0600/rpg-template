@@ -16,11 +16,29 @@ extends RefCounted
 ## conversation's. Winning a fight does not set a flag - it appends one, and world_scene's
 ## single sink carries it out. That is what makes "a beaten enemy stays beaten" the same
 ## mechanism as "a chest opened once", persisted and migrated for free.
+##
+## A PARTY IS A LIST EVEN WHEN IT IS ONE. A game that declares no party is handed a single
+## synthesized member, so there is exactly one code path through a fight rather than a solo one
+## and a party one, of which the solo one is the tested one and the party one is where the bugs
+## live. The proof that the list of one behaves like the scalar it replaced is that every
+## scripted play session written before parties existed passes untouched.
+##
+## The round is COMMAND-ALL-THEN-RESOLVE, which is the NES norm: Final Fantasy I's manual has
+## the player enter commands for all four characters before the round executes, and Dragon
+## Quest gives orders only at the start of a turn. Resolution runs in PARTY ORDER rather than
+## by a stat, and FF1 is the precedent for that too - its own order is a random shuffle that
+## ignores everyone's numbers. A declared order is also the only one a replayed fight can have.
 
-## Where the fight is. MENU, SPELLS and ITEMS are waiting for the player; PLAYER_ACT and
+## Where the fight is. MENU, SPELLS, ITEMS and ALLY are waiting for the player; PLAYER_ACT and
 ## ENEMY_ACT are a cue counting down toward an impact; MESSAGE is a line being read; OVER is
 ## the result.
-enum Phase { MENU, SPELLS, ITEMS, PLAYER_ACT, ENEMY_ACT, MESSAGE, OVER }
+##
+## ALLY is the targeting cursor, and it exists ONLY when more than one member is standing. A
+## heal with one possible recipient is a mode with one option in it, which is the same argument
+## that kept an enemy cursor out when fights went 1v1 - and it is what makes a solo fight's
+## key presses identical to the ones every session before M27 recorded. There is still no ENEMY
+## cursor: fights here are one foe, so an offense spell hits the foe.
+enum Phase { MENU, SPELLS, ITEMS, ALLY, PLAYER_ACT, ENEMY_ACT, MESSAGE, OVER }
 
 ## The command menu's rows, in the order they are drawn. The view indexes its labels by this,
 ## so the order lives in one place rather than in a list beside a list.
@@ -81,29 +99,104 @@ class SpellRow:
 		return out
 
 
+## One fighter on the player's side, fully resolved before the fight is built.
+##
+## Everything per-person lives here: their own numbers, their own curve, their own gear total
+## and their own spell list - all four are per-member in every reference game, and Dragon Quest
+## II's hero famously has no magic at all while the sorceress who joins him holds the attack
+## spells. The world resolves all of it, because this class may not reach a Registry.
+##
+## An EMPTY id is the leader's, and it is what the world's effect sink routes on: the leader is
+## four fields on GameState where a companion is a record in a map, and the difference has to
+## survive the trip out of the fight.
+class Fighter:
+	var id: StringName = &""
+	var name: String = ""
+	var character: StringName = &""
+	var combat: CombatDef = null
+	var hp: int = 0
+	var xp: int = 0
+	var level: int = 1
+	var mp: int = 0
+	var attack_mod: int = 0
+	var defense_mod: int = 0
+	## SpellRows, already narrowed to what THIS member can cast at THIS level.
+	var spells: Array = []
+
+	static func of(member_id: StringName, member_name: String, art: StringName,
+			curve: CombatDef, member_hp: int, member_xp: int, member_level: int, member_mp: int,
+			attack: int, defense: int, known: Array) -> Fighter:
+		var out := Fighter.new()
+		out.id = member_id
+		out.name = member_name
+		out.character = art
+		out.combat = curve
+		out.level = maxi(member_level, 1)
+		# Clamped to the curve for the reason a save is: a member carrying more than their
+		# level allows describes somebody the game cannot produce, and a fight is not the place
+		# to argue with it. The floor is nought rather than one, because a member who FELL in
+		# an earlier fight arrives at nought and stays down until somebody heals them.
+		out.hp = clampi(member_hp, 0, curve.max_hp(out.level))
+		out.xp = maxi(member_xp, 0)
+		out.mp = clampi(member_mp, 0, curve.max_mp(out.level))
+		out.attack_mod = maxi(attack, 0)
+		out.defense_mod = maxi(defense, 0)
+		out.spells = known.duplicate()
+		return out
+
+	func down() -> bool:
+		return hp <= 0
+
+	func max_hp() -> int:
+		return combat.max_hp(level)
+
+	func max_mp() -> int:
+		return combat.max_mp(level)
+
+
+## One thing a member has decided to do this round, waiting for the round to resolve.
+##
+## Declarations are collected before ANY of them happen, which is what "command all, then
+## resolve" means - so this holds the choice and the target, and nothing about the outcome.
+class Order:
+	var member: int = 0
+	var row: int = Row.ATTACK
+	var spell: SpellRow = null
+	var item: ItemRow = null
+	## Which member this lands on, for a heal or an item. -1 is "the enemy" or "nobody".
+	var target: int = -1
+
+
 var _combat: CombatDef
 var _enemy: EnemyDef
-var _hp: int = 0
-var _xp: int = 0
-var _level: int = 1
-## What is left to spend on spells. Nothing here spends it yet; it is carried so that a fight
-## cannot LOSE it. A number the world hands in and does not get back is the same bug as one it
-## never handed in, and it would present as magic draining every time the player fought.
-var _mp: int = 0
 var _enemy_hp: int = 0
-## What the player's gear is worth, already summed by the world. Handed in rather than looked
-## up: this class may not reach the Registry, and stats here are DERIVED from level, so
-## equipment can only ever be a modifier on that derivation - never a stored stat.
-var _attack_mod: int = 0
-var _defense_mod: int = 0
+## Everyone on the player's side, in the order they were handed over - which is the order they
+## act in and the order they are drawn in. Never re-sorted: a fight that reordered its own
+## party would replay differently from the one that was played.
+var _members: Array = []
 ## Cues asked for and not yet drained by the view.
 var _sounds: Array[StringName] = []
 
 ## Untyped Array because a typed default for a nested class is not a constant expression -
 ## the same reason PauseMenu._items is untyped.
 var _items: Array = []
-## Untyped for the same reason _items is.
-var _spells: Array = []
+## What has been declared this round, oldest first. Cleared as each round begins.
+var _orders: Array = []
+## Which member is choosing right now, or -1 when nobody is. The MENU, SPELLS, ITEMS and ALLY
+## pages all belong to this member.
+var _commander: int = 0
+## How far through _orders the resolution has walked, or -1 when it is not walking.
+var _order_at: int = -1
+## Which member is swinging, so the view knows who to lean forward.
+var _acting: int = -1
+## Which member the enemy has aimed at. Chosen BEFORE the cue begins rather than at the impact,
+## because the cue is the thing being reacted to - a player defending has to know who is being
+## hit while there is still time to press.
+var _target: int = -1
+## The page the ALLY cursor was opened from, so cancelling goes back where it came from.
+var _ally_from := Phase.SPELLS
+## The choice waiting for a target while the ALLY cursor is up.
+var _pending: Order = null
 ## Enemy turns still owed to a sleep, counted DOWN as each one is skipped. It belongs to the
 ## fight and nothing else: a sleep does not survive the battle it was cast in, so there is
 ## nothing here to seal, save or migrate.
@@ -120,6 +213,7 @@ var _message: String = ""
 var _after_message := Phase.MENU
 var _outcome := Outcome.NONE
 var _moves_rng: SeededRng
+var _target_rng: SeededRng
 var _effects: Array[Dictionary] = []
 
 
@@ -128,39 +222,72 @@ var _effects: Array[Dictionary] = []
 ##
 ## `seen_key` is the map-scoped id the world will mark on victory, carried rather than
 ## rebuilt so the logic never has to know how a seen key is spelled.
-static func of(combat: CombatDef, enemy: EnemyDef, hp: int, xp: int, level: int,
-		items: Array, seen_key: String, seed_value: int,
-		attack_mod: int = 0, defense_mod: int = 0, mp: int = 0,
-		spells: Array = []) -> BattleLogic:
+## `combat` is the GAME's curve, not any one member's. It paces the fight - the cue lengths,
+## the press window, how long a line is read for - and those are properties of the screen
+## rather than of a fighter: two members with different windows would be one screen asking the
+## player to react at two speeds. Each member's own curve, which is what their strength grows
+## on, rides on the Fighter.
+static func of(combat: CombatDef, enemy: EnemyDef, members: Array, items: Array,
+		seen_key: String, seed_value: int) -> BattleLogic:
 	var out := BattleLogic.new()
 	out._combat = combat
 	out._enemy = enemy
-	out._level = maxi(level, 1)
-	out._hp = clampi(hp, 1, combat.max_hp(out._level))
-	out._xp = maxi(xp, 0)
-	# Clamped to the curve for the reason hp is: a save carrying more than the level allows
-	# describes a player the game cannot produce, and a fight is not the place to argue with it.
-	out._mp = clampi(mp, 0, combat.max_mp(out._level))
 	out._enemy_hp = enemy.max_hp
+	out._members = members.duplicate()
 	out._items = items.duplicate()
-	out._spells = spells.duplicate()
 	out._seen_key = seen_key
-	out._attack_mod = maxi(attack_mod, 0)
-	out._defense_mod = maxi(defense_mod, 0)
 	# Its own derived stream, so a later randomised feature - a crit, a drop - cannot reshuffle
 	# the moves an existing fight already draws.
 	out._moves_rng = SeededRng.new(seed_value).derive("moves")
+	# A SECOND derived stream for who the enemy swings at, and the separation is the whole
+	# reason a party did not change a single existing fight: drawing a target from the moves
+	# stream would consume a number that fight was going to spend on a move, and every solo
+	# replay in the repo would diverge. Deliberately drawn even at one target, because a branch
+	# no test can distinguish from its absence is decoration.
+	out._target_rng = SeededRng.new(seed_value).derive("target")
+	out._begin_round()
 	return out
 
 
-## What the gear is contributing, so the wiring from the world is assertable rather than only
-## visible in the damage it happens to produce.
-func attack_mod() -> int:
-	return _attack_mod
+# -- who is standing -------------------------------------------------------------------------
 
 
-func defense_mod() -> int:
-	return _defense_mod
+## The indices of everyone still on their feet, in party order. The party's turn order, the
+## enemy's list of things to aim at, and the ally cursor's rows are all this same answer.
+func _living() -> Array[int]:
+	var out: Array[int] = []
+	for i in _members.size():
+		if not _fighter(i).down():
+			out.append(i)
+	return out
+
+
+func _fighter(at: int) -> Fighter:
+	return _members[at] as Fighter
+
+
+## Starts a fresh round of declarations: nothing decided, the first member on their feet
+## choosing, and the cursor home on Attack.
+func _begin_round() -> void:
+	_orders = []
+	_order_at = -1
+	_acting = -1
+	_target = -1
+	_pending = null
+	var standing := _living()
+	_commander = standing[0] if not standing.is_empty() else -1
+	_phase = Phase.MENU
+	_index = Row.ATTACK
+
+
+## What a member's gear is contributing, so the wiring from the world is assertable rather than
+## only visible in the damage it happens to produce.
+func attack_mod(at: int = 0) -> int:
+	return _fighter(at).attack_mod
+
+
+func defense_mod(at: int = 0) -> int:
+	return _fighter(at).defense_mod
 
 
 func phase() -> Phase:
@@ -179,7 +306,9 @@ func size() -> int:
 		# one the cursor cannot stand on and the player cannot read.
 		return maxi(_items.size(), 1)
 	if _phase == Phase.SPELLS:
-		return maxi(_spells.size(), 1)
+		return maxi(spell_rows().size(), 1)
+	if _phase == Phase.ALLY:
+		return maxi(_living().size(), 1)
 	return Row.size()
 
 
@@ -193,21 +322,28 @@ func item_row(at: int) -> ItemRow:
 	return _items[at]
 
 
+## The spells the member who is CHOOSING can cast. Whose page this is changes as the round is
+## declared, which is the whole reason a party has per-member magic to begin with.
 func spell_rows() -> Array:
-	return _spells.duplicate()
+	if _commander < 0:
+		return []
+	return _fighter(_commander).spells.duplicate()
 
 
 func spell_row(at: int) -> SpellRow:
-	if at < 0 or at >= _spells.size():
+	var rows := spell_rows()
+	if at < 0 or at >= rows.size():
 		return null
-	return _spells[at]
+	return rows[at]
 
 
-## Whether the player could cast this one right now. Read by the view to dim what is out of
-## reach, and by _confirm_spell to refuse it - one function, so what the screen shows and what
-## the press does cannot disagree.
+## Whether the member who is choosing could cast this one right now. Read by the view to dim
+## what is out of reach, and by _confirm_spell to refuse it - one function, so what the screen
+## shows and what the press does cannot disagree.
 func can_afford(row: SpellRow) -> bool:
-	return row != null and row.cost <= _mp
+	if row == null or _commander < 0:
+		return false
+	return row.cost <= _fighter(_commander).mp
 
 
 ## Enemy turns still owed to a sleep. Zero is "awake", so a caller never has to ask twice.
@@ -215,28 +351,70 @@ func enemy_asleep_turns() -> int:
 	return _enemy_asleep_turns
 
 
-func player_hp() -> int:
-	return _hp
+## The party, by index. There are no leader shims - a `player_hp()` standing for `member_hp(0)`
+## would be a second name for one fact, and the one that gets read in a hurry is the one that
+## stops being true the day the leader is not first.
+func member_count() -> int:
+	return _members.size()
 
 
-func player_max_hp() -> int:
-	return _combat.max_hp(_level)
+func member_hp(at: int) -> int:
+	return _fighter(at).hp
 
 
-func player_mp() -> int:
-	return _mp
+func member_max_hp(at: int) -> int:
+	return _fighter(at).max_hp()
 
 
-func player_max_mp() -> int:
-	return _combat.max_mp(_level)
+func member_mp(at: int) -> int:
+	return _fighter(at).mp
 
 
-func player_level() -> int:
-	return _level
+func member_max_mp(at: int) -> int:
+	return _fighter(at).max_mp()
 
 
-func player_xp() -> int:
-	return _xp
+func member_level(at: int) -> int:
+	return _fighter(at).level
+
+
+func member_xp(at: int) -> int:
+	return _fighter(at).xp
+
+
+func member_name(at: int) -> String:
+	return _fighter(at).name
+
+
+func member_character(at: int) -> StringName:
+	return _fighter(at).character
+
+
+func member_down(at: int) -> bool:
+	return _fighter(at).down()
+
+
+## Which member is choosing, or -1 when nobody is. The view marks them so a player with two
+## fighters knows whose turn they are giving orders for.
+func commander() -> int:
+	return _commander
+
+
+## Which member is swinging, or -1. Only meaningful during PLAYER_ACT.
+func acting_member() -> int:
+	return _acting
+
+
+## Which member the enemy has aimed at, or -1. Set before the defend cue opens, so a player has
+## the whole wind-up to see who is about to be hit.
+func target_member() -> int:
+	return _target
+
+
+## The rows of the ally cursor, as member indices. Only the standing: a fallen ally is not a
+## heal target here, because reviving in a fight is a verb this template does not have.
+func ally_rows() -> Array[int]:
+	return _living()
 
 
 func enemy_hp() -> int:
@@ -328,7 +506,8 @@ func _want(cue: Sfx.Cue) -> void:
 ## Moves the cursor by whole steps, WRAPPING, and only while something is waiting for a
 ## choice. A press during a cue is a timing press, not a menu one.
 func move(delta: int) -> bool:
-	if _phase != Phase.MENU and _phase != Phase.ITEMS and _phase != Phase.SPELLS:
+	if _phase != Phase.MENU and _phase != Phase.ITEMS and _phase != Phase.SPELLS \
+			and _phase != Phase.ALLY:
 		return false
 	if size() < 2:
 		return false
@@ -349,6 +528,9 @@ func press() -> void:
 		Phase.ITEMS:
 			_want(Sfx.Cue.MENU_CONFIRM)
 			_confirm_item()
+		Phase.ALLY:
+			_want(Sfx.Cue.MENU_CONFIRM)
+			_confirm_ally()
 		Phase.PLAYER_ACT, Phase.ENEMY_ACT:
 			# ONLY the first press of a cue is captured. Without this, holding the button down
 			# or mashing it would land a press in every window by accident, and the timing
@@ -367,17 +549,53 @@ func press() -> void:
 ## left by winning, losing or fleeing, and a cancel that closed one would be an escape hatch
 ## with no cost. Returns whether it did anything, so a view can stay quiet when it did not.
 func cancel() -> bool:
+	if _phase == Phase.ALLY:
+		# Back to the page the target was being chosen for, with nothing declared. EarthBound's
+		# manual says exactly this: select the target, B to cancel.
+		_phase = _ally_from
+		_index = _pending_index()
+		_pending = null
+		_want(Sfx.Cue.MENU_MOVE)
+		return true
 	if _phase == Phase.SPELLS:
 		_phase = Phase.MENU
 		_index = Row.MAGIC
 		_want(Sfx.Cue.MENU_MOVE)
 		return true
-	if _phase != Phase.ITEMS:
-		return false
-	_phase = Phase.MENU
-	_index = Row.ITEM
-	_want(Sfx.Cue.MENU_MOVE)
-	return true
+	if _phase == Phase.ITEMS:
+		_phase = Phase.MENU
+		_index = Row.ITEM
+		_want(Sfx.Cue.MENU_MOVE)
+		return true
+	if _phase == Phase.MENU and not _orders.is_empty():
+		# Taking back the previous member's order and handing the menu back to them. Both
+		# Final Fantasy and Dragon Quest let a party walk its declarations backwards, and
+		# without it a mis-press on the first of two members can only be fixed by playing the
+		# round out. With ONE member there is never a previous order, so this answers false and
+		# a solo cancel is refused exactly as it always was.
+		var taken: Order = _orders.pop_back()
+		_commander = taken.member
+		_index = taken.row
+		_want(Sfx.Cue.MENU_MOVE)
+		return true
+	return false
+
+
+## Where the cursor sat on the page the ally cursor was opened from, so cancelling puts it back
+## on the spell or the item that was being aimed rather than at the top of the list.
+func _pending_index() -> int:
+	if _pending == null:
+		return 0
+	if _ally_from == Phase.SPELLS:
+		var rows := spell_rows()
+		for i in rows.size():
+			if rows[i] == _pending.spell:
+				return i
+	else:
+		for i in _items.size():
+			if _items[i] == _pending.item:
+				return i
+	return 0
 
 
 ## One physics frame. The only clock this class has.
@@ -405,7 +623,10 @@ func tick() -> void:
 func _confirm_command() -> void:
 	match _index:
 		Row.ATTACK:
-			_begin_cue(Phase.PLAYER_ACT, _combat.attack_cue_frames)
+			var order := Order.new()
+			order.member = _commander
+			order.row = Row.ATTACK
+			_declare(order)
 		Row.MAGIC:
 			_phase = Phase.SPELLS
 			_index = 0
@@ -413,9 +634,63 @@ func _confirm_command() -> void:
 			_phase = Phase.ITEMS
 			_index = 0
 		Row.FLEE:
+			# Running is a PARTY decision, not one member's - so it resolves immediately and
+			# takes whatever has already been declared with it. A round where one member flees
+			# and the rest keep swinging is not a thing any reference game offers.
 			_flee()
 		_:
 			pass
+
+
+## Records one member's choice and hands the menu to the next member still standing. When
+## nobody is left to ask, the round resolves - which is what "command all, then resolve" is.
+func _declare(order: Order) -> void:
+	_orders.append(order)
+	var standing := _living()
+	var next := -1
+	for i in standing:
+		var already := false
+		for placed: Order in _orders:
+			if placed.member == i:
+				already = true
+				break
+		if not already:
+			next = i
+			break
+	if next >= 0:
+		_commander = next
+		_phase = Phase.MENU
+		_index = Row.ATTACK
+		return
+	_commander = -1
+	_resolve_next()
+
+
+## Opens the ally cursor, or skips it when there is only one place the thing could land.
+##
+## Skipping is what keeps a solo fight's presses identical to every session recorded before
+## parties existed, and it is not merely a convenience: a cursor with one row is a screen
+## asking a question whose answer it already has.
+func _aim_at_ally(order: Order, from: Phase) -> void:
+	var standing := _living()
+	if standing.size() < 2:
+		order.target = _commander
+		_declare(order)
+		return
+	_pending = order
+	_ally_from = from
+	_phase = Phase.ALLY
+	_index = maxi(standing.find(_commander), 0)
+
+
+func _confirm_ally() -> void:
+	var standing := _living()
+	if _pending == null or _index < 0 or _index >= standing.size():
+		return
+	var chosen := _pending
+	chosen.target = standing[_index]
+	_pending = null
+	_declare(chosen)
 
 
 ## Casting, which is three verbs behind one row.
@@ -438,34 +713,15 @@ func _confirm_spell() -> void:
 		_want(Sfx.Cue.LOCKED)
 		_say("Not enough magic for %s." % row.name, Phase.SPELLS)
 		return
-	_mp -= row.cost
-	_want(Sfx.Cue.CAST)
-	match row.kind:
-		SpellDef.Kind.HEAL:
-			var healed := mini(_hp + row.power, player_max_hp()) - _hp
-			_hp += healed
-			if healed > 0:
-				_want(Sfx.Cue.HEAL)
-				_say("%s casts %s. %d healed." % [_hero_name(), row.name, healed],
-					Phase.ENEMY_ACT)
-			else:
-				_say("%s casts %s, and is already whole." % [_hero_name(), row.name],
-					Phase.ENEMY_ACT)
-		SpellDef.Kind.SLEEP:
-			_enemy_asleep_turns = row.status_turns
-			_say("%s casts %s. The %s sleeps." % [_hero_name(), row.name, _enemy.name],
-				Phase.ENEMY_ACT)
-		_:
-			# Damage is FLAT - the enemy's defense does not reduce it - and that is what gives
-			# magic a job beside a stronger swing: the answer to something armoured. It is also
-			# one fewer number to tune, because SpellDef.power then means damage and nothing else.
-			_want(Sfx.Cue.HIT)
-			_enemy_hp = maxi(_enemy_hp - row.power, 0)
-			var line := "%s casts %s. %d damage." % [_hero_name(), row.name, row.power]
-			if _enemy_hp <= 0:
-				_win()
-				return
-			_say(line, Phase.ENEMY_ACT)
+	var order := Order.new()
+	order.member = _commander
+	order.row = Row.MAGIC
+	order.spell = row
+	if row.kind == SpellDef.Kind.HEAL:
+		# The only thing in the fight that has more than one place it could land.
+		_aim_at_ally(order, Phase.SPELLS)
+		return
+	_declare(order)
 
 
 func _confirm_item() -> void:
@@ -474,35 +730,142 @@ func _confirm_item() -> void:
 	# a confirm that silently did nothing is indistinguishable from one that failed.
 	if row == null:
 		return
-	var healed := mini(_hp + row.heal, player_max_hp()) - _hp
+	var order := Order.new()
+	order.member = _commander
+	order.row = Row.ITEM
+	order.item = row
+	_aim_at_ally(order, Phase.ITEMS)
+
+
+# -- resolving the round ---------------------------------------------------------------------
+
+
+## Performs the next declared order, or hands the round to the enemy when there are none left.
+##
+## There is deliberately NO "skip a member who fell" guard here, and it is worth saying why,
+## because it is the first thing a reader expects. Only standing members are ever asked for an
+## order, and the enemy acts once the party's whole round has resolved - so nothing on the
+## player's side can take damage between choosing and acting, and a member cannot fall mid
+## round. A guard for it would be a branch no test could reach, which this repo treats as
+## decoration rather than as safety. The day an enemy acts BETWEEN player actions is the day it
+## becomes reachable, and the day to write it.
+func _resolve_next() -> void:
+	_acting = -1
+	_order_at += 1
+	if _order_at >= _orders.size():
+		_begin_enemy_turn()
+		return
+	_perform(_orders[_order_at])
+
+
+func _perform(order: Order) -> void:
+	match order.row:
+		Row.ATTACK:
+			_acting = order.member
+			_begin_cue(Phase.PLAYER_ACT, _combat.attack_cue_frames)
+		Row.MAGIC:
+			_cast(order)
+		Row.ITEM:
+			_use(order)
+		_:
+			_resolve_next()
+
+
+func _cast(order: Order) -> void:
+	var caster := _fighter(order.member)
+	var row := order.spell
+	# Checked again at the moment it happens, not only when it was chosen: a member can declare
+	# a cast and be hit before their turn comes round, and the mp they were counting on may
+	# have gone into something else in between.
+	if row == null or row.cost > caster.mp:
+		_say("%s cannot manage it." % caster.name, Phase.PLAYER_ACT)
+		return
+	caster.mp -= row.cost
+	_want(Sfx.Cue.CAST)
+	match row.kind:
+		SpellDef.Kind.HEAL:
+			var on := _fighter(order.target if order.target >= 0 else order.member)
+			var healed := mini(on.hp + row.power, on.max_hp()) - on.hp
+			on.hp += healed
+			if healed > 0:
+				_want(Sfx.Cue.HEAL)
+				_say("%s casts %s. %s: %d healed." % [caster.name, row.name, on.name, healed],
+					Phase.PLAYER_ACT)
+			else:
+				_say("%s casts %s, and %s is already whole." % [caster.name, row.name, on.name],
+					Phase.PLAYER_ACT)
+		SpellDef.Kind.SLEEP:
+			_enemy_asleep_turns = row.status_turns
+			_say("%s casts %s. The %s sleeps." % [caster.name, row.name, _enemy.name],
+				Phase.PLAYER_ACT)
+		_:
+			# Damage is FLAT - the enemy's defense does not reduce it - and that is what gives
+			# magic a job beside a stronger swing: the answer to something armoured. It is also
+			# one fewer number to tune, because SpellDef.power then means damage and nothing else.
+			_want(Sfx.Cue.HIT)
+			_enemy_hp = maxi(_enemy_hp - row.power, 0)
+			var line := "%s casts %s. %d damage." % [caster.name, row.name, row.power]
+			if _enemy_hp <= 0:
+				_win()
+				return
+			_say(line, Phase.PLAYER_ACT)
+
+
+func _use(order: Order) -> void:
+	var user := _fighter(order.member)
+	var row := order.item
+	var on := _fighter(order.target if order.target >= 0 else order.member)
+	if row == null or row.count <= 0:
+		# The bag emptied between choosing and acting - two members reaching for the last tonic
+		# in one round is exactly the case a queued round makes possible.
+		_say("%s reaches for nothing." % user.name, Phase.PLAYER_ACT)
+		return
+	var healed := mini(on.hp + row.heal, on.max_hp()) - on.hp
 	if healed > 0:
 		_want(Sfx.Cue.HEAL)
-	_hp += healed
+	on.hp += healed
 	# Appended NOW, against the count this fight was handed. The snapshot is what makes the
 	# take safe: the world cannot be asked for an item the player did not have when the menu
 	# was drawn, so the sink never has to refuse one.
 	_effects.append({"op": GameContext.OP_TAKE_ITEM, "id": row.id, "count": 1})
 	row.count -= 1
 	if row.count <= 0:
-		_items.remove_at(_index)
-	_index = Row.ITEM
+		_items.erase(row)
 	# Using a thing costs the turn. Otherwise the answer to every fight is to drink first and
 	# swing afterwards, for free.
-	_say("%s used the %s." % [_hero_name(), row.name] if healed > 0
-		else "%s used the %s, and nothing changed." % [_hero_name(), row.name], Phase.ENEMY_ACT)
+	_say("%s used the %s on %s." % [user.name, row.name, on.name] if healed > 0
+		else "%s used the %s, and nothing changed." % [user.name, row.name], Phase.PLAYER_ACT)
 
 
+## Running, which the whole party does together or not at all.
+##
+## Declared by whichever member is choosing and resolved on the spot, taking any orders already
+## declared with it - a round where one member flees and the others keep swinging is not a
+## thing any reference game offers, and it would leave the fled member somewhere the fight has
+## no way to describe.
 func _flee() -> void:
 	if _enemy.boss:
 		# Refused, and it still costs the turn: a free retry would make "can I run" a question
-		# with no downside, which is not a decision.
+		# with no downside, which is not a decision. The rest of the round is dropped, because
+		# the members who had already declared were declaring for a round that is now over.
+		_orders = []
+		_order_at = -1
+		_commander = -1
 		_say("There is no way past the %s." % _enemy.name, Phase.ENEMY_ACT)
 		return
 	_outcome = Outcome.FLED
 	# No seen effect: something you ran from is still standing there. The party effect still
 	# goes out, because the damage taken on the way out is real.
 	_seal()
-	_say("%s broke away." % _hero_name(), Phase.OVER)
+	_say("%s broke away." % _party_name(), Phase.OVER)
+
+
+## What to call the player's side in a line about all of it. One member speaks for themselves;
+## more than one and there is no name that fits, so the genre's own word does.
+func _party_name() -> String:
+	if _members.size() == 1:
+		return _fighter(0).name
+	return "The party"
 
 
 # -- the cues ------------------------------------------------------------------------------
@@ -516,10 +879,16 @@ func _flee() -> void:
 ## check, so a two-turn sleep is two turns the enemy does not act, counted where they are
 ## actually taken rather than by a clock.
 func _begin_enemy_turn() -> void:
+	_acting = -1
 	if _enemy_asleep_turns > 0:
 		_enemy_asleep_turns -= 1
 		_say("The %s sleeps on." % _enemy.name, Phase.MENU)
 		return
+	# WHO is chosen before the cue opens, not at the impact. The cue is the thing being reacted
+	# to, so a player defending has to know who is about to be hit while there is still time to
+	# press - and the halving belongs to whoever is actually hit.
+	var standing := _living()
+	_target = standing[_target_rng.next_int(0, standing.size() - 1)]
 	_begin_cue(Phase.ENEMY_ACT, _combat.defend_cue_frames)
 
 
@@ -530,7 +899,9 @@ func _begin_cue(next: Phase, frames: int) -> void:
 
 
 func _land_player_hit() -> void:
-	var base := damage(_combat.attack_at(_level) + _attack_mod, _enemy.defense)
+	var swinger := _fighter(_acting)
+	var base := damage(swinger.combat.attack_at(swinger.level) + swinger.attack_mod,
+		_enemy.defense)
 	var timed := pressed_in_time()
 	var dealt := base * 2 if timed else base
 	# The IMPACT is the feedback, not the press. A click the moment the button went down would
@@ -541,27 +912,33 @@ func _land_player_hit() -> void:
 	if _enemy_hp <= 0:
 		_win()
 		return
-	_say(line, Phase.ENEMY_ACT)
+	_say(line, Phase.PLAYER_ACT)
 
 
 func _land_enemy_hit() -> void:
 	var move := _pick_move()
+	var on := _fighter(_target)
 	var base := damage(_enemy.attack + int(move.get("power", 0)),
-		_combat.defense_at(_level) + _defense_mod)
+		on.combat.defense_at(on.level) + on.defense_mod)
 	var blocked := pressed_in_time()
 	var taken := maxi(base / 2, 1) if blocked else base
 	_want(Sfx.Cue.BLOCK if blocked else Sfx.Cue.HURT)
-	_hp = maxi(_hp - taken, 0)
+	on.hp = maxi(on.hp - taken, 0)
 	var name := str(move.get("name", "attacks"))
 	var line := "%s: %s. Blocked - %d damage." % [_enemy.name, name, taken] if blocked \
 		else "%s: %s. %d damage." % [_enemy.name, name, taken]
-	if _hp <= 0:
-		_want(Sfx.Cue.DEFEAT)
-		_outcome = Outcome.DEFEAT
-		# Deliberately NOT sealed: a defeat's effects are never applied, so there is nothing
-		# to collect. The world discards them and opens the game-over screen.
-		_say(line + " %s falls." % _hero_name(), Phase.OVER)
-		return
+	if on.hp <= 0:
+		line += " %s falls." % on.name
+		# The fight is lost only when EVERYONE is down, which is the rule in every reference
+		# game. One member falling is a setback the survivors fight on through, and the fallen
+		# stay down until somebody pays to put them back up.
+		if _living().is_empty():
+			_want(Sfx.Cue.DEFEAT)
+			_outcome = Outcome.DEFEAT
+			# Deliberately NOT sealed: a defeat's effects are never applied, so there is
+			# nothing to collect. The world discards them and opens the game-over screen.
+			_say(line, Phase.OVER)
+			return
 	_say(line, Phase.MENU)
 
 
@@ -571,23 +948,37 @@ func _pick_move() -> Dictionary:
 	return _enemy.moves[_moves_rng.next_int(0, _enemy.moves.size() - 1)]
 
 
+## Every member still STANDING earns the full award, and nobody who fell earns anything.
+##
+## Dragon Quest's rule rather than Final Fantasy's, which divides the award among survivors.
+## Dividing would punish a small party for being small - and this template's demo party is two,
+## which is the size the division hurts most - and it would need a rounding decision that a
+## single shared xp curve has nowhere to put. The fallen earning nothing is both series' rule.
 func _win() -> void:
 	_outcome = Outcome.VICTORY
 	var earned := _enemy.xp
-	_xp += earned
-	var was := _level
-	_level = _combat.level_for(_xp)
 	var line := "%s is down. +%d xp." % [_enemy.name, earned]
 	_want(Sfx.Cue.VICTORY)
-	if _level > was:
-		# A level restores the player completely - magic included, which is what "completely"
-		# has to mean once there is magic. It is the loop the whole design rests on: ambient
-		# fights are what make the boss survivable, and a heal you can feel is what makes
-		# fighting one more thing before the door a real decision.
-		_hp = player_max_hp()
-		_mp = player_max_mp()
-		_want(Sfx.Cue.LEVEL_UP)
-		line += " Level %d!" % _level
+	var levelled := false
+	for i in _living():
+		var who := _fighter(i)
+		who.xp += earned
+		var was := who.level
+		who.level = who.combat.level_for(who.xp)
+		if who.level > was:
+			# A level restores that member completely - magic included, which is what
+			# "completely" has to mean once there is magic. It is the loop the whole design
+			# rests on: ambient fights are what make the boss survivable, and a heal you can
+			# feel is what makes fighting one more thing before the door a real decision.
+			who.hp = who.max_hp()
+			who.mp = who.max_mp()
+			if not levelled:
+				# One cue however many of them levelled: two chimes in one frame is noise, and
+				# the second carries no information the first did not.
+				_want(Sfx.Cue.LEVEL_UP)
+				levelled = true
+			line += " %s: level %d!" % [who.name, who.level] if _members.size() > 1 \
+				else " Level %d!" % who.level
 	_seal()
 	_say(line, Phase.OVER)
 
@@ -603,8 +994,15 @@ func _win() -> void:
 func _seal() -> void:
 	if _outcome == Outcome.VICTORY:
 		_effects.append({"op": GameContext.OP_SEEN, "key": _seen_key})
-	_effects.append({"op": GameContext.OP_PARTY, "hp": _hp, "xp": _xp, "level": _level,
-		"mp": _mp})
+	# ONE effect carrying everybody, rather than one per member. The sink applies an effect
+	# list all-or-nothing, and a party half-written - the leader's new level saved and the
+	# companion's fall not - is a state no rule in the game produces.
+	var who: Array[Dictionary] = []
+	for i in _members.size():
+		var member := _fighter(i)
+		who.append({"id": String(member.id), "hp": member.hp, "xp": member.xp,
+			"level": member.level, "mp": member.mp})
+	_effects.append({"op": GameContext.OP_PARTY, "members": who})
 	# Coin is appended only on a WIN, and only when the enemy carries any. It rides the same
 	# collected list as everything else, so a defeat - whose effects world_scene discards
 	# wholesale - pays nothing, and the rule "a fight never writes" is untouched.
@@ -625,11 +1023,14 @@ func _say(text: String, next: Phase) -> void:
 func _leave_message() -> void:
 	_message = ""
 	match _after_message:
+		Phase.PLAYER_ACT:
+			# "Carry on down the round." Every act the party declared ends here, and the walk
+			# hands over to the enemy when it runs out of orders.
+			_resolve_next()
 		Phase.ENEMY_ACT:
 			_begin_enemy_turn()
 		Phase.MENU:
-			_phase = Phase.MENU
-			_index = Row.ATTACK
+			_begin_round()
 		_:
 			# A refused cast lands here, going back to the page it was refused on with the
 			# cursor where it was left: the player is choosing again, not starting the turn
@@ -639,10 +1040,6 @@ func _leave_message() -> void:
 			_phase = _after_message
 	_count = 0 if _phase == Phase.MENU or _phase == Phase.OVER or _phase == Phase.SPELLS \
 		else _count
-
-
-func _hero_name() -> String:
-	return "You"
 
 
 # -- the one arithmetic rule ---------------------------------------------------------------

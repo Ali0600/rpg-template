@@ -190,9 +190,9 @@ func test_a_screen_nobody_closes_still_reports_its_result_once() -> void:
 	var counted := [0]
 	screen.finished.connect(func(_outcome: int, _effects: Array) -> void:
 		counted[0] += 1)
-	screen.setup(BattleLogic.of(_combat(), _enemy(1, 1, 5), 20, 0, 1, [], "map/foe", 3),
+	screen.setup(BattleHelpers.solo(_combat(), _enemy(1, 1, 5), 20, 0, 1),
 		load("res://data/styles/dusk16.tres") as SpriteStyle, Vector2i(320, 180),
-		FileSpriteSource.create(&"dusk16"), &"quest_wanderer", &"quest_warden")
+		FileSpriteSource.create(&"dusk16"), &"quest_warden")
 
 	# Enough frames to end the fight several times over, if it could.
 	for i in 12:
@@ -356,7 +356,7 @@ func test_a_fight_is_handed_the_players_magic_and_gives_it_back() -> void:
 	# had quietly handed back full MP all along.
 	GameState.set_party(9, 0, 1, carried)
 	_world.open_battle_with(_enemy(1, 1, 0), "quest_village/foe")
-	assert_int(_world.battle_screen().logic().player_mp()).override_failure_message(
+	assert_int(_world.battle_screen().logic().member_mp(0)).override_failure_message(
 		"the fight opened without the magic the player was carrying").is_equal(carried)
 	await _fight_it_out()
 	assert_int(GameState.player_mp).override_failure_message(

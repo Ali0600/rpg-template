@@ -43,6 +43,24 @@ const ROWS_Y := 120.0
 const VISIBLE_ROWS := 4
 const HERO_BAR_Y := 120.0
 
+## How many fighters this screen can draw on the player's side, and therefore how large a party
+## a game on this template may declare. THE CAPACITY IS THE CONTENT CONTRACT, not an
+## implementation detail: a view that renders data has a bound, and the failure mode of "too
+## many to draw" is silence, so the build enforces this rather than the screen coping. Stated
+## once here and read by the gate, because two copies is how the check and the thing checked
+## drift apart.
+##
+## Three is what the band between the fighters' feet and the help line holds at 320x180 with a
+## bar and a legible caption each, and it is the genre's own common size - Chrono Trigger's
+## active three, Dragon Quest II's full party.
+const MAX_PARTY := 3
+## Where a party of two or more stacks, and how far apart. A party of ONE keeps HERO_BAR_Y and
+## a separate MP line, which is the layout that shipped and the one the layout audit pins.
+## Sharing the band is what makes the block compact: at one member there is room for two lines,
+## and at three there is not.
+const MEMBERS_Y := 112.0
+const MEMBER_PITCH := 17.0
+
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
 const SPRITE_SCALE := 2.0
@@ -61,15 +79,18 @@ var _cue := Label.new()
 var _message := Label.new()
 var _rows: Array[Label] = []
 
-var _hero_view: SpriteView = null
+## One entry per member, all four lists index-aligned with the logic's own party order.
+var _member_views: Array[SpriteView] = []
+var _member_homes: Array[Vector2] = []
+var _member_bars: Array[ColorRect] = []
+var _member_fills: Array[ColorRect] = []
+var _member_labels: Array[Label] = []
 var _foe_view: SpriteView = null
-var _hero_home := Vector2.ZERO
 var _foe_home := Vector2.ZERO
-var _hero_bar := ColorRect.new()
-var _hero_fill := ColorRect.new()
 var _foe_bar := ColorRect.new()
 var _foe_fill := ColorRect.new()
-var _hero_label := Label.new()
+## The magic line, drawn only for a party of ONE - at two or more it folds into the caption,
+## because there is no room for a second line each.
 var _hero_mp := Label.new()
 var _foe_label := Label.new()
 
@@ -85,11 +106,13 @@ func _ready() -> void:
 	layer = LAYER
 
 
+## The party's art is not passed in any more: each member carries their own, so the screen asks
+## the fight who it is drawing rather than being told once about a hero.
 func setup(logic: BattleLogic, style: SpriteStyle, viewport_size: Vector2i,
-		source: SpriteSource, hero_character: StringName, foe_character: StringName) -> void:
+		source: SpriteSource, foe_character: StringName) -> void:
 	_logic = logic
 	_style = style
-	_build(viewport_size, source, hero_character, foe_character)
+	_build(viewport_size, source, foe_character)
 	_paint()
 
 
@@ -97,8 +120,7 @@ func logic() -> BattleLogic:
 	return _logic
 
 
-func _build(viewport_size: Vector2i, source: SpriteSource, hero_character: StringName,
-		foe_character: StringName) -> void:
+func _build(viewport_size: Vector2i, source: SpriteSource, foe_character: StringName) -> void:
 	# Opaque, unlike the pause menu's 0.85. A pause is a moment inside a place and being able
 	# to see where you stood is most of what makes it feel like one; a battle is somewhere
 	# else, and showing the road behind it would make the fight look like a menu.
@@ -111,21 +133,39 @@ func _build(viewport_size: Vector2i, source: SpriteSource, hero_character: Strin
 	add_child(_title)
 
 	var mid := float(viewport_size.y) * 0.5
-	_hero_home = Vector2(float(viewport_size.x) * 0.26, mid + 8.0)
+	var count := _logic.member_count()
 	_foe_home = Vector2(float(viewport_size.x) * 0.74, mid + 8.0)
 	# The generated walk and idle sheets, unchanged. A battle-only "attack" clip would mean new
 	# rig parts, a new clip in SheetBuilder and a change to the sheet contract - so the lunge
 	# is done by moving the NODE, which needs none of it and re-skins with everything else.
-	_hero_view = _make_fighter(source, hero_character, _hero_home, Dir.D.RIGHT)
+	#
+	# A party stands in a staggered file rather than a row: back and up, so nobody is hidden
+	# behind the member in front and the one who is swinging still has room to lean.
+	for i in count:
+		var home := Vector2(float(viewport_size.x) * 0.26 - i * 18.0, mid + 8.0 - i * 14.0)
+		_member_homes.append(home)
+		_member_views.append(_make_fighter(source, _logic.member_character(i), home,
+			Dir.D.RIGHT))
 	_foe_view = _make_fighter(source, foe_character, _foe_home, Dir.D.LEFT)
 
 	var right := float(viewport_size.x) - MARGIN
-	# The player's block is the bottom-right corner, mirroring the enemy's top-right one, and
-	# both of its text lines are RIGHT-ALIGNED so they end at the edge instead of starting at
-	# it. Left-aligned, a status line that grows simply runs off the screen - the same class of
+	# The party's blocks are the bottom-right corner, mirroring the enemy's top-right one, and
+	# every text line is RIGHT-ALIGNED so it ends at the edge instead of starting at it.
+	# Left-aligned, a status line that grows simply runs off the screen - the same class of
 	# bug as one that grows into its neighbour, and quieter.
-	_build_bar(_hero_bar, _hero_fill, _hero_label, Vector2(right - BAR_WIDTH, HERO_BAR_Y))
-	_align_right(_hero_label, right)
+	for i in count:
+		var bar := ColorRect.new()
+		var fill := ColorRect.new()
+		var label := Label.new()
+		_build_bar(bar, fill, label, Vector2(right - BAR_WIDTH, _member_block_y(i, count)))
+		_align_right(label, right)
+		_member_bars.append(bar)
+		_member_fills.append(fill)
+		_member_labels.append(label)
+	# The magic line only shows at ONE member - at two or more it folds into the caption,
+	# because a second line each is what the band does not have room for. Built and parented
+	# either way and hidden by its own caption, because a node created and never added to the
+	# tree is a node nothing will ever free.
 	_hero_mp.position = Vector2(MARGIN, HERO_BAR_Y + BAR_HEIGHT + 10.0)
 	_hero_mp.add_theme_font_size_override("font_size", HELP_SIZE)
 	_align_right(_hero_mp, right)
@@ -209,6 +249,15 @@ func _physics_process(_delta: float) -> void:
 		finished.emit(_logic.outcome(), _logic.effects())
 
 
+## Where one member's bar sits. A party of ONE keeps exactly where it shipped, which is what
+## makes a solo fight pixel-identical to every screenshot and every layout assertion taken
+## before parties existed; two or more share the band from MEMBERS_Y down.
+func _member_block_y(at: int, count: int) -> float:
+	if count <= 1:
+		return HERO_BAR_Y
+	return MEMBERS_Y + at * MEMBER_PITCH
+
+
 func _paint() -> void:
 	if _style == null or _logic == null:
 		return
@@ -226,9 +275,13 @@ func _paint() -> void:
 	_message.text = _logic.message()
 	_help.text = _help_text()
 
-	_paint_bar(_hero_bar, _hero_fill, _hero_label, dim, text,
-		_logic.player_hp(), _logic.player_max_hp(),
-		_hero_caption())
+	for i in _member_labels.size():
+		# A fallen member's own numbers, dimmed rather than hidden: they are still in the party
+		# and still the thing an inn will put back up, and a row that vanished would read as
+		# somebody having left.
+		_paint_bar(_member_bars[i], _member_fills[i], _member_labels[i], dim,
+			dim if _logic.member_down(i) else text,
+			_logic.member_hp(i), _logic.member_max_hp(i), _member_caption(i))
 	_hero_mp.text = _hero_mp_caption()
 	_hero_mp.visible = not _hero_mp.text.is_empty()
 	_hero_mp.add_theme_color_override("font_color", text)
@@ -246,20 +299,36 @@ func _paint() -> void:
 	_paint_rows(text, dim)
 
 
-## What the player is worth, as TWO lines rather than one. The magic half only exists for a
-## game that has magic - a "0 MP" on a game with no spells is a stat the player can do nothing
-## about and would spend the whole run wondering at - and a single line long enough to hold
-## both reached across the screen into the command list, which is the collision this layout
-## was rebuilt to make impossible.
-func _hero_caption() -> String:
-	return "You  Lv%d  %d/%d" % [_logic.player_level(), _logic.player_hp(),
-		_logic.player_max_hp()]
+## What one member is worth. At ONE member this is exactly the line that shipped - the name is
+## "You" because the world synthesizes the solo leader with that name, so there is no branch
+## here for it - and the magic half is a second line below. At two or more the magic folds in
+## and a marker says whose turn it is to give an order, or who is about to be hit.
+##
+## The magic half only exists for a game that has magic: a "0 MP" on a game with no spells is
+## a stat the player can do nothing about and would spend the whole run wondering at.
+func _member_caption(at: int) -> String:
+	var line := "%s  Lv%d  %d/%d" % [_logic.member_name(at), _logic.member_level(at),
+		_logic.member_hp(at), _logic.member_max_hp(at)]
+	if _logic.member_count() > 1:
+		if _logic.member_max_mp(at) > 0:
+			line += "  MP %d/%d" % [_logic.member_mp(at), _logic.member_max_mp(at)]
+		line = ("> " if _marked(at) else "  ") + line
+	return line
+
+
+## Whether this member is the one the screen should point at right now: the one being asked for
+## an order, or the one the enemy has aimed at. Never both at once - the fight is either taking
+## orders or swinging.
+func _marked(at: int) -> bool:
+	if _logic.commander() == at:
+		return true
+	return _logic.phase() == BattleLogic.Phase.ENEMY_ACT and _logic.target_member() == at
 
 
 func _hero_mp_caption() -> String:
-	if _logic.player_max_mp() <= 0:
+	if _logic.member_count() != 1 or _logic.member_max_mp(0) <= 0:
 		return ""
-	return "MP %d/%d" % [_logic.player_mp(), _logic.player_max_mp()]
+	return "MP %d/%d" % [_logic.member_mp(0), _logic.member_max_mp(0)]
 
 
 func _paint_bar(back: ColorRect, fill: ColorRect, label: Label, dim: Color, text: Color,
@@ -277,7 +346,8 @@ func _paint_bar(back: ColorRect, fill: ColorRect, label: Label, dim: Color, text
 func _paint_fighters() -> void:
 	var acting := _logic.phase() == BattleLogic.Phase.PLAYER_ACT \
 		or _logic.phase() == BattleLogic.Phase.ENEMY_ACT
-	var player_side := _logic.acting_side_is_player()
+	var player_side := _logic.phase() == BattleLogic.Phase.PLAYER_ACT
+	var swinging := _logic.acting_member()
 	var cue := maxi(_logic.count(), 0)
 	var reach := 0.0
 	if acting:
@@ -290,9 +360,12 @@ func _paint_fighters() -> void:
 		var span := float(maxi(_logic.cue_span(), 1))
 		reach = LUNGE * (1.0 - clampf(float(maxi(cue, 0)) / span, 0.0, 1.0))
 
-	if _hero_view != null:
-		_hero_view.position = _hero_home + Vector2(reach if acting and player_side else 0.0, 0.0)
-		_hero_view.set_pose(&"walk" if acting and player_side else &"idle", Dir.D.RIGHT)
+	for i in _member_views.size():
+		# Only the member actually swinging leans; the rest hold their ground, which is what
+		# makes it readable at a glance who the blow belongs to.
+		var mine := acting and player_side and swinging == i
+		_member_views[i].position = _member_homes[i] + Vector2(reach if mine else 0.0, 0.0)
+		_member_views[i].set_pose(&"walk" if mine else &"idle", Dir.D.RIGHT)
 	if _foe_view != null:
 		_foe_view.position = _foe_home - Vector2(reach if acting and not player_side else 0.0, 0.0)
 		_foe_view.set_pose(&"walk" if acting and not player_side else &"idle", Dir.D.LEFT)
@@ -301,7 +374,8 @@ func _paint_fighters() -> void:
 func _paint_rows(text: Color, dim: Color) -> void:
 	var choosing := _logic.phase() == BattleLogic.Phase.MENU \
 		or _logic.phase() == BattleLogic.Phase.ITEMS \
-		or _logic.phase() == BattleLogic.Phase.SPELLS
+		or _logic.phase() == BattleLogic.Phase.SPELLS \
+		or _logic.phase() == BattleLogic.Phase.ALLY
 	var first := _first_visible()
 	for i in _rows.size():
 		var row := _rows[i]
@@ -348,6 +422,13 @@ func _label_for(at: int) -> String:
 		if spell == null:
 			return "(nothing learned yet)"
 		return "%s  %d MP" % [spell.name, spell.cost]
+	if _logic.phase() == BattleLogic.Phase.ALLY:
+		var rows := _logic.ally_rows()
+		if at < 0 or at >= rows.size():
+			return ""
+		var who := rows[at]
+		return "%s  %d/%d" % [_logic.member_name(who), _logic.member_hp(who),
+			_logic.member_max_hp(who)]
 	return COMMANDS[at]
 
 
@@ -357,7 +438,13 @@ func _help_text() -> String:
 			return "W/S to choose    E to cast    Esc to go back"
 		BattleLogic.Phase.ITEMS:
 			return "W/S to choose    E to use    Esc to go back"
+		BattleLogic.Phase.ALLY:
+			return "W/S to choose who    E to confirm    Esc to go back"
 		BattleLogic.Phase.MENU:
+			# Whose orders are being taken, once there is more than one member to ask - without
+			# it a player with two fighters has to infer from the marker which menu this is.
+			if _logic.member_count() > 1 and _logic.commander() >= 0:
+				return "%s: W/S to choose    E to pick" % _logic.member_name(_logic.commander())
 			return "W/S to choose    E to pick"
 		BattleLogic.Phase.PLAYER_ACT, BattleLogic.Phase.ENEMY_ACT:
 			return "E on the !"
