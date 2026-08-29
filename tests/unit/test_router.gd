@@ -120,3 +120,47 @@ func test_the_player_moves_in_neither_of_them() -> void:
 		"the player walked away while standing at a counter").is_false()
 	assert_bool(Router.accepts_world_input()).override_failure_message(
 		"the pause menu could be opened over a shop").is_false()
+
+func test_returning_to_a_base_state_announces_itself() -> void:
+	# reset() used to write the state field directly, which meant map entry - and therefore
+	# every boot, warp, load and restore - changed the state and told nobody. The edge that
+	# went unannounced was TITLE to WORLD: starting a game emitted nothing at all.
+	Router.set_state(Router.State.TITLE)
+	var seen: Array[Dictionary] = []
+	var handler := func(info: Dictionary) -> void: seen.append(info)
+	EventBus.flow_changed.connect(handler)
+	Router.reset()
+	EventBus.flow_changed.disconnect(handler)
+	assert_int(seen.size()).override_failure_message(
+		"a run started and the state machine said nothing").is_equal(1)
+	assert_int(int(seen[0]["from"])).is_equal(Router.State.TITLE)
+	assert_int(int(seen[0]["to"])).is_equal(Router.State.WORLD)
+
+func test_a_reset_that_changes_nothing_still_announces_nothing() -> void:
+	# The other half, and the reason this is set_state's job rather than a second emit: a warp
+	# resets from WORLD to WORLD on every map entry, and a listener woken by every doorway is
+	# a listener nobody can use.
+	Router.reset()
+	var count := 0
+	var handler := func(_info: Dictionary) -> void: count += 1
+	EventBus.flow_changed.connect(handler)
+	Router.reset()
+	EventBus.flow_changed.disconnect(handler)
+	assert_int(count).is_equal(0)
+
+func test_going_to_the_title_says_where_it_came_from() -> void:
+	# It used to say WORLD every time, whatever the truth: to_title() called reset() first,
+	# which set the state to WORLD before the emit, so the "from" was a fact about the
+	# implementation rather than about the game.
+	Router.set_state(Router.State.WORLD)
+	Router.open_overlay(Router.State.GAME_OVER)
+	var seen: Array[Dictionary] = []
+	var handler := func(info: Dictionary) -> void: seen.append(info)
+	EventBus.flow_changed.connect(handler)
+	Router.to_title()
+	EventBus.flow_changed.disconnect(handler)
+	assert_int(seen.size()).is_equal(1)
+	assert_int(int(seen[0]["from"])).override_failure_message(
+		"the router reported a state it was not in").is_equal(Router.State.GAME_OVER)
+	assert_int(int(seen[0]["to"])).is_equal(Router.State.TITLE)
+	assert_int(Router.overlay_depth()).is_equal(0)

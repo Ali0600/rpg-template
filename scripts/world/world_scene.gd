@@ -225,12 +225,16 @@ func _teardown_game() -> void:
 	if _battle != null and is_instance_valid(_battle):
 		_battle.free()
 	_battle = null
+	# Nulled OUTSIDE the guard, like every other screen here. Consistency only, and worth
+	# saying so rather than implying a bug: a freed reference compares EQUAL to null in this
+	# engine, so the guarded version was harmless - measured, and pinned in
+	# test_engine_assumptions.gd so the next reader does not have to re-derive it.
 	if _title != null and is_instance_valid(_title):
 		_title.free()
-		_title = null
+	_title = null
 	if _night != null and is_instance_valid(_night):
 		_night.free()
-		_night = null
+	_night = null
 	if _shop != null and is_instance_valid(_shop):
 		_shop.free()
 	_shop = null
