@@ -209,10 +209,15 @@ func spend_gold(n: int) -> bool:
 ## Checked as "what the marker count WOULD be", so re-equipping what is already on is still
 ## the no-op it always was rather than a refusal.
 func equip(slot: StringName, id: StringName, member: StringName = &"") -> bool:
-	if String(slot).is_empty() or not inventory.has(id):
+	if String(slot).is_empty():
 		return false
 	var worn := _worn_map(member, true)
 	var already := 1 if worn.get(slot, &"") == id else 0
+	# ONE check rather than two. "Carries none at all" used to be its own `inventory.has(id)`
+	# guard above, and the copies rule swallowed it whole: with nought carried, nought worn and
+	# one more asked for, this refuses on its own. Keeping both left the first one unfalsifiable
+	# - deleting it changed no behaviour, because the second still said no - and a guard whose
+	# removal nothing can detect is a guard nobody is relying on.
 	if wearers_of(id) - already + 1 > inventory.count(id):
 		return false
 	worn[slot] = id

@@ -164,6 +164,15 @@ func test_wearing_what_is_already_on_is_still_the_no_op_it_always_was() -> void:
 	assert_bool(GameState.equip(&"weapon", &"bronze_sword")).override_failure_message(
 		"re-equipping what was already worn was refused").is_true()
 
+func test_a_slot_that_is_not_a_slot_is_refused() -> void:
+	# Its own guard since the copies rule swallowed the "carries none" one - without it an
+	# empty slot name becomes a key in the worn map, which every reader would then have to
+	# tolerate.
+	GameState.give_item(&"bronze_sword")
+	assert_bool(GameState.equip(&"", &"bronze_sword")).is_false()
+	assert_bool(GameState.equipment.has(&"")).override_failure_message(
+		"a slot with no name became a slot").is_false()
+
 func test_nobody_wears_what_the_bag_does_not_hold() -> void:
 	assert_bool(GameState.equip(&"weapon", &"bronze_sword", &"scrapper")).is_false()
 

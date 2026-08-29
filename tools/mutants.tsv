@@ -332,7 +332,7 @@ scripts/ui/shop_menu.gd	s|return r.description if r != null else ""|return ""|	t
 scripts/ui/shop_menu.gd	s|_saying = Saying.HOW_MANY|pass|	tests/unit/test_shop_menu.gd	the keeper stops asking how many and the count runs unannounced
 scripts/ui/battle_logic.gd	s|damage\(_combat.attack_at\(_level\) \+ _attack_mod, _enemy.defense\)|damage(_combat.attack_at(_level), _enemy.defense)|	tests/unit/test_battle_logic.gd	a sword changes nothing and gear is decoration
 scripts/ui/battle_logic.gd	s|_combat.defense_at\(_level\) \+ _defense_mod\)|_combat.defense_at(_level))|	tests/unit/test_battle_logic.gd	armour changes nothing and gear is decoration
-scripts/autoload/game_state.gd	s|if String\(slot\).is_empty\(\) or not inventory.has\(id\):|if false:|	tests/unit/test_saves.gd	the player equips a sword they do not own
+scripts/autoload/game_state.gd	s|if wearers_of\(id\) - already \+ 1 > inventory.count\(id\):|if false:|	tests/unit/test_saves.gd	the player equips a sword they do not own
 scripts/autoload/game_state.gd	s|\t_strip_phantom_markers\(id\)|\tpass|	tests/unit/test_saves.gd	the last sword leaves the bag and stays equipped as a phantom
 scripts/data/migrations.gd	s|d\["equipment"\] = \{\}|pass|	tests/unit/test_saves.gd	an old save loads with no equipment map at all
 scripts/data/save_data.gd	s|if int\(items.get\(id, 0\)\) <= 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save equipping what it does not carry loads without complaint
@@ -470,7 +470,7 @@ scripts/data/game_manifest.gd	s|if not party.is_empty\(\) and combat == null:|if
 scripts/autoload/game_state.gd	s|return player_hp <= 0 and companions.is_empty\(\)|return player_hp <= 0|	tests/unit/test_party.gd	a leader who fell beside a companion is silently resurrected
 scripts/autoload/game_state.gd	s|^\tif String\(id\).is_empty\(\):|\tif false:|	tests/unit/test_party.gd	the leader is written into the companion map under an empty id
 scripts/autoload/game_state.gd	s|\tcompanions = \{\}$|\tpass|	tests/unit/test_party.gd	a new game starts with the last one companions
-scripts/autoload/game_state.gd	s|if wearers_of\(id\) - already \+ 1 > inventory.count\(id\):|if false:|	tests/unit/test_party.gd	one carried sword is worn by two people at once
+scripts/autoload/game_state.gd	s|\tvar already := 1 if worn.get\(slot, \&""\) == id else 0|\tvar already := 0|	tests/unit/test_party.gd	re-equipping what is already worn starts answering no
 scripts/autoload/game_state.gd	s|\tmembers.reverse\(\)|\tpass|	tests/unit/test_party.gd	which companion loses a sold sword depends on the day
 scripts/autoload/game_state.gd	s|\t\ttotal \+= worn.values\(\).count\(id\)|\t\tpass|	tests/unit/test_party.gd	what a companion wears is not counted as worn at all
 scripts/data/save_data.gd	s|if int\(claimed\[worn_id\]\) > int\(items.get\(worn_id, 0\)\):|if false:|	tests/unit/test_saves.gd	a save with two people wearing one carried sword loads
@@ -478,3 +478,5 @@ scripts/data/save_data.gd	s|if not companions.is_empty\(\) and party.is_empty\(\
 scripts/data/migrations.gd	s|\td\["companions"\] = \{\}|\tpass|	tests/unit/test_saves.gd	the v8 to v9 step forgets the key it exists to add
 scripts/autoload/qa.gd	s|if not GameState.has_companion\(member\):|if false:|	tests/unit/test_qa_ops.gd	a companion who never joined answers assertions about their health
 scripts/autoload/qa.gd	s|\t\t\t_fail\("assert_gold names member '%s', and there is one purse" % member\)|\t\t\tpass|	tests/unit/test_qa_ops.gd	the harness invents a per-member purse
+
+scripts/autoload/game_state.gd	s|^\tif String\(slot\).is_empty\(\):$|\tif false:|	tests/unit/test_party.gd	gear can be equipped into a slot that is not a slot
