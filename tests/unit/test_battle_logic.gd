@@ -24,6 +24,8 @@ func _combat(curve: Array[int] = [10, 12]) -> CombatDef:
 	out.attack_per_level = 2
 	out.base_defense = 1
 	out.defense_per_level = 1
+	out.base_mp = 8
+	out.mp_per_level = 3
 	out.xp_curve = curve
 	out.attack_cue_frames = CUE
 	out.defend_cue_frames = DEFEND_CUE
@@ -47,10 +49,10 @@ func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false,
 	return out
 
 func _fight(enemy: EnemyDef = null, hp := 20, xp := 0, level := 1, items: Array = [],
-		curve: Array[int] = [10, 12], attack_mod := 0, defense_mod := 0) -> BattleLogic:
+		curve: Array[int] = [10, 12], attack_mod := 0, defense_mod := 0, mp := 8) -> BattleLogic:
 	var foe := enemy if enemy != null else _enemy()
 	return BattleLogic.of(_combat(curve), foe, hp, xp, level, items, "map/foe", 7,
-		attack_mod, defense_mod)
+		attack_mod, defense_mod, mp)
 
 func _tonic(count := 1, heal := 10) -> BattleLogic.ItemRow:
 	return BattleLogic.ItemRow.of(&"tonic", "Tonic", count, heal)
@@ -421,6 +423,44 @@ func test_winning_reports_the_party_it_leaves_behind() -> void:
 	assert_int(int(party.get("xp", -1))).is_equal(5)
 	assert_int(int(party.get("level", -1))).is_equal(1)
 	assert_int(int(party.get("hp", -1))).is_equal(20)
+	# Magic is reported alongside them or the world writes zero over whatever the player had -
+	# a key the sink reads with a default of nought is a key that must always be written.
+	assert_int(int(party.get("mp", -1))).override_failure_message(
+		"the fight sealed without saying what magic it left behind").is_equal(8)
+
+func test_a_fight_hands_back_the_magic_it_was_given() -> void:
+	# Nothing spends MP yet, so this is the whole rule: a fight must not be a place magic goes
+	# missing. It is asserted at a value that is neither empty nor full, because a fight that
+	# sealed max_mp and one that sealed the player's own number agree at both ends.
+	var battle := _fight(_enemy(4), 20, 0, 1, [], [10, 12], 0, 0, 5)
+	assert_int(battle.player_mp()).is_equal(5)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	var party := {}
+	for effect: Dictionary in battle.effects():
+		if effect.get("op") == GameContext.OP_PARTY:
+			party = effect
+	assert_int(int(party.get("mp", -1))).is_equal(5)
+
+func test_more_magic_than_the_level_allows_is_clamped_to_the_curve() -> void:
+	# A hand-edited save describing a player the curve cannot produce. The fight is not the
+	# place to argue with it - hp is clamped on the way in for the same reason.
+	var battle := _fight(_enemy(4), 20, 0, 1, [], [10, 12], 0, 0, 99)
+	assert_int(battle.player_max_mp()).is_equal(8)
+	assert_int(battle.player_mp()).is_equal(8)
+
+func test_levelling_up_restores_the_magic_as_well_as_the_health() -> void:
+	# "Completely" has to mean completely once there is magic. A level that refilled hp and left
+	# the caster empty would make the reward read as half-broken.
+	var battle := _fight(_enemy(4, 3, 1, 10), 5, 0, 1, [], [10, 12], 0, 0, 1)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.player_level()).override_failure_message(
+		"the fight did not level anyone, so this proves nothing about levelling").is_equal(2)
+	# Level 2 of an 8 + 3 curve.
+	assert_int(battle.player_mp()).is_equal(11)
 
 func test_nine_xp_is_not_a_level_and_ten_is() -> void:
 	# The threshold from both sides, at literal values, against a curve of [10, 12].

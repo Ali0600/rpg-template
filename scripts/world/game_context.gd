@@ -113,12 +113,13 @@ func play(sound_id: StringName) -> void:
 	_effects.append({"op": OP_SOUND, "id": sound_id})
 
 
-## How a fight reports what it did to the player. One effect carrying all three numbers rather
-## than three carrying one each: hp, xp and level move together and are meaningless apart - a
+## How a fight reports what it did to the player. One effect carrying all four numbers rather
+## than four carrying one each: hp, xp, level and mp move together and are meaningless apart - a
 ## level applied without the full heal that came with it is a player the curve says should be
-## stronger and the save says is nearly dead.
-func set_party(hp: int, xp: int, level: int) -> void:
-	_effects.append({"op": OP_PARTY, "hp": hp, "xp": xp, "level": level})
+## stronger and the save says is nearly dead, and magic spent without the fight it was spent in
+## is a cost with nothing bought.
+func set_party(hp: int, xp: int, level: int, mp: int) -> void:
+	_effects.append({"op": OP_PARTY, "hp": hp, "xp": xp, "level": level, "mp": mp})
 
 
 ## What the caller should carry out. A copy: reading the list must not be able to change it.

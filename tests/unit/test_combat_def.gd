@@ -14,6 +14,8 @@ func _combat(curve: Array[int] = [10, 12, 20]) -> CombatDef:
 	out.attack_per_level = 2
 	out.base_defense = 1
 	out.defense_per_level = 1
+	out.base_mp = 8
+	out.mp_per_level = 3
 	out.xp_curve = curve
 	out.attack_cue_frames = 30
 	out.defend_cue_frames = 40
@@ -26,12 +28,15 @@ func test_level_one_is_the_base_line() -> void:
 	assert_int(combat.max_hp(1)).is_equal(20)
 	assert_int(combat.attack_at(1)).is_equal(5)
 	assert_int(combat.defense_at(1)).is_equal(1)
+	assert_int(combat.max_mp(1)).is_equal(8)
 
 func test_each_level_adds_its_gain() -> void:
 	var combat := _combat()
 	assert_int(combat.max_hp(3)).is_equal(28)
 	assert_int(combat.attack_at(3)).is_equal(9)
 	assert_int(combat.defense_at(3)).is_equal(3)
+	# 8 + 3 + 3. A curve read as "base times level" would say 24 and pass at level 1.
+	assert_int(combat.max_mp(3)).is_equal(14)
 
 func test_the_thresholds_are_cumulative() -> void:
 	# Against [10, 12, 20]: level 2 at 10, level 3 at 22, level 4 at 42. A curve read as
@@ -80,3 +85,21 @@ func test_a_player_with_no_health_is_refused() -> void:
 	var combat := _combat()
 	combat.base_hp = 0
 	assert_array(combat.problems()).is_not_empty()
+
+func test_negative_magic_is_refused() -> void:
+	var combat := _combat()
+	combat.base_mp = -1
+	assert_array(combat.problems()).is_not_empty()
+	combat.base_mp = 8
+	combat.mp_per_level = -1
+	assert_array(combat.problems()).is_not_empty()
+
+func test_a_game_with_no_magic_at_all_is_allowed() -> void:
+	# The control that keeps the magic check from being written as "must be positive". Zero is
+	# the DEFAULT and it means a game that ships no spells - which stays a legal shape forever,
+	# the way a manifest with no CombatDef is a game that cannot fight.
+	var combat := _combat()
+	combat.base_mp = 0
+	combat.mp_per_level = 0
+	assert_array(combat.problems()).is_empty()
+	assert_int(combat.max_mp(4)).is_equal(0)

@@ -24,6 +24,17 @@ extends Resource
 @export var base_defense: int = 1
 @export var defense_per_level: int = 1
 
+## What the player has to spend on spells, on exactly the terms hp is on. A curve rather than a
+## stored pool for the reason every stat here is one, and it is also what the genre does: Final
+## Fantasy VI, Dragon Quest and Chrono Trigger all size MP off the level, not off a resource
+## farmed separately from it.
+##
+## ZERO BASE IS THE DEFAULT AND IT MEANS NO MAGIC, the "zero is off" shape ItemDef.battle_heal
+## uses. A game that ships no spells never touches these, and its player then has nothing to
+## spend and nothing to spend it on - which agree.
+@export var base_mp: int = 0
+@export var mp_per_level: int = 0
+
 ## What each level-up costs, as TOTAL xp thresholds accumulated in order: element 0 is the
 ## cost of level 1 -> 2, element 1 of 2 -> 3. The maximum level is therefore size() + 1, and
 ## a curve is the one place "how long is this game" is written down.
@@ -48,6 +59,10 @@ extends Resource
 
 func max_hp(level: int) -> int:
 	return base_hp + hp_per_level * (maxi(level, 1) - 1)
+
+
+func max_mp(level: int) -> int:
+	return base_mp + mp_per_level * (maxi(level, 1) - 1)
 
 
 func attack_at(level: int) -> int:
@@ -96,6 +111,11 @@ func problems() -> Array[String]:
 		out.append("combat '%s' has %d base_defense" % [id, base_defense])
 	if hp_per_level < 0 or attack_per_level < 0 or defense_per_level < 0:
 		out.append("combat '%s' has a negative per-level gain" % id)
+	# Separate from the gains above rather than folded in, because base_mp is allowed to be zero
+	# where base_hp is not - so the pair has its own sentence and its own message.
+	if base_mp < 0 or mp_per_level < 0:
+		out.append("combat '%s' has negative magic - %d base, %d per level"
+			% [id, base_mp, mp_per_level])
 	# A curve with no entries is a game where levelling cannot happen. That may be someone's
 	# design, but it is not this field's default meaning, and silence would make the two
 	# indistinguishable.

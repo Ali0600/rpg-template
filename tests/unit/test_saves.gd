@@ -39,7 +39,7 @@ func test_a_save_round_trips_through_disk() -> void:
 	GameState.mark_seen(&"intro")
 	GameState.give_item(&"gate_key")
 	GameState.give_item(&"lamp_oil", 2)
-	GameState.set_party(13, 22, 3)
+	GameState.set_party(13, 22, 3, 7)
 	GameState.play_seconds = 42.5
 
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
@@ -64,6 +64,9 @@ func test_a_save_round_trips_through_disk() -> void:
 	assert_int(GameState.player_hp).is_equal(13)
 	assert_int(GameState.player_xp).is_equal(22)
 	assert_int(GameState.player_level).is_equal(3)
+	# Magic rides inside the party dict, so a save that dropped it would reload a caster with
+	# nothing to cast - and the player would blame the spell, not the file.
+	assert_int(GameState.player_mp).is_equal(7)
 
 func test_a_game_that_never_fought_saves_no_party() -> void:
 	# Zero health means UNSET, and that has to survive the round trip as absence rather than as
@@ -76,17 +79,18 @@ func test_a_game_that_never_fought_saves_no_party() -> void:
 func test_a_new_game_does_not_inherit_the_last_one_s_level() -> void:
 	# An autoload outlives a session. Without the reset, starting over hands the new player
 	# every level the old one earned - which reads as a save bug rather than as a missing line.
-	GameState.set_party(31, 99, 3)
+	GameState.set_party(31, 99, 3, 12)
 	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
 	assert_int(GameState.player_level).is_equal(1)
 	assert_int(GameState.player_xp).is_equal(0)
 	assert_int(GameState.player_hp).is_equal(0)
+	assert_int(GameState.player_mp).is_equal(0)
 
 func test_loading_a_save_from_before_battles_leaves_the_party_unset() -> void:
 	# The signal world_scene reads to derive a fresh player from the game's curve. If this
 	# came back as "level 1 at zero hp" instead, that derivation would never fire and the
 	# first fight would open with a player who is already dead.
-	GameState.set_party(9, 4, 2)
+	GameState.set_party(9, 4, 2, 5)
 	var data := SaveData.new()
 	data.game = &"quest"
 	data.map = &"quest_village"
@@ -390,6 +394,56 @@ func test_a_version_6_save_is_carried_forward() -> void:
 		"the v6->v7 step lost the party it was handed").is_equal(3)
 	assert_int(data.gold).override_failure_message(
 		"the v6->v7 step lost the purse it was handed").is_equal(41)
+
+func test_a_version_7_save_is_carried_forward() -> void:
+	var file := JsonFile.read(FIXTURES + "v7.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	var party: Dictionary = migrated.get("party", {})
+	assert_bool(party.has("mp")).override_failure_message(
+		"a migrated save arrived with no mp at all").is_true()
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# Spent rather than a gift, the call every step before it made - and here there is a second
+	# reason: what "full" is depends on the game's CombatDef, which a migration may not reach.
+	assert_int(int(data.party.get("mp", -1))).is_equal(0)
+	# And the step must not drop what v7 already knew - the fixture carries a bag, a party, a
+	# purse and worn gear on purpose, because with any of them missing a step that wiped it
+	# would still pass.
+	assert_int(int(data.items.get("tonic", 0))).override_failure_message(
+		"the v7->v8 step lost the bag it was handed").is_equal(2)
+	assert_int(int(data.party.get("level", 0))).override_failure_message(
+		"the v7->v8 step lost the party it was handed").is_equal(3)
+	assert_int(data.gold).override_failure_message(
+		"the v7->v8 step lost the purse it was handed").is_equal(41)
+	assert_str(str(data.equipment.get("weapon", ""))).override_failure_message(
+		"the v7->v8 step lost the gear it was handed").is_equal("bronze_sword")
+
+func test_a_save_with_no_party_gains_no_magic() -> void:
+	# The pairing to_save() makes: a file with no party is a game with no fighting in it, and
+	# handing that an mp key would be the one field claiming it has a fighter after all.
+	var migrated := Migrations.apply({
+		"version": 7, "game": "quest", "map": "quest_village", "facing": 0, "party": {},
+	}, &"quest")
+	assert_dict(migrated.get("party", {})).override_failure_message(
+		"a game with no party was given magic by the migration").is_empty()
+
+func test_a_save_carrying_negative_magic_is_reported() -> void:
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_village"
+	data.party = {"hp": 10, "xp": 0, "level": 1, "mp": -1}
+	assert_array(data.problems()).is_not_empty()
+
+func test_a_party_that_has_spent_every_point_is_allowed() -> void:
+	# The control that keeps the mp check from being written as "must be positive" the way the
+	# hp one is. Zero mp is an ordinary state; zero hp is a player who cannot exist.
+	var data := SaveData.new()
+	data.game = &"quest"
+	data.map = &"quest_village"
+	data.party = {"hp": 10, "xp": 0, "level": 1, "mp": 0}
+	assert_array(data.problems()).is_empty()
 
 func test_equipment_survives_a_round_trip() -> void:
 	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)

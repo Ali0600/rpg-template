@@ -28,6 +28,11 @@ var inventory: Inventory = Inventory.new()
 var player_hp: int = 0
 var player_xp: int = 0
 var player_level: int = 1
+## What is left to spend on spells. Unlike player_hp, ZERO IS A REAL VALUE - it means spent,
+## not unset - so there is no "no magic yet" signal here and there does not need to be: hp is
+## the one that carries it, and _ensure_party fills both from the curve at the same moment.
+## A game with no magic leaves this at zero for the whole run, which is also what it means.
+var player_mp: int = 0
 ## What the player can spend. Unlike player_hp, ZERO IS A REAL VALUE - it means broke, not
 ## unset - so gold is a plain field with a plain default rather than something derived. A
 ## game with no economy simply never moves it off zero.
@@ -65,6 +70,7 @@ func reset() -> void:
 	player_hp = 0
 	player_xp = 0
 	player_level = 1
+	player_mp = 0
 	gold = 0
 	equipment = {}
 	play_seconds = 0.0
@@ -170,13 +176,25 @@ func is_equipped(id: StringName) -> bool:
 	return equipment.values().has(id)
 
 
-## What a fight left the player as. All three together, through one writer, because they are
+## What a fight left the player as. All four together, through one writer, because they are
 ## one fact: a level without its heal, or xp without the level it bought, is a state no rule
 ## in the game produces and every rule downstream would then have to tolerate.
-func set_party(hp: int, xp: int, level: int) -> void:
+##
+## MP joined them rather than getting the give/spend pair gold has, and the difference between
+## the two is worth stating: gold moves on its OWN - a sale, a purchase, a drop - so it needs
+## verbs of its own. MP only ever moves as part of something that also moves hp: a fight
+## resolving, a night at an inn, a level restoring the player. A separate writer for it would
+## be a second place that has to remember to be called, and the one that forgets leaves a
+## player wondering why resting did not give their magic back.
+##
+## Required rather than defaulted for the same reason: a call site that omitted it would silently
+## empty the player's magic, and "the argument you forgot" would read in play as a bug in
+## whatever spent it.
+func set_party(hp: int, xp: int, level: int, mp: int) -> void:
 	player_hp = maxi(hp, 0)
 	player_xp = maxi(xp, 0)
 	player_level = maxi(level, 1)
+	player_mp = maxi(mp, 0)
 
 
 ## The live state as a save. Kept here rather than in SaveManager because this is the object
@@ -193,8 +211,11 @@ func to_save() -> SaveData:
 	out.items = inventory.to_dict()
 	# An unset party writes an EMPTY dictionary rather than zeros. A game with no combat then
 	# saves no combat state at all, and a file cannot claim the player has nought health.
+	# MP rides INSIDE party rather than beside it like gold, because it shares party's "empty
+	# means no combat here" answer exactly - a game with no fighting has no magic either, and a
+	# top-level mp key would be the one field claiming otherwise.
 	out.party = {} if player_hp <= 0 else {
-		"hp": player_hp, "xp": player_xp, "level": player_level,
+		"hp": player_hp, "xp": player_xp, "level": player_level, "mp": player_mp,
 	}
 	out.gold = gold
 	out.equipment = equipment.duplicate(true)
@@ -218,6 +239,7 @@ func from_save(data: SaveData) -> void:
 	player_hp = int(data.party.get("hp", 0))
 	player_xp = int(data.party.get("xp", 0))
 	player_level = maxi(int(data.party.get("level", 1)), 1)
+	player_mp = maxi(int(data.party.get("mp", 0)), 0)
 	gold = maxi(data.gold, 0)
 	equipment = data.equipment.duplicate(true)
 	play_seconds = data.play_seconds

@@ -44,6 +44,8 @@ func _combat() -> CombatDef:
 	out.attack_per_level = 2
 	out.base_defense = 1
 	out.defense_per_level = 1
+	out.base_mp = 6
+	out.mp_per_level = 3
 	out.xp_curve = [10, 12]
 	out.attack_cue_frames = 4
 	out.defend_cue_frames = 4
@@ -221,19 +223,38 @@ func test_winning_a_fight_leaves_the_player_where_the_fight_left_them() -> void:
 	# The party effect reaching the sink. A fight that reported nothing would hand back a
 	# player at full health, and every fight would be free.
 	await _boot()
-	GameState.set_party(9, 0, 1)
+	GameState.set_party(9, 0, 1, 0)
 	_world.open_battle_with(_enemy(20, 3, 5), "quest_village/foe")
 	await _fight_it_out()
 	assert_int(GameState.player_hp).override_failure_message(
 		"the player came out of a fight with more health than they went in with"
 	).is_less_equal(9)
 
+func test_a_fight_is_handed_the_players_magic_and_gives_it_back() -> void:
+	# Two halves of one wiring, and each is silent on its own: a world that never passed the
+	# player's MP in would start every fight empty, and a fight sealing an mp the sink ignored
+	# would empty the player on the way out. Asserted at a number that is neither nought nor
+	# full, because both bugs agree with the player's own value at those ends.
+	await _boot()
+	var carried := _combat().max_mp(1) - 2
+	assert_int(carried).override_failure_message(
+		"the fixture game has no magic, so this test could not see it move").is_greater(0)
+	# No xp on the foe, because a level-up refills the magic and would agree with a fight that
+	# had quietly handed back full MP all along.
+	GameState.set_party(9, 0, 1, carried)
+	_world.open_battle_with(_enemy(1, 1, 0), "quest_village/foe")
+	assert_int(_world.battle_screen().logic().player_mp()).override_failure_message(
+		"the fight opened without the magic the player was carrying").is_equal(carried)
+	await _fight_it_out()
+	assert_int(GameState.player_mp).override_failure_message(
+		"the fight handed back magic the player never had").is_equal(carried)
+
 
 # -- losing --------------------------------------------------------------------------------
 
 func test_losing_ends_the_run() -> void:
 	await _boot()
-	GameState.set_party(1, 0, 1)
+	GameState.set_party(1, 0, 1, 0)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).override_failure_message(
@@ -243,7 +264,7 @@ func test_losing_ends_the_run() -> void:
 func test_a_lost_fight_earns_nothing() -> void:
 	# Above all it must not mark the enemy beaten: the thing that just won is still standing.
 	await _boot()
-	GameState.set_party(1, 0, 1)
+	GameState.set_party(1, 0, 1, 0)
 	var before := GameState.player_xp
 	_world.open_battle_with(_enemy(999, 99, 25), "quest_village/foe")
 	await _fight_it_out()
@@ -257,7 +278,7 @@ func test_a_lost_fight_earns_nothing() -> void:
 func test_continuing_from_a_save_puts_the_player_back_in_it() -> void:
 	await _boot()
 	assert_bool(SaveManager.save(0, _good_save())).is_true()
-	GameState.set_party(1, 0, 1)
+	GameState.set_party(1, 0, 1, 0)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).is_equal("game_over")
@@ -276,7 +297,7 @@ func test_continuing_from_a_save_puts_the_player_back_in_it() -> void:
 func test_starting_again_rebuilds_the_game_from_the_beginning() -> void:
 	await _boot()
 	GameState.set_flag(&"lit_the_lantern", true)
-	GameState.set_party(1, 99, 3)
+	GameState.set_party(1, 99, 3, 0)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).is_equal("game_over")
@@ -301,7 +322,7 @@ func test_continuing_with_nothing_saved_is_refused_and_the_screen_keeps_answerin
 	# The refusal, and the control for it: the screen must still be listening afterwards, or a
 	# player with no saves is stuck on a menu that has stopped responding entirely.
 	await _boot()
-	GameState.set_party(1, 0, 1)
+	GameState.set_party(1, 0, 1, 0)
 	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).is_equal("game_over")

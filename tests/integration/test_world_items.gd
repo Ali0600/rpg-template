@@ -148,7 +148,7 @@ func test_a_spend_beyond_the_purse_moves_nothing() -> void:
 
 func test_a_rest_fills_the_player_up() -> void:
 	var world := _boot()
-	GameState.set_party(3, 0, 1)
+	GameState.set_party(3, 0, 1, 0)
 	assert_bool(world._apply_effects([{"op": GameContext.OP_REST}])).is_true()
 	var full: int = (load(GAME) as GameManifest).combat.max_hp(1)
 	assert_int(GameState.player_hp).override_failure_message(
@@ -159,10 +159,26 @@ func test_a_rest_fills_the_player_up() -> void:
 
 
 func test_a_rest_leaves_the_level_and_the_experience_alone() -> void:
-	# set_party carries all three because they are one fact, so a rest has to hand the other
-	# two back unchanged - a night that reset the player's level would be a very bad night.
+	# set_party carries all four because they are one fact, so a rest has to hand the ones it
+	# does not mean to change back unchanged - a night that reset the player's level would be a
+	# very bad night.
 	var world := _boot()
-	GameState.set_party(3, 42, 2)
+	GameState.set_party(3, 42, 2, 0)
 	world._apply_effects([{"op": GameContext.OP_REST}])
 	assert_int(GameState.player_xp).is_equal(42)
 	assert_int(GameState.player_level).is_equal(2)
+
+
+func test_a_rest_fills_the_magic_up_as_well_as_the_health() -> void:
+	# An inn that gave the health back and not the magic would leave a caster with nothing to
+	# cast and no reason to sleep again - and the night still costs four gold either way.
+	var world := _boot()
+	var combat: CombatDef = (load(GAME) as GameManifest).combat
+	var full := combat.max_mp(1)
+	assert_int(full).override_failure_message(
+		"the fixture game has no magic, so this test could not tell a refill from a no-op") \
+		.is_greater(0)
+	GameState.set_party(3, 0, 1, 0)
+	world._apply_effects([{"op": GameContext.OP_REST}])
+	assert_int(GameState.player_mp).override_failure_message(
+		"a night at the inn restored the health and left the magic spent").is_equal(full)

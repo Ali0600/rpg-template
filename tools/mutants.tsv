@@ -369,7 +369,7 @@ scripts/ui/dialog_runner.gd	s|\t\t_effects.append\(\{"op": GameContext.OP_REST\}
 scripts/ui/dialog_runner.gd	s|\t\t\tif costs > 0 and refusal.is_empty\(\):|\t\t\tif false:|	tests/unit/test_dialog_runner.gd	a keeper charges money and says nothing at all when the player cannot pay
 scripts/ui/dialog_runner.gd	s|\t\t_collect_reachable\(str\(\(entry as Dictionary\).get\("poor_next", ""\)\), seen\)|\t\tpass|	tests/unit/test_dialog_runner.gd	every correctly-written refusal fails the build as unreachable
 scripts/world/world_scene.gd	s|\t\t\t\tif GameState.spend_gold\(int\(effect.get\("amount", 0\)\)\):|\t\t\t\tif false:|	tests/integration/test_world_items.gd	a spend reaches the sink and the money stays in the purse
-scripts/world/world_scene.gd	s|\tGameState.set_party\(_game.combat.max_hp\(level\), GameState.player_xp, level\)|\tpass|	tests/integration/test_world_items.gd	a night at the inn costs money and heals nothing
+scripts/world/world_scene.gd	s|_game.combat.max_hp\(level\), GameState.player_xp, level,|GameState.player_hp, GameState.player_xp, level,|	tests/integration/test_world_items.gd	a night at the inn costs money and heals nothing
 scripts/world/world_scene.gd	s|\topen_rest.call_deferred\(\)|\tpass|	tests/fixtures/qa/quest/rest_at_the_inn.json	the player pays for a room and the night never comes
 scripts/world/world_scene.gd	s|\tRouter.open_overlay\(Router.State.RESTING\)|\tpass|	tests/fixtures/qa/quest/rest_at_the_inn.json	a night passes with the player free to walk out through the middle of it
 scripts/ui/rest_screen.gd	s|\t\t_done = true|\t\tpass|	tests/unit/test_rest_screen.gd	a night announces it is over on every frame, not once
@@ -405,3 +405,23 @@ scripts/data/game_manifest.gd	s|\t\t\tif not FileAccess.file_exists\(track\):|\t
 .github/workflows/ci.yml	s|^      - "docs/FLOW.md"$|      # removed|	tests/unit/test_ci_paths.gd	a hand-edit to the generated flow doc skips the drift gate built to catch it
 .github/workflows/check-docs.yml	s|      - "!docs/FLOW.md"|      # - "!docs/FLOW.md"|	tests/unit/test_ci_paths.gd	the no-op check answers green for the one doc the real gate must see
 .github/workflows/check-docs.yml	s|      - "docs/\*\*"|      - "tests/**"|	tests/unit/test_ci_paths.gd	a test change gets a green check that tested nothing at all
+
+# --- M25: magic - the resource layer ---
+scripts/data/combat_def.gd	s|return base_mp \+ mp_per_level \* \(maxi\(level, 1\) - 1\)|return base_mp|	tests/unit/test_combat_def.gd	magic stops growing with level, so every caster is a level-1 one forever
+scripts/data/combat_def.gd	s|if base_mp < 0 or mp_per_level < 0:|if false:|	tests/unit/test_combat_def.gd	a game can ship negative magic and the build says nothing
+scripts/data/spell_def.gd	s|if mp_cost <= 0:|if false:|	tests/unit/test_spell_def.gd	a free spell ships, and casting stops being a decision
+scripts/data/spell_def.gd	s|if learn_level < 1:|if false:|	tests/unit/test_spell_def.gd	a spell learned below level one ships
+scripts/data/spell_def.gd	s|if kind < 0 or kind >= Kind.size\(\):|if false:|	tests/unit/test_spell_def.gd	a hand-edited kind no spell has costs the player a turn doing nothing
+scripts/data/spell_def.gd	s|\t\tif status_turns <= 0:|\t\tif false:|	tests/unit/test_spell_def.gd	a sleep that takes no turns away ships as a spell that does nothing
+scripts/data/spell_def.gd	s|\telif power <= 0:|\telif false:|	tests/unit/test_spell_def.gd	an attack spell with no power ships and reads as a broken button
+scripts/autoload/game_state.gd	s|\tplayer_mp = maxi\(mp, 0\)|\tpass|	tests/unit/test_saves.gd	the one party writer drops the magic it was handed
+scripts/autoload/game_state.gd	s|\"hp\": player_hp, \"xp\": player_xp, \"level\": player_level, \"mp\": player_mp,|\"hp\": player_hp, \"xp\": player_xp, \"level\": player_level,|	tests/unit/test_saves.gd	a save records no magic, so every load empties the caster
+scripts/autoload/game_state.gd	s|\tplayer_mp = maxi\(int\(data.party.get\(\"mp\", 0\)\), 0\)|\tpass|	tests/unit/test_saves.gd	a load ignores the magic in the file it just read
+scripts/data/migrations.gd	s|\t\tparty\[\"mp\"\] = 0|\t\tpass|	tests/unit/test_saves.gd	the v7 step leaves the party with no mp at all, so a migrated save is malformed
+scripts/data/save_data.gd	s|if int\(party.get\(\"mp\", 0\)\) < 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save carrying negative magic loads without a word
+scripts/ui/battle_logic.gd	s|\tout._mp = clampi\(mp, 0, combat.max_mp\(out._level\)\)|\tout._mp = mp|	tests/unit/test_battle_logic.gd	a save claiming more magic than the curve allows fights with all of it
+scripts/ui/battle_logic.gd	s|\t\t_mp = player_max_mp\(\)|\t\tpass|	tests/unit/test_battle_logic.gd	levelling up restores the health and leaves the caster empty
+scripts/ui/battle_logic.gd	s|\t\t\"mp\": _mp\}\)|\}\)|	tests/unit/test_battle_logic.gd	a fight seals without saying what magic it left, so the sink writes nought over it
+scripts/world/world_scene.gd	s|int\(effect.get\(\"level\", 1\)\), int\(effect.get\(\"mp\", 0\)\)\)|int(effect.get(\"level\", 1)), 0)|	tests/integration/test_world_battles.gd	the one sink ignores the magic a fight reported and empties the player
+scripts/world/world_scene.gd	s|_equip_mod\(\&\"defense\"\), GameState.player_mp\),|_equip_mod(\&\"defense\")),|	tests/integration/test_world_battles.gd	every fight opens with an empty caster, whatever the player was carrying
+scripts/world/world_scene.gd	s|\t\t_game.combat.max_mp\(starting\)\)|\t\t0)|	tests/integration/test_world_equipment.gd	a player who has never fought starts with no magic at all

@@ -29,6 +29,11 @@
 ; None of this touches balance. The window is not in the damage arithmetic - a timed hit is
 ; worth double whenever it lands - so the fight the numbers were tuned against is the same
 ; fight; test_battle_content.gd proves that on every run.
+;
+; The magic curve is 8 and 3, which is deliberately small: at level 1 that is two casts of a
+; three-point spell, and by level 3 it is four. Magic in a twenty-minute quest is a thing you
+; decide to spend, not a second attack button - and an inn refills it, which is what gives the
+; four gold a night a second reason to exist. UNJUDGED: nobody has played a fight with it yet.
 
 [ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
 
@@ -41,6 +46,8 @@ base_attack = 5
 attack_per_level = 2
 base_defense = 1
 defense_per_level = 1
+base_mp = 8
+mp_per_level = 3
 xp_curve = Array[int]([10, 12])
 attack_cue_frames = 72
 defend_cue_frames = 84

@@ -74,7 +74,7 @@ func test_a_title_with_a_save_offers_it_and_loads_it() -> void:
 	var world := _boot()
 	world._commit_new_game_from_title()
 	await get_tree().physics_frame
-	GameState.set_party(7, 11, 2)
+	GameState.set_party(7, 11, 2, 0)
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
 
 	assert_bool(world.open_title()).is_true()
@@ -147,9 +147,9 @@ func test_pressing_continue_on_a_real_save_loads_it_through_the_screen() -> void
 	var world := _boot()
 	world._commit_new_game_from_title()
 	await get_tree().physics_frame
-	GameState.set_party(9, 11, 2)
+	GameState.set_party(9, 11, 2, 0)
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
-	GameState.set_party(3, 0, 1)
+	GameState.set_party(3, 0, 1, 0)
 
 	assert_bool(world.open_title()).is_true()
 	await _steps(2)
@@ -178,7 +178,7 @@ func test_continue_resumes_the_run_instead_of_replaying_its_opening() -> void:
 	GameState.set_flag(&"met_the_warden", true)
 	GameState.current_map = &"quest_town"
 	GameState.player_position = Vector2(72.0, 88.0)
-	GameState.set_party(9, 5, 1)
+	GameState.set_party(9, 5, 1, 0)
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
 
 	assert_bool(world.open_title()).is_true()
