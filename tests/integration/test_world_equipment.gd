@@ -163,9 +163,9 @@ func test_worn_gear_reaches_the_fight() -> void:
 	await _steps(2)
 	var screen: BattleScreen = world.battle_screen()
 	var logic: BattleLogic = screen.logic()
-	assert_int(logic.attack_mod()).override_failure_message(
+	assert_int(logic.attack_mod(0)).override_failure_message(
 		"the sword was worn and the fight never heard about it").is_equal(3)
-	assert_int(logic.defense_mod()).override_failure_message(
+	assert_int(logic.defense_mod(0)).override_failure_message(
 		"the vest was worn and the fight never heard about it").is_equal(2)
 
 func test_a_fight_with_nothing_worn_gets_nothing() -> void:
@@ -176,8 +176,8 @@ func test_a_fight_with_nothing_worn_gets_nothing() -> void:
 	await _steps(2)
 	var screen: BattleScreen = world.battle_screen()
 	var logic: BattleLogic = screen.logic()
-	assert_int(logic.attack_mod()).is_equal(0)
-	assert_int(logic.defense_mod()).is_equal(0)
+	assert_int(logic.attack_mod(0)).is_equal(0)
+	assert_int(logic.defense_mod(0)).is_equal(0)
 
 func test_the_slot_offers_to_take_off_what_is_in_it() -> void:
 	# The line under the list is the only place the player learns what a press will DO, and a

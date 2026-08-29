@@ -61,12 +61,119 @@ one-glance menu of things still worth trying.
   mixer and waits on nothing. NOT shipped, because it has never been needed here — see the
   entry below. Revisit hook: one line in `AudioBus._ready`, and the symptom to watch for is
   music that plays once and stops with nothing in the console.
-- **A targeting step.** Unnecessary while fights are 1v1. Revisit hook: whichever lands first
-  of a party or a multi-enemy fight; `SpellDef` would gain a target shape, and the FFVII
-  Materia precedent (the shape is a property of the spell, not a runtime cursor) is the
-  cheaper half of it.
+- **A targeting step for ENEMIES.** M27 gave a party an ALLY cursor and deliberately no enemy
+  one, because fights are still one foe and a cursor with one row is a mode with one option in
+  it. Revisit hook: a multi-enemy fight; `SpellDef` would gain a target shape, and the FFVII
+  Materia precedent (the shape is a property of the spell, not a runtime cursor) is the cheaper
+  half of it.
+- **Multi-enemy fights.** The other half of the divergence M13 chose and M27 left standing.
+  Revisit hook: `BattleLogic._enemy` and `_enemy_hp` becoming a list the way the player's side
+  just did, and `MapData.enemy_at` returning a group rather than a record.
+- **Followers on the overworld** (Chrono Trigger's caterpillar). M27 ships one sprite, which is
+  Final Fantasy I–VI's own answer. Revisit hook: a driver reading the leader's `Locomotion.Step`
+  history and feeding it back as an intent, beside `NpcBrain` — harder under free pixel movement
+  than it would be with grid steps to trail.
+- **A roster larger than the battle line** — a bench, a swap screen, Dragon Quest IV's wagon.
+  M27's roster IS the party. Revisit hook: `_active_party()`, which is the one place membership
+  is decided.
+- **A named or spell-scoped LEADER** (Dragon Quest II's magic-less hero). The leader is
+  synthesized from the manifest, so they are called "You" and know everything their level has
+  reached. Revisit hook: leader-override fields on `GameManifest` beside `player_character`.
+- **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
+  `ally_rows()` (which returns only the standing) and `_resolve_next`'s walk over `_orders`
+  (which would sort rather than iterate).
 
 ---
+
+## A party is a list even when it is one, and membership is a flag — *M27*
+
+The largest system the audit ever listed as missing, and the two calls that decided its shape.
+
+**The fork: does a game without a party take a different path through a fight?**
+
+- **One path, with the solo player synthesized into a member.** *Chosen.* A game that declares
+  no `party` is handed a single Fighter built from `player_character` and `combat`, named "You",
+  knowing everything its level has reached — so `BattleLogic`, `BattleScreen` and the menus
+  always see a list. The evidence it worked: all sixteen scripted play sessions pass untouched,
+  the solo layout is pixel-identical, and 60 of the 79 battle-logic tests never mentioned a
+  party at all.
+- *A solo path and a party path.* Rejected. The phase machine would exist twice, and the solo
+  one would be the tested one — which makes the party path the place bugs live and nobody looks.
+- **The cost, stated:** a leader cannot be given a name or a narrowed spell list, so Dragon
+  Quest II's magic-less hero is not expressible. `deferred — worth trying`; the revisit hook is
+  leader-override fields on `GameManifest` beside `player_character`.
+
+**The fork: how is somebody recruited?**
+
+- **Membership is DERIVED from a flag.** *Chosen.* The manifest declares the roster; each member
+  carries `joins_on_flag`, and the party is everyone whose flag is set, computed every time it
+  is asked. This is `SpellDef.learn_level` applied to people, and it deletes the same things:
+  no join op, no roster save field, no migration, no way to hand out the same companion twice,
+  and no membership that can drift from the event that granted it. Recruiting is the `set_flag`
+  a dialog choice already carries, so a game recruits however its own content says.
+- *A `join` effect op with a saved roster.* Rejected — it is a second list of who is in the
+  party, and the one that goes stale is whichever the reader did not check.
+- What IS saved is each member's numbers, which is a different fact entirely.
+
+**Two more, decided with the person this is being built for.** The overworld draws ONE sprite
+(Final Fantasy I–VI ship exactly that; a follower line is `deferred — worth trying`, and the
+revisit hook is a driver reading the leader's `Locomotion.Step` history — it is meaningfully
+harder under free pixel movement, which has no grid steps to trail). And **capacity is three**,
+declared by the view and enforced by the build: the band between the fighters' feet and the help
+line holds three blocks at 320x180, and the demo ships two.
+
+## The round is command-all-then-resolve, in party order — *M27*
+
+**The fork: when does a member's choice happen?**
+
+- **Every standing member declares, then the round resolves.** *Chosen.* Final Fantasy I's
+  manual has the player enter commands for all four characters before the round executes, and
+  Dragon Quest gives orders only at the start of a turn. It also preserves this template's
+  shape exactly: the enemy still acts after the player's side, and a solo round is
+  declare-one-resolve-immediately, which is frame-for-frame what shipped.
+- *ATB, interleaved on per-character timers* (FF4–6, Chrono Trigger). Rejected outright:
+  `BattleLogic` has no clock by design — it is handed one physics frame at a time, which is what
+  lets a QA script press on an exact frame. ATB needs the thing this class refuses to have.
+
+**The fork: what decides who acts first?**
+
+- **Party order, declared.** *Chosen.* Dragon Quest rolls agility, and rolling anything here
+  would put a random draw in the turn order of a template whose whole determinism story is what
+  makes sixteen play sessions a gate. The precedent that makes this genre-honest rather than a
+  concession: **Final Fantasy I's own resolution order is a random shuffle of all thirteen
+  combatants that ignores everyone's stats**, so the foundational entry does not derive order
+  from a stat either.
+- *An agility stat on `CombatDef`.* `deferred — worth trying`, and it pairs with the backlog's
+  "flee odds and damage variance" — the revisit hook is `_resolve_next`'s walk over `_orders`,
+  which would sort rather than iterate.
+
+**And the cursor.** `Phase.ALLY` opens only when more than one member is standing — the same
+argument that kept an enemy cursor out when fights went 1v1, applied to the ally side. Skipping
+it at one is what keeps every session written before M27 pressing the same keys. Fallen members
+are not offered as targets, because reviving mid-fight is a verb this template does not have
+(`deferred`; the hook is `ally_rows()`, which returns the standing).
+
+## Falling is not losing, and the living earn all of it — *M27*
+
+- **A member at nought hp is DOWN, not out of the game**: no turns, no xp, and the fight is lost
+  only when everyone is down. Every reference game.
+- **Every living member earns the FULL award.** *Chosen: Dragon Quest's rule.* Final Fantasy I
+  divides among survivors, which punishes a small party for being small — and the demo party is
+  two, the size division hurts most — and needs a rounding decision that one shared xp curve has
+  nowhere to put. The fallen earn nothing in both series.
+- **Revival is the inn, and it needed no new mechanism.** Dragon Quest's priest charges by level
+  and EarthBound's hospitals do it for money; this template already sells a full night through a
+  conversation, so `_rest()` loops the party and a fallen member wakes whole. *Rejected:* a
+  separate revival price or a Life spell — both are a second thing that means "full", and what
+  "full" is already belongs to the running game's `CombatDef`.
+- **`party_unset()` stopped being "nought health".** This is the one place M27 could corrupt a
+  run. Since M13, zero hp has meant "never fought" and is what makes the world derive a player
+  from the curve. With a party, **a leader at zero beside a standing companion is a real,
+  saveable state** — they fell, somebody finished the fight, and the survivors are walking to an
+  inn. Read the old way it refills them on the way into the next fight: a silent resurrection
+  that deletes the consequence the player is walking to town to undo, and **no test about a solo
+  game can see it**. The question is now "nought health AND nobody standing", asked in one
+  function that `to_save` and the refill both read.
 
 ## Web audio looping was investigated and nothing was changed
 

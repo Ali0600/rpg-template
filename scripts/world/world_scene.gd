@@ -757,9 +757,22 @@ func _apply_effects(effects: Array) -> bool:
 				if GameState.give_gold(int(effect.get("amount", 0))):
 					did = true
 			GameContext.OP_PARTY:
-				GameState.set_party(int(effect.get("hp", 0)), int(effect.get("xp", 0)),
-					int(effect.get("level", 1)), int(effect.get("mp", 0)))
-				did = true
+				# One effect carrying everybody, routed by member id: the empty id is the
+				# leader, who is four fields on GameState, and everyone else is a record in a
+				# map. Applied as a group so a party can never be written half-way - the
+				# leader's new level saved and a companion's fall not is a state no rule in the
+				# game produces and every rule downstream would then have to tolerate.
+				for who: Variant in effect.get("members", []):
+					var record: Dictionary = who
+					var member := StringName(str(record.get("id", "")))
+					if String(member).is_empty():
+						GameState.set_party(int(record.get("hp", 0)), int(record.get("xp", 0)),
+							int(record.get("level", 1)), int(record.get("mp", 0)))
+					else:
+						GameState.set_companion(member, int(record.get("hp", 0)),
+							int(record.get("xp", 0)), int(record.get("level", 1)),
+							int(record.get("mp", 0)))
+					did = true
 			GameContext.OP_WARP:
 				did = enter_map(StringName(str(effect.get("map", ""))),
 					StringName(str(effect.get("spawn", "start")))) or did
@@ -888,10 +901,9 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	_battle.sound_wanted.connect(_on_sound_wanted)
 	_battle.finished.connect(_on_battle_finished)
 	add_child(_battle)
-	_battle.setup(BattleLogic.of(_game.combat, def, GameState.player_hp, GameState.player_xp,
-		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key),
-		_equip_mod(&"attack"), _equip_mod(&"defense"), GameState.player_mp, _battle_spells()),
-		_style, get_viewport_rect().size, _source, _game.player_character, def.character)
+	_battle.setup(BattleLogic.of(_game.combat, def, _battle_members(), _battle_items(),
+		seen_key, _battle_seed(seen_key)),
+		_style, get_viewport_rect().size, _source, def.character)
 	# A fight takes the room's music over. A game naming no battle theme touches nothing at all,
 	# which is not merely a legal shape but is exactly the behaviour every fight had before this
 	# existed - so the field being empty is the old game, unchanged.
@@ -1153,10 +1165,12 @@ func _totals_words() -> String:
 ## An id the bag no longer holds contributes nothing rather than erroring: GameState clears
 ## the marker when the last copy leaves, so this is belt-and-braces against a save edited by
 ## hand, which SaveData.problems() reports separately.
-func _equip_mod(stat: StringName) -> int:
+func _equip_mod(stat: StringName, member: StringName = &"") -> int:
 	var total := 0
-	for slot: Variant in GameState.equipment.keys():
-		var worn := StringName(str(GameState.equipment[slot]))
+	var worn_map: Dictionary = GameState.equipment if String(member).is_empty() \
+		else GameState.companion_equipment.get(member, {})
+	for slot: Variant in worn_map.keys():
+		var worn := StringName(str(worn_map[slot]))
 		if not GameState.has_item(worn):
 			continue
 		var item := Registry.get_resource(&"ItemDef", worn) as ItemDef
@@ -1191,13 +1205,28 @@ func _battle_items() -> Array:
 ## Sorted by the level it arrives at, then by name, so the page reads as the order a player met
 ## them in. Registry.ids_of already sorts, so the result does not depend on the filesystem.
 func _battle_spells() -> Array:
+	return _spells_up_to(GameState.player_level, [], true)
+
+
+## What one MEMBER could cast: the same level derivation, narrowed to the spells their own
+## definition names. An empty list here means NONE - Dragon Quest II's hero exactly - which is
+## the opposite of what an empty list means for the leader, and is why this is a second
+## function rather than a second meaning for one parameter.
+func _member_spells(level: int, only: Array[StringName]) -> Array:
+	return _spells_up_to(level, only, false)
+
+
+func _spells_up_to(level: int, only: Array[StringName], everything: bool) -> Array:
 	var out: Array = []
 	if _game == null or _game.combat == null:
 		return out
+	var at_level := level
 	var known: Array[SpellDef] = []
 	for spell_id in Registry.ids_of(&"SpellDef"):
 		var def := Registry.get_resource(&"SpellDef", spell_id) as SpellDef
-		if def == null or def.learn_level > GameState.player_level:
+		if def == null or def.learn_level > at_level:
+			continue
+		if not everything and not only.has(def.id):
 			continue
 		known.append(def)
 	known.sort_custom(func(a: SpellDef, b: SpellDef) -> bool:
@@ -1208,6 +1237,66 @@ func _battle_spells() -> Array:
 		out.append(BattleLogic.SpellRow.of(def.id, def.name, def.mp_cost, def.kind, def.power,
 			def.status_turns))
 	return out
+
+
+## Everyone who fights on the player's side, fully resolved.
+##
+## THE LEADER IS SYNTHESIZED rather than declared: their art and curve are the manifest's own,
+## their name is the word every message used before there was anyone else, and they know
+## everything the game ships that their level has reached. So a game with no party still hands
+## the fight a list, and there is one code path through a battle rather than a solo one and a
+## party one - of which the solo one would be the tested one.
+func _battle_members() -> Array:
+	var out: Array = []
+	if _game == null or _game.combat == null:
+		return out
+	out.append(BattleLogic.Fighter.of(&"", "You", _game.player_character, _game.combat,
+		GameState.player_hp, GameState.player_xp, GameState.player_level, GameState.player_mp,
+		_equip_mod(&"attack"), _equip_mod(&"defense"), _battle_spells()))
+	for member in _active_party():
+		_ensure_member(member)
+		var numbers := GameState.companion(member.id)
+		var curve: CombatDef = member.combat if member.combat != null else _game.combat
+		var level := int(numbers.get("level", member.join_level))
+		out.append(BattleLogic.Fighter.of(member.id, member.name, member.character, curve,
+			int(numbers.get("hp", 0)), int(numbers.get("xp", 0)), level,
+			int(numbers.get("mp", 0)),
+			_equip_mod(&"attack", member.id), _equip_mod(&"defense", member.id),
+			_member_spells(level, member.spells)))
+	return out
+
+
+## Which of the game's roster is actually along, right now. Derived from flags every time it is
+## asked rather than recorded, the way knowing a spell is derived from level - so recruiting is
+## the set_flag a dialog choice already carries, and there is no membership to save or migrate.
+func _active_party() -> Array[PartyMemberDef]:
+	var out: Array[PartyMemberDef] = []
+	if _game == null:
+		return out
+	for member: PartyMemberDef in _game.party:
+		if member == null:
+			continue
+		if String(member.joins_on_flag).is_empty() or GameState.has_flag(member.joins_on_flag):
+			out.append(member)
+	return out
+
+
+## THE one place a companion who has just joined becomes real, and the _ensure_party shape
+## exactly: full health and magic on their own curve, at the level their game says they arrive
+## at, with the xp that level actually costs so their next fight advances them honestly rather
+## than levelling them a second time.
+func _ensure_member(member: PartyMemberDef) -> void:
+	if _game == null or _game.combat == null or GameState.has_companion(member.id):
+		return
+	var curve: CombatDef = member.combat if member.combat != null else _game.combat
+	var level := maxi(member.join_level, 1)
+	var earned := 0
+	for step in level - 1:
+		var at := curve.xp_for_next(step + 1)
+		if at < 0:
+			break
+		earned = at
+	GameState.set_companion(member.id, curve.max_hp(level), earned, level, curve.max_mp(level))
 
 
 ## A fight's seed, derived only from state that is already persisted.
@@ -1302,6 +1391,16 @@ func _rest() -> bool:
 	# reason to sleep again.
 	GameState.set_party(_game.combat.max_hp(level), GameState.player_xp, level,
 		_game.combat.max_mp(level))
+	# Everybody who is along, on their own curve - and a member who FELL is exactly what this
+	# undoes. Dragon Quest's priest and EarthBound's hospital are both paid town services that
+	# put the fallen back up, and this template already charges for the night at the door.
+	for member in _active_party():
+		_ensure_member(member)
+		var numbers := GameState.companion(member.id)
+		var curve: CombatDef = member.combat if member.combat != null else _game.combat
+		var at := int(numbers.get("level", member.join_level))
+		GameState.set_companion(member.id, curve.max_hp(at), int(numbers.get("xp", 0)), at,
+			curve.max_mp(at))
 	# Deferred, the open_shop precedent exactly: _on_dialog_closed applies these effects and
 	# THEN pops the dialog overlay, so a night opened here is what that pop would close.
 	open_rest.call_deferred()

@@ -118,8 +118,17 @@ func play(sound_id: StringName) -> void:
 ## level applied without the full heal that came with it is a player the curve says should be
 ## stronger and the save says is nearly dead, and magic spent without the fight it was spent in
 ## is a cost with nothing bought.
+## The hook-facing shape stays four numbers, because a game's own code talks about the player
+## and should not have to learn a member vocabulary to hand them health back. It emits the
+## one-member list the sink reads, with the leader's empty id.
 func set_party(hp: int, xp: int, level: int, mp: int) -> void:
-	_effects.append({"op": OP_PARTY, "hp": hp, "xp": xp, "level": level, "mp": mp})
+	set_members([{"id": "", "hp": hp, "xp": xp, "level": level, "mp": mp}])
+
+
+## The whole party at once, as the fight reports it. Members are `{id, hp, xp, level, mp}` and
+## an EMPTY id is the leader's.
+func set_members(members: Array) -> void:
+	_effects.append({"op": OP_PARTY, "members": members.duplicate(true)})
 
 
 ## What the caller should carry out. A copy: reading the list must not be able to change it.

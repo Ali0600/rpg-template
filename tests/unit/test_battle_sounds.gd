@@ -44,7 +44,7 @@ func _enemy(hp := 10, attack := 3, xp := 5) -> EnemyDef:
 
 func _fight(enemy: EnemyDef = null, hp := 20, xp := 0, level := 1) -> BattleLogic:
 	var foe := enemy if enemy != null else _enemy()
-	return BattleLogic.of(_combat(), foe, hp, xp, level, [], "map/foe", 7)
+	return BattleHelpers.solo(_combat(), foe, hp, xp, level)
 
 
 ## Ticks a cue down to exactly `at` frames remaining, so a press lands on a known frame.

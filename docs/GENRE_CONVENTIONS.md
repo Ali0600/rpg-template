@@ -41,7 +41,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices | All of it | **met** (M18.1) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices | Bottom box, reveal, choice band, size-gated | **met** |
-| [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, solo | **partial** — encounters and timing [diverge deliberately](DECISIONS.md); the party is a gap, researched in [§7a](#7a-what-a-party-is-in-the-games-this-template-is-modelled-on) |
+| [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
@@ -314,8 +314,16 @@ per member, with names abbreviated to four characters — which is its answer to
 problem on a screen no larger than this template's. EarthBound puts one HP/PP strip along the
 bottom for all four.
 
-**Gap:** everything above. Party lands in M27; multi-enemy fights stay out of scope, so the
-target cursor a party needs is the **ally** one, not an enemy one.
+**What M27 shipped against it.** A party is a list even when it is one, so a game declaring
+none still fights through the same code. Membership is derived from a flag, which is the story
+join in its cheapest form. The round is command-all-then-resolve in party order — FF1's own
+order ignores stats, so a declared one is inside the convention. Falling is not losing, the
+living earn the full award (DQ's rule, not FF1's division), and the fallen are put back up by
+the inn, which is the priced town service the genre already gave this template. One overworld
+sprite, FF's answer. An ally cursor, no enemy cursor.
+
+**Gap:** multi-enemy fights, and with them an enemy cursor. A bench larger than the battle line.
+Followers on the map. Each is a recorded divergence with a revisit hook rather than an oversight.
 
 ---
 

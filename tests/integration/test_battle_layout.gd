@@ -73,10 +73,32 @@ func _screen(level := 1, mp := 8, spells: Array = [], items: Array = [],
 	var screen := BattleScreen.new()
 	add_child(screen)
 	var combat := _combat(magic)
-	var logic := BattleLogic.of(combat, _enemy(), combat.max_hp(level), 0, level, items,
-		"map/foe", 7, 0, 0, mp, spells)
+	var logic := BattleHelpers.solo(combat, _enemy(), combat.max_hp(level), 0, level, items,
+		0, 0, mp, spells)
 	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
-		FileSpriteSource.create(&"dusk16"), &"quest_hero", &"quest_warden")
+		FileSpriteSource.create(&"dusk16"), &"quest_warden")
+	_screens.append(screen)
+	return screen
+
+
+## A screen with a FULL party on it - as many members as the view says it can draw. The
+## capacity is the content contract, so the audit is run at it rather than at the size the demo
+## happens to ship: a layout that holds two and not three is a layout that fails the day a game
+## declares what the manifest already lets it declare.
+func _full_party_screen(spells: Array = []) -> BattleScreen:
+	var screen := BattleScreen.new()
+	add_child(screen)
+	var combat := _combat(true)
+	var members: Array = []
+	for i in BattleScreen.MAX_PARTY:
+		# Long names on purpose: a caption is as wide as the words in it, and a party page that
+		# only fits short ones is one that breaks on the first game that writes real ones.
+		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
+			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
+			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, spells))
+	var logic := BattleLogic.of(combat, _enemy(), members, [], "map/foe", 7)
+	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
+		FileSpriteSource.create(&"dusk16"), &"quest_warden")
 	_screens.append(screen)
 	return screen
 
@@ -97,7 +119,8 @@ func _visible_rects(screen: BattleScreen) -> Array:
 	# A bar's FILL is drawn inside its own track by construction - that is what a bar is - so
 	# the two are one widget rather than two peers. Excluded by identity rather than by "one
 	# rect contains another", which would also excuse a label genuinely buried under a panel.
-	var fills: Array[ColorRect] = [screen._hero_fill, screen._foe_fill]
+	var fills: Array[ColorRect] = [screen._foe_fill]
+	fills.append_array(screen._member_fills)
 	for node in SceneHelpers.find_all_by_class(screen, "ColorRect"):
 		var rect := node as ColorRect
 		# The backdrop is a COVER, not a peer: it is the whole screen by construction, and
@@ -265,3 +288,86 @@ func test_only_a_game_with_magic_is_told_about_magic() -> void:
 	assert_bool(with_magic._hero_mp.visible).override_failure_message(
 		"a game with magic does not say how much is left").is_true()
 	assert_str(with_magic._hero_mp.text).contains("MP 5/8")
+
+
+func test_a_full_party_is_drawn_without_anything_overlapping() -> void:
+	# The audit at the capacity the view declares, which is the number a game is allowed to
+	# ship. Every member's bar and caption, the command list, the message, the help line and
+	# both fighters, all at once.
+	_assert_nothing_overlaps(_full_party_screen(), "full party command")
+
+
+func test_a_full_party_choosing_a_spell_is_drawn_without_anything_overlapping() -> void:
+	# The longest page a party can be looking at: six spells scrolling in a four-slot window
+	# while three members' blocks are drawn beside it.
+	var screen := _full_party_screen([
+		_spell("Ember", 3), _spell("Mend", 4), _spell("Lull", 5),
+		_spell("Cinder", 6), _spell("Balm", 7), _spell("Hush", 8),
+	])
+	screen.logic().press()
+	screen._paint()
+	assert_int(screen.logic().phase()).is_equal(BattleLogic.Phase.MENU)
+	# Down to Magic, then in.
+	screen.logic().move(1)
+	screen.logic().press()
+	screen._paint()
+	assert_int(screen.logic().phase()).is_equal(BattleLogic.Phase.SPELLS)
+	_assert_nothing_overlaps(screen, "full party spell")
+
+
+func test_every_member_of_a_full_party_has_a_visible_block() -> void:
+	# The audit above proves nothing OVERLAPS; it cannot prove anything was drawn. A layout
+	# that forgot the third member would pass it perfectly.
+	# Counted through the screen's own caption nodes rather than by searching the drawn text
+	# for a name: the help line names the member being asked for an order, so a substring
+	# search finds four captions for three members and the test measures the wrong thing.
+	var screen := _full_party_screen()
+	var drawn := 0
+	for label: Label in screen._member_labels:
+		if label.visible and not label.text.strip_edges().is_empty():
+			drawn += 1
+	assert_int(drawn).override_failure_message(
+		"a party of %d drew %d captions" % [BattleScreen.MAX_PARTY, drawn]) \
+		.is_equal(BattleScreen.MAX_PARTY)
+
+
+func test_the_party_fits_between_the_fighters_and_the_help_line() -> void:
+	# The bound the pitch is chosen against, asserted rather than eyeballed: the lowest thing a
+	# member's block draws must still sit above the help line.
+	var screen := _full_party_screen()
+	var lowest := 0.0
+	for label: Label in screen._member_labels:
+		lowest = maxf(lowest, label.global_position.y + label.get_theme_font_size("font_size"))
+	for bar: ColorRect in screen._member_bars:
+		lowest = maxf(lowest, bar.global_position.y + bar.size.y)
+	assert_float(lowest).override_failure_message(
+		"the party's last block reaches y=%f, past the help line" % lowest) \
+		.is_less(float(VIEWPORT.y) - 14.0)
+
+
+func test_only_the_member_who_is_swinging_leans_forward() -> void:
+	# The lean is how a player reads WHOSE blow is landing. With everybody leaning it is a
+	# party stepping forward together, which says nothing - and no overlap audit can see it,
+	# because leaning is a position and the audit measures collisions.
+	var screen := _full_party_screen()
+	var logic := screen.logic()
+	for i in BattleScreen.MAX_PARTY:
+		logic.press()
+	assert_int(logic.phase()).override_failure_message(
+		"the round did not begin resolving").is_equal(BattleLogic.Phase.PLAYER_ACT)
+	# Halfway through the wind-up, where the lean is at its most visible.
+	for i in 20:
+		if logic.count() <= logic.cue_span() / 2:
+			break
+		logic.tick()
+	screen._paint()
+	var swinging := logic.acting_member()
+	assert_int(swinging).is_greater_equal(0)
+	var moved := 0
+	for i in screen._member_views.size():
+		if not screen._member_views[i].position.is_equal_approx(screen._member_homes[i]):
+			moved += 1
+			assert_int(i).override_failure_message(
+				"member %d leaned while member %d was swinging" % [i, swinging]).is_equal(swinging)
+	assert_int(moved).override_failure_message(
+		"nobody leaned at all, so this proves nothing about who did").is_equal(1)
