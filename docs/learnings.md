@@ -991,3 +991,52 @@ persists across sessions are the dangerous ones, because the user who set it wil
 and the next session looks broken from a cold start. Worth designing against as well as
 debugging against: a muted state that is only visible on one row of one menu is a state people
 will forget they are in.
+
+## The degenerate case as a list of one, not as a second code path
+
+When a system that handles ONE of something grows to handle N, the tempting shape is a fast
+path for one and a general path for many. The cheaper and safer shape is to make the one case
+a list of one, and delete the fast path entirely.
+
+**Why it came up.** M27 gave the battle a party. A game that declares no party is handed one
+*synthesized* member built from the manifest's own player character and curve, so `BattleLogic`,
+the screen and the menus always see a list. There is no solo branch anywhere.
+
+**Takeaway.** With two paths, the one that is exercised constantly is the one that stays
+correct, and the other is where bugs live unseen. One path means every existing test is a test
+of the new code — sixty of this repo's seventy-nine battle tests never mention a party and
+proved the rewrite anyway.
+
+## A new validation that subsumes an old one makes the old one unfalsifiable
+
+Adding a stricter check above or below an existing one can silently swallow it. The old guard
+still reads as load-bearing, but deleting it now changes no behaviour, because the new one
+refuses the same inputs.
+
+**Why it came up.** `GameState.equip` gained "you cannot claim more copies than you carry".
+That refuses an item you carry NONE of, which is exactly what the `inventory.has(id)` guard
+above it existed for. Local runs were green; CI's full mutation sweep found the older mutant
+SURVIVING, which is the only signal that would ever have fired.
+
+**Takeaway.** When you add a check near an existing one, ask what the old one still refuses
+that the new one does not. If the answer is nothing, collapse them — a guard whose removal
+nothing can detect is a guard nobody is relying on. Mutation testing over the WHOLE file is
+what catches this; a scoped sweep over your own diff may not.
+
+## A body is only a reliable wall when it is approached square-on
+
+In a physics engine with sliding movement, walking into an obstacle at a partial overlap does
+not stop you — `move_and_slide` slides you around it. The same obstacle is an immovable wall
+head-on and a non-event from the side.
+
+**Why it came up.** Placing the demo's companion so a scripted play session could reach her
+took three attempts. The first tile was unreachable (the map is ringed with warps, so a leg
+east walks into a door). The second was reachable and the player walked straight THROUGH her —
+the approach arrived from the side, having been pressed against a boundary one tile off centre.
+The third sits against a wall so the approach is down a single column, which is the geometry
+that makes the shipped warden a reliable blocker.
+
+**Takeaway.** When a body must stop a walk, give it an approach that is axis-aligned and
+wall-anchored. And measure where the tests already walk before placing anything solid — a
+`print` on the tile-change hook plus a run of every session answers it exactly, where reasoning
+about the map answers it plausibly.
