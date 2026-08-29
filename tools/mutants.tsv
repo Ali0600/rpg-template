@@ -383,3 +383,5 @@ scripts/world/world_scene.gd	s|\tif not open_title\(\):|\tif true:|	tests/integr
 scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), style, get_viewport_rect\(\).size,|\t_title.setup(TitleMenu.of([] as Array[SaveData]), style, get_viewport_rect().size,|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
 scripts/world/world_scene.gd	s|^\topen_title\(\)$|\tpass|	tests/integration/test_title.gd	the game-over screen's Title row leads nowhere
 scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game.start_map, _game.start_spawn)|	tests/integration/test_title.gd	Continue starts a new game wearing the save's name
+scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/test_router.gd	a run starts and the state machine tells nobody, the way it did before M23
+scripts/autoload/router.gd	s|\t_to_base\(State.TITLE\)|\t_to_base(State.WORLD)|	tests/unit/test_router.gd	going back to the title lands in the world instead

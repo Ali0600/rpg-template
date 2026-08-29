@@ -72,13 +72,9 @@ func open_overlay(overlay: State) -> void:
 
 
 ## Back to the title, with nothing underneath it. NOT an overlay: the world a title might have
-## covered has been torn down, so there is nothing on the stack worth returning to. Written as
-## reset() plus a state rather than as a second stack-clear, because a second literal clear in
-## this file would make the mutant aimed at the first one ambiguous - and an ambiguous pattern
-## edits whichever copy comes first while reporting a verdict about the other.
+## covered has been torn down, so there is nothing on the stack worth returning to.
 func to_title() -> void:
-	reset()
-	set_state(State.TITLE)
+	_to_base(State.TITLE)
 
 
 func close_overlay() -> void:
@@ -97,5 +93,22 @@ func overlay_depth() -> int:
 ## Returns to a clean world state. Used on map entry and by tests, which share an autoload
 ## and would otherwise inherit whatever the previous case left open.
 func reset() -> void:
+	_to_base(State.WORLD)
+
+
+## Enters one of the two BASE states - the two nothing is stacked over - by dropping whatever
+## was above it. Through set_state rather than by assigning the field, which is the whole point
+## of this function existing: reset() used to write `_state` directly and therefore told nobody,
+## so every map entry changed the state in silence. The edge that hid there was TITLE to WORLD,
+## because enter_map is how a game starts - a run began and the state machine said nothing.
+##
+## set_state's own no-op guard is what keeps that from becoming noise: a warp resets WORLD to
+## WORLD and still announces nothing, which is the behaviour a listener needs.
+##
+## One function for both bases rather than a clear in each, and not only to spare the repetition:
+## two literal stack-clears in this file would make the mutant aimed at the first one ambiguous,
+## and an ambiguous pattern edits whichever copy sed reaches first while reporting a verdict
+## about the other.
+func _to_base(base: State) -> void:
 	_stack.clear()
-	_state = State.WORLD
+	set_state(base)

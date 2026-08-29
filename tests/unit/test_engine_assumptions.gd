@@ -208,3 +208,29 @@ func test_a_body_inherits_the_velocity_of_the_floor_it_stands_on() -> void:
 
 	ground.queue_free()
 	body.queue_free()
+
+
+func test_a_freed_reference_compares_equal_to_null() -> void:
+	# Pinned because a milestone was nearly spent on the opposite belief. Reviewing
+	# _teardown_game it looked like a real bug that two screens were nulled INSIDE their
+	# validity guard while six were nulled outside it - the reading being that a screen freed
+	# somewhere else would leave a reference that every `!= null` guard still passed, refusing
+	# to ever open another. Measuring it says otherwise: this engine's freed references answer
+	# null, so the guarded form was only inconsistent, never broken.
+	#
+	# The distinction the code still needs is the other one: `is_instance_valid` is what tells
+	# a freed object from a live one, because the reference is not enough to CALL through.
+	var node := Node.new()
+	var ref := node
+	node.free()
+	assert_bool(ref == null).override_failure_message(
+		"a freed reference no longer answers null, so every `!= null` guard over a screen this "
+		+ "game frees is now a real dangling-reference hazard").is_true()
+	assert_bool(is_instance_valid(ref)).is_false()
+
+	var live := Node.new()
+	assert_bool(live == null).is_false()
+	assert_bool(is_instance_valid(live)).override_failure_message(
+		"the control failed: a live node reads as invalid, so the assertion above proves nothing"
+		).is_true()
+	live.free()

@@ -194,3 +194,23 @@ func test_continue_resumes_the_run_instead_of_replaying_its_opening() -> void:
 	var talking := box != null and box.visible
 	assert_bool(talking).override_failure_message(
 		"Continue replayed the game's opening conversation over the loaded save").is_false()
+
+
+func test_starting_a_run_announces_the_state_change() -> void:
+	# The edge that was invisible until M23: enter_map resets the router, and reset used to
+	# write the state field directly. So a game started and nothing heard about it - which is
+	# how a Continue that passed through the start map went unnoticed for a milestone.
+	var world := _boot()
+	var seen: Array[Dictionary] = []
+	var handler := func(info: Dictionary) -> void: seen.append(info)
+	EventBus.flow_changed.connect(handler)
+	world._commit_new_game_from_title()
+	await get_tree().physics_frame
+	EventBus.flow_changed.disconnect(handler)
+	var first := ""
+	if not seen.is_empty():
+		first = "%s->%s" % [Router.State.find_key(int(seen[0]["from"])),
+			Router.State.find_key(int(seen[0]["to"]))]
+	assert_str(first).override_failure_message(
+		"starting a run announced %s" % [seen]).is_equal("TITLE->WORLD")
+

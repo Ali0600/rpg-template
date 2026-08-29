@@ -1318,3 +1318,34 @@ yet" since M2. Giving it a meaning needed a screen, and a screen needed a boot p
   screen that was no longer there.
 - **A Quit row** — *rejected*, still. A game that wants one ships it; the template has nothing
   to quit *to*, and on the web there is nothing to quit at all.
+
+## The router announces every real change, and nothing else — *M23*
+
+**The fork:** building a flow model meant deciding what the model would be checked against.
+`EventBus.flow_changed` is the obvious instrument, and mapping all fourteen Router call sites
+found it could not be trusted yet.
+
+- **Route `reset()` and `to_title()` through `set_state`** — *chosen.* `reset()` assigned
+  `_state` directly, so it never emitted. Since `enter_map` resets on every map entry, **every
+  boot, warp, load and restore changed the state silently** — and the edge that hid there was
+  TITLE → WORLD, which is how a game starts. `to_title()` was worse than silent: it called
+  `reset()` first, so it always reported `{from: WORLD}` whatever the truth.
+- **Model the silence instead, marking those edges `"silent": true`** — *rejected.* A model
+  that faithfully encodes a lying signal is worse than no model: it makes the lie permanent and
+  teaches every future reader that flow events are unreliable.
+- **Emit unconditionally from `reset()`** — *rejected.* A warp resets WORLD to WORLD on every
+  doorway, and a listener woken by every doorway is a listener nobody can use. `set_state`'s
+  existing no-op guard already answers this, which is why the fix is to route through it rather
+  than to add a second emit.
+- **One `_to_base(base)` rather than a stack-clear in each** — chosen for a mechanical reason as
+  much as a tidiness one: two literal `_stack.clear()` lines in that file make the mutant aimed
+  at the first one ambiguous. The old comment said the dishonest shape existed *because* of
+  that constraint; the helper satisfies both.
+
+**A claim that did not survive measurement, recorded so it is not re-derived.** `_teardown_game`
+nulls two screens inside their `is_instance_valid` guard and six outside it, which reads like a
+dangling-reference bug: a screen freed elsewhere would keep a reference every `!= null` guard
+passes, and `open_title`'s first guard is exactly that. It is not a bug — **a freed reference
+compares equal to null in this engine**, measured and now pinned in
+`test_engine_assumptions.gd`. The nulls were made consistent anyway; the test that "proved" the
+bug passed with the code sabotaged, which is what exposed the wrong premise.

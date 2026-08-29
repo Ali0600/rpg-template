@@ -302,6 +302,15 @@ whether it HAS one, is a manifest question a pure menu may not ask. A game with 
 report)" rather than a page of blanks. At the top of the xp curve the page says so instead of
 promising a level that is not coming.
 
+**Every state change announces itself, including the ones that look like housekeeping.**
+`reset()` and `to_title()` both go through `_to_base()`, which clears the stack and then calls
+`set_state` - never assigning `_state` directly. `reset()` used to assign it, so map entry (and
+therefore every boot, warp, load and restore) changed the state in SILENCE: the edge hiding
+there was TITLE to WORLD, which is how a game starts. `set_state`'s no-op-on-same-state guard
+is what keeps this from becoming noise - a warp resets WORLD to WORLD and still says nothing.
+One `_to_base` rather than a stack-clear in each, because two literal clears in that file make
+the mutant aimed at the first one ambiguous.
+
 **A load must not travel THROUGH the beginning of a game to reach its middle.** `start_game`
 and `boot_from_save` share `_build_game` and differ only in their last step: one enters the
 start spawn fresh, the other restores a position. Continue from the title once called
