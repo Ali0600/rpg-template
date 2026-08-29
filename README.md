@@ -194,6 +194,23 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 
 ## Experience Gained
 
+- Encoded the application's state machine as machine-readable data with a conformance gate:
+  every declared transition is driven through the running system and the recorded event trace
+  is compared against the declaration, so an action that arrives at the right state via an
+  undeclared intermediate one fails the build - the exact class of sequencing bug that had
+  shipped. Membership is asserted in both directions, so a new state without a model row
+  cannot land quietly.
+- Implemented cross-platform-deterministic audio synthesis: waveforms from arithmetic only (no
+  libm transcendentals, which are unpinned between macOS and the Linux CI runner), musical
+  pitch from an integer fixed-point ratio table with octaves applied as exact binary
+  doublings, and the rendered PCM drift-gated byte-for-byte across both platforms.
+- Partitioned CI by change type using GitHub's skipped-but-required-check pattern: docs-only
+  pull requests are answered by a same-named stand-in workflow in seconds while code changes
+  run the full gate, with the two path filters pinned as exact inverses by a test and the
+  generated-and-drift-gated exceptions derived from the generators themselves - and mutation
+  coverage extended to the workflow YAML, proving the filter rules are enforced rather than
+  hoped.
+
 - Designed a deterministic, seed-driven asset generation pipeline producing game-ready sprite
   sheets plus machine-readable metadata, with reproducibility enforced by golden-hash
   regression tests in CI.
