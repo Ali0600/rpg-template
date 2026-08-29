@@ -402,3 +402,6 @@ scripts/autoload/audio_bus.gd	s|\treturn _play\(_music, id, false\)|\treturn _pl
 scripts/world/world_scene.gd	s|\t\tAudioBus.stop_music\(\)$|\t\tpass|	tests/integration/test_world_music.gd	a dungeon inherits whatever the last map was playing
 scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_offered.title_music\)|\t\tpass|	tests/integration/test_world_music.gd	the title screen is silent
 scripts/data/game_manifest.gd	s|\t\t\tif not FileAccess.file_exists\(track\):|\t\t\tif false:|	tests/unit/test_game_manifest.gd	a game names a theme nobody generated and the title is quietly silent
+.github/workflows/ci.yml	s|^      - "docs/FLOW.md"$|      # removed|	tests/unit/test_ci_paths.gd	a hand-edit to the generated flow doc skips the drift gate built to catch it
+.github/workflows/check-docs.yml	s|      - "!docs/FLOW.md"|      # - "!docs/FLOW.md"|	tests/unit/test_ci_paths.gd	the no-op check answers green for the one doc the real gate must see
+.github/workflows/check-docs.yml	s|      - "docs/\*\*"|      - "tests/**"|	tests/unit/test_ci_paths.gd	a test change gets a green check that tested nothing at all

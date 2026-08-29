@@ -1418,3 +1418,30 @@ runs in. It now answers from what the bus believes, which is also what makes it 
 the rule needed an observable that was neither the request log (the request happens either way)
 nor the device: `music_starts()` counts actual starts, and a mutant proved the earlier version
 was unkillable.
+
+## Docs-only changes skip the gate, and a stand-in answers the required check — *M24.1*
+
+**The fork:** the user watched a comment-only change run two nine-minute gates. A docs change
+can break nothing the gate tests, but `check` is a REQUIRED status - path-ignore it naively and
+every docs pull request waits forever on a check that never comes.
+
+- **A same-named no-op workflow on the inverse paths** — *chosen.* GitHub's own documented
+  pattern for a skipped-but-required check: `check-docs.yml` carries the same workflow and job
+  name, so the ruleset cannot tell the difference, and a docs PR merges in seconds.
+- **Accept the cost** — *rejected this time.* It was the right call when the question was the
+  two-runs-per-merge shape (that one is load-bearing); this one is pure waste, ~18 minutes of
+  runner time per wrap-up commit.
+- **Dropping the required check** — *rejected without much ceremony*: it is the merge gate.
+- **The rule that makes it safe rather than clever:** the two path lists are ONE rule in two
+  files, so `test_ci_paths.gd` asserts they are exact inverses - and the exceptions are
+  DERIVED, not listed: any `tools/gen_*.gd` whose output lands in `docs/` must have that file
+  re-included in the real gate and negated in the stand-in. `docs/FLOW.md` is the live case: it
+  is generated and drift-gated, so a hand-edit landing through the no-op would turn every LATER
+  run red while its own was green.
+- **The known edge, recorded rather than discovered:** a PR touching docs AND code runs both
+  workflows; the real one finishes last, so the final status is honest. Re-running the no-op BY
+  HAND after a red real run would overwrite the verdict - do not.
+- Three mutants aim at the workflow YAML itself - the first non-GDScript mutants in the file,
+  which works because sed edits text. `mutants_aim.sh` immediately caught the first one
+  matching both copies of the mirrored list; fixed by making the copies differ textually (a
+  trailing comment) rather than by loosening the pattern.
