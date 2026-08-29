@@ -986,6 +986,44 @@ window is not in the damage arithmetic. The lesson generalises past this game: *
 and its window open together, size the window for REACTING, not for precision** — and a feel
 number that no test can judge needs a human before it ships, not after.
 
+## Encounters are visible, presses are timed, and the fight was solo — *M13, written down M27*
+
+`GENRE_CONVENTIONS.md` §7 has said "Recorded in `DECISIONS.md`" since M20 and it was not true.
+The entry above records where a battle *lives*; nothing recorded what the battle *is*, which is
+where this template departs from its references hardest. Written now because §7's own rule is
+that a deliberate divergence without an entry behind it "is a gap wearing a nicer word", and
+because M27 is about to change the third of the three.
+
+**The fork was three separate ones, decided together in M13 and never argued in public.**
+
+- **Visible enemy records versus random encounters on a step counter.** *Chosen: visible.*
+  Every reference game rolls encounters against a step count. Doing that here would put a
+  random draw inside the movement loop, and the determinism story — same seed, same
+  everything — is what makes sixteen scripted play sessions a *gate* rather than a demo. A
+  fight that must happen is then made unavoidable by **geometry** (a one-tile gap the player
+  cannot walk around), never by a probability. Visible enemies also make a template's demo
+  game legible: you can see what the map is going to ask of you. Rejected alternative: a
+  seeded step counter, which would be reproducible but would still make "did the fight
+  happen" a function of the route rather than of the level design.
+- **A timed press versus a menu that resolves on its own.** *Chosen: timed.* A cue lights and
+  a press inside its window doubles the blow or halves the incoming one. This is the one part
+  of the fight that is not in any reference game — it is closer to Super Mario RPG's action
+  commands than to FF1 — and it exists so the template ships a battle with a verb in it rather
+  than a screen that watches numbers subtract. The cost was paid publicly in M13.1: the first
+  window was 133ms and the first person to play it said no human could hit it, which is the
+  entry above. Rejected: pure menu combat, which is more faithful and gives a player nothing
+  to do with their hands.
+- **One character versus a party.** *Chosen at the time: one* — and this is the one that was
+  never really decided, only deferred by silence. Dragon Quest I is solo end to end, so solo
+  is a shipped genre shape and not an absence; but every other reference game has a party, and
+  the template's own audit called it the largest missing system for four milestones. **M27
+  closes it**, which is why this entry exists: a divergence nobody wrote down cannot be
+  revisited, because there is nothing to reopen.
+
+**What stays diverged after M27.** The first two. Multi-enemy fights stay out of scope, so a
+party arrives with an **ally** cursor and no enemy one — and the reason is the same one that
+kept the cursor out in M25: a mode with one option in it is not a choice.
+
 ## A view that renders data declares its capacity, and the build enforces it — *M13.3*
 
 A screenshot of the live build showed the warden's opening with a choice drawn on top of the

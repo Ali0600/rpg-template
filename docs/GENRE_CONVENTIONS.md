@@ -41,7 +41,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices | All of it | **met** (M18.1) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices | Bottom box, reveal, choice band, size-gated | **met** |
-| [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, solo | **diverges deliberately** |
+| [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, solo | **partial** — encounters and timing [diverge deliberately](DECISIONS.md); the party is a gap, researched in [§7a](#7a-what-a-party-is-in-the-games-this-template-is-modelled-on) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
@@ -97,6 +97,15 @@ delta has something to be a delta *of*.
 FF adds **Optimize** (best-equip by attack and defence, ignoring everything subtler) and
 Remove-all. Both are conveniences for games with five slots and forty items.
 
+**With a party, the screen gains a step in front of it.** Gear is per-character in every
+reference game — FF1 has each character carry up to four weapons of their own, and DQ2's
+worn equipment even counts against that character's own eight item slots. So Equip opens a
+**member window first**: Dragon Warrior II's Equip selection "brings up a smaller window
+listing your characters, and you can select which character you wish to equip", and the same
+step appears when an item can be used on someone. The slot list is the *second* page, not the
+first. This is the §7a research applied to this screen, and it is the container question
+again — the interaction below is already right, and a party changes only whose it is.
+
 **This template.** `Row.EQUIP` opens a slot list built from `ItemDef.SLOTS`; each slot opens
 its candidates plus a `(take off)` row; the line under the list previews the swap ("Wear: Atk
 +3  (now Atk +0 Def +0)"), and an Atk/Def readout sits beside the purse. Confirming returns to
@@ -127,8 +136,13 @@ with no `CombatDef` shows only what it actually has, down to "(nothing to report
 Before M20 every one of those numbers already existed and was only ever shown **inside a
 fight** — a player could not answer "how hurt am I" without starting one.
 
-**Gap:** no MP row (no magic — §13) and no portrait, which would be a second art pipeline
-beside the generated sprites.
+**With a party, Status takes the same member step Equip does** (§2) — the page describes one
+character, so something has to say which. EarthBound's Goods command cycles through the party
+the same way. The alternative the genre also ships is one page per member with L/R paging,
+which is the same choice made at a different point in the flow.
+
+**Gap:** no portrait, which would be a second art pipeline beside the generated sprites. The
+MP row landed with magic in M25 (§13).
 
 ---
 
@@ -201,17 +215,107 @@ three or four, HP/MP bars, and a victory screen paying XP and gold.
 **This template diverges, deliberately.** Enemies are **visible records on the map** and the
 fight fires on stepping to an adjacent tile — a fight that must happen is made unavoidable by
 **geometry** (a one-tile gap), never by a random roll. The fight itself is **timing-based**: a
-cue lights and a press inside its window doubles the blow or halves the incoming one. One
-character, no party. `BattleLogic` has **no clock** — it is handed one physics frame at a time,
-which is what lets a QA script press on an exact frame and get the same fight on every machine.
+cue lights and a press inside its window doubles the blow or halves the incoming one.
+`BattleLogic` has **no clock** — it is handed one physics frame at a time, which is what lets a
+QA script press on an exact frame and get the same fight on every machine.
 
 **Why the divergence is good.** Random encounters need a random source in the movement loop,
 and this template's whole determinism story ("same seed, same everything") is what makes its
 play sessions a gate. Visible enemies also make a template's demo game legible in a way a
-step-counter never is. Recorded in `DECISIONS.md`.
+step-counter never is. Recorded in
+[Encounters are visible and presses are timed](DECISIONS.md).
 
-**Gap:** no party. That is the single largest missing *system* after magic, and it reaches
-into `BattleLogic`, the status page and the equip screen (whose gear becomes per-character).
+**Gap: no party.** It is the largest missing *system* in the template, and it reaches into
+`BattleLogic`, the status page and the equip screen (whose gear becomes per-character). The
+rest of this section is the research that gap needs, because "a party of three or four" with
+no games behind it is exactly the kind of sentence this file's preamble calls an opinion.
+
+### 7a. What a party is, in the games this template is modelled on
+
+**How many, and how it is decided.** The genre's range is one to four, and the mechanism
+differs more than the number does. **Final Fantasy I** has the player build four characters
+before the game starts and locks that choice for the whole game. **Dragon Quest I** is solo
+from beginning to end — which is the shape this template ships today, and it is a shipped
+genre shape rather than an absence. **Dragon Quest II** grows from one to three by story:
+the Prince of Cannock joins at the inn in Leftwyne, and the Princess of Moonbrooke is a dog
+until Ra's Mirror restores her — so DQ2 spends a substantial early stretch **at exactly two**,
+and Yuji Horii's stated reason for recruiting them one at a time was that he was worried
+players "would become confused by controlling too many characters at once". A two-member
+party is therefore not a thin approximation of the genre; it is a stage the genre's most
+influential designer engineered on purpose. **Dragon Quest III** assembles four at Patty's
+bar (Luisa's Place in the NES localisation) and stores the rest there. **Dragon Quest IV**
+runs four active with more in the wagon; **Chrono Trigger** three active of seven;
+**EarthBound** reaches four by story. **Pokémon** carries six and fields one.
+
+Whether the roster *equals* the battle line is its own fork: FF1, DQ2 and EarthBound say yes;
+CT, DQ3 and DQ4 say no, and pay for a bench with a swap screen.
+
+**Recruiting.** Three mechanisms, and the cheapest by a wide margin is the **story join** —
+a member appears after an event or a conversation (DQ2, DQ4's chapter five, EarthBound's
+Paula at Happy Happy Village, Chrono Trigger throughout). It needs no roster screen, no
+bench, no creation flow: one fact changes, and the party is larger. Create-at-start (FF1)
+costs a whole pre-game screen. Guild recruitment (DQ3) costs a roster, a bench and a swap
+mode. From DQ4 onward the series drops creation entirely and joins are narrative.
+
+**Command entry.** Two families. **Command-all-then-resolve** is the NES norm: FF1's manual
+has the player enter commands for all four characters and *then* the round executes, and DQ
+works the same way — orders are given at the beginning of a turn only. **ATB** (FF4–6,
+Chrono Trigger) interleaves per-character timers instead. Resolution order is where the two
+NES references disagree with each other: **DQ orders by Agility**, through a randomised
+formula, while **FF1's order is a fully random shuffle of all thirteen combatants and does
+not depend on anyone's stats at all**. That second fact is the useful one here — the genre's
+foundational entry does *not* derive turn order from a stat, so a fixed declared order is
+inside the convention rather than a concession to it.
+
+**Targeting.** FF1 asks which *enemy* an attack hits; DQ2 asks which enemy **group**, and if
+the group holds several you hit one at random — i.e. the target's shape is a property of the
+action, which is the cheaper half. Ally targeting is attested plainly: EarthBound's manual
+says to "Select the target of the attack, if applicable" with B to cancel, and DQ2's item
+flow opens "a menu to select which character you want" when an item can be used on someone.
+Whether a cursor is *skipped* when only one target is legal is not something I could verify
+for either NES reference; what is verified is the consequence of not skipping — FF1 lets you
+aim at an enemy that is already dead and answers "Ineffective", and DQ2 whiffs the same way.
+
+**Falling, and losing.** Zero HP means down, not dead-dead: the member stays down, takes no
+turns, and earns nothing. **Neither NES reference retargets** — FF1's wasted attacks are the
+single most complained-about thing in the game, and the remakes added automatic retargeting
+precisely because of it. The fight is lost only when **every** member is down.
+
+**Revival is a town service, and it is priced.** DQ2 gave churches real function: a priest
+revives a fallen character for gold, at twenty gold per experience level in Dragon Warrior II.
+EarthBound revives unconscious members at hospitals. **Final Fantasy I has no Phoenix Down** —
+that is a later-FF noun; on the NES revival is the LIFE spell (which restores 1 HP and does
+not work in battle) or a walk back to a town Clinic. The genre's minimal shape is therefore:
+the survivors walk on, the fallen stay at zero, and a paid service in town puts them back up.
+
+**Experience.** The two series genuinely disagree. **FF1 divides** the award among survivors,
+and the dead and the fled get nothing — which is why a solo run levels four times as fast.
+**DQ does not divide**: every character alive at the end receives the full listed amount, and
+DQ4's wagon members earn it without fighting at all. Fallen members earn nothing in both.
+Per-member levels on per-member curves are universal.
+
+**Ownership.** Every reference game gives each member their own level curve, their own MP or
+charges, their own spell list, and **their own equipped gear**. DQ2's split is the clean
+archetype and it inverts the obvious assumption: the *hero* has no magic whatsoever, the
+Prince of Cannock carries a weaker assortment, and the Princess of Moonbrooke is the
+sorceress who holds the attack spells. FF1 uses per-tier spell *charges* rather than MP.
+The one genuinely open question is consumables: DQ2 gives each character eight item slots
+with worn equipment counting against them, while **FF1 shares consumables and key items in
+one party bag and still holds equipment per character**. So "DQ is per-member and FF is
+shared" is only true of consumables — for gear, every reference game is per-member.
+
+**The overworld.** Final Fantasy I–VI show **one sprite** for the whole party on the field
+and the world map, and nobody calls those games party-less. Chrono Trigger draws the leader
+with the party following. A follower line is a presentation choice, not part of the system.
+
+**The battle read-out.** FF1 puts the enemies left and the party right, with **one HP box per
+character** stacked down the right edge. DQ2 uses text windows listing NAME, LV, HP and MP
+per member, with names abbreviated to four characters — which is its answer to exactly this
+problem on a screen no larger than this template's. EarthBound puts one HP/PP strip along the
+bottom for all four.
+
+**Gap:** everything above. Party lands in M27; multi-enemy fights stay out of scope, so the
+target cursor a party needs is the **ally** one, not an enemy one.
 
 ---
 
@@ -427,6 +531,28 @@ Convergent-anatomy claims above are drawn from these, plus the reference games d
   [Optimize](https://finalfantasy.fandom.com/wiki/Optimize)
 - [Realm of Darkness — DQ NES vs SNES differences](https://www.realmofdarkness.net/dq/snes-dq2-differences/)
 - [Wikipedia — random encounter](https://en.wikipedia.org/wiki/Random_encounter)
+
+Party research (§7a) is drawn from these, and each claim above names the game it came from:
+
+- [Wikipedia — Final Fantasy](https://en.wikipedia.org/wiki/Final_Fantasy_(video_game)) and the
+  [NES manual](https://world-of-nintendo.com/manuals/nes/final_fantasy.shtml) — four characters
+  fixed at creation, commands entered for all four before a round runs, targeting an enemy
+- [TASVideos — Final Fantasy 1](https://tasvideos.org/GameResources/NES/FinalFantasy1) — the
+  turn order is a random shuffle of all thirteen combatants and ignores stats
+- [Gamer Corner Guides — FF (NES) LIFE](https://guides.gamercorner.net/ff/spells/life) — revival
+  is a spell that does not work in battle, or a town Clinic; no Phoenix Down on the NES
+- [Dragon Quest wiki — Dragon Quest II](https://dragon-quest.org/wiki/Dragon_Quest_II) — Horii's
+  stated reason for recruiting one at a time; the church's revival function; the three casters
+- [Dragon Quest wiki — Party](https://dragon-quest.org/wiki/Party) and
+  [Patty's Party Planning Place](https://dragon-quest.org/wiki/Patty%27s_Party_Planning_Place)
+- [Dragon Quest wiki — Agility](https://dragonquest-wiki.com/Agility) — DQ's randomised
+  turn-order formula, against FF1's stat-free shuffle
+- [Take on the NES Library — Dragon Warrior II](https://takeontheneslibrary.com/finished/79-dragon-warrior-ii/)
+  — the member-select window on Equip, group targeting, the eight-item per-character bag
+- [EarthBound SNES manual](http://world-of-nintendo.com/manuals/super_nes/earthbound.shtml) —
+  "Select the target of the attack, if applicable", B to cancel; cycling members in Goods
+- [Wikipedia — Chrono Trigger](https://en.wikipedia.org/wiki/Chrono_Trigger) and
+  [EarthBound](https://en.wikipedia.org/wiki/EarthBound) — three-of-seven, story joins
 - The user's own [`jrpg-design-codex`](https://github.com/Ali0600/jrpg-design-codex) — design
   *patterns* (progression systems, build economies), not screen anatomy. Cite it for what a
   system should do, not for what a screen should contain.
