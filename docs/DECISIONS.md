@@ -54,12 +54,46 @@ one-glance menu of things still worth trying.
 - **Per-encounter themes** (a boss that sounds like one). Revisit hook: an `EnemyDef.music`
   outranking the manifest's `battle_music` in `open_battle_with`, which is one `or` — the design
   question is whether the fanfare should differ too, and what a fled boss fight hands back to.
+- **Moving the music player to `PLAYBACK_TYPE_STREAM` on the web.** Godot's web SAMPLE
+  playback loops by listening for the source node's `ended` DOM event and rebuilding the node
+  in JavaScript, so a web loop is one browser event away from silently not happening;
+  godotengine/godot#101111, #100955 and #105620 are open against it. Stream uses the ordinary
+  mixer and waits on nothing. NOT shipped, because it has never been needed here — see the
+  entry below. Revisit hook: one line in `AudioBus._ready`, and the symptom to watch for is
+  music that plays once and stops with nothing in the console.
 - **A targeting step.** Unnecessary while fights are 1v1. Revisit hook: whichever lands first
   of a party or a multi-enemy fight; `SpellDef` would gain a target shape, and the FFVII
   Materia precedent (the shape is a property of the spell, not a runtime cursor) is the
   cheaper half of it.
 
 ---
+
+## Web audio looping was investigated and nothing was changed
+
+A player reported music not looping in macOS Safari. It turned out the in-game sound setting
+was off. Recorded because the investigation produced two things worth keeping, and because the
+outcome — shipping nothing — is the part most likely to be re-litigated.
+
+- **Kept: the finding.** Godot's web Sample playback does not use the browser's own looping.
+  It waits for the source node's `ended` DOM event and then builds a new node and starts it,
+  in JavaScript. `AudioStreamWAV.loop_mode` is therefore necessary and not sufficient there,
+  and a failure would be silent — music once, then nothing, no error. That is a real hazard
+  and it is now in the backlog above with its one-line fix.
+- **Chosen: ship nothing.** With the volume off, no music played at all in either browser, so
+  there is no observation of web looping succeeding *or* failing. The honest state is unknown,
+  not broken. Stream playback carries a cost Godot's own docs warn about — "high audio latency
+  and crackling, especially when exporting a single-threaded game" — and this build is
+  single-threaded. Paying a documented cost to insure against an unobserved bug is the wrong
+  trade, and the fix is one line the day the symptom is actually seen.
+- **Rejected: keeping it anyway, since it was already written and green.** A change is
+  justified by the defect it fixes, not by the effort spent building it. The worse half was
+  the prose: the decision entry and CLAUDE.md paragraph asserted as fact that Safari had
+  failed to loop, which would have been read later as evidence rather than as a guess.
+- **What did survive the same investigation** is in the entry on the title's voice: the title
+  played into a bus with no voice bound, which was real, reproducible headless, and had been
+  shipping silently on every platform since M22. Two of the three audio gates could not have
+  seen it. That bug was found by reading the deployed build's console while looking for
+  something else entirely.
 
 ## A fanfare is a chained play, not a property of the track
 

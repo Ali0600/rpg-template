@@ -953,3 +953,41 @@ it will cost rather than just what it is.
 **Takeaway:** in a decision record, price the deferred alternatives, not just name them. An
 option that is one afternoon and an option that reopens a schema both read as "deferred" on
 a backlog, and the difference is the whole reason the list exists.
+
+## Web audio loops on a DOM event, not on the audio buffer
+
+A Godot web export plays sound two ways, and only one of them loops the way you would assume.
+Since 4.3 the web default is **Sample** playback, which hands the whole track to the Web Audio
+API as a buffer — and Godot then implements looping *itself, in JavaScript*, by listening for
+the source node's `ended` event and building a fresh node when it fires. **Stream** playback
+instead runs Godot's ordinary cross-platform mixer, which reads `AudioStreamWAV.loop_mode`
+directly and waits on nothing.
+
+**Why it came up.** Chasing a report of music not looping in Safari. The report turned out to
+be the in-game volume, but the source-dive stands: setting `loop_mode` is *necessary and not
+sufficient* on the web, and if the browser does not fire `ended`, the music simply stops — no
+error, nothing in the console, and every headless gate green because a dummy audio driver
+cannot hear anything either.
+
+**Takeaway:** when a platform re-implements something you think of as primitive — looping,
+timing, focus — find out what it actually rests on before trusting a property you set. The
+question is never "did I set the flag", it is "what consumes the flag, and on what does *that*
+depend". Here the answer was a DOM event, which is a very different reliability story from a
+number in a buffer.
+
+## A settings toggle makes a working system indistinguishable from a broken one
+
+Anything a user can switch off is a state your debugging has to rule out first, because from
+the outside "muted" and "broken" produce identical evidence: nothing happens, and nothing says
+why.
+
+**Why it came up.** A silent game was investigated through the browser's autoplay policy, an
+iOS audio-channel quirk, WebKit's `ended`-event handling and Godot's web audio source — and the
+cause was the Sound row in the pause menu, set to off in an earlier session and persisted to
+`user://settings.json`. Every layer examined was working correctly.
+
+**Takeaway:** before reaching for the platform, check the product's own switches — the ones it
+persists across sessions are the dangerous ones, because the user who set it will not remember
+and the next session looks broken from a cold start. Worth designing against as well as
+debugging against: a muted state that is only visible on one row of one menu is a state people
+will forget they are in.
