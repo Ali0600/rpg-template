@@ -545,6 +545,13 @@ that is the check that catches new code stealing an old mutant's aim, and it cos
 second. Both CI paths pass `--assume-green`, which is only safe because `check.sh` has just
 proven all 54 suites green in the same job.
 
+**A merge runs `check` twice, and that is the design.** `pull_request` proves the gate plus the
+mutants that diff could have broken; `push` to main proves the gate plus ALL of them, is the
+green signal `pages.yml` deploys from, and is the only run that tests the SQUASHED tree - the PR
+run tested a merge preview, which is a different tree the moment main moves. Skipping `check.sh`
+on the main run does not save it either: `--assume-green` is sound only because the suites were
+just proven green in the same job.
+
 **Open the PR and walk away.** `gh pr merge --auto --squash` merges it when CI goes green;
 polling a 17-minute run is how a session gets spent. This needs a required status check on
 `main` - without one, `--auto` merges immediately, which is the trap.
