@@ -69,9 +69,34 @@ func _ready() -> void:
 		add_child(player)
 		_players.append(player)
 	add_child(_music)
+	_claim_the_playback_channel()
 	reload()
 	EventBus.sound_requested.connect(_on_sound_requested)
 	EventBus.system_ready.emit({"system": &"AudioBus"})
+
+
+## Asks iOS to treat this game as PLAYBACK rather than as an ambient noise.
+##
+## On iPhone and iPad, the Web Audio API is routed to the ringer channel by default, so the
+## hardware silent switch mutes it completely - where an <audio> element, on the media channel,
+## would keep playing. Apple closed the WebKit report on it as CONFIGURATIONCHANGED rather than
+## as a bug (webkit.org/b/237322) and shipped `navigator.audioSession` in iOS 17 as the way to
+## say otherwise. Godot's web runtime never calls it, at any version through 4.7.1.
+##
+## So the failure it prevents is total silence on a phone whose switch is flipped, with nothing
+## on screen saying why and every other platform working perfectly. Feature-detected twice over
+## - the engine feature, then the browser API - so it is a no-op everywhere else, including
+## desktop Safari, which has no such switch.
+##
+## UNVERIFIED FROM HERE: this repo's gates are headless and its browser is not Safari, so this
+## is written from Apple's documented behaviour rather than from a reproduction. It cannot make
+## anything worse; whether it makes the phone case better needs a phone.
+func _claim_the_playback_channel() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("""
+		if (navigator.audioSession) { navigator.audioSession.type = 'playback'; }
+	""", true)
 
 
 ## Points the bus at a game's voice. Called when a game starts, because which cues exist is a
@@ -318,10 +343,12 @@ func play_music_then(id: StringName, then_id: StringName) -> bool:
 	if _music_requested.size() > LOG_LIMIT:
 		_music_requested.remove_at(0)
 	var stream := _sounds.get(id, null) as AudioStream
-	if stream == null:
-		# A fanfare the voice cannot play must not eat the theme it was going to hand back to.
-		# Failing toward the follower is the difference between a missing sting and a silent map.
-		if not _warned.has(id):
+	# Two ways a jingle does not happen: the voice does not have it, or sound is off. Both hand
+	# the room STRAIGHT back rather than arming a chain whose end nobody will hear - failing
+	# toward the follower is the difference between a missing sting and a silent map. One branch
+	# rather than two, because two identical returns are a line no mutant can aim at.
+	if stream == null or not _enabled:
+		if stream == null and not _warned.has(id):
 			_warned[id] = true
 			push_warning("AudioBus: no sound '%s' for voice '%s'" % [id, style_id()])
 		return play_or_silence(then_id)
@@ -336,8 +363,6 @@ func play_music_then(id: StringName, then_id: StringName) -> bool:
 	# two wins in a row must sting twice.
 	_music_id = id
 	_music_starts += 1
-	if not _enabled:
-		return false
 	_music.stream = once
 	_music.play()
 	return true
@@ -377,9 +402,17 @@ func play_music(id: StringName) -> bool:
 	# must not be interrupted a moment later by the last fight's chain firing into it - and the
 	# rule is stated where a track actually STARTS, so every path that starts one gets it.
 	_disarm_chain()
+	if not _play(_music, id, false):
+		# Recorded only if it STARTED. _play returns before it touches the player, so whatever
+		# was playing before still is - the bus goes on describing that rather than claiming
+		# the track it could not play, and clearing the id would be its own lie in the other
+		# direction. Recording it regardless is how a silent title survived every gate for four
+		# milestones: music_id() answered with what had been ASKED for, so even the checks that
+		# read the live track precisely in order not to trust the log inherited the same answer.
+		return false
 	_music_id = id
 	_music_starts += 1
-	return _play(_music, id, false)
+	return true
 
 
 func stop_music() -> void:

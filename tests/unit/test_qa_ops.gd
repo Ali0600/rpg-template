@@ -15,6 +15,10 @@ func before_test() -> void:
 
 func after_test() -> void:
 	AudioBus.stop_music()
+	# The voice is global and outlives this suite, so a test that unbinds it has to put it
+	# back - otherwise the next suite in the run inherits a silent bus and fails somewhere
+	# that has nothing to do with audio.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
 	Qa._failures.clear()
 
 
@@ -44,6 +48,20 @@ func test_asserting_silence_right_now_can_fail() -> void:
 	assert_bool(_complains({"op": "assert_music", "id": "", "now": true})) \
 		.override_failure_message("nothing was playing and the silence gate still failed") \
 		.is_false()
+
+func test_asserting_audio_is_ready_fails_when_there_is_no_voice_at_all() -> void:
+	# The gate that exists to catch a silent artifact used to pass BECAUSE the artifact was
+	# silent. missing_cues() and missing_tracks() are filled by reload() only when a voice is
+	# bound, so with none bound both lists are empty and "every cue is playable" came back
+	# green having asked about nothing. That is what let a title playing into an unbound bus
+	# ship, and it is the shape of every gate that reports on a set it never populated.
+	AudioBus.use_style(null)
+	assert_bool(_complains({"op": "assert_audio_ready"})).override_failure_message(
+		"a bus with no voice bound at all passed the readiness gate").is_true()
+
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	assert_bool(_complains({"op": "assert_audio_ready"})).override_failure_message(
+		"a fully bound voice failed the readiness gate").is_false()
 
 func test_asserting_what_was_asked_for_still_reads_the_log() -> void:
 	# The control for the mode switch: adding "now" must not have taken the old behaviour away.

@@ -181,6 +181,13 @@ func _run(step: Dictionary) -> void:
 			# it is the whole point: an artifact built without its audio boots, walks, talks and
 			# requests every cue exactly as it should, and is silent. That was measured, not
 			# imagined - excluding the cues from the pack left every other assertion green.
+			# FIRST, because both lists below are filled by reload() only when a voice is
+			# bound - so with none bound they are empty, and the one check built to catch a
+			# silent artifact reported green precisely because nothing could make a sound.
+			# That is how a title that played into an unbound bus shipped. A game that is
+			# deliberately silent simply does not write this step.
+			if String(AudioBus.style_id()).is_empty():
+				_fail("no voice is bound, so 'every cue is playable' is a question nobody asked")
 			var absent := AudioBus.missing_cues()
 			if not absent.is_empty():
 				_fail("the voice cannot play %d cue(s) it names: %s" % [absent.size(), absent])

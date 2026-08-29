@@ -179,6 +179,12 @@ func test_a_misspelled_cue_is_still_singled_out() -> void:
 func test_a_track_already_playing_is_not_started_again() -> void:
 	# Walking between two rooms of one town must not restart the theme from the top, which is
 	# the single most recognisable bug in this genre.
+	#
+	# The voice is bound FIRST, and that is not ceremony. Without it nothing can be played at
+	# all, and this test used to pass anyway - it was counting a number the bus incremented
+	# whether or not there was a sound behind it, which is exactly the bookkeeping that let a
+	# silent title ship.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
 	AudioBus.stop_music()
 	AudioBus.clear_requests()
 	var before := AudioBus.music_starts()
@@ -194,11 +200,31 @@ func test_a_track_already_playing_is_not_started_again() -> void:
 
 func test_a_different_track_does_start() -> void:
 	# The control. Without it the assertion above passes for a bus that never starts anything.
+	# Two REAL tracks: an id the voice does not have cannot start, so a made-up second name
+	# would make this control assert the opposite of what it is for.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
 	AudioBus.stop_music()
 	var before := AudioBus.music_starts()
 	AudioBus.play_music(&"barred_gate")
-	AudioBus.play_music(&"some_other_tune")
+	AudioBus.play_music(&"skirmish")
 	assert_int(AudioBus.music_starts() - before).is_equal(2)
+
+
+func test_a_track_the_voice_does_not_have_is_not_reported_as_playing() -> void:
+	# The rule the silent title broke. Asking for a track that cannot be played must leave the
+	# bus saying nothing is playing - otherwise music_id() answers with what was ASKED for, and
+	# every check downstream inherits the lie, including the ones that read the live track
+	# precisely so they would not have to trust the request log.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	var before := AudioBus.music_starts()
+	assert_bool(AudioBus.play_music(&"no_such_tune")).is_false()
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the bus reports a track it could not play as the one playing").is_empty()
+	assert_int(AudioBus.music_starts()).override_failure_message(
+		"a track that never started was counted as a start").is_equal(before)
+	# And it was still ASKED for - the log is about intent and stays honest about it.
+	assert_array(AudioBus.music_requested()).contains([&"no_such_tune"])
 
 
 func test_stopping_forgets_what_was_playing() -> void:
