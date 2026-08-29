@@ -45,6 +45,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v6_to_v7(d)
 			7:
 				d = _v7_to_v8(d)
+			8:
+				d = _v8_to_v9(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -145,7 +147,25 @@ static func _v7_to_v8(d: Dictionary) -> Dictionary:
 	return d
 
 
+## v8 -> v9: nobody had joined before v9.
+##
+## The simplest step in the chain, and deliberately so. Membership is derived from flags rather
+## than stored, so there is no roster to carry forward; what v9 adds is each companion's own
+## numbers, and a save written before parties existed has none by definition. An empty
+## dictionary is the whole truth about it.
+##
+## Note what this step does NOT do, and cannot: it does not consult the game's roster to fill
+## anybody in. A migration is a historical fact and may not reach a manifest, a Registry or a
+## CombatDef - so if that save's game has since gained a companion whose flag is already set,
+## the world derives them from their curve on first contact, which is the same path a fresh
+## game takes. That is why this step needs to know no member id at all.
+static func _v8_to_v9(d: Dictionary) -> Dictionary:
+	d["companions"] = {}
+	d["version"] = 9
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3, 4, 5, 6, 7, 8]
+	return [1, 2, 3, 4, 5, 6, 7, 8, 9]

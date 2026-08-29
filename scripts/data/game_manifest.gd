@@ -32,6 +32,18 @@ extends Resource
 ## real: the exporter follows it, and a typo fails at load instead of at first step.
 @export var config: GameConfig
 
+## Who else fights beside the player. EMPTY IS NORMAL and is the template's default: a game
+## with no party is a game with a party of one, which is Dragon Quest I's shape and a shipped
+## genre shape rather than an absence. Real references rather than ids, for the reason `config`
+## is one - the exporter follows them, and a typo fails at load.
+##
+## The LEADER IS NOT IN HERE. They are `player_character` plus `combat` above, synthesized into
+## a member by the world, so this array holds companions only and a game that declares none
+## still fights through exactly the same code. WHO of them is actually along is derived from
+## flags at the moment it is asked (see PartyMemberDef.joins_on_flag) - this is the roster, not
+## the party.
+@export var party: Array[PartyMemberDef] = []
+
 ## Who the player is in a fight, how they grow, and how long a beat lasts. NULL IS NORMAL and
 ## is the template's default: a game with no battles has no combat definition, and a map that
 ## places an enemy in one is a content error the world reports rather than a crash. Kept off
@@ -145,6 +157,34 @@ func problems() -> Array[String]:
 	if combat != null:
 		for p in combat.problems():
 			out.append("combat: " + p)
+
+	# Every companion checked the way the leader is, and their art asked the same question
+	# against the same style - a member whose sheet was never generated is an invisible
+	# fighter, which reads as a broken screen rather than as missing content.
+	var member_ids: Dictionary = {}
+	for member: PartyMemberDef in party:
+		if member == null:
+			out.append("manifest '%s' lists a party member that is not there" % id)
+			continue
+		for p in member.problems():
+			out.append("party: " + p)
+		if member_ids.has(member.id):
+			# Two members under one id means one save record for two people, and the second
+			# would silently inherit the first's health.
+			out.append("manifest '%s' lists party member '%s' twice" % [id, member.id])
+		member_ids[member.id] = true
+		if String(member.character).is_empty():
+			continue
+		var member_sheet := "res://assets/generated/%s/%s.sheet.json" % [map.style_id,
+			member.character]
+		if not FileAccess.file_exists(member_sheet):
+			out.append("party member '%s' has no generated art for style '%s' (expected %s)"
+				% [member.id, map.style_id, member_sheet])
+	# A party with nobody to lead it is a manifest that cannot build a fight at all: members
+	# grow on a curve, and without a CombatDef there is no curve for them to grow on.
+	if not party.is_empty() and combat == null:
+		out.append("manifest '%s' has a party of %d and no combat definition"
+			% [id, party.size()])
 
 	# Same shape, and same reason as the art check above: a voice whose cues were never
 	# generated is a game that boots fine and is silent, which reads as "sound is not built

@@ -420,6 +420,121 @@ func test_a_version_7_save_is_carried_forward() -> void:
 	assert_str(str(data.equipment.get("weapon", ""))).override_failure_message(
 		"the v7->v8 step lost the gear it was handed").is_equal("bronze_sword")
 
+func test_a_version_8_save_is_carried_forward() -> void:
+	var file := JsonFile.read(FIXTURES + "v8.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	assert_bool(migrated.has("companions")).override_failure_message(
+		"a migrated save arrived with no companions key at all").is_true()
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# Nobody had joined before v9, and a migration may not reach a roster to ask - so empty is
+	# the whole truth rather than a default standing in for one.
+	assert_dict(data.companions).override_failure_message(
+		"the v8->v9 step invented a companion for a save that predates parties").is_empty()
+	# And the step must not drop what v8 already knew - the fixture carries a bag, a party with
+	# magic, a purse and worn gear on purpose, because with any of them missing a step that
+	# wiped it would still pass.
+	assert_int(int(data.items.get("tonic", 0))).override_failure_message(
+		"the v8->v9 step lost the bag it was handed").is_equal(2)
+	assert_int(int(data.party.get("level", 0))).override_failure_message(
+		"the v8->v9 step lost the party it was handed").is_equal(3)
+	assert_int(int(data.party.get("mp", -1))).override_failure_message(
+		"the v8->v9 step lost the magic it was handed").is_equal(5)
+	assert_int(data.gold).override_failure_message(
+		"the v8->v9 step lost the purse it was handed").is_equal(41)
+	assert_str(str(data.equipment.get("weapon", ""))).override_failure_message(
+		"the v8->v9 step lost the gear it was handed").is_equal("bronze_sword")
+
+func test_a_companion_survives_a_save_and_a_load() -> void:
+	# The round trip the milestone rests on: a companion's four numbers and their gear go out
+	# through to_save and come back through from_save as the same person.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.set_party(20, 0, 1, 8)
+	GameState.give_item(&"bronze_sword")
+	GameState.set_companion(&"scrapper", 11, 14, 2, 3)
+	assert_bool(GameState.equip(&"weapon", &"bronze_sword", &"scrapper")).is_true()
+	var reloaded := SaveData.from_dict(GameState.to_save().to_dict())
+	assert_array(reloaded.problems()).is_empty()
+	GameState.reset()
+	GameState.from_save(reloaded)
+	var back := GameState.companion(&"scrapper")
+	assert_int(int(back.get("hp", 0))).is_equal(11)
+	assert_int(int(back.get("xp", 0))).is_equal(14)
+	assert_int(int(back.get("level", 0))).is_equal(2)
+	assert_int(int(back.get("mp", -1))).override_failure_message(
+		"a companion came back from the save with different magic").is_equal(3)
+	assert_str(str(GameState.equipped(&"weapon", &"scrapper"))).override_failure_message(
+		"a companion came back from the save wearing nothing").is_equal("bronze_sword")
+
+func test_a_save_with_no_companions_writes_none() -> void:
+	# The control, and the shape every game without a party writes forever: the key is there
+	# and it is empty, rather than absent or full of a leader nobody asked to duplicate.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.set_party(20, 0, 1, 8)
+	assert_dict(GameState.to_save().companions).override_failure_message(
+		"a solo game wrote a companion into its save").is_empty()
+
+func test_a_fallen_leader_beside_a_companion_is_a_save_the_game_can_write() -> void:
+	# The state M27 makes possible and M26 could not: the leader fell, somebody else finished
+	# the fight, and the party is walking to an inn. Read as "unset" this would be refused by
+	# problems() and refilled from the curve on the way into the next fight - a silent
+	# resurrection that deletes the consequence the player is walking to town to undo.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.set_party(0, 30, 2, 4)
+	GameState.set_companion(&"scrapper", 6, 30, 2, 1)
+	var written := GameState.to_save()
+	assert_dict(written.party).override_failure_message(
+		"a leader who fell beside a companion was written down as having never fought").is_not_empty()
+	assert_array(written.problems()).override_failure_message(
+		"a save the game itself just produced was refused").is_empty()
+
+func test_a_fallen_leader_alone_is_still_an_unset_party() -> void:
+	# The other half, and the reason party_unset is not simply "hp is zero": with nobody else
+	# standing, a fight that reached zero health was a DEFEAT, whose effects are discarded
+	# wholesale - so zero here still means "never fought" and must still write no party at all.
+	GameState.new_game(&"quest", &"quest_village", Vector2.ZERO, Dir.D.DOWN)
+	GameState.set_party(0, 0, 1, 0)
+	assert_dict(GameState.to_save().party).override_failure_message(
+		"a solo game with nobody set up wrote a party of nought health").is_empty()
+
+func test_a_save_with_a_companion_and_no_party_is_refused() -> void:
+	var data := SaveData.from_dict({
+		"version": SaveData.VERSION, "game": "quest", "map": "quest_village", "facing": 0,
+		"party": {}, "companions": {"scrapper": {"hp": 6, "xp": 0, "level": 1, "mp": 0}},
+	})
+	assert_array(data.problems()).override_failure_message(
+		"a file describing somebody who joined a player who does not exist was accepted").is_not_empty()
+
+func test_a_save_where_two_people_wear_one_carried_sword_is_refused() -> void:
+	# One copy, one back - checked against the FILE, because a hand-edited save can describe a
+	# party that no sequence of presses could produce.
+	var data := SaveData.from_dict({
+		"version": SaveData.VERSION, "game": "quest", "map": "quest_village", "facing": 0,
+		"items": {"bronze_sword": 1},
+		"party": {"hp": 20, "xp": 0, "level": 1, "mp": 0},
+		"equipment": {"weapon": "bronze_sword"},
+		"companions": {"scrapper": {"hp": 6, "xp": 0, "level": 1, "mp": 0,
+			"equipment": {"weapon": "bronze_sword"}}},
+	})
+	assert_array(data.problems()).override_failure_message(
+		"a file with two people wearing one carried sword was accepted").is_not_empty()
+
+func test_two_people_wearing_two_carried_swords_is_fine() -> void:
+	# The control the check above needs: the refusal must be about the COUNT, not about two
+	# people owning the same kind of thing.
+	var data := SaveData.from_dict({
+		"version": SaveData.VERSION, "game": "quest", "map": "quest_village", "facing": 0,
+		"items": {"bronze_sword": 2},
+		"party": {"hp": 20, "xp": 0, "level": 1, "mp": 0},
+		"equipment": {"weapon": "bronze_sword"},
+		"companions": {"scrapper": {"hp": 6, "xp": 0, "level": 1, "mp": 0,
+			"equipment": {"weapon": "bronze_sword"}}},
+	})
+	assert_array(data.problems()).override_failure_message(
+		"two carried swords on two backs was refused").is_empty()
+
 func test_a_save_with_no_party_gains_no_magic() -> void:
 	# The pairing to_save() makes: a file with no party is a game with no fighting in it, and
 	# handing that an mp key would be the one field claiming it has a fighter after all.

@@ -293,9 +293,34 @@ func _tick_press_until() -> void:
 ##
 ## All three verbs share a function because they differ only in which field they read - three
 ## copies of the same eight lines is where the fourth one goes wrong.
+##
+## An optional `member` names a COMPANION; without one every verb reads the leader's numbers,
+## which is what leaves every session written before there was anyone else asking exactly what
+## it asked. A companion who has not joined is a FAILURE rather than a zero - "the number I
+## expected is missing" and "the person I expected is missing" are different findings, and a
+## default of nought would report the second as the first.
 func _assert_party(op: String, step: Dictionary) -> void:
 	var expected := int(step.get("value", 0))
+	var member := StringName(str(step.get("member", "")))
 	var actual := 0
+	if not String(member).is_empty():
+		if op == "assert_gold":
+			# One purse for the whole party, in every reference game and here - so a member on
+			# a gold assertion is a question with no answer rather than a different answer.
+			_fail("assert_gold names member '%s', and there is one purse" % member)
+			return
+		if not GameState.has_companion(member):
+			_fail("expected %s of member '%s', who has not joined"
+				% [op.trim_prefix("assert_"), member])
+			return
+		var record := GameState.companion(member)
+		actual = int(record.get(op.trim_prefix("assert_"), record.get("level", 1)))
+		if actual != expected:
+			_fail("expected %s %d of member '%s', found %d"
+				% [op.trim_prefix("assert_"), expected, member, actual])
+		else:
+			_log.append("%s of '%s' is %d" % [op.trim_prefix("assert_"), member, actual])
+		return
 	match op:
 		"assert_hp":
 			actual = GameState.player_hp
@@ -313,16 +338,20 @@ func _assert_party(op: String, step: Dictionary) -> void:
 		_log.append("%s is %d" % [op.trim_prefix("assert_"), actual])
 
 
-## What is worn in one slot. An EMPTY id asserts the slot is bare, which is the assertion a
-## take-off needs - the assert_item shape, where zero is a real answer rather than "no check".
+## What is worn in one slot, by the leader or by a named `member`. An EMPTY id asserts the slot
+## is bare, which is the assertion a take-off needs - the assert_item shape, where zero is a
+## real answer rather than "no check".
 func _assert_equipped(step: Dictionary) -> void:
 	var slot := StringName(str(step.get("slot", "")))
+	var member := StringName(str(step.get("member", "")))
 	var expected := str(step.get("id", ""))
-	var actual := str(GameState.equipped(slot))
+	var actual := str(GameState.equipped(slot, member))
+	var whose := "" if String(member).is_empty() else " of '%s'" % member
 	if actual != expected:
-		_fail("expected '%s' equipped in slot '%s', found '%s'" % [expected, slot, actual])
+		_fail("expected '%s' equipped in slot '%s'%s, found '%s'"
+			% [expected, slot, whose, actual])
 	else:
-		_log.append("slot '%s' holds '%s'" % [slot, actual])
+		_log.append("slot '%s'%s holds '%s'" % [slot, whose, actual])
 
 
 func _assert_position(step: Dictionary) -> void:
