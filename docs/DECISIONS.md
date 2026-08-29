@@ -61,6 +61,39 @@ one-glance menu of things still worth trying.
 
 ---
 
+## The music player mixes as a stream, because a web Sample loop is a DOM event
+
+A player reported music not looping in macOS Safari, while Chrome was fine and Safari's audio
+was otherwise healthy. The report did the diagnosis: it ruled out autoplay, the system and
+silence, and left one thing.
+
+- **Chosen: `playback_type = PLAYBACK_TYPE_STREAM` on the music player only.** Godot's web
+  Sample playback implements looping in JavaScript on the source node's `ended` event - buffer
+  ends, event fires, a new node is built and started. If the event does not fire, the music
+  simply stops, with no error. Stream uses the ordinary cross-platform mixer, which reads
+  `AudioStreamWAV.loop_mode` directly and depends on no browser event. The fix therefore holds
+  whether or not the Safari attribution below is right.
+- *Why Safari and not Chrome* — **inferred, not proven.** Godot's `SampleNode` connects its
+  source to two branches: the audio bus, and an `AudioWorkletNode` used only for position
+  tracking. WebKit shipped a fix for "an `AudioScheduledSourceNode` not firing the `ended` event
+  when it is not connected to the destination" in Safari Technology Preview 251 (26 Aug 2026),
+  which is not in stable Safari - and Godot has already had one WebKit-only bug in that exact
+  position-worklet path (commit `b58c6c829b`). Consistent, dated and specific, but not
+  reproducible from this repo, so it is written down as a hypothesis rather than a finding.
+- **Rejected: `audio/general/default_playback_type.web = Stream`.** It moves the cues too.
+  Sample is the web default precisely to keep a single-threaded build low-latency and free of
+  crackle, and Godot's own docs warn Stream "may cause high audio latency and crackling". That
+  cost buys nothing for a one-shot, which cannot loop and so cannot hit this at all.
+- **Rejected: baking the loop into the `.import` sidecar.** It changes nothing here. Sample
+  registration is lazy on the first `play()` and reads the resource's live values, so the
+  runtime mutation in `_looped()` already reaches the web layer correctly - the loop settings
+  were never the problem, the mechanism that consumes them was.
+- *Re-looping from a frame counter, as `play_music_then` already does* — `deferred`. It depends
+  on no browser event whatsoever, at the cost of a seam where native looping is seamless. The
+  fallback if Stream turns out not to be enough without threads, which one report on
+  godotengine/godot#101111 suggests is possible. Revisit hook: `AudioBus._physics_process`
+  already runs a countdown for the fanfare chain.
+
 ## A fanfare is a chained play, not a property of the track
 
 - **Chosen: `AudioBus.play_music_then(id, then_id)`** — one-shot-ness lives in the CALL. The

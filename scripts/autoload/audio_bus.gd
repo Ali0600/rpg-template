@@ -68,6 +68,15 @@ func _ready() -> void:
 		var player := AudioStreamPlayer.new()
 		add_child(player)
 		_players.append(player)
+	# The music player mixes as a STREAM where the cue players stay on the platform default,
+	# which on web is Sample. That split is the one _looped() already draws - music loops and a
+	# cue does not - and on the web it decides which of two entirely different mechanisms plays
+	# the sound. See _looped(): a web Sample loop is a DOM event away from not happening.
+	#
+	# Sample exists to keep a single-threaded web build low-latency and free of crackle, which
+	# is worth having for a footstep and worth nothing for an eight-second bed nobody can hear
+	# the start of. A cue is a one-shot and cannot hit the looping mechanism at all.
+	_music.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	add_child(_music)
 	_claim_the_playback_channel()
 	reload()
@@ -183,6 +192,13 @@ func reload() -> void:
 
 ## Music LOOPS and a cue does not, which is the whole difference between the two - a one-shot
 ## with a name is a cue, and the victory fanfare already is one.
+##
+## THIS FIELD IS NOT ENOUGH ON THE WEB, and that is why the music player is a STREAM. Godot's
+## web Sample playback does not use the browser's own looping at all: it waits for the source
+## node's `ended` DOM event and then builds a new node and starts it again. So a loop there is a
+## browser event away from simply not happening - which is what a player on macOS Safari heard,
+## music playing once and stopping, with no error anywhere. Stream playback uses the ordinary
+## mixer that reads the field below, the same code every other platform runs.
 ##
 ## Set HERE rather than in the .import file for two reasons. project.godot pins WAV looping off
 ## for the whole project on purpose, and there is one importer_defaults entry per importer, so

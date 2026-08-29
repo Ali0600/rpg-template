@@ -235,10 +235,34 @@ func test_stopping_forgets_what_was_playing() -> void:
 	assert_str(String(AudioBus.music_id())).is_empty()
 
 
+func test_the_music_player_mixes_as_a_stream_and_the_cue_players_do_not() -> void:
+	# The MECHANISM, because the outcome is unreachable from here: headless runs on a dummy
+	# driver, so no test in this file can hear whether anything loops. What it can assert is
+	# which of two code paths plays the sound.
+	#
+	# On the web, Sample playback loops by waiting for the source node's `ended` DOM event and
+	# then starting a new node - so the loop is a browser event away from not happening, which
+	# is what macOS Safari did: music once, then silence, no error. Stream uses the ordinary
+	# mixer instead. The cue players deliberately stay on the platform default: Sample is what
+	# keeps a single-threaded web build free of crackle, and a one-shot never loops anyway.
+	assert_int(AudioBus._music.playback_type).override_failure_message(
+		"the music player is back on the platform default, so its loop depends on a DOM event"
+	).is_equal(AudioServer.PLAYBACK_TYPE_STREAM)
+	for player in AudioBus._players:
+		assert_int(player.playback_type).override_failure_message(
+			"a cue player was moved off the low-latency path it is there for") \
+			.is_equal(AudioServer.PLAYBACK_TYPE_DEFAULT)
+
+
 func test_a_track_is_bound_to_loop_where_a_cue_is_not() -> void:
 	# Set at bind time rather than in the .import sidecar: project.godot pins WAV looping off
 	# for the whole project, there is one importer default per importer, and a sidecar is build
 	# output the drift gate regenerates.
+	#
+	# What this proves is that _looped() RAN - the field is on the resource. It does not prove
+	# the thing that plays it honours the field, and on the web that was false for four
+	# milestones: the message below describes exactly the failure this assertion cannot see.
+	# The player's path is what decides that, and it is asserted directly above.
 	var style := load("res://data/sounds/dusk16.tres") as SoundStyle
 	AudioBus.use_style(style)
 	for track_id in MusicTrack.ids():

@@ -461,3 +461,7 @@ scripts/autoload/qa.gd	s|\t\t\t\tif \(live == tune\) != expect:|\t\t\t\tif false
 scripts/world/world_scene.gd	s|\tAudioBus.use_style\(_offered.sound_style\)|\tpass|	tests/integration/test_world_music.gd	the title plays into a bus with no voice bound, and is silent on every platform
 scripts/autoload/audio_bus.gd	s|\tif not _play\(_music, id, false\):|\tif false:|	tests/unit/test_audio_bus.gd	the bus reports a track it could not play as the one that is playing
 scripts/autoload/qa.gd	s|\t\t\tif String\(AudioBus.style_id\(\)\).is_empty\(\):|\t\t\tif false:|	tests/unit/test_qa_ops.gd	assert_audio_ready passes green when there is no voice bound to ask about
+
+# --- M26.2: music loops through the mixer, not a DOM event ---
+scripts/autoload/audio_bus.gd	s|\t_music.playback_type = AudioServer.PLAYBACK_TYPE_STREAM|\tpass|	tests/unit/test_audio_bus.gd	music goes back on the web's Sample path, where its loop is a DOM event away from stopping
+scripts/autoload/audio_bus.gd	s|\t_music.playback_type = AudioServer.PLAYBACK_TYPE_STREAM|\tfor p in _players: p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM|	tests/unit/test_audio_bus.gd	the cue players are moved off the low-latency path a single-threaded web build needs

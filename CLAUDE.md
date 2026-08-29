@@ -353,6 +353,20 @@ Any new music call disarms a pending hand-back, so a second fight starting mid-f
 interrupted by the last one's chain firing into it - and a jingle asked for twice STINGS twice,
 bypassing the no-restart guard, because a jingle is an event where a theme is a state.
 
+**The music player mixes as a STREAM; the cue players stay on the platform default.** On the
+web that default is SAMPLE, and Godot's Sample playback does not use the browser's own looping:
+it waits for the source node's `ended` DOM event and then builds a new node and starts it again.
+So a web loop is a browser event away from not happening - which is what macOS Safari did, music
+playing once and stopping with no error, while Chrome was fine. `AudioStreamWAV.loop_mode` is
+therefore necessary and NOT sufficient on the web, and `_looped()` says so. Stream playback uses
+the ordinary mixer that reads that field, the same code every other platform runs.
+
+Per-player rather than `audio/general/default_playback_type.web`, because Sample is what keeps a
+single-threaded web build low-latency and free of crackle: that is worth having for a footstep
+and worth nothing for an eight-second bed, and a cue is a one-shot that cannot hit the looping
+mechanism at all. It is the split `_looped()` already draws - music loops and a cue does not -
+now deciding the playback path too.
+
 **`AudioBus.play_or_silence(id)` is what a PLACE sounds like** - its track, or silence when it
 names none. Three callers need that exact answer (entering a map, a fanfare handing back, a
 fight ending), and written out three times it is three copies of "a map states its music or
