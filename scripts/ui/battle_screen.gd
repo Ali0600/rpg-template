@@ -30,6 +30,19 @@ const ROW_SIZE := 8
 const HELP_SIZE := 7
 const ROW_PITCH := 11
 
+## The bottom band, as two columns: the list on the LEFT growing DOWN from ROWS_Y in a fixed
+## number of slots, and the player's own block on the RIGHT, mirroring the enemy's at the top.
+## That is the layout every game this borrows from uses, and here it is also the fix for a
+## shipped bug - the list used to grow UPWARD from the bottom by however many rows the page
+## had, so inserting the Magic command moved its top row onto the player's status line.
+##
+## FIXED rather than derived from the page. A stack sized to its contents eventually reaches
+## whatever is above it, and no amount of choosing good numbers prevents that - only a bound
+## does. A page longer than the window SCROLLS; see _first_visible.
+const ROWS_Y := 120.0
+const VISIBLE_ROWS := 4
+const HERO_BAR_Y := 120.0
+
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
 const SPRITE_SCALE := 2.0
@@ -57,6 +70,7 @@ var _hero_fill := ColorRect.new()
 var _foe_bar := ColorRect.new()
 var _foe_fill := ColorRect.new()
 var _hero_label := Label.new()
+var _hero_mp := Label.new()
 var _foe_label := Label.new()
 
 var _gate := InputGate.new()
@@ -105,9 +119,18 @@ func _build(viewport_size: Vector2i, source: SpriteSource, hero_character: Strin
 	_hero_view = _make_fighter(source, hero_character, _hero_home, Dir.D.RIGHT)
 	_foe_view = _make_fighter(source, foe_character, _foe_home, Dir.D.LEFT)
 
-	_build_bar(_hero_bar, _hero_fill, _hero_label, Vector2(MARGIN, mid + 24.0))
-	_build_bar(_foe_bar, _foe_fill, _foe_label,
-		Vector2(float(viewport_size.x) - MARGIN - BAR_WIDTH, mid - 44.0))
+	var right := float(viewport_size.x) - MARGIN
+	# The player's block is the bottom-right corner, mirroring the enemy's top-right one, and
+	# both of its text lines are RIGHT-ALIGNED so they end at the edge instead of starting at
+	# it. Left-aligned, a status line that grows simply runs off the screen - the same class of
+	# bug as one that grows into its neighbour, and quieter.
+	_build_bar(_hero_bar, _hero_fill, _hero_label, Vector2(right - BAR_WIDTH, HERO_BAR_Y))
+	_align_right(_hero_label, right)
+	_hero_mp.position = Vector2(MARGIN, HERO_BAR_Y + BAR_HEIGHT + 10.0)
+	_hero_mp.add_theme_font_size_override("font_size", HELP_SIZE)
+	_align_right(_hero_mp, right)
+	add_child(_hero_mp)
+	_build_bar(_foe_bar, _foe_fill, _foe_label, Vector2(right - BAR_WIDTH, mid - 44.0))
 
 	_cue.position = Vector2(0.0, mid - 30.0)
 	_cue.size = Vector2(viewport_size.x, 12.0)
@@ -119,15 +142,14 @@ func _build(viewport_size: Vector2i, source: SpriteSource, hero_character: Strin
 	_message.add_theme_font_size_override("font_size", ROW_SIZE)
 	add_child(_message)
 
-	# Sized to the LONGEST page this fight can show, not to the command list. _paint_rows hides
-	# rows past the current page's length, so a pool cut to the commands would silently stop
-	# drawing the fifth spell or the fourth tonic - a row the player cannot see is one they
-	# cannot cast, and nothing would say so. The logic is set before _build for this reason.
-	var deepest := maxi(COMMANDS.size(),
-		maxi(_logic.item_rows().size(), _logic.spell_rows().size()))
-	for i in deepest:
+	# A FIXED window of slots, at fixed positions. The pool used to be sized to the longest page
+	# the fight could show, which fixed a truncation - a row with no label is one the player
+	# cannot see and therefore cannot cast - and traded it for an unbounded stack: six spells
+	# would have put the top row up among the fighters. A window bounds both, because a page
+	# longer than it scrolls instead of growing.
+	for i in VISIBLE_ROWS:
 		var row := Label.new()
-		row.position = Vector2(MARGIN, float(viewport_size.y) - 16.0 - (deepest - i) * ROW_PITCH)
+		row.position = Vector2(MARGIN, ROWS_Y + i * ROW_PITCH)
 		row.add_theme_font_size_override("font_size", ROW_SIZE)
 		add_child(row)
 		_rows.append(row)
@@ -147,6 +169,15 @@ func _make_fighter(source: SpriteSource, character: StringName, at: Vector2, fac
 	if view.apply_source(source, character):
 		view.set_pose(&"idle", facing)
 	return view
+
+
+## Makes a label's text END at `right` rather than start where it was put. The box spans the
+## whole width, which costs nothing - only the text is drawn - and means a line of any length
+## stays anchored to the corner it belongs to.
+func _align_right(label: Label, right: float) -> void:
+	label.position.x = MARGIN
+	label.size.x = right - MARGIN
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 
 func _build_bar(back: ColorRect, fill: ColorRect, label: Label, at: Vector2) -> void:
@@ -198,6 +229,9 @@ func _paint() -> void:
 	_paint_bar(_hero_bar, _hero_fill, _hero_label, dim, text,
 		_logic.player_hp(), _logic.player_max_hp(),
 		_hero_caption())
+	_hero_mp.text = _hero_mp_caption()
+	_hero_mp.visible = not _hero_mp.text.is_empty()
+	_hero_mp.add_theme_color_override("font_color", text)
 	_paint_bar(_foe_bar, _foe_fill, _foe_label, dim, text,
 		_logic.enemy_hp(), _logic.enemy_max_hp(),
 		"%s  %d/%d" % [_logic.enemy_name(), _logic.enemy_hp(), _logic.enemy_max_hp()])
@@ -212,15 +246,20 @@ func _paint() -> void:
 	_paint_rows(text, dim)
 
 
-## What the player is worth, in one line above their bar. The MP half appears only for a game
-## that HAS magic - a "0 MP" on a game with no spells is a stat the player can do nothing about
-## and would spend the whole run wondering at.
+## What the player is worth, as TWO lines rather than one. The magic half only exists for a
+## game that has magic - a "0 MP" on a game with no spells is a stat the player can do nothing
+## about and would spend the whole run wondering at - and a single line long enough to hold
+## both reached across the screen into the command list, which is the collision this layout
+## was rebuilt to make impossible.
 func _hero_caption() -> String:
-	var line := "You  Lv%d  %d/%d" % [_logic.player_level(), _logic.player_hp(),
+	return "You  Lv%d  %d/%d" % [_logic.player_level(), _logic.player_hp(),
 		_logic.player_max_hp()]
-	if _logic.player_max_mp() > 0:
-		line += "  MP %d/%d" % [_logic.player_mp(), _logic.player_max_mp()]
-	return line
+
+
+func _hero_mp_caption() -> String:
+	if _logic.player_max_mp() <= 0:
+		return ""
+	return "MP %d/%d" % [_logic.player_mp(), _logic.player_max_mp()]
 
 
 func _paint_bar(back: ColorRect, fill: ColorRect, label: Label, dim: Color, text: Color,
@@ -263,22 +302,37 @@ func _paint_rows(text: Color, dim: Color) -> void:
 	var choosing := _logic.phase() == BattleLogic.Phase.MENU \
 		or _logic.phase() == BattleLogic.Phase.ITEMS \
 		or _logic.phase() == BattleLogic.Phase.SPELLS
+	var first := _first_visible()
 	for i in _rows.size():
 		var row := _rows[i]
+		var at := first + i
 		# Rows past the current page's list are hidden rather than blanked: an empty label
 		# still occupies its line, and everything below it would drift.
-		row.visible = choosing and i < _logic.size()
+		row.visible = choosing and at < _logic.size()
 		if not row.visible:
 			continue
-		var selected := i == _logic.index()
-		row.text = ("> " if selected else "  ") + _label_for(i)
+		var selected := at == _logic.index()
+		row.text = ("> " if selected else "  ") + _label_for(at)
 		# A spell out of reach of the purse is drawn dim even under the cursor, so the answer
 		# to "can I cast this" is on screen BEFORE the press rather than only in the refusal.
 		# Affordability is asked of the logic, never recomputed here, or the screen and the
 		# rule could disagree about the same spell.
 		var reachable := _logic.phase() != BattleLogic.Phase.SPELLS \
-			or _logic.can_afford(_logic.spell_row(i))
+			or _logic.can_afford(_logic.spell_row(at))
 		row.add_theme_color_override("font_color", text if selected and reachable else dim)
+
+
+## Which entry the top slot shows. A pure function of the cursor and the page's length, with
+## no scroll offset kept anywhere: state would have to be reset on every page change and on
+## every refresh, and the one that forgets leaves the window pointing into the wrong list.
+##
+## The window follows the cursor at its BOTTOM edge, so moving down through a long page slides
+## it one row at a time and wrapping back to the top snaps it home.
+func _first_visible() -> int:
+	var count := _logic.size()
+	if count <= VISIBLE_ROWS:
+		return 0
+	return clampi(_logic.index() - VISIBLE_ROWS + 1, 0, count - VISIBLE_ROWS)
 
 
 func _label_for(at: int) -> String:
