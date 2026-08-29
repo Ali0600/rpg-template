@@ -545,6 +545,14 @@ that is the check that catches new code stealing an old mutant's aim, and it cos
 second. Both CI paths pass `--assume-green`, which is only safe because `check.sh` has just
 proven all 54 suites green in the same job.
 
+**A docs-only change runs no gate, and the required status is answered by a stand-in.**
+`check` is a REQUIRED status, so a pull request that produces none can never merge - which is
+why the gate cannot simply ignore docs paths. `check-docs.yml` answers with the same workflow
+and job name in seconds; ci.yml's paths and its are mirror images, and `test_ci_paths.gd`
+fails the build when they drift - with the exceptions DERIVED from the generators, because
+`docs/FLOW.md` is drift-gated output and a hand-edit to it must run the real gate. Three
+mutants aim at the YAML itself, which works because sed edits text, not GDScript.
+
 **A merge runs `check` twice, and that is the design.** `pull_request` proves the gate plus the
 mutants that diff could have broken; `push` to main proves the gate plus ALL of them, is the
 green signal `pages.yml` deploys from, and is the only run that tests the SQUASHED tree - the PR

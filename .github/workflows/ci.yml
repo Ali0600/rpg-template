@@ -24,10 +24,37 @@ name: check
 # sweep passes --assume-green, which is sound only because check.sh has just proven every
 # suite green in the same job; without it the sweep has to re-prove each baseline itself, and
 # runs the suites anyway.
+#
+# ## Why a DOCS-ONLY change does not run this at all
+#
+# A change to prose can break nothing this gate tests, so the paths below skip it - and
+# because the ruleset REQUIRES a status named `check`, check-docs.yml answers with the same
+# name in seconds, or every docs pull request would wait forever on a check that never comes.
+# The two path lists are mirror images and tests/unit/test_ci_paths.gd fails the build when
+# they drift apart.
+#
+# docs/FLOW.md is the exception that proves the design: it is GENERATED from
+# tools/flow_model.json and drift-gated, so a hand-edit to it must run the real gate - landing
+# one ungated would turn every later run red. The membership test derives that exception from
+# the generators themselves, so the next drift-gated doc cannot be forgotten here.
 on:
   push:
     branches: [main]
+    # Mirrored in pull_request below and inverted in check-docs.yml; order matters, later
+    # patterns override earlier ones.
+    paths:
+      - "**"
+      - "!CLAUDE.md"
+      - "!README.md"
+      - "!docs/**"
+      - "docs/FLOW.md" # generated and drift-gated - a hand-edit must run the real gate
   pull_request:
+    paths:
+      - "**"
+      - "!CLAUDE.md"
+      - "!README.md"
+      - "!docs/**"
+      - "docs/FLOW.md"
   workflow_dispatch:
 
 # Least privilege: this job only reads the repo. The Pages deploy lives in its own
