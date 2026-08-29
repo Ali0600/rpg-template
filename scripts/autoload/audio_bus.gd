@@ -17,6 +17,7 @@ extends Node
 
 const OVERRIDE_DIR := "res://data/audio"
 const GENERATED_ROOT := "res://assets/generated"
+const MUSIC_SUBDIR := "music"
 const SOUND_EXTS: Array[String] = ["ogg", "wav", "mp3"]
 
 ## How many cues may sound at once. One player meant every cue cut the one before it, so a
@@ -34,6 +35,19 @@ var _overridden: Array[StringName] = []
 var _duplicates: Array[StringName] = []
 var _missing: Array[StringName] = []
 var _requested: Array[StringName] = []
+## What TRACKS have been asked for, in a log of their own. Separate from the cue log because
+## unknown_requests() turns anything Sfx does not name into a red play gate - correct for a
+## misspelled cue, and fatal for every track the moment music exists. Splitting the log keeps
+## that gate exactly as strict about cues as it was.
+var _music_requested: Array[StringName] = []
+## The track playing now, so a second request for it is not a restart.
+var _music_id: StringName = &""
+var _missing_tracks: Array[StringName] = []
+## How many times a track has actually been STARTED, as opposed to asked for. The only way to
+## tell "still playing" from "started again" - the request log cannot, because the request is
+## made either way, and the device cannot either: headless runs on a dummy driver where nothing
+## ever reports itself as playing.
+var _music_starts: int = 0
 var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 var _music := AudioStreamPlayer.new()
@@ -80,6 +94,7 @@ func reload() -> void:
 	_overridden.clear()
 	_duplicates.clear()
 	_missing.clear()
+	_missing_tracks.clear()
 
 	if _style != null:
 		for cue in Sfx.ids():
@@ -114,8 +129,46 @@ func reload() -> void:
 		for cue in Sfx.ids():
 			if not _sounds.has(cue):
 				_missing.append(cue)
+		for track_id in MusicTrack.ids():
+			var track_path := "%s/%s/%s/%s.wav" % [_generated_root, _style.id, MUSIC_SUBDIR,
+				track_id]
+			if _sounds.has(track_id):
+				continue
+			if not ResourceLoader.exists(track_path):
+				_missing_tracks.append(track_id)
+				continue
+			var track_stream := load(track_path) as AudioStream
+			if track_stream == null:
+				_missing_tracks.append(track_id)
+				continue
+			# One table for cues and tracks, deliberately: the override walk above keys on
+			# filename, so a game replaces a generated tune by dropping theme.ogg into its own
+			# audio directory - the same seam that already replaces a cue, for free.
+			# MusicTrack.problems() refusing a track named after a cue is what makes one table
+			# safe.
+			_sounds[track_id] = _looped(track_stream)
 
 	_report()
+
+
+## Music LOOPS and a cue does not, which is the whole difference between the two - a one-shot
+## with a name is a cue, and the victory fanfare already is one.
+##
+## Set HERE rather than in the .import file for two reasons. project.godot pins WAV looping off
+## for the whole project on purpose, and there is one importer_defaults entry per importer, so
+## there is no second default to add; and a per-file sidecar would be a list maintained by hand,
+## which that file's own comment argues against. The better reason is that a loop is a PLAYBACK
+## fact and a sidecar is build output the drift gate regenerates - a setting living there would
+## not survive the next generator run.
+func _looped(stream: AudioStream) -> AudioStream:
+	var wav := stream as AudioStreamWAV
+	if wav != null:
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		# In SAMPLES, not bytes - pinned in test_engine_assumptions.gd, because getting it wrong
+		# halves the loop and sounds exactly like a shorter tune.
+		wav.loop_end = wav.data.size() / 2
+	return stream
 
 
 ## One line, not one per cue: a game overriding its whole bank is doing the thing this is for,
@@ -130,6 +183,9 @@ func _report() -> void:
 	if not _missing.is_empty():
 		push_error("AudioBus: voice '%s' has no sound for %s"
 			% [_style.id, ", ".join(_as_strings(_missing))])
+	if not _missing_tracks.is_empty():
+		push_error("AudioBus: voice '%s' cannot play %s"
+			% [_style.id, ", ".join(_as_strings(_missing_tracks))])
 
 
 func ids() -> Array[StringName]:
@@ -175,6 +231,25 @@ func requested() -> Array[StringName]:
 
 func clear_requests() -> void:
 	_requested.clear()
+	_music_requested.clear()
+
+
+## What tracks have been asked for lately. A log of its own, read by assert_music the way
+## requested() is read by assert_sound.
+func music_requested() -> Array[StringName]:
+	return _music_requested.duplicate()
+
+
+## The track playing now, or empty. The only way to tell "still playing" from "started again".
+func music_id() -> StringName:
+	return _music_id
+
+
+## Tracks the running voice cannot play at all. missing_cues() for music, read by the same
+## assert_audio_ready and the same boot check - which is the assertion that only bites against
+## a packed build, where a file committed without its .import is simply absent.
+func missing_tracks() -> Array[StringName]:
+	return _missing_tracks.duplicate()
 
 
 ## Requests for names no cue has. A play session failing on a non-empty list turns AudioBus's
@@ -220,11 +295,36 @@ func play_sfx(id: StringName) -> bool:
 
 
 func play_music(id: StringName) -> bool:
-	return _play(_music, id)
+	# Remembered before anything else, exactly as _play does: what was ASKED FOR is a different
+	# question from what happened, and the gates want the first one.
+	_music_requested.append(id)
+	if _music_requested.size() > LOG_LIMIT:
+		_music_requested.remove_at(0)
+	# A track already playing keeps playing. Walking through a door between two rooms of one
+	# town must not restart the theme from the top - it is the single most recognisable bug in
+	# this genre, and the only place that can answer it is the one that knows what is playing.
+	#
+	# Answered from what the BUS believes rather than from the player's `playing` flag, which
+	# was the first attempt: headless runs on a dummy driver that never reports playing, so the
+	# guard could not fire in the one environment every gate runs in - a rule true only in a
+	# build nobody tests. stop_music() clears this, and music loops rather than ending, so the
+	# bus's record cannot go stale behind the device.
+	if id == _music_id:
+		return true
+	_music_id = id
+	_music_starts += 1
+	return _play(_music, id, false)
 
 
 func stop_music() -> void:
 	_music.stop()
+	_music_id = &""
+
+
+## How many times a track has been started. A test asserting a theme did not restart cannot use
+## the request log - the request happens either way - and cannot use the device either.
+func music_starts() -> int:
+	return _music_starts
 
 
 ## Round-robin, so a cue does not cut the one before it. Assigning over a playing stream is
@@ -235,10 +335,15 @@ func _next_player() -> AudioStreamPlayer:
 	return player
 
 
-func _play(player: AudioStreamPlayer, id: StringName) -> bool:
+## `log_it` is false for music, which keeps its own log. The cue log feeds unknown_requests(),
+## which fails a play session for anything Sfx does not name - correct and strict for a
+## misspelled cue, and fatal for every track the moment music exists. Splitting the logs keeps
+## that gate exactly as strict about cues as it was, rather than teaching it to shrug.
+func _play(player: AudioStreamPlayer, id: StringName, log_it := true) -> bool:
 	# Logged BEFORE the lookup, and before the enabled check: what was asked for is a different
 	# question from what could be played, and the tests and the play gate want the first one.
-	_remember(id)
+	if log_it:
+		_remember(id)
 	if not _sounds.has(id):
 		if not _warned.has(id):
 			_warned[id] = true

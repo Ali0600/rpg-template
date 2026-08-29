@@ -1,0 +1,77 @@
+{
+	"_readme": [
+		"The Barred Gate's theme. NOTES, not samples: this is performed by the same synthesiser",
+		"the cues are, so the three shipped voices give three renditions of one tune the way",
+		"three sprite styles draw one rig. dusk16 plays it on a triangle pitched down; gb16 plays",
+		"it as a bit-crushed square. Not one note below changes.",
+		"",
+		"A voice is an array of BARS and a bar is a string of tokens, because that is how a map's",
+		"ground is written here and for the same reason: it lines up in a diff, and a wrong note",
+		"is a wrong column rather than a wrong line of JSON.",
+		"",
+		"A token is <note><octave>:<steps>, '-:<steps>' for a rest, or 'x:<steps>' for a hit on a",
+		"noise instrument. Steps are sixteenths, so a 4/4 bar is 16 of them and every bar must",
+		"add to EXACTLY that - a bar that does not is rendered short and every later bar walks",
+		"off the beat, which sounds like a bug in the synthesiser rather than a typo in a string.",
+		"",
+		"Sharps only. Two spellings of one pitch is two ways to write one file.",
+		"",
+		"Eight seconds is 345 KB per voice once rendered, and this repo commits three. Length is",
+		"the whole cost of music here, which is why MusicTrack refuses a track past MAX_SECONDS",
+		"rather than trusting the next one to be reasonable.",
+		"",
+		"It is in A minor, which is the key with no sharps in it - so the tune reads as written."
+	],
+	"bpm": 120,
+	"beats_per_bar": 4,
+	"steps_per_beat": 4,
+	"instruments": {
+		"lead": {
+			"wave": "tone",
+			"gain": 0.3,
+			"attack_ms": 6,
+			"release_ms": 55
+		},
+		"bass": {
+			"wave": "tone",
+			"gain": 0.26,
+			"attack_ms": 3,
+			"release_ms": 30
+		},
+		"drum": {
+			"wave": "noise",
+			"gain": 0.1,
+			"attack_ms": 1,
+			"release_ms": 40
+		}
+	},
+	"voices": [
+		{
+			"instrument": "lead",
+			"bars": [
+				"A4:4 C5:2 E5:2 D5:4 C5:4",
+				"B4:4 E5:2 G5:2 E5:8",
+				"F4:4 A4:2 C5:2 E5:4 D5:4",
+				"C5:4 B4:4 A4:8"
+			]
+		},
+		{
+			"instrument": "bass",
+			"bars": [
+				"A2:8 E3:8",
+				"E2:8 B2:8",
+				"F2:8 C3:8",
+				"G2:8 A2:8"
+			]
+		},
+		{
+			"instrument": "drum",
+			"bars": [
+				"x:4 -:4 x:4 -:4",
+				"x:4 -:4 x:4 -:4",
+				"x:4 -:4 x:4 -:4",
+				"x:4 -:4 x:2 x:2 -:4"
+			]
+		}
+	]
+}

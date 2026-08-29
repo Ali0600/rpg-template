@@ -387,3 +387,18 @@ scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/tes
 scripts/autoload/router.gd	s|\t_to_base\(State.TITLE\)|\t_to_base(State.WORLD)|	tests/unit/test_router.gd	going back to the title lands in the world instead
 scripts/world/world_scene.gd	s|\t_close_battle\(\)|\tpass|	tests/integration/test_flow_model.gd	a defeat stacks the game over on top of the fight screen it never closed
 scripts/util/flow_doc.gd	s|\t\tif from == to:|\t\tif false:|	tests/unit/test_flow_doc.gd	the diagram draws a warp as a state change, so the picture disagrees with the model
+scripts/soundgen/tune.gd	s|\t\thz \*= 2.0|\t\tpass|	tests/unit/test_tune.gd	every octave plays the same note
+scripts/soundgen/tune.gd	s|\t\tmix\[i\] = clampf\(v, -1.0, 1.0\)|\t\tmix[i] = v|	tests/unit/test_tune.gd	a chord past full scale wraps to the opposite sign and cracks
+scripts/soundgen/tune.gd	s|\t\t\tv = Synth.quantise\(v, style.quantise_steps\)|\t\t\tpass|	tests/unit/test_tune.gd	the bit-crush stops reaching the mix, so a crushed voice plays clean
+scripts/soundgen/synth.gd	s|\tif fall <= release:|\tif false:|	tests/unit/test_tune.gd	a note ends at full volume, so every loop seam is a click
+scripts/soundgen/music_track.gd	s|\treturn \(step \* mix_rate \* 60\) / maxi\(bpm \* per_beat, 1\)|\treturn step * mix_rate / maxi(bpm, 1)|	tests/unit/test_music_track.gd	a note's start drifts off the beat as the tune goes on
+scripts/soundgen/music_track.gd	s|\t\tif lengths\[bar\] != steps_per_bar\(\):|\t\tif false:|	tests/unit/test_music_track.gd	a bar that does not add up renders short and every bar after it walks off the beat
+scripts/soundgen/music_track.gd	s|\tif Sfx.of\(id\) >= 0:|\tif false:|	tests/unit/test_music_track.gd	a track named after a cue shadows it in the one table both share
+scripts/soundgen/music_track.gd	s|\tif seconds\(\) > MAX_SECONDS:|\tif false:|	tests/unit/test_music_track.gd	a track of any length is committed, three voices at a time
+scripts/autoload/audio_bus.gd	s|\t\twav.loop_mode = AudioStreamWAV.LOOP_FORWARD|\t\tpass|	tests/unit/test_audio_bus.gd	the theme plays once and the game goes quiet
+scripts/autoload/audio_bus.gd	s|\tif id == _music_id:|\tif false:|	tests/unit/test_audio_bus.gd	crossing between two rooms that share a theme restarts it from the top
+scripts/autoload/audio_bus.gd	s|\t\t_remember\(id\)|\t\tpass|	tests/unit/test_audio_bus.gd	nothing records what was asked for, so no gate can see a misspelled cue
+scripts/autoload/audio_bus.gd	s|\treturn _play\(_music, id, false\)|\treturn _play(_music, id)|	tests/unit/test_audio_bus.gd	a track is logged as a cue again, and every scripted session fails on the tune
+scripts/world/world_scene.gd	s|\t\tAudioBus.stop_music\(\)$|\t\tpass|	tests/integration/test_world_music.gd	a dungeon inherits whatever the last map was playing
+scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_offered.title_music\)|\t\tpass|	tests/integration/test_world_music.gd	the title screen is silent
+scripts/data/game_manifest.gd	s|\t\t\tif not FileAccess.file_exists\(track\):|\t\t\tif false:|	tests/unit/test_game_manifest.gd	a game names a theme nobody generated and the title is quietly silent

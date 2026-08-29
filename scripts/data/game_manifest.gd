@@ -44,6 +44,14 @@ extends Resource
 ## reference, and a typo fails at load instead of at the first noise that does not happen.
 @export var sound_style: SoundStyle
 
+## The tune the title plays. A track id under data/music, not a Sfx.Cue, and that difference is
+## the rule: template code names a CUE because a cue is the template's own vocabulary and a typo
+## should be a compile error. A track is a game's content - nobody's template knows what a
+## game's title sounds like - so it is named in data and validated on load, beside every other
+## id here. Empty is normal: a game with no theme has a silent title, the same legal shape a
+## null sound_style gives a silent game.
+@export var title_music: StringName = &""
+
 ## The one line of on-screen help. It belongs to the game because it names the game's verbs:
 ## "E or space to talk" is wrong for a game whose button does anything else.
 ## What the player starts with in their purse. Beside start_map and start_spawn because it is
@@ -134,6 +142,17 @@ func problems() -> Array[String]:
 		if not FileAccess.file_exists(cue):
 			out.append("sound_style '%s' has no generated cues (expected %s) - run tools/gen_sounds.gd"
 				% [sound_style.id, cue])
+
+	# The theme, same shape again: a title naming a tune nobody rendered is a silent title, and
+	# silence is a legal shape here - so the only way to tell it from a misspelling is to check.
+	if not String(title_music).is_empty():
+		if sound_style == null:
+			out.append("title_music '%s' has no voice to play it in" % title_music)
+		else:
+			var track := "res://assets/generated/%s/music/%s.wav" % [sound_style.id, title_music]
+			if not FileAccess.file_exists(track):
+				out.append("title_music '%s' was never generated (expected %s) - run tools/gen_sounds.gd"
+					% [title_music, track])
 
 	if hooks != null:
 		var made := new_hooks()

@@ -30,6 +30,7 @@ title = "The Barred Gate"
 start_map = &"quest_village"
 start_spawn = &"start"
 player_character = &"quest_wanderer"
+title_music = &"barred_gate"
 config = ExtResource("2_config")
 combat = ExtResource("4_combat")
 sound_style = ExtResource("5_sound")

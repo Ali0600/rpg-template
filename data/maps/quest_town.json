@@ -19,6 +19,7 @@
 	],
 	"id": "quest_town",
 	"style": "dusk16",
+	"music": "barred_gate",
 	"legend": {
 		".": "grass",
 		",": "grass_alt",

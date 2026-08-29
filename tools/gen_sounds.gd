@@ -17,6 +17,7 @@ extends SceneTree
 const OUT_ROOT := "res://assets/generated"
 const STYLE_DIR := "res://data/sounds"
 const SFX_SUBDIR := "sfx"
+const MUSIC_SUBDIR := "music"
 
 var _verify := false
 var _problems: Array[String] = []
@@ -85,6 +86,38 @@ func _run_style(style: SoundStyle) -> void:
 	# and SoundBank.problems() has already refused a bank that cannot answer all of it.
 	for cue in Sfx.ids():
 		_emit(("%s/%s.wav" % [dir, cue]), source.samples(cue), style)
+	_run_music(style)
+
+
+## The same, for tunes. A second loop rather than a second generator, because everything below
+## _emit - the drift comparison, the imported-stream check, the exit protocol - is the same
+## question about a different file.
+func _run_music(style: SoundStyle) -> void:
+	var dir := "%s/%s/%s" % [OUT_ROOT, style.id, MUSIC_SUBDIR]
+	if not _verify:
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	# DISCOVERED rather than named in an enum, which is the difference between a cue and a
+	# track: a cue is the template's own vocabulary, so Sfx names it and a typo is a compile
+	# error; a track is a game's content, so it is found on disk. Sorted by ContentScan, because
+	# the generator's output must not depend on which machine walked the directory.
+	for track_id in MusicTrack.ids():
+		var track := MusicTrack.load_from(track_id)
+		var faults := track.problems()
+		faults.append_array(Tune.problems(track, style))
+		if not faults.is_empty():
+			for f in faults:
+				_problems.append("style '%s': %s" % [style.id, f])
+			continue
+		_emit("%s/%s.wav" % [dir, track_id], Tune.render(track, style, _rng_for(style, track_id)),
+			style)
+
+
+## A stream of its own per track, per style, derived from the NAMES - the ProceduralSoundSource
+## rule, and for the same reason: adding a second track must not re-roll the noise in the first
+## and rewrite a file the drift gate has already agreed with.
+func _rng_for(style: SoundStyle, track_id: StringName) -> SeededRng:
+	var base := SeededRng.hash_seed(0, String(style.id))
+	return SeededRng.new(base).derive(String(track_id))
 
 
 ## Writes one cue, or - in verify mode - compares it with what is on disk.

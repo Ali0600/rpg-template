@@ -48,7 +48,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | Nothing | **gap** — biggest one |
-| [Music](#14-music) | Per-area themes, battle theme, fanfare | `play_music` exists, nothing calls it | **gap** |
+| [Music](#14-music) | Per-area themes, battle theme, fanfare | A generated theme, per style, played by the title and the settled maps | **met** (M24) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
 ships one small game and does not need every noun in the genre. A **deliberate divergence**
@@ -339,8 +339,20 @@ the genre's most recognisable output.
 generated the way sprites are (a cue's shape in a bank, its voice in a `SoundStyle`), so the
 machinery for generated *music* is closer than it looks.
 
-**Gap:** anything at all. The interesting version is procedural music generated per style, the
-way art already is — which would be a genuinely unusual thing for a template to ship.
+**Added in M24, and it is the unusual version.** A tune is authored as NOTES in
+`data/music/<id>.json` and performed by the same synthesiser the cues are, so the three shipped
+voices give three renditions of one melody the way three sprite styles draw one rig — a
+triangle pitched down in `dusk16`, a bit-crushed square in `gb16`. Not one note changes between
+them.
+
+Where it plays follows the genre's own habit rather than a rule: the title and the settled maps
+(town, village) carry the theme; the cave, the hollow and the keep are silent. A map **states**
+its music or states silence and never inherits, so the dungeon is not quiet-or-loud depending on
+which door you came through — and a track already playing keeps playing, so crossing between two
+maps that share a theme does not restart it.
+
+**Gap:** one track. A battle theme and a victory fanfare are data, not code — the second track
+costs 43 KB a second per voice, which is why `MusicTrack.MAX_SECONDS` exists.
 
 ---
 

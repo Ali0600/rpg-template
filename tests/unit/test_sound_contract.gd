@@ -86,3 +86,27 @@ func test_the_stream_the_game_loads_is_the_one_that_was_committed() -> void:
 			checked += 1
 	assert_int(checked).override_failure_message(
 		"no cue was actually compared, so this proved nothing").is_greater(0)
+
+
+func test_each_style_ships_exactly_the_tracks_the_game_names() -> void:
+	# The cue mirror. Rendering per style is the claim that the aesthetic is swappable, so a
+	# tune present in one voice and missing from another is that claim quietly broken - and it
+	# would only be noticed by whoever switched styles, long after.
+	var wanted: Array[String] = []
+	for id in MusicTrack.ids():
+		wanted.append(String(id))
+	wanted.sort()
+	var checked := 0
+	for res in ContentScan.resources("res://data/sounds", ["tres"] as Array[String]):
+		var style := res as SoundStyle
+		if style == null:
+			continue
+		var dir := "res://assets/generated/%s/music" % style.id
+		var on_disk: Array[String] = []
+		for path in ContentScan.files(dir, ["wav"]):
+			on_disk.append(path.get_file().get_basename())
+		on_disk.sort()
+		assert_array(on_disk).override_failure_message(
+			"%s ships %s; the game names %s" % [dir, on_disk, wanted]).is_equal(wanted)
+		checked += 1
+	assert_int(checked).is_greater(0)
