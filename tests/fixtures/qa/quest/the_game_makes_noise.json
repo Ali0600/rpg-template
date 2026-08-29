@@ -22,6 +22,14 @@
 			"state": "title"
 		},
 		{
+			"op": "note",
+			"text": "the title has a theme, and it is asked for before a key is pressed - which is why this is asserted here rather than after the run starts"
+		},
+		{
+			"op": "assert_music",
+			"id": "barred_gate"
+		},
+		{
 			"op": "press",
 			"action": "interact"
 		},

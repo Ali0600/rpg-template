@@ -313,6 +313,13 @@ func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) 
 	_configure_camera(data)
 
 	GameState.current_map = map_id
+	# Stated either way, never inherited, so what the player hears is a fact about where they
+	# ARE rather than about which door they came through. The bus keeps a track that is already
+	# playing playing, so two rooms of one town do not restart it.
+	if String(data.music_id).is_empty():
+		AudioBus.stop_music()
+	else:
+		AudioBus.play_music(data.music_id)
 	Router.reset()
 	EventBus.map_entered.emit({"map_id": map_id, "spawn_id": spawn_id})
 
@@ -1266,6 +1273,8 @@ func open_title() -> bool:
 	add_child(_title)
 	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), style, get_viewport_rect().size,
 		_offered.title)
+	if not String(_offered.title_music).is_empty():
+		AudioBus.play_music(_offered.title_music)
 	Router.to_title()
 	return true
 

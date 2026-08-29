@@ -131,9 +131,12 @@ func test_a_voice_whose_cues_were_never_generated_is_reported() -> void:
 	voice.bank_id = &"gb16"
 	voice.tone = &"square"
 	orphan.sound_style = voice
+	# Matched on the CUE message rather than on the voice's name, which appears in the theme's
+	# message too - so the looser match passed while the rule under test was switched off. The
+	# condition being tested has to be the only thing that can satisfy the assertion.
 	var reported := false
 	for p in orphan.problems():
-		if p.contains("never_generated"):
+		if p.contains("has no generated cues"):
 			reported = true
 	assert_bool(reported).override_failure_message(
 		"a voice with no generated cues passed validation: %s" % [orphan.problems()]).is_true()
@@ -143,4 +146,24 @@ func test_a_game_with_no_voice_at_all_is_still_valid() -> void:
 	# Silence is a legal shape, exactly as a null combat is a game that cannot fight.
 	var silent := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
 	silent.sound_style = null
+	# The theme goes with the voice. A game keeping one while dropping the other is not silent,
+	# it is a title naming a tune that cannot be played - which problems() reports, and the
+	# test below is the one that proves it.
+	silent.title_music = &""
 	assert_array(silent.problems()).is_empty()
+
+
+func test_a_theme_with_no_voice_to_play_it_is_reported() -> void:
+	var mute := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
+	mute.sound_style = null
+	assert_array(mute.problems()).override_failure_message(
+		"a game names a theme and has nothing to play it with, and nothing said so").is_not_empty()
+
+
+func test_a_theme_nobody_generated_is_reported() -> void:
+	# The same shape as the missing-cues check beside it: a title naming a tune that was never
+	# rendered is a silent title, and silence is legal here - so a misspelling is invisible
+	# unless somebody looks.
+	var wrong := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
+	wrong.title_music = &"no_such_tune"
+	assert_array(wrong.problems()).is_not_empty()

@@ -13,6 +13,7 @@
 	],
 	"id": "quest_village",
 	"style": "dusk16",
+	"music": "barred_gate",
 	"legend": {
 		".": "grass",
 		",": "grass_alt",
@@ -48,28 +49,68 @@
 		"                "
 	],
 	"spawns": {
-		"start": [5, 5],
-		"from_hollow": [2, 5],
-		"from_keep": [10, 5],
-		"from_town": [10, 8]
+		"start": [
+			5,
+			5
+		],
+		"from_hollow": [
+			2,
+			5
+		],
+		"from_keep": [
+			10,
+			5
+		],
+		"from_town": [
+			10,
+			8
+		]
 	},
 	"npcs": [
 		{
 			"id": "warden",
 			"character": "quest_warden",
-			"tile": [5, 3],
+			"tile": [
+				5,
+				3
+			],
 			"facing": "down",
 			"dialog": "warden_asks"
 		}
 	],
 	"objects": [
-		{ "id": "village_well", "tile": [6, 7], "kind": "sign", "dialog": "village_well" }
+		{
+			"id": "village_well",
+			"tile": [
+				6,
+				7
+			],
+			"kind": "sign",
+			"dialog": "village_well"
+		}
 	],
 	"warps": [
-		{ "tile": [10, 9], "map": "quest_town", "spawn": "north_gate" },
-		{ "tile": [1, 5], "map": "quest_hollow", "spawn": "from_village" },
 		{
-			"tile": [11, 5],
+			"tile": [
+				10,
+				9
+			],
+			"map": "quest_town",
+			"spawn": "north_gate"
+		},
+		{
+			"tile": [
+				1,
+				5
+			],
+			"map": "quest_hollow",
+			"spawn": "from_village"
+		},
+		{
+			"tile": [
+				11,
+				5
+			],
 			"map": "quest_keep",
 			"spawn": "from_village",
 			"requires_item": "gate_key",

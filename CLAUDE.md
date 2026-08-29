@@ -302,6 +302,26 @@ whether it HAS one, is a manifest question a pure menu may not ask. A game with 
 report)" rather than a page of blanks. At the top of the xp curve the page says so instead of
 promising a level that is not coming.
 
+**Music is authored notes performed by the cue synthesiser, and a track is a GAME's content.**
+A tune is `data/music/<id>.json` - bars of `<note><octave>:<steps>` tokens - rendered per
+`SoundStyle` into `assets/generated/<style>/music/`, so three voices play one melody the way
+three sprite styles draw one rig. `Tune` obeys everything `Synth` does and one thing more:
+pitch is a 12-entry INTEGER Q20 ratio table with octaves applied by doubling, because
+`pow(2, n/12)` is exactly where a naive version reaches for libm, and a decimal float literal
+would lean on `strtod` instead. A track LOOPS, so it gets a note envelope with a flat sustain
+and NO fade tail - a ramp at the end is a dip on every pass - and looping is set on the stream
+in `AudioBus` at bind time, because `project.godot` pins WAV looping off project-wide and a
+sidecar is build output the drift gate regenerates.
+
+**A cue is named by the template and a track is discovered.** `Sfx.Cue` is an enum so a typo is
+a compile error; a track is named in a manifest (`title_music`) or a map record (`music`) and
+found by `ContentScan`. They share ONE table in `AudioBus`, which is what lets a game drop
+`theme.ogg` into `data/audio` and replace either - so `MusicTrack.problems()` refuses a track
+named after a cue. **Music keeps its own request log**: `unknown_requests()` fails a play
+session for anything `Sfx` does not name, and the first tune would otherwise have failed the
+scripted sessions - intermittently, since a 64-entry ring buffer and every `sound_mark` can age
+the id out. A map states its music or states silence, never inherits.
+
 **The flow is DATA, and it is updated before the code that changes it.** `tools/flow_model.json`
 declares every state, what must be true while the machine is in it, and every way between them -
 including the EXACT sequence of `flow_changed` events each move may emit.

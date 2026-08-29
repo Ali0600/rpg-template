@@ -45,6 +45,10 @@ var objects: Array = []
 ## "defeated enemies stay gone" needed no new persistence and migrates for free.
 var enemies: Array = []
 var style_id: StringName = &"gb16"
+## The tune this map plays, or empty for silence. STATED either way and never inherited: a map
+## that said nothing would sound like whichever door the player came through, so the cave would
+## be quiet or loud depending on the route.
+var music_id: StringName = &""
 
 
 static func load_from(path: String) -> MapData:
@@ -56,6 +60,7 @@ static func load_from(path: String) -> MapData:
 
 	map.id = StringName(file.get_string("id", path.get_file().get_basename()))
 	map.style_id = StringName(file.get_string("style", "gb16"))
+	map.music_id = StringName(file.get_string("music", ""))
 	map.legend = file.get_dict("legend")
 	map.ground = JsonFile.to_string_array(file.data.get("ground", []))
 	map.decor = JsonFile.to_string_array(file.data.get("decor", []))

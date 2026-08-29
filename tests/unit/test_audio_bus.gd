@@ -152,3 +152,85 @@ func _sounding() -> int:
 		if player != null and player.playing:
 			count += 1
 	return count
+
+
+func test_a_track_is_not_mistaken_for_a_misspelled_cue() -> void:
+	# The regression this file exists for most. _play logs every id it is asked for, and
+	# unknown_requests() turns anything Sfx does not name into a failed play session - so the
+	# first tune would have failed the scripted sessions, and only SOME of them, because a
+	# 64-entry ring buffer and every sound_mark can age the id out. Intermittent is worse than
+	# broken.
+	AudioBus.clear_requests()
+	AudioBus.play_music(&"barred_gate")
+	assert_array(AudioBus.unknown_requests()).override_failure_message(
+		"a track was reported as a cue nobody named: %s" % [AudioBus.unknown_requests()]).is_empty()
+	assert_array(AudioBus.music_requested()).contains([&"barred_gate"])
+	assert_array(AudioBus.requested()).override_failure_message(
+		"a track landed in the cue log, where the strict gate reads").not_contains([&"barred_gate"])
+
+
+func test_a_misspelled_cue_is_still_singled_out() -> void:
+	# The control for the test above: splitting the logs must not have taught the gate to shrug.
+	AudioBus.clear_requests()
+	AudioBus.play_sfx(&"no_such_cue")
+	assert_array(AudioBus.unknown_requests()).contains([&"no_such_cue"])
+
+
+func test_a_track_already_playing_is_not_started_again() -> void:
+	# Walking between two rooms of one town must not restart the theme from the top, which is
+	# the single most recognisable bug in this genre.
+	AudioBus.stop_music()
+	AudioBus.clear_requests()
+	var before := AudioBus.music_starts()
+	AudioBus.play_music(&"barred_gate")
+	AudioBus.play_music(&"barred_gate")
+	assert_int(AudioBus.music_requested().size()).override_failure_message(
+		"the second ask was not even recorded, so this proves nothing about the first").is_equal(2)
+	# Counted starts, not the request log and not the device: the request happens either way,
+	# and headless never reports anything as playing.
+	assert_int(AudioBus.music_starts() - before).override_failure_message(
+		"the theme started again when it was already playing").is_equal(1)
+
+
+func test_a_different_track_does_start() -> void:
+	# The control. Without it the assertion above passes for a bus that never starts anything.
+	AudioBus.stop_music()
+	var before := AudioBus.music_starts()
+	AudioBus.play_music(&"barred_gate")
+	AudioBus.play_music(&"some_other_tune")
+	assert_int(AudioBus.music_starts() - before).is_equal(2)
+
+
+func test_stopping_forgets_what_was_playing() -> void:
+	# Otherwise the no-restart rule above would refuse to start the same track again after a
+	# dungeon, and the town would be silent on the way back.
+	AudioBus.play_music(&"barred_gate")
+	AudioBus.stop_music()
+	assert_str(String(AudioBus.music_id())).is_empty()
+
+
+func test_a_track_is_bound_to_loop_where_a_cue_is_not() -> void:
+	# Set at bind time rather than in the .import sidecar: project.godot pins WAV looping off
+	# for the whole project, there is one importer default per importer, and a sidecar is build
+	# output the drift gate regenerates.
+	var style := load("res://data/sounds/dusk16.tres") as SoundStyle
+	AudioBus.use_style(style)
+	for track_id in MusicTrack.ids():
+		var stream := AudioBus.stream_for(track_id) as AudioStreamWAV
+		assert_object(stream).override_failure_message(
+			"the voice cannot play track '%s'" % track_id).is_not_null()
+		assert_int(stream.loop_mode).override_failure_message(
+			"track '%s' plays once and then the game goes quiet" % track_id).is_equal(
+			AudioStreamWAV.LOOP_FORWARD)
+		assert_int(stream.loop_end).is_equal(stream.data.size() / 2)
+	var cue := AudioBus.stream_for(Sfx.id_of(Sfx.Cue.HIT)) as AudioStreamWAV
+	assert_int(cue.loop_mode).override_failure_message(
+		"a one-shot cue loops forever").is_equal(AudioStreamWAV.LOOP_DISABLED)
+
+
+func test_a_voice_that_cannot_play_a_track_says_which() -> void:
+	# missing_cues() for music. assert_audio_ready and smoke_boot both read it, and its whole
+	# point is an artifact that boots, walks, talks and is silent.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	assert_array(AudioBus.missing_tracks()).override_failure_message(
+		"the shipped voice cannot play %s" % [AudioBus.missing_tracks()]).is_empty()

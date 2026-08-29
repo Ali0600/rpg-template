@@ -149,6 +149,17 @@ func _run(step: Dictionary) -> void:
 					% [cue, "asked for" if want else "silent", AudioBus.requested()])
 			else:
 				_log.append("sound '%s' %s" % [cue, "played" if heard else "stayed quiet"])
+		"assert_music":
+			# The track that was REQUESTED, the way assert_sound reads a cue - and from its own
+			# log, because a track is not a cue and the strict unknown-cue gate must stay strict.
+			var tune := StringName(str(step.get("id", "")))
+			var expect := bool(step.get("expect", true))
+			var playing := AudioBus.music_requested().has(tune)
+			if playing != expect:
+				_fail("expected music '%s' to be %s since the last mark, heard: %s"
+					% [tune, "asked for" if expect else "silent", AudioBus.music_requested()])
+			else:
+				_log.append("music '%s' %s" % [tune, "played" if playing else "stayed quiet"])
 		"assert_audio_ready":
 			# Not "was a sound asked for" - assert_sound answers that, and it answers it the
 			# same way whether the file exists or not, on purpose. This asks whether the voice
@@ -161,8 +172,15 @@ func _run(step: Dictionary) -> void:
 			var absent := AudioBus.missing_cues()
 			if not absent.is_empty():
 				_fail("the voice cannot play %d cue(s) it names: %s" % [absent.size(), absent])
-			else:
-				_log.append("every cue the template names is playable")
+			# Music is asked the same question and for the same reason: a track committed
+			# without its .import sidecar is present here and absent from the pack, which is
+			# the one place nobody is watching.
+			var quiet := AudioBus.missing_tracks()
+			if not quiet.is_empty():
+				_fail("the voice cannot play %d track(s) this game names: %s"
+					% [quiet.size(), quiet])
+			if absent.is_empty() and quiet.is_empty():
+				_log.append("every cue and track the game names is playable")
 		"assert_flag":
 			# The one assertion that can tell "the quest advanced" from "something moved the
 			# player". A gate opening is evidence a warp fired; the flag is evidence the

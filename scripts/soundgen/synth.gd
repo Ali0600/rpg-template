@@ -64,11 +64,11 @@ static func render(shape: Dictionary, style: SoundStyle, rng: SeededRng) -> Pack
 		# rather than a slide.
 		phase += hz / float(rate)
 		phase -= floorf(phase)
-		var v := _wave_at(wave, style.tone, phase, rng)
+		var v := wave_at(wave, style.tone, phase, rng)
 		v *= _envelope(i, count, attack)
 		v *= level
 		if style.quantise_steps > 0:
-			v = _quantise(v, style.quantise_steps)
+			v = quantise(v, style.quantise_steps)
 		out[i] = clampf(v, -1.0, 1.0)
 	_fade_tail(out)
 	return out
@@ -130,15 +130,15 @@ static func _sweep(from_hz: float, to_hz: float, u: float, steps: int) -> float:
 	return from_hz + (to_hz - from_hz) * t
 
 
-static func _wave_at(wave: StringName, tone: StringName, phase: float, rng: SeededRng) -> float:
+static func wave_at(wave: StringName, tone: StringName, phase: float, rng: SeededRng) -> float:
 	match wave:
 		&"noise":
-			return _noise(rng)
+			return noise(rng)
 		&"both":
 			# Half and half: the tone carries the pitch, the noise gives it an edge. A hit
 			# that is pure tone reads as a menu blip, and one that is pure noise has no pitch
 			# to tell a big hit from a small one.
-			return _tone_at(tone, phase) * 0.5 + _noise(rng) * 0.5
+			return _tone_at(tone, phase) * 0.5 + noise(rng) * 0.5
 		_:
 			return _tone_at(tone, phase)
 
@@ -155,7 +155,7 @@ static func _tone_at(tone: StringName, phase: float) -> float:
 
 ## Integer noise scaled to a float, never a float drawn directly: the integer stream is
 ## identical on every platform, and the division by a power of two is exact.
-static func _noise(rng: SeededRng) -> float:
+static func noise(rng: SeededRng) -> float:
 	return float(rng.next_int(-32768, 32767)) / 32768.0
 
 
@@ -169,8 +169,32 @@ static func _envelope(i: int, count: int, attack: int) -> float:
 	return float(left) / float(span)
 
 
+## A NOTE's envelope: attack in, flat through the body, release out.
+##
+## Deliberately not the cue envelope above, which decays across the WHOLE cue - right for a blip
+## and wrong for a held note, where it would turn every half note into a pluck and make a run of
+## eighths saw. Linear for the same reason the cue's is: exp is a function this file does not
+## call.
+##
+## The release is what makes a loop safe. The last note lands on zero and the samples past it
+## are silence, so the seam is 0 to 0 by construction rather than by a fade nobody hears the
+## first time and everybody hears the tenth.
+static func note_envelope(i: int, count: int, attack: int, release: int) -> float:
+	if i < attack:
+		return float(i + 1) / float(attack + 1)
+	var fall := count - i
+	if fall <= release:
+		return float(fall) / float(maxi(release, 1))
+	return 1.0
+
+
 ## Rounds a sample onto `steps` rungs between -1 and 1.
-static func _quantise(v: float, steps: int) -> float:
+##
+## Public, with wave_at and noise, so a tune is built from the SAME waveforms a cue is. A second
+## copy of a square wave in another file would be a second thing to keep in step with a style's
+## `tone`, and the first divergence would be a game whose music and menus disagree about what
+## the machine sounds like.
+static func quantise(v: float, steps: int) -> float:
 	var half := float(steps) * 0.5
 	return clampf(roundf(v * half) / half, -1.0, 1.0)
 

@@ -1383,3 +1383,38 @@ in the wrong state — Continue *did* reach WORLD. It passed through the start m
 and the entry hooks fired. So an edge declares the exact sequence of events it may emit, and an
 undeclared intermediate hop is the failure. Two edges legitimately have two hops, and writing
 them down is half the value of the file.
+
+## A tune is written down and performed, not composed — *M24*
+
+**The fork:** `AudioBus.play_music` had existed since M14 and had never been called. What
+should it play?
+
+- **Authored note sequences performed by the existing synthesiser** — *chosen*, and it was
+  named as the shape back in M14: a tune is content a designer writes, and generating melodies
+  is a different project with a much worse failure mode. The payoff is the same one the sprite
+  rig has — one tune, three voices, and switching a style re-voices the music for free.
+- **Generated (procedural) composition** — *rejected.* The template can promise a tune sounds
+  like the machine it is playing on; it cannot promise a generated melody is any good, and
+  nothing in a gate could tell us.
+- **Committing the rendered WAVs, like every other generated asset** — *chosen*, against
+  rendering at runtime. Runtime costs nothing on disk and would hitch: 176,400 samples × three
+  voices through a GDScript loop, on the main thread, on a web export that has no threads
+  because Pages serves no cross-origin-isolation headers. Committing also gives `pack_check.sh`
+  something to bite on, which is exactly the M14 defect (the audio seam's drop-in half was
+  broken in exports from the day it was written).
+- **The cost, stated rather than discovered:** 43 KB per second, per voice, three voices
+  committed. The theme is 8 seconds and takes the generated tree from 972 KB to 2.0 MB.
+  `MusicTrack.MAX_SECONDS` makes that a validator rather than a good intention, because every
+  addition would be individually reasonable.
+- **One track, played by the title AND the settled maps** — chosen over a second track for a
+  town theme. A title theme that is also the overworld theme is the genre's own habit, and it
+  demonstrates all three rules (it plays, it does not restart between town and village, it
+  stops on entering a dungeon) without a second megabyte. A battle theme is now data.
+
+**Two things measurement changed.** The no-restart guard first read
+`if id == _music_id and _music.playing:` — and headless runs on a dummy driver where nothing
+ever reports itself as playing, so the guard could not fire in the one environment every gate
+runs in. It now answers from what the bus believes, which is also what makes it testable. And
+the rule needed an observable that was neither the request log (the request happens either way)
+nor the device: `music_starts()` counts actual starts, and a mutant proved the earlier version
+was unkillable.

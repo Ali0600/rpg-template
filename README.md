@@ -190,6 +190,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M21** — an inn: the first interior you walk into, a keeper who names a price out loud and refuses in words, a night that fades, and the loop the economy rests on — fight, lose hit points, pay to get them back
 - [x] **M22** — a title screen: the game's own name, Continue and New game, and a game-over screen that finally routes back to it
 - [x] **M23** — the flow model: the state machine declared as data in `tools/flow_model.json`, a gate that drives every declared move through the real game and compares what the router actually announced, and `docs/FLOW.md` drawn from it
+- [x] **M24** — music: a tune authored as notes in `data/music/`, performed by the same synthesiser the sound effects use, so each style plays the same melody in its own voice
 
 ## Experience Gained
 

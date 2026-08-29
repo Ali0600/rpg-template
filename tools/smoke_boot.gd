@@ -50,6 +50,11 @@ func _init() -> void:
 			audio.call(&"use_style", voice)
 			for cue: StringName in (audio.call(&"missing_cues") as Array):
 				failures.append("voice '%s' has no sound for '%s'" % [voice.id, cue])
+			# Every voice must be able to play every track, not just the one the shipped game
+			# uses: rendering per style is the claim that the aesthetic is swappable, and a
+			# tune that exists in one voice only is that claim quietly broken.
+			for tune: StringName in (audio.call(&"missing_tracks") as Array):
+				failures.append("voice '%s' cannot play track '%s'" % [voice.id, tune])
 		audio.call(&"use_style", null)
 
 	if root.get_node_or_null(^"GameState") != null:
