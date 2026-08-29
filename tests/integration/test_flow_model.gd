@@ -377,7 +377,7 @@ func _seed_a_save() -> void:
 	await _steps(1)
 	GameState.current_map = &"quest_cave"
 	GameState.player_position = Vector2(88.0, 104.0)
-	GameState.set_party(9, 3, 1)
+	GameState.set_party(9, 3, 1, 0)
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
 	assert_bool(_world.open_title()).is_true()
 	_world._offered = _quiet_manifest()

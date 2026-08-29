@@ -43,6 +43,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v5_to_v6(d)
 			6:
 				d = _v6_to_v7(d)
+			7:
+				d = _v7_to_v8(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -123,7 +125,27 @@ static func _v6_to_v7(d: Dictionary) -> Dictionary:
 	return d
 
 
+## v7 -> v8: there was no magic before v8.
+##
+## Spent rather than full, and this is the one step where the honest default is also the
+## unwelcoming one. Every step above hands an old save the EMPTY version of the new thing, and
+## full MP would be the gift those steps all refuse - but there is a second reason here: what
+## "full" is depends on the game's CombatDef, which a migration may not reach, and a number
+## invented in this file would be wrong for every game but the one it was copied from.
+##
+## An old save therefore loads with nothing to cast and fills up at the first inn, which is
+## where a player goes anyway after a run that predates the feature. A party is only touched
+## when there IS one: a file with no party carries no magic, the same pairing to_save() makes.
+static func _v7_to_v8(d: Dictionary) -> Dictionary:
+	var party: Dictionary = d.get("party", {}) if d.get("party", {}) is Dictionary else {}
+	if not party.is_empty():
+		party["mp"] = 0
+		d["party"] = party
+	d["version"] = 8
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3, 4, 5, 6, 7]
+	return [1, 2, 3, 4, 5, 6, 7, 8]

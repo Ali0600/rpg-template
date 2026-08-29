@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 7
+const VERSION := 8
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -27,10 +27,13 @@ var seen: Dictionary = {}
 ## Inventory: this class describes the FILE, and a file may say things an Inventory would
 ## refuse - which is what problems() is for.
 var items: Dictionary = {}
-## Who the player is in a fight, as `{"hp", "xp", "level"}`. Added in v5. EMPTY IS A REAL
-## ANSWER and the common one: a save from before battles existed, or from a game that has no
-## combat at all, carries no party - and inventing a level-1 hero for it here would be this
-## class deciding a rule that belongs to the game's CombatDef, which it cannot see.
+## Who the player is in a fight, as `{"hp", "xp", "level", "mp"}`. Added in v5, and `mp` in v8.
+## EMPTY IS A REAL ANSWER and the common one: a save from before battles existed, or from a
+## game that has no combat at all, carries no party - and inventing a level-1 hero for it here
+## would be this class deciding a rule that belongs to the game's CombatDef, which it cannot see.
+##
+## MP is a key in here rather than a field of its own for the same reason: magic is part of
+## being a fighter, so a game with no party has no magic to record either.
 var party: Dictionary = {}
 ## What the player can spend. Added in v6. A plain integer rather than a dictionary like
 ## `party`: zero is a real answer here (broke), so there is no "unset" to represent.
@@ -126,4 +129,9 @@ func problems() -> Array[String]:
 			out.append("save carries %s xp" % party.get("xp", 0))
 		if int(party.get("level", 0)) < 1:
 			out.append("save carries a party at level %s" % party.get("level", 0))
+		# Zero is legal here where zero hp is not: a player who has spent every point is in a
+		# perfectly ordinary state, and only a negative one describes a player who cannot exist.
+		# How much is TOO much is a CombatDef question this class still cannot ask.
+		if int(party.get("mp", 0)) < 0:
+			out.append("save carries %s mp" % party.get("mp", 0))
 	return out

@@ -761,7 +761,7 @@ func _apply_effects(effects: Array) -> bool:
 					did = true
 			GameContext.OP_PARTY:
 				GameState.set_party(int(effect.get("hp", 0)), int(effect.get("xp", 0)),
-					int(effect.get("level", 1)))
+					int(effect.get("level", 1)), int(effect.get("mp", 0)))
 				did = true
 			GameContext.OP_WARP:
 				did = enter_map(StringName(str(effect.get("map", ""))),
@@ -893,7 +893,7 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	add_child(_battle)
 	_battle.setup(BattleLogic.of(_game.combat, def, GameState.player_hp, GameState.player_xp,
 		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key),
-		_equip_mod(&"attack"), _equip_mod(&"defense")),
+		_equip_mod(&"attack"), _equip_mod(&"defense"), GameState.player_mp),
 		_style, get_viewport_rect().size, _source, _game.player_character, def.character)
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
@@ -1235,7 +1235,11 @@ func _rest() -> bool:
 		push_error("World: a rest was asked for by a game that has no fighting in it")
 		return false
 	var level := GameState.player_level
-	GameState.set_party(_game.combat.max_hp(level), GameState.player_xp, level)
+	# Magic comes back with the health, which is the whole reason a night costs money: an inn
+	# that refilled one and not the other would leave a caster with nothing to cast and no
+	# reason to sleep again.
+	GameState.set_party(_game.combat.max_hp(level), GameState.player_xp, level,
+		_game.combat.max_mp(level))
 	# Deferred, the open_shop precedent exactly: _on_dialog_closed applies these effects and
 	# THEN pops the dialog overlay, so a night opened here is what that pop would close.
 	open_rest.call_deferred()
@@ -1245,8 +1249,9 @@ func _rest() -> bool:
 func _ensure_party() -> void:
 	if _game == null or _game.combat == null or GameState.player_hp > 0:
 		return
-	GameState.set_party(_game.combat.max_hp(GameState.player_level), GameState.player_xp,
-		GameState.player_level)
+	var starting := GameState.player_level
+	GameState.set_party(_game.combat.max_hp(starting), GameState.player_xp, starting,
+		_game.combat.max_mp(starting))
 
 
 ## Puts up the end of the run. Public for the same reason open_pause() is.

@@ -53,6 +53,10 @@ var _enemy: EnemyDef
 var _hp: int = 0
 var _xp: int = 0
 var _level: int = 1
+## What is left to spend on spells. Nothing here spends it yet; it is carried so that a fight
+## cannot LOSE it. A number the world hands in and does not get back is the same bug as one it
+## never handed in, and it would present as magic draining every time the player fought.
+var _mp: int = 0
 var _enemy_hp: int = 0
 ## What the player's gear is worth, already summed by the world. Handed in rather than looked
 ## up: this class may not reach the Registry, and stats here are DERIVED from level, so
@@ -87,13 +91,16 @@ var _effects: Array[Dictionary] = []
 ## rebuilt so the logic never has to know how a seen key is spelled.
 static func of(combat: CombatDef, enemy: EnemyDef, hp: int, xp: int, level: int,
 		items: Array, seen_key: String, seed_value: int,
-		attack_mod: int = 0, defense_mod: int = 0) -> BattleLogic:
+		attack_mod: int = 0, defense_mod: int = 0, mp: int = 0) -> BattleLogic:
 	var out := BattleLogic.new()
 	out._combat = combat
 	out._enemy = enemy
 	out._level = maxi(level, 1)
 	out._hp = clampi(hp, 1, combat.max_hp(out._level))
 	out._xp = maxi(xp, 0)
+	# Clamped to the curve for the reason hp is: a save carrying more than the level allows
+	# describes a player the game cannot produce, and a fight is not the place to argue with it.
+	out._mp = clampi(mp, 0, combat.max_mp(out._level))
 	out._enemy_hp = enemy.max_hp
 	out._items = items.duplicate()
 	out._seen_key = seen_key
@@ -149,6 +156,14 @@ func player_hp() -> int:
 
 func player_max_hp() -> int:
 	return _combat.max_hp(_level)
+
+
+func player_mp() -> int:
+	return _mp
+
+
+func player_max_mp() -> int:
+	return _combat.max_mp(_level)
 
 
 func player_level() -> int:
@@ -424,10 +439,12 @@ func _win() -> void:
 	var line := "%s is down. +%d xp." % [_enemy.name, earned]
 	_want(Sfx.Cue.VICTORY)
 	if _level > was:
-		# A level restores the player completely. It is the loop the whole design rests on:
-		# ambient fights are what make the boss survivable, and a heal you can feel is what
-		# makes fighting one more thing before the door a real decision.
+		# A level restores the player completely - magic included, which is what "completely"
+		# has to mean once there is magic. It is the loop the whole design rests on: ambient
+		# fights are what make the boss survivable, and a heal you can feel is what makes
+		# fighting one more thing before the door a real decision.
 		_hp = player_max_hp()
+		_mp = player_max_mp()
 		_want(Sfx.Cue.LEVEL_UP)
 		line += " Level %d!" % _level
 	_seal()
@@ -445,7 +462,8 @@ func _win() -> void:
 func _seal() -> void:
 	if _outcome == Outcome.VICTORY:
 		_effects.append({"op": GameContext.OP_SEEN, "key": _seen_key})
-	_effects.append({"op": GameContext.OP_PARTY, "hp": _hp, "xp": _xp, "level": _level})
+	_effects.append({"op": GameContext.OP_PARTY, "hp": _hp, "xp": _xp, "level": _level,
+		"mp": _mp})
 	# Coin is appended only on a WIN, and only when the enemy carries any. It rides the same
 	# collected list as everything else, so a defeat - whose effects world_scene discards
 	# wholesale - pays nothing, and the rule "a fight never writes" is untouched.
