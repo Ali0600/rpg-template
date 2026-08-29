@@ -219,6 +219,21 @@ func test_a_beaten_enemy_is_remembered_as_beaten() -> void:
 	assert_bool(GameState.was_seen("quest_village/foe")).override_failure_message(
 		"nothing recorded the fight, so the enemy is standing there again").is_true()
 
+func test_a_player_who_has_never_fought_is_filled_in_from_the_curve() -> void:
+	# THE one place "no party yet" becomes a real hero, and until now nothing asserted it: a
+	# mutant emptying it survived. Zero hp is the unset signal, so a boot that skipped this
+	# derivation would open the first fight with a player who is already dead - and a boot that
+	# derived the health and not the magic would open it with a caster who cannot cast.
+	await _boot()
+	var combat := _combat()
+	assert_int(GameState.player_hp).override_failure_message(
+		"a new game started a player at nought health").is_equal(combat.max_hp(1))
+	assert_int(GameState.player_mp).override_failure_message(
+		"a new game started a player with no magic at all").is_equal(combat.max_mp(1))
+	assert_int(combat.max_mp(1)).override_failure_message(
+		"the fixture game has no magic, so this could not tell a fill-in from a no-op") \
+		.is_greater(0)
+
 func test_winning_a_fight_leaves_the_player_where_the_fight_left_them() -> void:
 	# The party effect reaching the sink. A fight that reported nothing would hand back a
 	# player at full health, and every fight would be free.

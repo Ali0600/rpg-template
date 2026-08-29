@@ -424,4 +424,5 @@ scripts/ui/battle_logic.gd	s|\t\t_mp = player_max_mp\(\)|\t\tpass|	tests/unit/te
 scripts/ui/battle_logic.gd	s|\t\t\"mp\": _mp\}\)|\}\)|	tests/unit/test_battle_logic.gd	a fight seals without saying what magic it left, so the sink writes nought over it
 scripts/world/world_scene.gd	s|int\(effect.get\(\"level\", 1\)\), int\(effect.get\(\"mp\", 0\)\)\)|int(effect.get(\"level\", 1)), 0)|	tests/integration/test_world_battles.gd	the one sink ignores the magic a fight reported and empties the player
 scripts/world/world_scene.gd	s|_equip_mod\(\&\"defense\"\), GameState.player_mp\),|_equip_mod(\&\"defense\")),|	tests/integration/test_world_battles.gd	every fight opens with an empty caster, whatever the player was carrying
-scripts/world/world_scene.gd	s|\t\t_game.combat.max_mp\(starting\)\)|\t\t0)|	tests/integration/test_world_equipment.gd	a player who has never fought starts with no magic at all
+scripts/world/world_scene.gd	s|\t\t_game.combat.max_mp\(starting\)\)|\t\t0)|	tests/integration/test_world_battles.gd	a player who has never fought starts with no magic at all
+scripts/world/world_scene.gd	s|\tGameState.set_party\(_game.combat.max_hp\(starting\)|\tGameState.set_party(1|	tests/integration/test_world_battles.gd	a player who has never fought starts on one hit point
