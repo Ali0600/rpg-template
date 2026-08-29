@@ -228,6 +228,105 @@ func test_a_track_is_bound_to_loop_where_a_cue_is_not() -> void:
 		"a one-shot cue loops forever").is_equal(AudioStreamWAV.LOOP_DISABLED)
 
 
+## Runs the bus's own clock, which is the only thing that advances a chained one-shot. Physics
+## frames rather than a wall-clock wait, for the reason every other timed gate here counts them:
+## under load a millisecond spans no frame at all, and "the fanfare had not ended" would become
+## a fact about how busy the machine is.
+func _frames(count: int) -> void:
+	for i in count:
+		await get_tree().physics_frame
+
+
+func _fanfare_frames() -> int:
+	var stream := AudioBus.stream_for(&"triumph")
+	return ceili(stream.get_length() * float(Engine.physics_ticks_per_second))
+
+
+func test_a_chained_one_shot_plays_without_looping() -> void:
+	# The table's copy must stay loop-bound - _play hands that same instance to every later
+	# caller, so switching its loop off in place would leave the map's theme playing once and
+	# stopping. What plays is a duplicate; what is stored is untouched.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	var before := AudioBus.music_starts()
+	assert_bool(AudioBus.play_music_then(&"triumph", &"barred_gate")).is_true()
+	assert_int(AudioBus.music_starts() - before).is_equal(1)
+	assert_str(String(AudioBus.music_id())).is_equal("triumph")
+	var stored := AudioBus.stream_for(&"triumph") as AudioStreamWAV
+	assert_int(stored.loop_mode).override_failure_message(
+		"the chain switched looping off on the table's own copy of the track").is_equal(
+		AudioStreamWAV.LOOP_FORWARD)
+	# And the mechanism, not just the outcome: what is PLAYING has to be the un-looped copy.
+	# The frame counter would hand the room back either way, so nothing downstream can see this
+	# - but ceili rounds the count UP, so a looping fanfare gets up to a frame of its own head
+	# again before it is replaced, which is an audible click nothing headless can hear.
+	var playing := AudioBus._music.stream as AudioStreamWAV
+	assert_int(playing.loop_mode).override_failure_message(
+		"the fanfare that is actually playing loops").is_equal(AudioStreamWAV.LOOP_DISABLED)
+
+func test_the_follower_starts_when_the_one_shot_ends_and_not_before() -> void:
+	# Asserted from BOTH sides of the boundary frame. Only the "after" half would pass a chain
+	# that fired immediately, and only the "before" half would pass one that never fired.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	var frames := _fanfare_frames()
+	assert_int(frames).override_failure_message(
+		"the fanfare is no frames long, so this could not tell early from late").is_greater(30)
+	AudioBus.play_music_then(&"triumph", &"barred_gate")
+	await _frames(frames - 1)
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the theme came back before the fanfare had finished").is_equal("triumph")
+	# A couple of frames of slack on THIS side only. Whether the bus's own _physics_process has
+	# run yet on the frame a test's await resumes is an ordering between an autoload and a
+	# coroutine, not part of the contract - so the early assertion above is exact, where this one
+	# only has to prove the hand-back happens at all.
+	await _frames(3)
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the fanfare ended and the room was never given back").is_equal("barred_gate")
+
+func test_a_chain_into_silence_ends_silent() -> void:
+	# A fight won in a map that states no music hands back to that map's own quiet, which the
+	# request log cannot express - only what is playing now can.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	AudioBus.play_music_then(&"triumph", &"")
+	await _frames(_fanfare_frames() + 2)
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"a fanfare handing back to silence left something playing").is_empty()
+
+func test_a_new_track_cancels_a_pending_hand_back() -> void:
+	# A second fight starting mid-fanfare must not be interrupted a moment later by the last
+	# fight's chain firing into it.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	AudioBus.play_music_then(&"triumph", &"barred_gate")
+	AudioBus.play_music(&"skirmish")
+	await _frames(_fanfare_frames() + 2)
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the last fight's fanfare handed the room back over the top of the next fight") \
+		.is_equal("skirmish")
+
+func test_a_fanfare_the_voice_cannot_play_still_gives_the_room_back() -> void:
+	# Failing toward the follower. The other way round, a missing WAV would eat the map's theme
+	# along with the sting - a silent map from a missing jingle.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	AudioBus.play_music_then(&"no_such_fanfare", &"barred_gate")
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"a fanfare nobody rendered took the map's theme with it").is_equal("barred_gate")
+
+func test_a_jingle_asked_for_twice_stings_twice() -> void:
+	# Deliberately NOT the no-restart guard: a jingle is an event where a theme is a state, and
+	# two wins in a row have to sound like two wins.
+	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
+	AudioBus.stop_music()
+	var before := AudioBus.music_starts()
+	AudioBus.play_music_then(&"triumph", &"barred_gate")
+	AudioBus.play_music_then(&"triumph", &"barred_gate")
+	assert_int(AudioBus.music_starts() - before).override_failure_message(
+		"the second win was swallowed as 'already playing'").is_equal(2)
+
+
 func test_a_voice_that_cannot_play_a_track_says_which() -> void:
 	# missing_cues() for music. assert_audio_ready and smoke_boot both read it, and its whole
 	# point is an artifact that boots, walks, talks and is silent.

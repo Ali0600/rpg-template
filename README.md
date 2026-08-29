@@ -192,9 +192,14 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M23** — the flow model: the state machine declared as data in `tools/flow_model.json`, a gate that drives every declared move through the real game and compares what the router actually announced, and `docs/FLOW.md` drawn from it
 - [x] **M24** — music: a tune authored as notes in `data/music/`, performed by the same synthesiser the sound effects use, so each style plays the same melody in its own voice
 - [x] **M25** — magic: MP as a level curve, spells in `data/spells/` known by reaching their own level, and a Magic command between Attack and Item with an attack, a heal and a sleep behind it
+- [x] **M26** — a battle theme and a victory fanfare: a fight takes the room's music over, a win stings once and hands the room back to whatever the map states
 
 ## Experience Gained
 
+- Built deterministic audio sequencing on the simulation's own frame clock rather than on the
+  audio device's completion callback, after measuring that the headless driver used by every
+  CI gate never reports a stream as playing — the callback would have been correct in
+  production and untestable everywhere it needed proving.
 - Designed a feature's persistence to need no persistence: spell availability is recomputed
   from the player's level on every use rather than stored, which removed a save field, a
   migration, a synchronisation invariant and an entire class of drift bug from the design

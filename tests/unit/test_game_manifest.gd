@@ -150,20 +150,37 @@ func test_a_game_with_no_voice_at_all_is_still_valid() -> void:
 	# it is a title naming a tune that cannot be played - which problems() reports, and the
 	# test below is the one that proves it.
 	silent.title_music = &""
+	silent.battle_music = &""
+	silent.victory_music = &""
 	assert_array(silent.problems()).is_empty()
 
 
+## The three tunes a manifest can name, so every check below runs once per field rather than
+## once for the one that was written first. A fourth field added without its own row here
+## fails nothing, which is why the LOOP in problems() is a loop.
+func _music_fields() -> Array[StringName]:
+	return [&"title_music", &"battle_music", &"victory_music"]
+
+
 func test_a_theme_with_no_voice_to_play_it_is_reported() -> void:
-	var mute := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
-	mute.sound_style = null
-	assert_array(mute.problems()).override_failure_message(
-		"a game names a theme and has nothing to play it with, and nothing said so").is_not_empty()
+	for field in _music_fields():
+		var mute := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
+		mute.sound_style = null
+		# Only the field under test keeps its tune, so the report has one possible cause. With
+		# all three left set, a check that only ever looked at the first would pass all three.
+		for other in _music_fields():
+			if other != field:
+				mute.set(other, &"")
+		assert_array(mute.problems()).override_failure_message(
+			"%s names a theme with nothing to play it, and nothing said so" % field).is_not_empty()
 
 
 func test_a_theme_nobody_generated_is_reported() -> void:
-	# The same shape as the missing-cues check beside it: a title naming a tune that was never
-	# rendered is a silent title, and silence is legal here - so a misspelling is invisible
-	# unless somebody looks.
-	var wrong := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
-	wrong.title_music = &"no_such_tune"
-	assert_array(wrong.problems()).is_not_empty()
+	# The same shape as the missing-cues check beside it: a game naming a tune that was never
+	# rendered is a silence, and silence is legal here - so a misspelling is invisible unless
+	# somebody looks.
+	for field in _music_fields():
+		var wrong := (load("res://data/games/quest.tres") as GameManifest).duplicate() as GameManifest
+		wrong.set(field, &"no_such_tune")
+		assert_array(wrong.problems()).override_failure_message(
+			"%s names a tune nobody generated and it passed" % field).is_not_empty()

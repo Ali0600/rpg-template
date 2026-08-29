@@ -337,6 +337,28 @@ and NO fade tail - a ramp at the end is a dip on every pass - and looping is set
 in `AudioBus` at bind time, because `project.godot` pins WAV looping off project-wide and a
 sidecar is build output the drift gate regenerates.
 
+**A fight scores itself, and a jingle is a property of the CALL.** `GameManifest.battle_music`
+takes the room over when a fight opens; `victory_music` plays ONCE on a win and then hands the
+room back, through `AudioBus.play_music_then(id, then_id)`. Both empty is the default and is
+the old behaviour exactly - a fight then sounds like wherever it happens. What makes a tune a
+one-shot is that call, never a flag in its JSON: the same file could be somebody's title theme,
+so "played once" is a fact about the playing. The one-shot is a DUPLICATE of the bound stream
+with looping off, because `_play` hands the table's own instance to every later caller and
+switching its loop off in place would leave the next map's theme playing once and stopping.
+
+The chain is counted in PHYSICS FRAMES, not driven by `AudioStreamPlayer.finished`. That signal
+is free and unconnected and would still be the wrong clock: headless runs on a dummy driver that
+never reports a stream as playing, which is the measurement that made `music_starts()` exist.
+Any new music call disarms a pending hand-back, so a second fight starting mid-fanfare is not
+interrupted by the last one's chain firing into it - and a jingle asked for twice STINGS twice,
+bypassing the no-restart guard, because a jingle is an event where a theme is a state.
+
+**`AudioBus.play_or_silence(id)` is what a PLACE sounds like** - its track, or silence when it
+names none. Three callers need that exact answer (entering a map, a fanfare handing back, a
+fight ending), and written out three times it is three copies of "a map states its music or
+states silence, never inherits" with one of them eventually stale. A defeat is the exception
+and stops the music outright: every way out of a game over states its own music again.
+
 **A cue is named by the template and a track is discovered.** `Sfx.Cue` is an enum so a typo is
 a compile error; a track is named in a manifest (`title_music`) or a map record (`music`) and
 found by `ContentScan`. They share ONE table in `AudioBus`, which is what lets a game drop

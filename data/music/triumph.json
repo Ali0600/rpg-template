@@ -1,0 +1,65 @@
+{
+	"_readme": [
+		"The win. Two bars at 140bpm - about three and a half seconds - and the only tune here that",
+		"is NOT written to loop, because it is played once and hands the room back (see",
+		"AudioBus.play_music_then). That is a property of the CALL rather than of this file: there",
+		"is nothing in the format saying 'one-shot', deliberately, because the same tune could be",
+		"someone's title theme.",
+		"",
+		"The genre's rising ta-da: a triplet-feel pickup climbing the A minor triad, then a held",
+		"resolution on the octave. It ends on a long note rather than trailing off, which is what",
+		"makes the note's own release the ending - Tune.render writes no fade tail, so a tune that",
+		"stopped mid-phrase would simply cut, and the held A is why it does not.",
+		"",
+		"Same key as the theme and the fight, for the reason skirmish states: one soundtrack.",
+		"",
+		"The drum is on the first bar only. A roll under the held note would keep the ear waiting",
+		"for something more, and what comes next is the map's own theme coming back."
+	],
+	"bpm": 140,
+	"beats_per_bar": 4,
+	"steps_per_beat": 4,
+	"instruments": {
+		"lead": {
+			"wave": "tone",
+			"gain": 0.34,
+			"attack_ms": 3,
+			"release_ms": 90
+		},
+		"bass": {
+			"wave": "tone",
+			"gain": 0.28,
+			"attack_ms": 3,
+			"release_ms": 60
+		},
+		"drum": {
+			"wave": "noise",
+			"gain": 0.13,
+			"attack_ms": 1,
+			"release_ms": 45
+		}
+	},
+	"voices": [
+		{
+			"instrument": "lead",
+			"bars": [
+				"A4:2 C5:2 E5:2 A5:2 G5:2 A5:6",
+				"E5:2 G5:2 A5:12"
+			]
+		},
+		{
+			"instrument": "bass",
+			"bars": [
+				"A2:8 F2:4 G2:4",
+				"E2:4 E3:4 A2:8"
+			]
+		},
+		{
+			"instrument": "drum",
+			"bars": [
+				"x:2 x:2 x:2 x:2 x:4 -:4",
+				"-:16"
+			]
+		}
+	]
+}

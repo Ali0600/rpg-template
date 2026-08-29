@@ -1,0 +1,71 @@
+{
+	"_readme": [
+		"The fight. Same key as the overworld theme - A minor, no sharps - because a battle is an",
+		"interruption of the road rather than a different game, and a tune that modulates on every",
+		"encounter reads as two soundtracks fighting each other.",
+		"",
+		"Faster than the theme (160 against 120) and half its length: four bars at 160bpm is six",
+		"seconds, which is short enough that a fight lasting three loops does not feel like it, and",
+		"long enough not to nag. Length is the whole cost of music here - see barred_gate's readme.",
+		"",
+		"Written to LOOP, which is a constraint on the last bar rather than a setting: it ends on",
+		"the dominant (E) so the return to A at the top of bar one is the resolution, and the drum",
+		"lands on the seam. Tune.render deliberately writes no fade tail for exactly this reason.",
+		"",
+		"The lead sits an octave up from the theme's and moves in eighths rather than quarters -",
+		"the same rig, played hurried. The bass alternates root and fifth on every bar instead of",
+		"walking, because a walking bass under a fight sounds like a chase and this is a stand."
+	],
+	"bpm": 160,
+	"beats_per_bar": 4,
+	"steps_per_beat": 4,
+	"instruments": {
+		"lead": {
+			"wave": "tone",
+			"gain": 0.3,
+			"attack_ms": 3,
+			"release_ms": 30
+		},
+		"bass": {
+			"wave": "tone",
+			"gain": 0.28,
+			"attack_ms": 2,
+			"release_ms": 22
+		},
+		"drum": {
+			"wave": "noise",
+			"gain": 0.12,
+			"attack_ms": 1,
+			"release_ms": 28
+		}
+	},
+	"voices": [
+		{
+			"instrument": "lead",
+			"bars": [
+				"A5:2 A5:2 C6:2 A5:2 E5:2 A5:2 G5:4",
+				"F5:2 F5:2 A5:2 F5:2 C5:2 F5:2 E5:4",
+				"G5:2 G5:2 B5:2 G5:2 D5:2 G5:2 F5:4",
+				"E5:2 G5:2 A5:4 B5:2 A5:2 E5:4"
+			]
+		},
+		{
+			"instrument": "bass",
+			"bars": [
+				"A2:4 A2:4 E3:4 A2:4",
+				"F2:4 F2:4 C3:4 F2:4",
+				"G2:4 G2:4 D3:4 G2:4",
+				"E2:4 E2:4 B2:4 E2:4"
+			]
+		},
+		{
+			"instrument": "drum",
+			"bars": [
+				"x:2 -:2 x:2 x:2 -:2 x:2 x:2 -:2",
+				"x:2 -:2 x:2 x:2 -:2 x:2 x:2 -:2",
+				"x:2 -:2 x:2 x:2 -:2 x:2 x:2 -:2",
+				"x:2 x:2 x:2 x:2 x:2 x:2 x:2 x:2"
+			]
+		}
+	]
+}

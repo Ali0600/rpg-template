@@ -1,0 +1,67 @@
+{
+	"_readme": [
+		"The whole musical arc of a fight, in the running game: the road's theme, displaced by",
+		"the fight's, stung by the win, handed back to the room, and re-stated on the way out.",
+		"",
+		"A script of its own rather than steps added to the_game_makes_noise, for the reason that",
+		"one's readme gives: Qa runs one step per physics frame, so inserting anywhere shifts",
+		"every later frame in the file.",
+		"",
+		"Two kinds of assertion here, and the difference is the point. Without 'now' it reads the",
+		"REQUEST LOG - what was asked for since the last sound_mark - which is how a tune that",
+		"played and finished is still provable. With 'now' it reads what is playing THIS FRAME,",
+		"which is the only way to say silence, and the only way to prove the fanfare handed the",
+		"room back rather than simply ending.",
+		"",
+		"The wait after the win is the fanfare's own length with slack: triumph is two bars at",
+		"140bpm, about 3.4 seconds, so 240 frames is comfortably past it. Over-waiting is safe",
+		"here - what is being proven is that the hand-back HAPPENED, and it does not un-happen."
+	],
+	"steps": [
+		{ "op": "assert_state", "state": "title" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "note", "text": "the warden opens the game - hear her out first" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "dialog" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_map", "map": "quest_village" },
+
+		{ "op": "note", "text": "the village names the road's theme, and it is what is playing before anything else happens" },
+		{ "op": "assert_music", "id": "barred_gate", "now": true },
+
+		{ "op": "sound_mark" },
+		{ "op": "note", "text": "west into the hollow, into the thing standing in the gap" },
+		{ "op": "hold", "action": "move_left", "frames": 400 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "assert_map", "map": "quest_hollow" },
+		{ "op": "assert_state", "state": "battle" },
+
+		{ "op": "note", "text": "the fight takes the room over - asked for, and playing right now" },
+		{ "op": "assert_music", "id": "skirmish" },
+		{ "op": "assert_music", "id": "skirmish", "now": true },
+
+		{ "op": "sound_mark" },
+		{ "op": "note", "text": "see it through. press_until_state mashes, so every press is mistimed and the fight is won the slow way - which is fine, this script is about what it sounds like" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 600 },
+
+		{ "op": "note", "text": "the win stings, once" },
+		{ "op": "assert_music", "id": "triumph" },
+		{ "op": "assert_music", "id": "triumph", "now": true },
+
+		{ "op": "note", "text": "and hands the room back. The hollow states NO music, so what it hands back to is that map's own silence - which the request log could never have shown, because a tune that played and stopped is in it either way" },
+		{ "op": "wait", "frames": 240 },
+		{ "op": "assert_music", "id": "", "now": true },
+
+		{ "op": "note", "text": "and back east onto the road, which states its theme again" },
+		{ "op": "sound_mark" },
+		{ "op": "hold", "action": "move_right", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "assert_map", "map": "quest_village" },
+		{ "op": "assert_music", "id": "barred_gate", "now": true },
+		{ "op": "assert_audio_ready" }
+	]
+}

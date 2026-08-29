@@ -52,6 +52,20 @@ extends Resource
 ## null sound_style gives a silent game.
 @export var title_music: StringName = &""
 
+## The tune a fight plays, on title_music's exact terms. Empty is normal and means a fight
+## sounds like wherever it happens - which is what every map with a theme did before this
+## existed, so an empty field is not merely legal but is the old behaviour precisely.
+@export var battle_music: StringName = &""
+
+## The tune a WIN plays, once, before handing the room back to whatever the map states. A
+## one-shot rather than a loop, and that is a property of how it is played rather than of the
+## file: AudioBus.play_music_then is where a tune is declared to be a jingle.
+##
+## It cannot be called "victory" - MusicTrack.problems() refuses a track named after a cue, and
+## Sfx.Cue.VICTORY is the sting that fires at the winning blow. The two are different sounds at
+## different moments and the id has to say so.
+@export var victory_music: StringName = &""
+
 ## The one line of on-screen help. It belongs to the game because it names the game's verbs:
 ## "E or space to talk" is wrong for a game whose button does anything else.
 ## What the player starts with in their purse. Beside start_map and start_spawn because it is
@@ -143,16 +157,22 @@ func problems() -> Array[String]:
 			out.append("sound_style '%s' has no generated cues (expected %s) - run tools/gen_sounds.gd"
 				% [sound_style.id, cue])
 
-	# The theme, same shape again: a title naming a tune nobody rendered is a silent title, and
+	# The themes, same shape three times: a game naming a tune nobody rendered is a silence, and
 	# silence is a legal shape here - so the only way to tell it from a misspelling is to check.
-	if not String(title_music).is_empty():
+	# One loop rather than three copies, because the third copy is where the check goes stale.
+	for named: Array in [["title_music", title_music], ["battle_music", battle_music],
+			["victory_music", victory_music]]:
+		var field := String(named[0])
+		var tune := StringName(named[1])
+		if String(tune).is_empty():
+			continue
 		if sound_style == null:
-			out.append("title_music '%s' has no voice to play it in" % title_music)
-		else:
-			var track := "res://assets/generated/%s/music/%s.wav" % [sound_style.id, title_music]
-			if not FileAccess.file_exists(track):
-				out.append("title_music '%s' was never generated (expected %s) - run tools/gen_sounds.gd"
-					% [title_music, track])
+			out.append("%s '%s' has no voice to play it in" % [field, tune])
+			continue
+		var track := "res://assets/generated/%s/music/%s.wav" % [sound_style.id, tune]
+		if not FileAccess.file_exists(track):
+			out.append("%s '%s' was never generated (expected %s) - run tools/gen_sounds.gd"
+				% [field, tune, track])
 
 	if hooks != null:
 		var made := new_hooks()

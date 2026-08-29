@@ -316,10 +316,7 @@ func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) 
 	# Stated either way, never inherited, so what the player hears is a fact about where they
 	# ARE rather than about which door they came through. The bus keeps a track that is already
 	# playing playing, so two rooms of one town do not restart it.
-	if String(data.music_id).is_empty():
-		AudioBus.stop_music()
-	else:
-		AudioBus.play_music(data.music_id)
+	AudioBus.play_or_silence(data.music_id)
 	Router.reset()
 	EventBus.map_entered.emit({"map_id": map_id, "spawn_id": spawn_id})
 
@@ -895,6 +892,11 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 		GameState.player_level, _battle_items(), seen_key, _battle_seed(seen_key),
 		_equip_mod(&"attack"), _equip_mod(&"defense"), GameState.player_mp, _battle_spells()),
 		_style, get_viewport_rect().size, _source, _game.player_character, def.character)
+	# A fight takes the room's music over. A game naming no battle theme touches nothing at all,
+	# which is not merely a legal shape but is exactly the behaviour every fight had before this
+	# existed - so the field being empty is the old game, unchanged.
+	if not String(_game.battle_music).is_empty():
+		AudioBus.play_music(_game.battle_music)
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
 	return true
@@ -1233,13 +1235,42 @@ func _on_battle_finished(outcome: int, effects: Array) -> void:
 		BattleLogic.Outcome.DEFEAT:
 			# Nothing is applied. A lost fight earns no xp, marks nothing beaten and consumes
 			# nothing - the run is over, and the save the player goes back to is the truth.
+			# Silence, whatever was playing. Every game this borrows from cuts the music at a
+			# game over, the defeat sting is already a cue, and every way OUT of a game over
+			# states its own music again - the title plays the manifest's theme, and a restart
+			# or a load enters a map, which states one either way.
+			AudioBus.stop_music()
 			EventBus.battle_changed.emit({"enemy": enemy_name, "open": false, "outcome": &"defeat"})
 			open_game_over()
 		_:
 			_apply_effects(effects)
 			_despawn_beaten_enemies()
+			_leave_battle_music(outcome == BattleLogic.Outcome.VICTORY)
 			EventBus.battle_changed.emit({"enemy": enemy_name, "open": false,
 				"outcome": &"fled" if outcome == BattleLogic.Outcome.FLED else &"victory"})
+
+
+## Giving the room back after a fight that was survived.
+##
+## A win with a fanfare CHAINS: the jingle once, then the map's own statement, which may be
+## silence. Everything else states that statement at once - the enter_map shape - and a fled
+## fight gets no jingle because nothing was won.
+##
+## Deliberately NOT guarded on having displaced anything. The obvious guard - "only restore if
+## this game named a battle theme" - is a branch no test can tell from its absence: when nothing
+## was displaced, the map's music is already what is playing, and the bus refuses to restart a
+## track it is already on. A branch nothing can distinguish is decoration, and this repo removes
+## those rather than keeping them with a mutant that can never bite. The control in
+## test_world_music proves the no-op: a game naming neither field fights and its music never
+## moves.
+func _leave_battle_music(won: bool) -> void:
+	if _game == null:
+		return
+	var here := &"" if map_data() == null else map_data().music_id
+	if won and not String(_game.victory_music).is_empty():
+		AudioBus.play_music_then(_game.victory_music, here)
+	else:
+		AudioBus.play_or_silence(here)
 
 
 func _close_battle() -> void:

@@ -155,12 +155,23 @@ func _run(step: Dictionary) -> void:
 			# log, because a track is not a cue and the strict unknown-cue gate must stay strict.
 			var tune := StringName(str(step.get("id", "")))
 			var expect := bool(step.get("expect", true))
-			var playing := AudioBus.music_requested().has(tune)
-			if playing != expect:
+			# "now" asks what is playing THIS FRAME rather than what was asked for since the
+			# mark, and it is the only way to say SILENCE: the log cannot, because a track that
+			# played and ended is in it either way. An empty id with now is "nothing at all",
+			# which is what a fanfare handing back to a quiet map has to leave behind.
+			if bool(step.get("now", false)):
+				var live := AudioBus.music_id()
+				if (live == tune) != expect:
+					_fail("expected '%s' to be %s playing right now, and '%s' is"
+						% [tune, "" if expect else "the one thing NOT", live])
+				else:
+					_log.append("music right now is '%s'" % live)
+			elif AudioBus.music_requested().has(tune) != expect:
 				_fail("expected music '%s' to be %s since the last mark, heard: %s"
 					% [tune, "asked for" if expect else "silent", AudioBus.music_requested()])
 			else:
-				_log.append("music '%s' %s" % [tune, "played" if playing else "stayed quiet"])
+				_log.append("music '%s' %s" % [tune,
+					"played" if AudioBus.music_requested().has(tune) else "stayed quiet"])
 		"assert_audio_ready":
 			# Not "was a sound asked for" - assert_sound answers that, and it answers it the
 			# same way whether the file exists or not, on purpose. This asks whether the voice
