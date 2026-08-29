@@ -48,12 +48,55 @@ one-glance menu of things still worth trying.
 - **Teaching a spell with an item.** Dragon Quest's scrolls, as a supplement to level
   learning. Revisit hook: it needs a stored known-spells set, which M25 deliberately does not
   have — so this one costs a save field and a migration, not just a verb.
+- **A game-over theme.** M26 cuts the music at a defeat rather than replacing it. Revisit hook:
+  a `GameManifest.game_over_music` and one arm in `_on_battle_finished`'s DEFEAT branch — the
+  work is deciding whether the title's theme should then displace it, which is a feel call.
+- **Per-encounter themes** (a boss that sounds like one). Revisit hook: an `EnemyDef.music`
+  outranking the manifest's `battle_music` in `open_battle_with`, which is one `or` — the design
+  question is whether the fanfare should differ too, and what a fled boss fight hands back to.
 - **A targeting step.** Unnecessary while fights are 1v1. Revisit hook: whichever lands first
   of a party or a multi-enemy fight; `SpellDef` would gain a target shape, and the FFVII
   Materia precedent (the shape is a property of the spell, not a runtime cursor) is the
   cheaper half of it.
 
 ---
+
+## A fanfare is a chained play, not a property of the track
+
+- **Chosen: `AudioBus.play_music_then(id, then_id)`** — one-shot-ness lives in the CALL. The
+  same file could be somebody's title theme, so "played once" is a fact about the playing, and
+  a tune that has to be declared a jingle in its own JSON is a tune that cannot be reused.
+- **Rejected: a `loop: false` flag in the track's JSON.** It would have to be plumbed through
+  `MusicTrack` into `AudioBus.reload()`, which binds streams long before anything knows what
+  they will be used for — metadata carried across two layers to answer a question asked at the
+  third.
+- **Rejected: `AudioStreamPlayer.finished` as the clock.** The signal is free and unconnected
+  and would still be wrong: headless runs on a dummy driver that never reports a stream as
+  playing, which is the same measurement that made `music_starts()` exist. Frames are what
+  every other timed thing here counts, and `--fixed-fps 60` pins them.
+- **Chosen: the one-shot is a DUPLICATE with looping off.** `_play` assigns the table's own
+  instance to every later caller, so switching its loop off in place would leave the next map's
+  theme playing once and stopping. Nearly unobservable — the frame counter replaces the stream
+  either way — but `ceili` rounds the count up, so a looping fanfare gets up to a frame of its
+  own head back before it is replaced. Asserted on the PLAYING stream, not just the stored one.
+- **Chosen: a jingle asked for twice stings twice**, bypassing the no-restart guard. A jingle is
+  an event where a theme is a state.
+
+## Defeat stops the music, and a battle's end does not check whether it started one
+
+- **Chosen: `stop_music()` on a defeat.** Every reference game cuts at a game over; the defeat
+  sting is already a cue; and every way OUT of a game over states its own music again — the
+  title plays the manifest's theme, and a restart or a load enters a map, which states one
+  either way. This is the one deliberate behaviour change for a game that had map music only.
+- **Rejected: guarding the restore on having displaced anything.** "Only put the map's music
+  back if this game named a battle theme" reads as obviously right and is a branch nothing can
+  distinguish: when nothing was displaced, the map's music is already playing and the bus
+  refuses to restart a track it is already on. A branch no test can tell from its absence is
+  decoration, and this repo removes those rather than keeping them with a mutant that cannot
+  bite (the `NpcBrain.STATIC` early return, M17). The control test proves the no-op instead.
+- **Chosen: `AudioBus.play_or_silence(id)` as the one answer to "what does this place sound
+  like".** Three callers need it — entering a map, a fanfare handing back, a fight ending — and
+  three copies of "states its music or states silence, never inherits" is two copies too many.
 
 ## Knowing a spell is derived from level, never stored
 

@@ -90,3 +90,85 @@ func test_walking_between_two_maps_that_share_a_theme_does_not_restart_it() -> v
 	assert_int(AudioBus.music_starts()).override_failure_message(
 		"the theme started again crossing between two maps that share it").is_equal(started)
 	assert_str(String(AudioBus.music_id())).is_equal("barred_gate")
+
+
+# -- fights --------------------------------------------------------------------------------
+
+## A fight the world can stage anywhere, so the music arms can be driven without walking to an
+## enemy's tile. open_battle_with takes the definition, which is what makes this possible.
+func _foe() -> EnemyDef:
+	var out := EnemyDef.new()
+	out.id = &"test_foe"
+	out.name = "Test Foe"
+	out.character = &"quest_warden"
+	out.max_hp = 1
+	out.attack = 1
+	out.defense = 0
+	out.xp = 0
+	out.moves = [{"name": "Clout", "power": 0}]
+	return out
+
+## A world standing in the town, which names a theme - so what a fight DISPLACES is a real tune
+## rather than the silence a cave would give, and the hand-back has something to hand back to.
+func _in_the_town() -> Node2D:
+	var world := _boot()
+	assert_bool(world.start_game(_manifest())).is_true()
+	await get_tree().physics_frame
+	assert_bool(world.enter_map(&"quest_town", &"start")).is_true()
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the fixture map is silent, so a fight here could not displace anything") \
+		.is_equal("barred_gate")
+	return world
+
+func test_a_fight_takes_the_room_over() -> void:
+	var world := await _in_the_town()
+	assert_bool(world.open_battle_with(_foe(), "quest_town/foe")).is_true()
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the town's theme played on through a fight").is_equal("skirmish")
+
+func test_a_win_stings_and_then_gives_the_room_back() -> void:
+	var world := await _in_the_town()
+	world.open_battle_with(_foe(), "quest_town/foe")
+	world._on_battle_finished(BattleLogic.Outcome.VICTORY, [])
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"a win went straight back to the map without a sting").is_equal("triumph")
+	# The hand-back is the bus's own clock; the world only has to have armed it. Proven from
+	# both sides in test_audio_bus - here it is that the world chained to the MAP's tune and
+	# not to something else.
+	for i in ceili(AudioBus.stream_for(&"triumph").get_length() * 60.0) + 3:
+		await get_tree().physics_frame
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the fanfare ended somewhere other than the map it was won in").is_equal("barred_gate")
+
+func test_running_away_gives_the_room_back_at_once() -> void:
+	# No sting, because nothing was won - and no waiting either.
+	var world := await _in_the_town()
+	world.open_battle_with(_foe(), "quest_town/foe")
+	world._on_battle_finished(BattleLogic.Outcome.FLED, [])
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"running away played the victory fanfare").is_equal("barred_gate")
+
+func test_losing_stops_the_music() -> void:
+	var world := await _in_the_town()
+	world.open_battle_with(_foe(), "quest_town/foe")
+	world._on_battle_finished(BattleLogic.Outcome.DEFEAT, [])
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the fight's theme played on over the game-over screen").is_empty()
+
+func test_a_game_that_names_no_battle_theme_sounds_exactly_as_it_did() -> void:
+	# THE control, and the reason both fields default to empty: a game that names neither must
+	# go through a whole fight with nothing touched. Counted starts rather than the log, because
+	# the log cannot tell a theme that kept playing from one that was restarted onto itself.
+	var world := _boot()
+	var quiet := _manifest()
+	quiet.battle_music = &""
+	quiet.victory_music = &""
+	assert_bool(world.start_game(quiet)).is_true()
+	await get_tree().physics_frame
+	assert_bool(world.enter_map(&"quest_town", &"start")).is_true()
+	var started := AudioBus.music_starts()
+	world.open_battle_with(_foe(), "quest_town/foe")
+	world._on_battle_finished(BattleLogic.Outcome.VICTORY, [])
+	assert_int(AudioBus.music_starts()).override_failure_message(
+		"a game with no battle theme still had its music moved by a fight").is_equal(started)
+	assert_str(String(AudioBus.music_id())).is_equal("barred_gate")

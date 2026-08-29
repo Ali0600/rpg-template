@@ -48,6 +48,11 @@ var _missing_tracks: Array[StringName] = []
 ## made either way, and the device cannot either: headless runs on a dummy driver where nothing
 ## ever reports itself as playing.
 var _music_starts: int = 0
+## What a ONE-SHOT track hands back to when it ends, and how many physics frames are left of it.
+## A negative count means nothing is chained - zero would be indistinguishable from "ends this
+## frame", which is a real state.
+var _music_next: StringName = &""
+var _music_left: int = -1
 var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 var _music := AudioStreamPlayer.new()
@@ -294,6 +299,63 @@ func play_sfx(id: StringName) -> bool:
 	return _play(_next_player(), id)
 
 
+## Plays `id` ONCE and then hands the room back to `then_id`, which loops - or to silence, when
+## `then_id` is empty. A fight won in a quiet cave hands back to the cave's own quiet.
+##
+## Counted in PHYSICS FRAMES rather than driven by the player's `finished` signal, which is
+## free and unconnected and would still be the wrong clock: headless runs on a dummy driver
+## that never reports a stream as playing, so a signal from it is not something any gate here
+## could rely on - the same measurement that made music_starts() exist. Frames are what every
+## other timed thing in this project counts, and --fixed-fps 60 pins them.
+##
+## The one-shot is a DUPLICATE of the bound stream with looping off. Never a mutation of the
+## table's copy: _play hands that same instance to every later caller, so switching its loop
+## off here would leave the map's theme playing once and stopping. And never a flag in the
+## track's own JSON either - whether a tune is a one-shot is a fact about how it is USED, not
+## about the file, and this call is where that is said.
+func play_music_then(id: StringName, then_id: StringName) -> bool:
+	_music_requested.append(id)
+	if _music_requested.size() > LOG_LIMIT:
+		_music_requested.remove_at(0)
+	var stream := _sounds.get(id, null) as AudioStream
+	if stream == null:
+		# A fanfare the voice cannot play must not eat the theme it was going to hand back to.
+		# Failing toward the follower is the difference between a missing sting and a silent map.
+		if not _warned.has(id):
+			_warned[id] = true
+			push_warning("AudioBus: no sound '%s' for voice '%s'" % [id, style_id()])
+		return play_or_silence(then_id)
+	var once := stream.duplicate() as AudioStream
+	var wav := once as AudioStreamWAV
+	if wav != null:
+		wav.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	_music_next = then_id
+	# ceili, so a tune that is not a whole number of frames long is never cut short of itself.
+	_music_left = ceili(once.get_length() * float(Engine.physics_ticks_per_second))
+	# Deliberately NOT the no-restart guard: a jingle is an EVENT where a theme is a state, and
+	# two wins in a row must sting twice.
+	_music_id = id
+	_music_starts += 1
+	if not _enabled:
+		return false
+	_music.stream = once
+	_music.play()
+	return true
+
+
+## What a PLACE sounds like: its named track, or silence when it names none.
+##
+## The one function for it, because three callers now need exactly this answer - entering a map,
+## a fanfare handing the room back, and a fight that displaced a theme ending. Written out three
+## times it is three copies of "a map states its music or states silence, never inherits", and
+## the one that goes stale is the one nobody is looking at.
+func play_or_silence(id: StringName) -> bool:
+	if String(id).is_empty():
+		stop_music()
+		return true
+	return play_music(id)
+
+
 func play_music(id: StringName) -> bool:
 	# Remembered before anything else, exactly as _play does: what was ASKED FOR is a different
 	# question from what happened, and the gates want the first one.
@@ -311,14 +373,37 @@ func play_music(id: StringName) -> bool:
 	# bus's record cannot go stale behind the device.
 	if id == _music_id:
 		return true
+	# Starting anything new cancels a pending hand-back. A second fight beginning mid-fanfare
+	# must not be interrupted a moment later by the last fight's chain firing into it - and the
+	# rule is stated where a track actually STARTS, so every path that starts one gets it.
+	_disarm_chain()
 	_music_id = id
 	_music_starts += 1
 	return _play(_music, id, false)
 
 
 func stop_music() -> void:
+	_disarm_chain()
 	_music.stop()
 	_music_id = &""
+
+
+## One physics frame of a chained one-shot. The bus has no other clock and wants none: this
+## counts the same frames BattleLogic does, so a play session lands on the same frame twice.
+func _physics_process(_delta: float) -> void:
+	if _music_left < 0:
+		return
+	_music_left -= 1
+	if _music_left > 0:
+		return
+	var next := _music_next
+	_disarm_chain()
+	play_or_silence(next)
+
+
+func _disarm_chain() -> void:
+	_music_next = &""
+	_music_left = -1
 
 
 ## How many times a track has been started. A test asserting a theme did not restart cannot use

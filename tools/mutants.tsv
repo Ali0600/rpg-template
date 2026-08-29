@@ -399,9 +399,9 @@ scripts/autoload/audio_bus.gd	s|\t\twav.loop_mode = AudioStreamWAV.LOOP_FORWARD|
 scripts/autoload/audio_bus.gd	s|\tif id == _music_id:|\tif false:|	tests/unit/test_audio_bus.gd	crossing between two rooms that share a theme restarts it from the top
 scripts/autoload/audio_bus.gd	s|\t\t_remember\(id\)|\t\tpass|	tests/unit/test_audio_bus.gd	nothing records what was asked for, so no gate can see a misspelled cue
 scripts/autoload/audio_bus.gd	s|\treturn _play\(_music, id, false\)|\treturn _play(_music, id)|	tests/unit/test_audio_bus.gd	a track is logged as a cue again, and every scripted session fails on the tune
-scripts/world/world_scene.gd	s|\t\tAudioBus.stop_music\(\)$|\t\tpass|	tests/integration/test_world_music.gd	a dungeon inherits whatever the last map was playing
+scripts/autoload/audio_bus.gd	s|^\t\tstop_music\(\)$|\t\tpass|	tests/integration/test_world_music.gd	a dungeon inherits whatever the last map was playing
 scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_offered.title_music\)|\t\tpass|	tests/integration/test_world_music.gd	the title screen is silent
-scripts/data/game_manifest.gd	s|\t\t\tif not FileAccess.file_exists\(track\):|\t\t\tif false:|	tests/unit/test_game_manifest.gd	a game names a theme nobody generated and the title is quietly silent
+scripts/data/game_manifest.gd	s|\t\tif not FileAccess.file_exists\(track\):|\t\tif false:|	tests/unit/test_game_manifest.gd	a game names a theme nobody generated and the title is quietly silent
 .github/workflows/ci.yml	s|^      - "docs/FLOW.md"$|      # removed|	tests/unit/test_ci_paths.gd	a hand-edit to the generated flow doc skips the drift gate built to catch it
 .github/workflows/check-docs.yml	s|      - "!docs/FLOW.md"|      # - "!docs/FLOW.md"|	tests/unit/test_ci_paths.gd	the no-op check answers green for the one doc the real gate must see
 .github/workflows/check-docs.yml	s|      - "docs/\*\*"|      - "tests/**"|	tests/unit/test_ci_paths.gd	a test change gets a green check that tested nothing at all
@@ -444,3 +444,15 @@ scripts/ui/battle_screen.gd	s|\tlabel.horizontal_alignment = HORIZONTAL_ALIGNMEN
 scripts/ui/battle_screen.gd	s|\tif _logic.player_max_mp\(\) <= 0:|\tif false:|	tests/integration/test_battle_layout.gd	a game with no magic is told about magic it does not have
 scripts/ui/battle_screen.gd	s|\t\treturn \"%s  %d MP\" % \[spell.name, spell.cost\]|\t\treturn spell.name|	tests/integration/test_world_battles.gd	the spell page names no prices, so the choice is made blind
 scripts/world/world_scene.gd	s|\t\t\tout.append\(\"MP %d/%d\" % \[GameState.player_mp, _game.combat.max_mp\(level\)\]\)|\t\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how much magic is left
+
+# --- M26: a battle theme and a fanfare ---
+scripts/autoload/audio_bus.gd	s|\t\twav.loop_mode = AudioStreamWAV.LOOP_DISABLED|\t\tpass|	tests/unit/test_audio_bus.gd	a fanfare loops forever, so the room is never handed back
+scripts/autoload/audio_bus.gd	s|\t_music_left = ceili\(once.get_length\(\) \* float\(Engine.physics_ticks_per_second\)\)|\t_music_left = 1|	tests/unit/test_audio_bus.gd	the theme comes back over the top of the fanfare instead of after it
+scripts/autoload/audio_bus.gd	s|\t_music_left -= 1|\tpass|	tests/unit/test_audio_bus.gd	the chain never counts down, so a fanfare is the last thing the game plays
+scripts/autoload/audio_bus.gd	s|\t\treturn play_or_silence\(then_id\)|\t\treturn false|	tests/unit/test_audio_bus.gd	a fanfare nobody rendered takes the map's theme down with it
+scripts/autoload/audio_bus.gd	s|\t_music_left = -1|\tpass|	tests/unit/test_audio_bus.gd	the last fight's hand-back fires over the top of the next fight
+scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_game.battle_music\)|\t\tpass|	tests/fixtures/qa/quest/hear_the_battle_out.json	the road's theme plays on through every fight
+scripts/world/world_scene.gd	s|\t\t\t_leave_battle_music\(outcome == BattleLogic.Outcome.VICTORY\)|\t\t\tpass|	tests/fixtures/qa/quest/hear_the_battle_out.json	a fight ends and its theme keeps playing over the map it was fought in
+scripts/world/world_scene.gd	s|\t\tAudioBus.play_music_then\(_game.victory_music, here\)|\t\tAudioBus.play_or_silence(here)|	tests/fixtures/qa/quest/hear_the_battle_out.json	a win is not stung at all, it just goes quiet
+scripts/data/game_manifest.gd	s|\t\t\tout.append\(\"%s '%s' has no voice to play it in\" % \[field, tune\]\)|\t\t\tpass|	tests/unit/test_game_manifest.gd	a game names a tune and has nothing to play it with, and nothing says so
+scripts/autoload/qa.gd	s|\t\t\t\tif \(live == tune\) != expect:|\t\t\t\tif false:|	tests/unit/test_qa_ops.gd	assert_music now passes whatever is playing, so a silence gate proves nothing

@@ -48,7 +48,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, three spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
-| [Music](#14-music) | Per-area themes, battle theme, fanfare | A generated theme, per style, played by the title and the settled maps | **met** (M24) |
+| [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
 ships one small game and does not need every noun in the genre. A **deliberate divergence**
@@ -398,8 +398,21 @@ its music or states silence and never inherits, so the dungeon is not quiet-or-l
 which door you came through — and a track already playing keeps playing, so crossing between two
 maps that share a theme does not restart it.
 
-**Gap:** one track. A battle theme and a victory fanfare are data, not code — the second track
-costs 43 KB a second per voice, which is why `MusicTrack.MAX_SECONDS` exists.
+**M26 scored the fights.** `battle_music` takes the room over when one opens; `victory_music`
+plays once on a win and hands the room back to whatever the map states, which may be that map's
+own silence. A defeat cuts the music outright, which is what every reference game does at a game
+over. Both manifest fields default to empty, and empty means the pre-M26 behaviour exactly: a
+fight sounds like wherever it happens.
+
+The one thing that was code rather than data: a fanfare plays ONCE and then hands back, and
+"once" is a property of the play call (`AudioBus.play_music_then`) rather than of the file — the
+same tune could be somebody's title theme. Length remains the whole cost here: three tracks
+across three voices is about 2.3 MB, at 43 KB a second per voice, which is why
+`MusicTrack.MAX_SECONDS` exists.
+
+**Remaining gap:** a game-over theme, and per-encounter themes (a boss that sounds like a boss).
+Both are `deferred` in [DECISIONS.md](DECISIONS.md) — the first needs a screen to name it, the
+second an `EnemyDef` field that would outrank the manifest's.
 
 ---
 
