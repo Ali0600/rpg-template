@@ -398,7 +398,7 @@ scripts/soundgen/music_track.gd	s|\tif seconds\(\) > MAX_SECONDS:|\tif false:|	t
 scripts/autoload/audio_bus.gd	s|\t\twav.loop_mode = AudioStreamWAV.LOOP_FORWARD|\t\tpass|	tests/unit/test_audio_bus.gd	the theme plays once and the game goes quiet
 scripts/autoload/audio_bus.gd	s|\tif id == _music_id:|\tif false:|	tests/unit/test_audio_bus.gd	crossing between two rooms that share a theme restarts it from the top
 scripts/autoload/audio_bus.gd	s|\t\t_remember\(id\)|\t\tpass|	tests/unit/test_audio_bus.gd	nothing records what was asked for, so no gate can see a misspelled cue
-scripts/autoload/audio_bus.gd	s|\treturn _play\(_music, id, false\)|\treturn _play(_music, id)|	tests/unit/test_audio_bus.gd	a track is logged as a cue again, and every scripted session fails on the tune
+scripts/autoload/audio_bus.gd	s|\tif not _play\(_music, id, false\):|\tif not _play(_music, id):|	tests/unit/test_audio_bus.gd	a track is logged as a cue again, and every scripted session fails on the tune
 scripts/autoload/audio_bus.gd	s|^\t\tstop_music\(\)$|\t\tpass|	tests/integration/test_world_music.gd	a dungeon inherits whatever the last map was playing
 scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_offered.title_music\)|\t\tpass|	tests/integration/test_world_music.gd	the title screen is silent
 scripts/data/game_manifest.gd	s|\t\tif not FileAccess.file_exists\(track\):|\t\tif false:|	tests/unit/test_game_manifest.gd	a game names a theme nobody generated and the title is quietly silent
@@ -456,3 +456,8 @@ scripts/world/world_scene.gd	s|\t\t\t_leave_battle_music\(outcome == BattleLogic
 scripts/world/world_scene.gd	s|\t\tAudioBus.play_music_then\(_game.victory_music, here\)|\t\tAudioBus.play_or_silence(here)|	tests/fixtures/qa/quest/hear_the_battle_out.json	a win is not stung at all, it just goes quiet
 scripts/data/game_manifest.gd	s|\t\t\tout.append\(\"%s '%s' has no voice to play it in\" % \[field, tune\]\)|\t\t\tpass|	tests/unit/test_game_manifest.gd	a game names a tune and has nothing to play it with, and nothing says so
 scripts/autoload/qa.gd	s|\t\t\t\tif \(live == tune\) != expect:|\t\t\t\tif false:|	tests/unit/test_qa_ops.gd	assert_music now passes whatever is playing, so a silence gate proves nothing
+
+# --- M26.1: the title had no voice ---
+scripts/world/world_scene.gd	s|\tAudioBus.use_style\(_offered.sound_style\)|\tpass|	tests/integration/test_world_music.gd	the title plays into a bus with no voice bound, and is silent on every platform
+scripts/autoload/audio_bus.gd	s|\tif not _play\(_music, id, false\):|\tif false:|	tests/unit/test_audio_bus.gd	the bus reports a track it could not play as the one that is playing
+scripts/autoload/qa.gd	s|\t\t\tif String\(AudioBus.style_id\(\)\).is_empty\(\):|\t\t\tif false:|	tests/unit/test_qa_ops.gd	assert_audio_ready passes green when there is no voice bound to ask about

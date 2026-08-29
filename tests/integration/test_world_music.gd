@@ -39,6 +39,29 @@ func test_the_title_plays_the_theme_the_manifest_names() -> void:
 	assert_object(world.title_screen()).is_not_null()
 
 
+func test_the_title_can_actually_play_the_theme_it_asks_for() -> void:
+	# The bug this test was written for: the title asked for its theme before anything had bound
+	# the game's VOICE, so the bus had no such track and the title was silent - on every
+	# platform, since the day it shipped.
+	#
+	# Every gate said otherwise, and each was asking a question one step short of the truth.
+	# assert_music reads the request LOG, and the request is made either way. music_id() was set
+	# whether or not the track could be played. And assert_audio_ready reads missing_tracks(),
+	# which reload() only fills in when a voice IS bound - so the one check built to catch a
+	# silent artifact reported green precisely because nothing could make a sound.
+	#
+	# So this asks the only question none of them did: can the thing that was asked for be
+	# played by the voice that is bound right now.
+	var world := _boot()
+	var wanted := _manifest().title_music
+	assert_str(String(AudioBus.style_id())).override_failure_message(
+		"the title is playing into a bus with no voice bound at all").is_not_empty()
+	assert_bool(AudioBus.has_sound(wanted)).override_failure_message(
+		"the title asked for '%s' and the bound voice has no such track" % wanted).is_true()
+	assert_str(String(AudioBus.music_id())).is_equal(String(wanted))
+	assert_object(world.title_screen()).is_not_null()
+
+
 func test_a_game_with_no_theme_opens_a_silent_title() -> void:
 	# Silence is a legal shape, the way a null CombatDef is a game that cannot fight - and the
 	# guard matters: play_music("") would put an empty id in the log for nothing.

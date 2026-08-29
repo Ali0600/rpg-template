@@ -1330,6 +1330,11 @@ func open_title() -> bool:
 		return false
 	_teardown_game()
 	_style = style
+	# The VOICE, which until now was bound only by _build_game - so the title asked for its
+	# theme through a bus that had nothing bound and played nothing at all. A title belongs to a
+	# game exactly as a map does, and both of the things it needs to present one, the look and
+	# the sound, are resolved here.
+	AudioBus.use_style(_offered.sound_style)
 	# The letterbox around the viewport, which no map has set yet because no map has been
 	# entered. Without this the title sits in engine grey.
 	RenderingServer.set_default_clear_color(style.ui_color("panel"))
