@@ -76,6 +76,17 @@
 			],
 			"facing": "down",
 			"dialog": "warden_asks"
+		},
+		{
+			"id": "scrapper",
+			"character": "quest_scrapper",
+			"tile": [
+				1,
+				8
+			],
+			"facing": "right",
+			"dialog": "scrapper",
+			"behavior": "static"
 		}
 	],
 	"objects": [

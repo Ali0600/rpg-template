@@ -193,8 +193,23 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M24** — music: a tune authored as notes in `data/music/`, performed by the same synthesiser the sound effects use, so each style plays the same melody in its own voice
 - [x] **M25** — magic: MP as a level curve, spells in `data/spells/` known by reaching their own level, and a Magic command between Attack and Item with an attack, a heal and a sleep behind it
 - [x] **M26** — a battle theme and a victory fanfare: a fight takes the room's music over, a win stings once and hands the room back to whatever the map states
+- [x] **M27** — a party: a second fighter who joins through a conversation, a round where everybody gives an order before anything happens, an ally cursor that only exists once there is somebody to aim at, and per-member equipment and status pages
 
 ## Experience Gained
+
+- Extended a single-actor combat system to N actors without changing a line of its public
+  behaviour, by making the single case a list of one rather than a second code path — verified
+  by sixteen pre-existing end-to-end play sessions passing byte-identically against the
+  rewritten engine.
+- Eliminated an entire class of persistence bug by deriving party membership from existing
+  game state instead of storing it: no roster field, no schema migration, and no way for
+  membership to drift from the event that granted it.
+- Isolated a new random draw onto its own seeded stream so that every previously recorded
+  deterministic replay continued to produce identical output, making a behavioural change
+  provably invisible to existing regression fixtures.
+- Diagnosed and repaired a masking defect found only by mutation testing in CI, where a newly
+  added validation silently subsumed an older one — leaving a guard whose removal no test
+  could detect.
 
 - Built deterministic audio sequencing on the simulation's own frame clock rather than on the
   audio device's completion callback, after measuring that the headless driver used by every

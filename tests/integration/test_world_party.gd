@@ -217,3 +217,65 @@ func test_a_rest_puts_the_whole_party_back_up() -> void:
 		"a fallen companion was left on the floor by a full night's sleep").is_equal(13)
 	assert_int(int(rook.get("mp", -1))).override_failure_message(
 		"a companion's magic did not come back with their health").is_equal(2)
+
+# --- the demo's own companion, and the member step ----------------------------------------
+
+func test_the_shipped_game_has_a_companion_nobody_has_recruited_yet() -> void:
+	# The demo's party is OPT-IN, which is what leaves the sixteen sessions written before M27
+	# fighting alone with the press counts they recorded. Their fights are still solo because
+	# the flag is not set, not because the party does not exist.
+	var manifest := load(GAME) as GameManifest
+	assert_array(manifest.party).override_failure_message(
+		"the shipped game declares no party at all").is_not_empty()
+	assert_array(manifest.problems()).is_empty()
+
+func test_a_solo_game_is_never_asked_which_member_it_means() -> void:
+	# An empty member list rather than a list of one, so the menu's "is there a step" question
+	# answers no without having to count to two.
+	await _boot()
+	assert_array(_world._member_rows()).override_failure_message(
+		"a game with no party was given a member list").is_empty()
+
+func test_a_party_of_one_is_still_no_member_step() -> void:
+	# The roster exists and nobody has joined, which is the demo's own state for most of a run.
+	await _boot([_member()])
+	assert_array(_world._member_rows()).override_failure_message(
+		"the leader alone was offered as a list to choose from").is_empty()
+
+func test_once_somebody_joins_the_menu_has_a_list() -> void:
+	await _boot([_member()])
+	GameState.set_flag(&"rook_joins", true)
+	var rows: Array = _world._member_rows()
+	assert_int(rows.size()).is_equal(2)
+	assert_str(str((rows[0] as Dictionary).get("id", "x"))).override_failure_message(
+		"the leader is not first in the member list").is_equal("")
+	assert_str(str((rows[1] as Dictionary).get("name", ""))).is_equal("Rook")
+
+func test_the_status_page_describes_the_member_it_was_asked_about() -> void:
+	await _boot([_member()])
+	GameState.set_flag(&"rook_joins", true)
+	GameState.set_party(20, 0, 1, 6)
+	_world._battle_members()
+	var leader_lines: Array = _world._status_lines()
+	var rook_lines: Array = _world._status_lines(&"rook")
+	var leader := "\n".join(leader_lines)
+	var rook := "\n".join(rook_lines)
+	assert_str(leader).contains("HP 20/20")
+	assert_str(rook).override_failure_message(
+		"the companion's page described the player instead").contains("HP 13/13")
+
+func test_gear_is_put_on_the_member_the_menu_is_about() -> void:
+	# Driven with the pause screen OPEN, because that is the only state the member selection
+	# can be made from - the handler refreshes the menu, and a test calling it with no menu up
+	# is testing a state the game cannot be in.
+	await _boot([_member()])
+	GameState.set_flag(&"rook_joins", true)
+	GameState.give_item(&"bronze_sword")
+	assert_bool(_world.open_pause()).override_failure_message(
+		"the pause menu would not open").is_true()
+	await get_tree().physics_frame
+	_world._on_member_selected(&"rook")
+	_world._on_equip_requested(&"bronze_sword")
+	assert_str(str(GameState.equipped(&"weapon", &"rook"))).override_failure_message(
+		"gear chosen on a companion's page went onto the leader").is_equal("bronze_sword")
+	assert_str(str(GameState.equipped(&"weapon"))).is_equal("")

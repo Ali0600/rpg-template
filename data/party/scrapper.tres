@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PartyMemberDef" load_steps=3 format=3]
+
+; The Barred Gate's one companion. Her numbers are deliberately NOT the player's: she starts
+; sturdier and grows slower, and she is the caster of the two - the player swings, she mends.
+; That is Dragon Quest II's split with the roles the other way round, and it is what makes
+; taking her along a decision rather than a second copy of yourself.
+;
+; EVERY NUMBER HERE IS UNJUDGED BY EAR. Nobody has played a fight with two people in it.
+
+[ext_resource type="Script" path="res://scripts/data/party_member_def.gd" id="1_member"]
+[ext_resource type="Resource" path="res://data/combat/scrapper_combat.tres" id="2_combat"]
+
+[resource]
+script = ExtResource("1_member")
+id = &"scrapper"
+name = "Rook"
+character = &"quest_scrapper"
+combat = ExtResource("2_combat")
+spells = Array[StringName]([&"mend"])
+joins_on_flag = &"rook_joins"
+join_level = 1

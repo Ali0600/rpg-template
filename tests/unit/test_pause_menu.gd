@@ -519,3 +519,86 @@ func test_cancel_on_the_status_page_returns_to_the_status_row() -> void:
 	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
 	assert_int(menu.index()).override_failure_message(
 		"backing out of the status page landed on the wrong row").is_equal(PauseMenu.Row.STATUS)
+
+
+# --- the member step ------------------------------------------------------------------------
+
+func _members() -> Array:
+	return [{"id": "", "name": "You"}, {"id": "rook", "name": "Rook"}]
+
+func test_with_one_member_equipment_opens_its_page_directly() -> void:
+	# The control every counting session depends on: with nobody else in the party, the flow is
+	# exactly the one that shipped and the presses are the presses those files recorded.
+	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")])
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP)
+
+func test_with_a_party_equipment_asks_whose_first() -> void:
+	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
+		[], _members())
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	assert_int(menu.page()).override_failure_message(
+		"a party opened somebody's equipment without asking whose").is_equal(PauseMenu.Page.MEMBER)
+	assert_int(menu.size()).is_equal(2)
+
+func test_with_a_party_status_asks_whose_first() -> void:
+	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"], _members())
+	menu.move(PauseMenu.Row.STATUS)
+	menu.confirm()
+	assert_int(menu.page()).is_equal(PauseMenu.Page.MEMBER)
+
+func test_choosing_a_member_asks_the_world_to_word_their_page() -> void:
+	# The menu decides WHO and never learns what a level is - the _status and _stats shape.
+	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
+		[], _members())
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.move(1)
+	var pick := menu.confirm()
+	assert_int(pick.kind).is_equal(PauseMenu.Kind.MEMBER)
+	assert_str(String(pick.gear)).override_failure_message(
+		"the menu asked the world about the wrong member").is_equal("rook")
+	assert_int(menu.page()).override_failure_message(
+		"choosing a member did not open the page it was standing in front of") \
+		.is_equal(PauseMenu.Page.EQUIP)
+
+func test_the_member_page_names_who_it_is_asking_about() -> void:
+	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"], _members())
+	menu.move(PauseMenu.Row.STATUS)
+	menu.confirm()
+	assert_str(menu.member_label(0)).is_equal("You")
+	assert_str(menu.member_label(1)).is_equal("Rook")
+
+func test_backing_out_of_a_members_page_returns_to_the_member_list() -> void:
+	# The player is changing their mind about WHOSE page they wanted, not about wanting one.
+	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
+		[], _members())
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.move(1)
+	menu.confirm()
+	menu.cancel()
+	assert_int(menu.page()).override_failure_message(
+		"backing out of a member's page left the menu entirely").is_equal(PauseMenu.Page.MEMBER)
+	assert_int(menu.index()).override_failure_message(
+		"the member list came back with the cursor somewhere else").is_equal(1)
+
+func test_backing_out_of_the_member_list_returns_to_the_row_that_opened_it() -> void:
+	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"], _members())
+	menu.move(PauseMenu.Row.STATUS)
+	menu.confirm()
+	menu.cancel()
+	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
+	assert_int(menu.index()).override_failure_message(
+		"the member list backed out onto the wrong row").is_equal(PauseMenu.Row.STATUS)
+
+func test_with_one_member_backing_out_of_equipment_still_leaves_it() -> void:
+	# The other half of the control: no member step means nothing to come back to, so cancel
+	# behaves exactly as it always did.
+	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")])
+	menu.move(PauseMenu.Row.EQUIP)
+	menu.confirm()
+	menu.cancel()
+	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)

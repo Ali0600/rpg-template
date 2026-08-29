@@ -31,6 +31,9 @@ var _hint: ControlsHint
 ## game's - so _teardown_game frees it.
 var _pause: PauseScreen
 var _battle: BattleScreen
+## Who the paused screen's pages are about. Reset to the leader whenever the menu opens, so a
+## player who looked at a companion last time does not come back to their page.
+var _pause_member: StringName = &""
 var _shop: ShopScreen
 var _game_over: GameOverScreen
 var _night: RestScreen
@@ -778,6 +781,16 @@ func _apply_effects(effects: Array) -> bool:
 					StringName(str(effect.get("spawn", "start")))) or did
 			_:
 				push_error("World: unknown effect '%s' - nothing carried it out" % op)
+	# A flag this list set may have been somebody joining, so anyone the roster now says is
+	# along is made real here. Membership is derived, but a member's NUMBERS are not - and
+	# filling them at the sink is what makes "they joined" and "they have health" the same
+	# moment. Left to the next fight instead, a party page would show a companion at nought
+	# health who is not hurt, merely unasked-for.
+	# `joined` rather than `member`: three other loops in this file iterate the active party,
+	# and four byte-identical lines make any mutant aimed at one of them report a verdict about
+	# whichever sed reached first.
+	for joined in _active_party():
+		_ensure_member(joined)
 	return did
 
 
@@ -814,9 +827,11 @@ func open_pause() -> bool:
 	_pause.load_requested.connect(_on_load_requested)
 	_pause.equip_requested.connect(_on_equip_requested)
 	_pause.unequip_requested.connect(_on_unequip_requested)
+	_pause.member_selected.connect(_on_member_selected)
 	add_child(_pause)
+	_pause_member = &""
 	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
-		_gold_label(), _gear_rows(), _stats_label(), _status_lines()),
+		_gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows()),
 		_style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
@@ -1052,16 +1067,63 @@ func _close_shop() -> void:
 ## arguments is four places to forget the one that was just added.
 func _refresh_pause() -> void:
 	_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label(),
-		_gear_rows(), _stats_label(), _status_lines())
+		_gear_rows(_pause_member), _stats_label(_pause_member),
+		_status_lines(_pause_member), _member_rows())
+
+
+## Who the paused screen's Equipment and Status pages are currently about. Empty is the leader.
+## Held by the WORLD rather than read back off the menu, because it is the world that has to
+## word the pages and the menu is the thing being told.
+func _on_member_selected(member: StringName) -> void:
+	_pause_member = member
+	_refresh_pause()
+
+
+## The party as the menu needs it: who, and what they are called. Their numbers are not in here
+## - those are the world's words, handed over one member at a time as the selection changes.
+##
+## A game with no party gets an EMPTY list rather than a list of one, so the menu's "is there a
+## member step" question answers no without having to count to two.
+func _member_rows() -> Array:
+	var out: Array = []
+	if _game == null or _game.party.is_empty():
+		return out
+	out.append({"id": "", "name": "You"})
+	for member in _active_party():
+		out.append({"id": String(member.id), "name": member.name})
+	# One name is not a party: with nobody recruited yet the leader stands alone, and a member
+	# step in front of a page with one answer is the cursor-with-one-row problem again.
+	return [] if out.size() < 2 else out
 
 
 ## One row per slot the template knows about, each naming what is in it. Built HERE for the
 ## reason the bag's rows are: asking what the thing worn in a slot is called means asking the
 ## Registry, and PauseMenu may not.
-func _gear_rows() -> Array:
+## The curve and the level of whoever a page is about. An empty member is the leader, whose
+## numbers are the four fields on GameState; a companion carries their own of both. One
+## function, so the gear rows, the stats line and the status page cannot end up describing
+## different people on the same screen.
+func _member_curve(member: StringName) -> CombatDef:
+	if _game == null:
+		return null
+	if String(member).is_empty():
+		return _game.combat
+	for def in _active_party():
+		if def.id == member:
+			return def.combat if def.combat != null else _game.combat
+	return _game.combat
+
+
+func _member_level(member: StringName) -> int:
+	if String(member).is_empty():
+		return GameState.player_level
+	return maxi(int(GameState.companion(member).get("level", 1)), 1)
+
+
+func _gear_rows(member: StringName = &"") -> Array:
 	var out: Array = []
 	for slot in ItemDef.SLOTS:
-		var worn := GameState.equipped(slot)
+		var worn := GameState.equipped(slot, member)
 		var worn_name := ""
 		if not String(worn).is_empty():
 			var def := Registry.get_resource(&"ItemDef", worn) as ItemDef
@@ -1069,7 +1131,7 @@ func _gear_rows() -> Array:
 			# blank row would read as an empty slot, which is a different fact entirely.
 			worn_name = def.name if def != null and not def.name.is_empty() else String(worn)
 		out.append(PauseMenu.GearRow.of(slot, String(slot).capitalize(), worn_name,
-			_takeoff_effect(slot)))
+			_takeoff_effect(slot, member)))
 	return out
 
 
@@ -1078,29 +1140,40 @@ func _gear_rows() -> Array:
 ## has one at all. A game with no CombatDef gets the gear lines and nothing else - inventing
 ## an HP row for a game with no fighting in it would be the screen describing a system that
 ## does not exist.
-func _status_lines() -> Array[String]:
+func _status_lines(member: StringName = &"") -> Array[String]:
 	var out: Array[String] = []
-	if _game != null and _game.combat != null:
-		var level := GameState.player_level
+	var curve := _member_curve(member)
+	if curve != null:
+		# One member's numbers, read from wherever that member's numbers live: the leader's are
+		# the four fields on GameState, a companion's are their record. Asked through two
+		# helpers so this page and the equipment page cannot describe different people.
+		var level := _member_level(member)
+		var hp := GameState.player_hp
+		var mp := GameState.player_mp
+		var xp := GameState.player_xp
+		if not String(member).is_empty():
+			var numbers := GameState.companion(member)
+			hp = int(numbers.get("hp", 0))
+			mp = int(numbers.get("mp", 0))
+			xp = int(numbers.get("xp", 0))
 		out.append("Level %d" % level)
-		out.append("HP %d/%d" % [GameState.player_hp, _game.combat.max_hp(level)])
-		# Only for a game that HAS magic. A game with no spells would otherwise carry a line
+		out.append("HP %d/%d" % [hp, curve.max_hp(level)])
+		# Only for a member who HAS magic. A member with no spells would otherwise carry a line
 		# reading "MP 0/0" forever, which is a system the player is told about and can never find.
-		if _game.combat.max_mp(level) > 0:
-			out.append("MP %d/%d" % [GameState.player_mp, _game.combat.max_mp(level)])
+		if curve.max_mp(level) > 0:
+			out.append("MP %d/%d" % [mp, curve.max_mp(level)])
 		# The line a player actually opens this page for: "am I strong enough" as a number.
 		# At the top of the curve there is no next level, and saying so is the honest answer -
 		# a game that keeps promising one is a game whose numbers stopped meaning anything.
-		var next_at := _game.combat.xp_for_next(level)
+		var next_at := curve.xp_for_next(level)
 		if next_at < 0:
-			out.append("XP %d  (fully grown)" % GameState.player_xp)
+			out.append("XP %d  (fully grown)" % xp)
 		else:
-			out.append("XP %d  (next in %d)" % [
-				GameState.player_xp, maxi(next_at - GameState.player_xp, 0)])
+			out.append("XP %d  (next in %d)" % [xp, maxi(next_at - xp, 0)])
 		out.append("Atk %d+%d   Def %d+%d" % [
-			_game.combat.attack_at(level), _equip_mod(&"attack"),
-			_game.combat.defense_at(level), _equip_mod(&"defense")])
-	for row: PauseMenu.GearRow in _gear_rows():
+			curve.attack_at(level), _equip_mod(&"attack", member),
+			curve.defense_at(level), _equip_mod(&"defense", member)])
+	for row: PauseMenu.GearRow in _gear_rows(member):
 		out.append(PauseMenu.gear_label(row))
 	return out
 
@@ -1108,12 +1181,18 @@ func _status_lines() -> Array[String]:
 ## What the player's numbers are, gear counted separately so the contribution is legible.
 ## Empty for a game with no fighting in it - naming an attack stat a game does not have would
 ## be the screen inventing a system.
-func _stats_label() -> String:
-	if _game == null or _game.combat == null:
+func _stats_label(member: StringName = &"") -> String:
+	# `grown` rather than `level`, and `growth` rather than `curve`: the equivalent lines in
+	# _status_lines below would otherwise be byte-identical to these, and a mutant aimed at
+	# either would edit whichever function sed reached first and report a verdict about the
+	# other one. Two functions that legitimately say the same thing have to SAY it differently.
+	var growth := _member_curve(member)
+	if growth == null:
 		return ""
+	var grown := _member_level(member)
 	return "Atk %d+%d  Def %d+%d" % [
-		_game.combat.attack_at(GameState.player_level), _equip_mod(&"attack"),
-		_game.combat.defense_at(GameState.player_level), _equip_mod(&"defense")]
+		growth.attack_at(grown), _equip_mod(&"attack", member),
+		growth.defense_at(grown), _equip_mod(&"defense", member)]
 
 
 ## What wearing this INSTEAD of what is in its slot would do, for the line under the candidate
@@ -1136,8 +1215,8 @@ func _candidate_effect(def: ItemDef) -> String:
 
 ## What taking off whatever is in this slot would do. Empty when the slot is bare, which is
 ## also how the page knows a take-off there has nothing to take.
-func _takeoff_effect(slot: StringName) -> String:
-	var worn := Registry.get_resource(&"ItemDef", GameState.equipped(slot)) as ItemDef
+func _takeoff_effect(slot: StringName, member: StringName = &"") -> String:
+	var worn := Registry.get_resource(&"ItemDef", GameState.equipped(slot, member)) as ItemDef
 	if worn == null:
 		return ""
 	return "Take off: %s  (%s)" % [_delta_words(-worn.attack, -worn.defense), _totals_words()]
@@ -1579,13 +1658,13 @@ func _on_equip_requested(item_id: StringName) -> void:
 	# Equip, never toggle. The candidate page has a row of its own for taking gear off, so a
 	# confirm here means one thing - and confirming what is already worn is a no-op rather
 	# than the surprise of undressing.
-	GameState.equip(def.slot, item_id)
+	GameState.equip(def.slot, item_id, _pause_member)
 	if _pause != null:
 		_refresh_pause()
 
 
 func _on_unequip_requested(slot: StringName) -> void:
-	GameState.unequip(slot)
+	GameState.unequip(slot, _pause_member)
 	if _pause != null:
 		_refresh_pause()
 

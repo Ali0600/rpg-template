@@ -350,16 +350,16 @@ scripts/ui/pause_menu.gd	s|^\t_page = Page.EQUIP$|\tpass|	tests/unit/test_pause_
 scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.EQUIP$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the wardrobe lands the cursor on Save
 scripts/ui/pause_menu.gd	s|\t\treturn "%s: \(nothing\)" % row.label|\t\treturn ""|	tests/unit/test_pause_menu.gd	an empty slot draws a blank row, which reads as a menu that failed
 scripts/ui/pause_menu.gd	s|\t\treturn "\(take off\)"|\t\treturn ""|	tests/unit/test_pause_menu.gd	the one row that removes gear is drawn as an empty line
-scripts/world/world_scene.gd	s|\tGameState.equip\(def.slot, item_id\)|\tpass|	tests/integration/test_world_equipment.gd	a confirm on the equipment screen never reaches the slot map
-scripts/world/world_scene.gd	s|\tGameState.unequip\(slot\)|\tpass|	tests/integration/test_world_equipment.gd	the world hears the take-off and leaves the gear on
+scripts/world/world_scene.gd	s|\tGameState.equip\(def.slot, item_id, _pause_member\)|\tpass|	tests/integration/test_world_equipment.gd	a confirm on the equipment screen never reaches the slot map
+scripts/world/world_scene.gd	s|\tGameState.unequip\(slot, _pause_member\)|\tpass|	tests/integration/test_world_equipment.gd	the world hears the take-off and leaves the gear on
 scripts/world/world_scene.gd	s|\t\tattack_delta -= current.attack|\t\tpass|	tests/integration/test_world_equipment.gd	a candidate promises its own stats again instead of the swap it would be
-scripts/world/world_scene.gd	s|\t\t_game.combat.attack_at\(GameState.player_level\), _equip_mod\(&"attack"\),|\t\t0, 0,|	tests/integration/test_world_equipment.gd	the equip screen stops saying what the player's numbers actually are
+scripts/world/world_scene.gd	s|\t\tgrowth.attack_at\(grown\), _equip_mod\(&"attack", member\),|\t\t0, 0,|	tests/integration/test_world_equipment.gd	the equip screen stops saying what the player's numbers actually are
 scripts/ui/pause_screen.gd	s|\t_stats.visible = equipping and not _menu.stats_label\(\).is_empty\(\)|\t_stats.visible = false|	tests/integration/test_pause_and_saves.gd	the stats readout never draws, so a delta has nothing to be a delta of
 scripts/ui/pause_menu.gd	s|\t\tif _index == Row.STATUS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot ask how its player is doing
 scripts/ui/pause_menu.gd	s|\t\treturn "\(nothing to report\)"|\t\treturn ""|	tests/unit/test_pause_menu.gd	a status page with nothing to say draws blanks, which reads as a failed draw
 scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.STATUS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the status page lands the cursor on Save
 scripts/world/world_scene.gd	s|\t\tout.append\("Level %d" % level\)|\t\tpass|	tests/integration/test_world_equipment.gd	the status page never says what level the player is
-scripts/world/world_scene.gd	s|\t\tout.append\("HP %d/%d" % \[GameState.player_hp, _game.combat.max_hp\(level\)\]\)|\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how hurt the player is
+scripts/world/world_scene.gd	s|\t\tout.append\("HP %d/%d" % \[hp, curve.max_hp\(level\)\]\)|\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how hurt the player is
 scripts/world/world_scene.gd	s|\t\t\tout.append\("XP %d  \(next in %d\)" % \[|\t\t\tout.append("" % [|	tests/integration/test_world_equipment.gd	the line a player opens the status page FOR is missing
 scripts/world/world_scene.gd	s|\t\tout.append\(PauseMenu.gear_label\(row\)\)|\t\tpass|	tests/integration/test_world_equipment.gd	the status page cannot tell you what you are wearing
 scripts/ui/dialog_runner.gd	s|\tif not _can_afford\(choice\):|\tif false:|	tests/unit/test_dialog_runner.gd	a player with no coin sleeps anyway and the purse goes wherever it likes
@@ -443,7 +443,7 @@ scripts/ui/battle_screen.gd	s|\t\tvar at := first \+ i|\t\tvar at := i|	tests/in
 scripts/ui/battle_screen.gd	s|\tlabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT|\tpass|	tests/integration/test_battle_layout.gd	the player block runs left across the screen and lands on the command list again
 scripts/ui/battle_screen.gd	s|if _logic.member_count\(\) != 1 or _logic.member_max_mp\(0\) <= 0:|if false:|	tests/integration/test_battle_layout.gd	a game with no magic is told about magic it does not have
 scripts/ui/battle_screen.gd	s|\t\treturn \"%s  %d MP\" % \[spell.name, spell.cost\]|\t\treturn spell.name|	tests/integration/test_world_battles.gd	the spell page names no prices, so the choice is made blind
-scripts/world/world_scene.gd	s|\t\t\tout.append\(\"MP %d/%d\" % \[GameState.player_mp, _game.combat.max_mp\(level\)\]\)|\t\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how much magic is left
+scripts/world/world_scene.gd	s|\t\t\tout.append\("MP %d/%d" % \[mp, curve.max_mp\(level\)\]\)|\t\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how much magic is left
 
 # --- M26: a battle theme and a fanfare ---
 scripts/autoload/audio_bus.gd	s|\t\twav.loop_mode = AudioStreamWAV.LOOP_DISABLED|\t\tpass|	tests/unit/test_audio_bus.gd	a fanfare loops forever, so the room is never handed back
@@ -495,3 +495,10 @@ scripts/ui/battle_screen.gd	s|\t\tvar mine := acting and player_side and swingin
 scripts/ui/battle_screen.gd	s|\treturn MEMBERS_Y \+ at \* MEMBER_PITCH|\treturn MEMBERS_Y|	tests/integration/test_battle_layout.gd	a party's blocks are all drawn on top of each other
 
 scripts/autoload/game_state.gd	s|^\tif String\(slot\).is_empty\(\):$|\tif false:|	tests/unit/test_party.gd	gear can be equipped into a slot that is not a slot
+scripts/ui/pause_menu.gd	s|^\tif _members.size\(\) > 1:$|\tif false:|	tests/unit/test_pause_menu.gd	a party opens equipment without asking whose
+scripts/ui/pause_menu.gd	s|\t\t_member = clampi\(_index, 0, _members.size\(\) - 1\)|\t\t_member = 0|	tests/unit/test_pause_menu.gd	the member page is drawn, read and ignored
+scripts/ui/pause_menu.gd	s|\tif has_members\(\) and \(_page == Page.EQUIP or _page == Page.STATUS\):|\tif false:|	tests/unit/test_pause_menu.gd	backing out of a member's page leaves the menu entirely
+scripts/world/world_scene.gd	s|\treturn \[\] if out.size\(\) < 2 else out|\treturn out|	tests/integration/test_world_party.gd	a solo game is asked which member it means
+scripts/world/world_scene.gd	s|\t_pause_member = member|\tpass|	tests/integration/test_world_party.gd	picking a member changes whose page is drawn not at all
+scripts/world/world_scene.gd	s|\t\tGameState.set_companion\(member.id, curve.max_hp\(at\), int\(numbers.get\("xp", 0\)\), at,|\t\tGameState.set_companion(member.id, 1, int(numbers.get("xp", 0)), at,|	tests/integration/test_world_party.gd	a night's sleep leaves the companion where they fell
+scripts/world/world_scene.gd	s|^\tfor joined in _active_party\(\):$|\tfor joined in []:|	tests/fixtures/qa/quest/recruit_a_companion.json	somebody joins and has no numbers until the next fight asks for them

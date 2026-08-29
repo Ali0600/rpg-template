@@ -1,0 +1,62 @@
+{
+	"_readme": [
+		"Somebody joins, and the party is two. The whole recruiting mechanism played rather than",
+		"unit-tested: a dialog choice sets a flag, and that flag IS the membership - there is no",
+		"join op to fire and no roster to write, so what this proves is that the derivation runs",
+		"all the way from a pressed key to a second fighter on the screen.",
+		"",
+		"Rook stands at village [8,8], by the road east. The player starts at [5,5], so the leg is",
+		"south to row 8-9 and then east until a body stops it - held against GEOMETRY rather than",
+		"counted in tiles, which is the rule for every leg in every session here.",
+		"",
+		"Her numbers are exact and derived, not typed in twice: 24 hp and 4 mp are what",
+		"data/combat/scrapper_combat.tres says at level 1, and _ensure_member fills them from that",
+		"curve the first time anybody asks for the party. If the fill ever reads the PLAYER's curve",
+		"instead, this reads 20 and 8 and says so."
+	],
+	"steps": [
+		{ "op": "assert_state", "state": "title" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "note", "text": "the warden opens the game - hear her out first" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "dialog" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 40 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_map", "map": "quest_village" },
+
+		{ "op": "note", "text": "nobody has joined yet, so there is no companion to ask about" },
+		{ "op": "assert_flag", "key": "rook_joins", "expect": false },
+
+		{ "op": "note", "text": "south until the well stops it, west until the wall does, then south again until Rook does - every leg held against geometry rather than counted in tiles" },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_left", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "note", "text": "down the west wall, which is the one approach she cannot be slid past - square-on, the way the warden stops a northward leg" },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
+
+		{ "op": "note", "text": "she greets, names what she is for, and then asks" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "dialog" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 60 },
+		{ "op": "wait", "frames": 10 },
+
+		{ "op": "note", "text": "the first choice is 'Come with me' - taking it is the whole recruit" },
+		{ "op": "assert_flag", "key": "rook_joins", "expect": true },
+
+		{ "op": "note", "text": "and she is real now, on HER curve: 24 hp and 4 mp at level 1, not the player's 20 and 8" },
+		{ "op": "assert_hp", "member": "scrapper", "value": 24 },
+		{ "op": "assert_mp", "member": "scrapper", "value": 4 },
+		{ "op": "assert_level", "member": "scrapper", "value": 1 },
+		{ "op": "assert_xp", "member": "scrapper", "value": 0 },
+
+		{ "op": "note", "text": "the player is untouched by any of it" },
+		{ "op": "assert_hp", "value": 20 },
+		{ "op": "assert_mp", "value": 8 }
+	]
+}
