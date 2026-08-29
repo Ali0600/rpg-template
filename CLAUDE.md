@@ -302,6 +302,25 @@ whether it HAS one, is a manifest question a pure menu may not ask. A game with 
 report)" rather than a page of blanks. At the top of the xp curve the page says so instead of
 promising a level that is not coming.
 
+**The flow is DATA, and it is updated before the code that changes it.** `tools/flow_model.json`
+declares every state, what must be true while the machine is in it, and every way between them -
+including the EXACT sequence of `flow_changed` events each move may emit.
+`tests/integration/test_flow_model.gd` drives all of it through the real world scene and fails
+when the recording differs, so the model is checked rather than believed; membership is asserted
+both ways, so a new `Router.State` with no row in the model fails the build. `docs/FLOW.md` is
+drawn from it by `tools/gen_flow_doc.gd` and drift-gated - a picture, never a source.
+
+It exists because the knowledge of what a transition passes THROUGH lived only in scattered
+code, and the question nobody asked - what does this new edge go through? - shipped a Continue
+that replayed the game's opening conversation over the loaded save. The failure the gate is
+built to catch is an UNDECLARED INTERMEDIATE STATE: an action that arrives where it promised,
+having gone somewhere nobody wrote down.
+
+**Two moves are two hops, and both are deliberate.** A defeat is `battle -> world -> game_over`
+and leaving a game over for the title is `game_over -> world -> title`, because the screen being
+left is torn down before the next is built - two full-screen views are never stacked. An EMPTY
+trace is a legal answer: a warp re-enters a map from WORLD, and WORLD to WORLD is not a change.
+
 **Every state change announces itself, including the ones that look like housekeeping.**
 `reset()` and `to_title()` both go through `_to_base()`, which clears the stack and then calls
 `set_state` - never assigning `_state` directly. `reset()` used to assign it, so map entry (and

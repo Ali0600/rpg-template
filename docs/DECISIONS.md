@@ -1349,3 +1349,37 @@ passes, and `open_title`'s first guard is exactly that. It is not a bug — **a 
 compares equal to null in this engine**, measured and now pinned in
 `test_engine_assumptions.gd`. The nulls were made consistent anyway; the test that "proved" the
 bug passed with the code sabotaged, which is what exposed the wrong premise.
+
+## The flow is a model the agent keeps, not a diagram a human reads — *M23*
+
+**The fork:** after Continue-from-title replayed the game's opening, the question was what
+stops the next bug of that class — a legal transition sequence nobody thought about.
+
+- **The flow as machine-readable data plus a conformance gate** — *chosen, by the user*, who
+  framed it exactly right: "godot-statecharts, but for you". The model is written for the agent
+  to consult and update; `docs/FLOW.md` is a byproduct, generated and drift-gated, never a
+  source. Knowledge that was re-derived every session becomes an artifact, and the gate is what
+  stops it rotting into a comment.
+- **[GraphWalker](https://graphwalker.github.io/) / [AltWalker](https://github.com/altwalker/altwalker)**
+  — *rejected, with the research kept.* They are the reference model-based-testing tools:
+  graph models, `random(edge_coverage(100))` generators, JavaScript guards, offline path
+  generation. Adopting either puts Java (and for AltWalker, Python) into a gate that currently
+  needs only the engine. The finding that settled it: **in every option the expensive part is
+  identical** — the per-edge adapters and per-vertex invariants — and path generation over 8
+  states and 17 edges is the trivial part. Their engines earn their keep at hundreds of nodes.
+  **Revisit hook:** `tools/flow_model.json`'s edge list; if it ever outgrows a page, its
+  generators are what to borrow.
+- **[Hypothesis](https://hypothesis.readthedocs.io/en/latest/stateful.html)-style stateful
+  testing** — *deferred — worth trying* for one feature nothing else has: **shrinking**, which
+  minimizes a failing 40-step sequence to the shortest one that still fails. Revisit hook: the
+  seeded-walk layer, where a long failing walk is exactly the thing worth shrinking.
+- **[godot-statecharts](https://github.com/derkork/godot-statecharts)** — *rejected.* It is a
+  runtime library with a visual debugger: it would restructure how `Router` runs, generate no
+  checks, and would not have caught this bug. This repo also has scar tissue from editor addons
+  (the MCP one strips every comment out of `project.godot`).
+
+**Why the model records traces and not just destinations.** The bug was not an action landing
+in the wrong state — Continue *did* reach WORLD. It passed through the start map on the way,
+and the entry hooks fired. So an edge declares the exact sequence of events it may emit, and an
+undeclared intermediate hop is the failure. Two edges legitimately have two hops, and writing
+them down is half the value of the file.

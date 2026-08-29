@@ -149,6 +149,19 @@ else
   echo "SKIP  gen_sounds.gd does not exist yet (M14)"
 fi
 
+step "6c/9 the flow diagram matches the model"
+# docs/FLOW.md is drawn from tools/flow_model.json, so it is build output like the sprites and
+# the sounds. Checked here rather than in the suite because it is a file-on-disk question, and
+# checked BEFORE the play loop so a stale diagram is reported in a second rather than after
+# twenty of them. The model itself is checked against the running game by
+# tests/integration/test_flow_model.gd in step 4.
+if [ -f tools/gen_flow_doc.gd ]; then
+  "$GODOT" --headless --path . -s tools/gen_flow_doc.gd --verify
+  result $? "the flow diagram matches the model"
+else
+  echo "SKIP  gen_flow_doc.gd does not exist yet (M23)"
+fi
+
 step "7/9 play the game"
 # The gate that needs the whole thing at once: the real physics server, the real input map,
 # the real map data. It boots the game, walks the player east, and checks a wall stops them.

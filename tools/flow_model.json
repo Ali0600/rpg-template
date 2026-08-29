@@ -1,0 +1,314 @@
+{
+	"_readme": [
+		"THE FLOW MODEL. The Router's state machine, declared as data.",
+		"",
+		"This file is the single source of truth for how a player moves between screens, and it",
+		"is not documentation: tests/integration/test_flow_model.gd drives every edge below",
+		"through the real world scene, records what EventBus.flow_changed actually emitted, and",
+		"fails if the recording differs from the `trace` written here. A model nothing checks is",
+		"a comment that rots, which is why this sits beside mutants.tsv rather than in docs/.",
+		"",
+		"UPDATE THIS FILE BEFORE CHANGING FLOW CODE, not after. It exists because the knowledge",
+		"of what a transition passes THROUGH lived only in five milestones' worth of scattered",
+		"code, and the question nobody asked - what does this new edge go through? - shipped a",
+		"Continue button that replayed the game's opening conversation over the loaded save.",
+		"",
+		"WHAT A TRACE IS. The exact sequence of flow_changed events an action may emit, in order.",
+		"Most edges are one hop. Two are not, and both are real rather than accidents:",
+		"  - a defeat is battle -> world -> game_over, because _close_battle runs before",
+		"    open_game_over: the fight screen is torn down first so two full-screen views are",
+		"    never stacked.",
+		"  - leaving a game over for the title is game_over -> world then world -> title, for the",
+		"    same reason one step earlier.",
+		"An EMPTY trace is a legal answer and means the action changed no state at all. The one",
+		"that surprises people: a warp re-enters a map from WORLD, and WORLD to WORLD is not a",
+		"change.",
+		"",
+		"WHAT AN INVARIANT IS. A named fact that must hold while the machine is in that state,",
+		"asserted after every arrival. The names are resolved by the suite, so a vertex naming an",
+		"invariant nothing implements fails the build rather than passing silently.",
+		"",
+		"NOT REACHABLE IN PRODUCTION, on purpose: no overlay opens over another. The stack",
+		"supports it (test_router.gd proves that) and world_scene never does it, because",
+		"_unhandled_input refuses world input unless the state is WORLD."
+	],
+	"states": {
+		"title": {
+			"about": "The screen a run is started from. No game is built behind it.",
+			"invariants": [
+				"title_screen_up",
+				"no_game_running",
+				"player_cannot_move"
+			]
+		},
+		"world": {
+			"about": "The only state the player moves in.",
+			"invariants": [
+				"player_exists",
+				"map_is_named",
+				"player_can_move",
+				"no_overlay_up"
+			]
+		},
+		"dialog": {
+			"about": "A conversation is open; movement is suspended.",
+			"invariants": [
+				"dialog_box_open",
+				"player_cannot_move"
+			]
+		},
+		"paused": {
+			"about": "The menu is open over the world.",
+			"invariants": [
+				"pause_screen_up",
+				"game_running",
+				"player_cannot_move"
+			]
+		},
+		"battle": {
+			"about": "A fight has the screen; the world is still there underneath.",
+			"invariants": [
+				"battle_screen_up",
+				"game_running",
+				"player_cannot_move"
+			]
+		},
+		"shop": {
+			"about": "A counter is open over the live world.",
+			"invariants": [
+				"shop_screen_up",
+				"game_running",
+				"player_cannot_move"
+			]
+		},
+		"resting": {
+			"about": "A night is passing. Nothing to press; it ends on its own.",
+			"invariants": [
+				"rest_screen_up",
+				"game_running",
+				"player_cannot_move"
+			]
+		},
+		"game_over": {
+			"about": "The run ended. The ways on are a save, a fresh start, or the title.",
+			"invariants": [
+				"game_over_screen_up",
+				"player_cannot_move"
+			]
+		}
+	},
+	"edges": [
+		{
+			"action": "boot",
+			"from": "title",
+			"to": "title",
+			"trace": [],
+			"adapter": "boot",
+			"note": "The process opens on the title, so nothing has changed yet."
+		},
+		{
+			"action": "new_game",
+			"from": "title",
+			"to": "world",
+			"trace": [
+				[
+					"title",
+					"world"
+				]
+			],
+			"adapter": "new_game",
+			"note": "Announced only since M23: enter_map's reset used to assign the state field."
+		},
+		{
+			"action": "continue",
+			"from": "title",
+			"to": "world",
+			"trace": [
+				[
+					"title",
+					"world"
+				]
+			],
+			"adapter": "continue_from_title",
+			"note": "Goes through boot_from_save, NEVER through the start map. The bug this whole model exists because of was an extra world -> dialog hop right here, from the start map's entry hooks firing on the way past."
+		},
+		{
+			"action": "open_dialog",
+			"from": "world",
+			"to": "dialog",
+			"trace": [
+				[
+					"world",
+					"dialog"
+				]
+			],
+			"adapter": "open_dialog"
+		},
+		{
+			"action": "close_dialog",
+			"from": "dialog",
+			"to": "world",
+			"trace": [
+				[
+					"dialog",
+					"world"
+				]
+			],
+			"adapter": "close_dialog"
+		},
+		{
+			"action": "open_pause",
+			"from": "world",
+			"to": "paused",
+			"trace": [
+				[
+					"world",
+					"paused"
+				]
+			],
+			"adapter": "open_pause_by_key",
+			"note": "Driven by the real cancel key, because the guard that makes PAUSED reachable only from WORLD lives in _unhandled_input and nowhere else."
+		},
+		{
+			"action": "close_pause",
+			"from": "paused",
+			"to": "world",
+			"trace": [
+				[
+					"paused",
+					"world"
+				]
+			],
+			"adapter": "close_pause"
+		},
+		{
+			"action": "open_shop",
+			"from": "world",
+			"to": "shop",
+			"trace": [
+				[
+					"world",
+					"shop"
+				]
+			],
+			"adapter": "open_shop",
+			"note": "Opened DEFERRED from a dialog effect, so the adapter waits a frame."
+		},
+		{
+			"action": "close_shop",
+			"from": "shop",
+			"to": "world",
+			"trace": [
+				[
+					"shop",
+					"world"
+				]
+			],
+			"adapter": "close_shop"
+		},
+		{
+			"action": "open_rest",
+			"from": "world",
+			"to": "resting",
+			"trace": [
+				[
+					"world",
+					"resting"
+				]
+			],
+			"adapter": "open_rest"
+		},
+		{
+			"action": "close_rest",
+			"from": "resting",
+			"to": "world",
+			"trace": [
+				[
+					"resting",
+					"world"
+				]
+			],
+			"adapter": "close_rest",
+			"note": "The screen ends itself; nothing presses anything."
+		},
+		{
+			"action": "open_battle",
+			"from": "world",
+			"to": "battle",
+			"trace": [
+				[
+					"world",
+					"battle"
+				]
+			],
+			"adapter": "open_battle"
+		},
+		{
+			"action": "win_battle",
+			"from": "battle",
+			"to": "world",
+			"trace": [
+				[
+					"battle",
+					"world"
+				]
+			],
+			"adapter": "win_battle"
+		},
+		{
+			"action": "lose_battle",
+			"from": "battle",
+			"to": "game_over",
+			"trace": [
+				[
+					"battle",
+					"world"
+				],
+				[
+					"world",
+					"game_over"
+				]
+			],
+			"adapter": "lose_battle",
+			"note": "TWO hops, and the middle one is real: _close_battle runs before open_game_over so two full-screen views are never stacked."
+		},
+		{
+			"action": "game_over_to_title",
+			"from": "game_over",
+			"to": "title",
+			"trace": [
+				[
+					"game_over",
+					"world"
+				],
+				[
+					"world",
+					"title"
+				]
+			],
+			"adapter": "game_over_to_title",
+			"note": "Two hops for the same reason. The from used to read world because to_title reset first; M23 made it say where it came from."
+		},
+		{
+			"action": "game_over_new_game",
+			"from": "game_over",
+			"to": "world",
+			"trace": [
+				[
+					"game_over",
+					"world"
+				]
+			],
+			"adapter": "game_over_new_game",
+			"note": "One hop: the close pops to world and start_game's reset finds it already there."
+		},
+		{
+			"action": "warp",
+			"from": "world",
+			"to": "world",
+			"trace": [],
+			"adapter": "warp",
+			"note": "Changes the map, not the state. The empty trace is the point: a listener woken by every doorway is a listener nobody can use."
+		}
+	]
+}
