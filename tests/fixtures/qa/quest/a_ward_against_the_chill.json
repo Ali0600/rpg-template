@@ -1,0 +1,433 @@
+{
+	"_readme": [
+		"Ward, cast through the real menu at a real fight - and the Gloom's Chill answered by a",
+		"well-timed guard. M30's two halves, played rather than unit-tested.",
+		"",
+		"The route is something_worse_in_the_back's, deliberately: it is the shortest walk to a Gloom",
+		"with a level-2 caster in front of it. Both hollow pairs first, which is what buys level 2 and",
+		"with it Ward, and then the pocket, which is where the Gloom is.",
+		"",
+		"THE TAG IS THE ASSERTION, not the magic. Ember, Gale and Ward all cost 3, so a session that",
+		"only checked the pool would pass with whichever row the cursor happened to land on - a mutant",
+		"moving Ward past the level cap proved exactly that, and assert_status is the answer.",
+		"",
+		"MP is readable only at the END: a fight is pure and applies its effects when it closes, so a",
+		"mid-fight assert_mp reads the pre-fight number and always passes. That cost an hour in M29."
+	],
+	"steps": [
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "fetch Rook: south to the well, west to the wall, south to her"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 60
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": true
+		},
+		{
+			"op": "note",
+			"text": "north up the wall and through the west door; the hold carries past the warp, so the next leg re-anchors on the hollow's own geometry"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "note",
+			"text": "the two ordinary slinks, mashed - they are not what this script is about, they are how it reaches level 2"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 900
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "note",
+			"text": "a fight stops you where you stood, which is rarely a tile centre and the gap below is one tile wide - so re-anchor on the west wall, then three tiles east puts us squarely on the gap's column"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 80
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 900
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_level",
+			"value": 2
+		},
+		{
+			"op": "note",
+			"text": "20 xp where this used to read 10, because both hollow fights are pairs now - and STILL exactly level 2, because the curve doubled with them. The gold is unchanged at 8, which is the check that the halving was done right: twice the bodies at half the coin is the same purse."
+		},
+		{
+			"op": "assert_xp",
+			"value": 20
+		},
+		{
+			"op": "assert_gold",
+			"value": 8
+		},
+		{
+			"op": "note",
+			"text": "and now into the pocket, which is the long way round: the wall below is solid but for the one gap, so back to its column, north through it until the pool stops us, west along the row above the gap, and north up the west side. Arriving at [1,1] puts the pair on the right."
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 80
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "and now the thing this script is for: Ward, cast through the real menu at a real fight. Rows are Attack, Magic, Item, Flee - one down to Magic, then confirm to open the page."
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "the level-2 page is Ember, Mend, Gale, Lull, Ward - sorted by the level that bought them and then by name. Ward is the LAST row, so one press UP wraps onto it: one deliberate press rather than four counted ones, which is the reason the unit tests name a row instead of counting to it."
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "note",
+			"text": "Ward is a BOOST, so it lands on OUR side: the confirm after it is the ally cursor asking which of the two of us is being warded, and the first row is the leader."
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 120
+		},
+		{
+			"op": "note",
+			"text": "and THIS is the assertion that says it was Ward: the caption is carrying the tag. MP alone could not - Ember, Gale and Ward all cost 3, so 'the pool went down by three' is satisfied by whichever row the cursor happened to land on. A mutant that moved Ward past the level cap proved exactly that."
+		},
+		{
+			"op": "assert_status",
+			"member": 0,
+			"expect": "DEF+"
+		},
+		{
+			"op": "note",
+			"text": "and see the rest of it out well - which also means every Chill the Gloom throws is shrugged off, because a timed guard stops an affliction outright"
+		},
+		{
+			"op": "fight_well",
+			"limit": 8000
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "the pool is 11 at level 2 and Ward costs 3. This is the seam no unit test reaches: BattleLogic's own tests build a SpellRow and say what they mean, where this one came out of a .tres, through the world's resolver, onto a scrolling page, and off a keypress."
+		},
+		{
+			"op": "assert_mp",
+			"value": 8
+		},
+		{
+			"op": "assert_xp",
+			"value": 37
+		},
+		{
+			"op": "assert_level",
+			"value": 2
+		}
+	]
+}

@@ -8,6 +8,7 @@ extends GdUnitTestSuite
 
 const ENEMY_DIR := "res://data/enemies"
 const COMBAT_DIR := "res://data/combat"
+const SPELL_DIR := "res://data/spells"
 
 func _known_enemy_ids() -> Dictionary:
 	var out := {}
@@ -36,6 +37,24 @@ func test_every_shipped_enemy_is_valid_and_named_after_its_file() -> void:
 		assert_bool(seen.has(enemy.id)).override_failure_message(
 			"two files claim enemy '%s'" % enemy.id).is_false()
 		seen[enemy.id] = true
+
+func test_every_shipped_spell_is_valid_and_named_after_its_file() -> void:
+	# The enemy files have had this since M13 and the spell files never did, which a mutant found
+	# by breaking one and watching every gate stay green: a shipped spell with no duration or no
+	# power is a row that spends magic and changes nothing, and it would have surfaced in play.
+	var seen := {}
+	for path in ContentScan.files_of(SPELL_DIR, "tres"):
+		var spell := load(path) as SpellDef
+		assert_object(spell).override_failure_message(
+			"%s is under data/spells but is not a SpellDef" % path).is_not_null()
+		assert_array(spell.problems()).override_failure_message(
+			"%s: %s" % [path, ", ".join(spell.problems())]).is_empty()
+		assert_str(String(spell.id)).is_equal(path.get_file().get_basename())
+		assert_bool(seen.has(spell.id)).override_failure_message(
+			"two files claim spell '%s'" % spell.id).is_false()
+		seen[spell.id] = true
+	assert_int(seen.size()).override_failure_message(
+		"no spells were checked, so the loop above proved nothing").is_greater(0)
 
 func test_every_shipped_combat_definition_is_valid() -> void:
 	for path in ContentScan.files_of(COMBAT_DIR, "tres"):

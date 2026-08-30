@@ -108,6 +108,7 @@ hollow, and what nests on it now is why nobody has fetched it.
 | --- | --- |
 | World | town, cave, village, hollow, keep — joined by five doors |
 | Verbs | walk, talk, read a well, open a stash once, carry a key, unlock a gate with it, trade a word for a flask of oil, burn the oil lighting a lantern |
+| Magic | five spells on a level curve: damage, a heal, a sweep, a sleep, and a **ward** that raises the party's guard for three turns. The Gloom answers with Chill, which lowers it |
 | Fights | five, and every one of them a **crowd**: paired slinks twice in the hollow, paired glooms in the optional cave, a slink-and-gloom pair in the back of the hollow, and the Keeper with a gloom and a slink at its shoulders. Three are unavoidable. Both roads out of the village stay shut until Rook is along, because a fight sized for two must not be reachable by one |
 | Combat | menu turns with a timing window — a press on the cue doubles your hit or halves theirs. A party of up to three, a formation of up to three against it, a cursor to pick which foe, XP, three levels, and a tonic you can drink mid-fight |
 | Code | **one file**: which of the warden's four lines to say |
@@ -197,6 +198,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M27.1** — a member acts the moment they choose: choosing Attack swings, and the turn passes to the next fighter once the blow has landed, rather than collecting everybody's orders first
 - [x] **M28** — fights that hold a crowd: a map record names a formation, a cursor picks which foe to strike, every living enemy takes its own turn, and a spell can carry a shape that reaches all of them
 - [x] **M29** — the crowd becomes the ordinary case: every encounter is a formation, the boss brings an escort, both roads out of the village stay shut until the second sword is along, and the balance gate stopped doing arithmetic about the fight and started playing it
+- [x] **M30** — statuses that run both ways: a buff and a debuff the party can cast, an affliction enemies can inflict, durations counted in turns, and a well-timed guard that shrugs one off entirely
 
 ## Experience Gained
 
@@ -224,6 +226,12 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - Found a latent defect shipped a milestone earlier — a set-semantics helper reused where
   ordered, duplicate-bearing data was required — by extending automated coverage to an input
   shape no existing fixture produced.
+- Consolidated a value assembled independently at multiple call sites into a single derivation
+  before adding a third contributor to it, on the reasoning that duplicated arithmetic fails
+  silently and asymmetrically rather than loudly.
+- Used mutation testing against *data* rather than code to discover an entire missing validation
+  gate: one content type had been scanned against its own validator since it existed, and a
+  sibling type shipped four milestones later had never been scanned at all.
 
 - Built deterministic audio sequencing on the simulation's own frame clock rather than on the
   audio device's completion callback, after measuring that the headless driver used by every

@@ -133,6 +133,8 @@ func _run(step: Dictionary) -> void:
 			_press_until_state(step)
 		"fight_well":
 			_fight_well(step)
+		"assert_status":
+			_assert_status(step)
 		"assert_state":
 			var wanted := str(step.get("state", ""))
 			if Router.state_name() != wanted:
@@ -304,6 +306,28 @@ func _tick_fight_well() -> void:
 	if screen.cue_on() or screen.choosing():
 		_press(&"interact")
 		_fight_holding = true
+
+
+## What the battle screen is currently saying about a fighter beyond their numbers - the short
+## tag it writes beside the health. Battle-only, so this can only be asked DURING a fight, which
+## is the whole reason it exists: a status expires with the battle, so nothing outside one can
+## be asked whether it happened.
+##
+## It is also the only assertion that can tell WHICH spell was cast. MP alone cannot: three of
+## this game's spells cost 3, so "the pool went down by three" is satisfied by any of them - a
+## mutant that moved the one being tested out of reach passed a session asserting only that.
+func _assert_status(step: Dictionary) -> void:
+	var screen := _battle_screen()
+	if screen == null:
+		_fail("assert_status outside a battle - a status cannot outlive the fight it was got in")
+		return
+	var at := int(step.get("member", 0))
+	var wanted := str(step.get("expect", ""))
+	var actual := screen.logic().member_tag(at)
+	if actual != wanted:
+		_fail("expected member %d to be showing '%s', found '%s'" % [at, wanted, actual])
+	else:
+		_log.append("member %d is showing '%s'" % [at, actual])
 
 
 ## The battle view, found by TYPE rather than by a path or a group, so nothing in the shipped
