@@ -1,0 +1,419 @@
+{
+  "_readme": "Fire, at something made of the cold - the one session that proves an elemental weakness reaches a real fight.\n\nSliced from a_ward_against_the_chill up to the step that OPENS the spell leg, then given its own: same walk to the hollow's pocket, the same slink-and-gloom pair, a different row on the page.\n\nThe assertion is a FOE's health, which is the only reading that can see an element at all. Every other one is blind to it: three of this game's spells cost 3, so the pool cannot say which was cast; the fight is won with or without the weakness; and no session reads a caption. A Gloom on 14 health, ended by one 7-point Ember, is arithmetic that only works if the 200% in gloom.tres was applied.",
+  "steps": [
+    {
+      "op": "assert_state",
+      "state": "title"
+    },
+    {
+      "op": "press",
+      "action": "interact"
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "press_until_state",
+      "action": "interact",
+      "state": "world",
+      "limit": 40
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "assert_map",
+      "map": "quest_village"
+    },
+    {
+      "op": "note",
+      "text": "fetch Rook: south to the well, west to the wall, south to her"
+    },
+    {
+      "op": "hold",
+      "action": "move_down",
+      "frames": 200
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "hold",
+      "action": "move_left",
+      "frames": 200
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "hold",
+      "action": "move_down",
+      "frames": 200
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 5
+    },
+    {
+      "op": "press",
+      "action": "interact"
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "press_until_state",
+      "action": "interact",
+      "state": "world",
+      "limit": 60
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "assert_flag",
+      "key": "rook_joins",
+      "expect": true
+    },
+    {
+      "op": "note",
+      "text": "north up the wall and through the west door; the hold carries past the warp, so the next leg re-anchors on the hollow's own geometry"
+    },
+    {
+      "op": "hold",
+      "action": "move_up",
+      "frames": 200
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 5
+    },
+    {
+      "op": "assert_map",
+      "map": "quest_hollow"
+    },
+    {
+      "op": "note",
+      "text": "the two ordinary slinks, mashed - they are not what this script is about, they are how it reaches level 2"
+    },
+    {
+      "op": "hold",
+      "action": "move_down",
+      "frames": 200
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "hold",
+      "action": "move_left",
+      "frames": 300
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 5
+    },
+    {
+      "op": "assert_state",
+      "state": "battle"
+    },
+    {
+      "op": "press_until_state",
+      "action": "interact",
+      "state": "world",
+      "limit": 900
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "note",
+      "text": "a fight stops you where you stood, which is rarely a tile centre and the gap below is one tile wide - so re-anchor on the west wall, then three tiles east puts us squarely on the gap's column"
+    },
+    {
+      "op": "hold",
+      "action": "move_left",
+      "frames": 120
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "assert_position",
+      "tile": [
+        1,
+        4
+      ]
+    },
+    {
+      "op": "hold",
+      "action": "move_right",
+      "frames": 60
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "assert_position",
+      "tile": [
+        4,
+        4
+      ]
+    },
+    {
+      "op": "hold",
+      "action": "move_down",
+      "frames": 80
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 5
+    },
+    {
+      "op": "assert_state",
+      "state": "battle"
+    },
+    {
+      "op": "press_until_state",
+      "action": "interact",
+      "state": "world",
+      "limit": 900
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "assert_level",
+      "value": 2
+    },
+    {
+      "op": "note",
+      "text": "20 xp where this used to read 10, because both hollow fights are pairs now - and STILL exactly level 2, because the curve doubled with them. The gold is unchanged at 8, which is the check that the halving was done right: twice the bodies at half the coin is the same purse."
+    },
+    {
+      "op": "assert_xp",
+      "value": 20
+    },
+    {
+      "op": "assert_gold",
+      "value": 8
+    },
+    {
+      "op": "note",
+      "text": "and now into the pocket, which is the long way round: the wall below is solid but for the one gap, so back to its column, north through it until the pool stops us, west along the row above the gap, and north up the west side. Arriving at [1,1] puts the pair on the right."
+    },
+    {
+      "op": "hold",
+      "action": "move_left",
+      "frames": 120
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "hold",
+      "action": "move_right",
+      "frames": 60
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "hold",
+      "action": "move_up",
+      "frames": 100
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "assert_position",
+      "tile": [
+        4,
+        3
+      ]
+    },
+    {
+      "op": "hold",
+      "action": "move_left",
+      "frames": 120
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 3
+    },
+    {
+      "op": "assert_position",
+      "tile": [
+        1,
+        3
+      ]
+    },
+    {
+      "op": "hold",
+      "action": "move_up",
+      "frames": 80
+    },
+    {
+      "op": "release_all"
+    },
+    {
+      "op": "wait",
+      "frames": 5
+    },
+    {
+      "op": "assert_state",
+      "state": "battle"
+    },
+    {
+      "op": "note",
+      "text": "and now the thing THIS script is for: Ember, at something made of the cold. Rows are Attack, Magic, Item, Flee - one down to Magic, then confirm to open the page."
+    },
+    {
+      "op": "press",
+      "action": "move_down"
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "press",
+      "action": "interact"
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "assert_state",
+      "state": "battle"
+    },
+    {
+      "op": "note",
+      "text": "the level-2 page is Ember, Mend, Gale, Lull, Ward - by the level that bought them, then by name. Ember is the FIRST row and the cursor opens on it, so this confirm needs no movement at all."
+    },
+    {
+      "op": "press",
+      "action": "interact"
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "note",
+      "text": "Ember is an ATTACK, so the next confirm is the FOE cursor rather than the ally one. This record is 'the_pair': a slink AND a gloom, in that order - so one press DOWN moves off the slink and onto the thing made of the cold."
+    },
+    {
+      "op": "press",
+      "action": "move_down"
+    },
+    {
+      "op": "wait",
+      "frames": 10
+    },
+    {
+      "op": "press",
+      "action": "interact"
+    },
+    {
+      "op": "wait",
+      "frames": 120
+    },
+    {
+      "op": "note",
+      "text": "and THIS is the assertion the milestone exists for. A gloom has 14 health and Ember is worth 7, so one cast can only end it if the 200% in gloom.tres was applied - at face value this reads 7. The slink standing beside it is the control: same spell, no answer to fire, and it takes the plain 7 a moment earlier in this very script's own history. Nothing else a session can measure would notice - the magic spent is 3 either way, the fight is won either way, and no session reads a caption."
+    },
+    {
+      "op": "assert_foe_hp",
+      "foe": 1,
+      "expect": 0
+    },
+    {
+      "op": "note",
+      "text": "and see the rest of it out well"
+    },
+    {
+      "op": "fight_well",
+      "limit": 8000
+    },
+    {
+      "op": "wait",
+      "frames": 20
+    },
+    {
+      "op": "assert_state",
+      "state": "world"
+    },
+    {
+      "op": "note",
+      "text": "the pool is 11 at level 2 and Ward costs 3. This is the seam no unit test reaches: BattleLogic's own tests build a SpellRow and say what they mean, where this one came out of a .tres, through the world's resolver, onto a scrolling page, and off a keypress."
+    },
+    {
+      "op": "assert_mp",
+      "value": 8
+    },
+    {
+      "op": "assert_xp",
+      "value": 37
+    },
+    {
+      "op": "assert_level",
+      "value": 2
+    }
+  ]
+}

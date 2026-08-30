@@ -1063,6 +1063,34 @@ func _spell_damage(row: SpellRow, target: Foe) -> int:
 	return maxi(row.power * pct / 100, 1)
 
 
+## What the caption adds when an element told, and nothing at all when it did not.
+##
+## THE GENRE SPLITS HERE, AND THE SPLIT TRACKS THE ARITHMETIC. Pokemon multiplies and announces
+## every non-neutral hit ("It's super effective!"); Dragon Quest's resistance is a CHANCE to
+## negate the spell outright, so there is no partial result to describe and only the failure
+## needs words; Final Fantasy I multiplies (1.5x weak, 0.5x resist for magic) and says nothing at
+## all - its battle-message table contains no elemental string of any kind. This template
+## multiplies, so it takes the announcing answer: a bare damage figure cannot tell a player
+## whether 12 was big, because they have nothing to compare it against on the turn it happens.
+##
+## FF1 is the outlier that proves it rather than the precedent that excuses it - its elemental
+## system also shipped half-broken, with the physical weakness bonus unreachable for players.
+##
+## A SWEEP GETS NO CLAUSE, and that is this rule rather than an exception to it. Its caption
+## already names what each foe took side by side, so the comparison Pokemon supplies in words is
+## sitting in the numbers - and one clause per foe would not fit the box the dialog gate measures.
+## `answer` rather than `pct`, deliberately: `_spell_damage` above opens with the same lookup, and
+## two character-identical lines make a mutant aimed at either one report a verdict about the
+## other. The aim gate refuses the ambiguity rather than picking, so the names differ.
+func _effect_word(row: SpellRow, target: Foe) -> String:
+	var answer := target.def.resistance_to(row.element)
+	if answer > 100:
+		return " %s is weak to it." % target.name
+	if answer < 100:
+		return " %s shrugs most of it off." % target.name
+	return ""
+
+
 func _cast(order: Order) -> void:
 	var caster := _fighter(order.member)
 	var row := order.spell
@@ -1137,7 +1165,8 @@ func _cast(order: Order) -> void:
 			var hit := _foe(order.foe if order.foe >= 0 else 0)
 			var dealt := _spell_damage(row, hit)
 			hit.hp = maxi(hit.hp - dealt, 0)
-			var line := "%s casts %s. %d damage." % [caster.name, row.name, dealt]
+			var line := "%s casts %s. %d damage.%s" % [caster.name, row.name, dealt,
+				_effect_word(row, hit)]
 			if dealt == 0:
 				# It spent the magic and the turn and moved no number, so it SAYS so: a cast that
 				# changed nothing and reported a damage figure of zero reads as a broken button,

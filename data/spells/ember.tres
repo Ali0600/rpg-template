@@ -7,11 +7,14 @@
 ; something soft - which is the decision it exists to pose. A timed hit still beats it (10),
 ; and that is deliberate: the swing is the thing you can be GOOD at.
 ;
-; Named for an element it has no mechanics for. A resistance table is a system with a matrix
-; and a rule per pairing; the name costs nothing and reads the same at this scale. See
-; docs/DECISIONS.md.
+; MADE OF FIRE, as of M33, and the name finally means something: the Gloom burns for double and
+; the Keeper shrugs half of it off. Those two answers sit in the same fight - the Keeper's escort
+; contains a Gloom - so the whole system is one encounter, which is what stops it being a feature
+; a player never meets.
 ;
-; UNJUDGED BY EAR: the gates fight with it every run and cannot judge it.
+; UNJUDGED BY EAR: the gates fight with it every run and cannot judge it. Whether one cast
+; ending a Gloom outright reads as a REWARD for knowing something or as the fight being over
+; before it started is a question for somebody holding the controls.
 
 [ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
 
@@ -24,3 +27,4 @@ mp_cost = 3
 learn_level = 1
 kind = 0
 power = 7
+element = &"fire"

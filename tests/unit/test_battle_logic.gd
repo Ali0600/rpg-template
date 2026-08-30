@@ -1599,3 +1599,32 @@ func test_a_sweep_names_what_each_foe_took() -> void:
 		"the sweep did not name what the weak foe took: %s" % said).contains("12")
 	assert_str(said).override_failure_message(
 		"the sweep did not name what the resistant foe took: %s" % said).contains("3")
+
+func test_a_weakness_is_announced() -> void:
+	# This template MULTIPLIES, and a bare damage figure cannot tell a player whether 14 was big
+	# - they have nothing to compare it against on the turn it happens. Pokemon announces for
+	# that reason and Final Fantasy I, which multiplies and stays silent, is the outlier whose
+	# elemental system also shipped half-broken. See _effect_word.
+	var battle := _fight(_answers(&"fire", 200), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"a weakness landed silently: %s" % battle.message()).contains("weak to it")
+
+func test_a_resistance_is_announced() -> void:
+	var battle := _fight(_answers(&"fire", 50), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"a resistance landed silently: %s" % battle.message()).contains("shrugs")
+
+func test_an_ordinary_hit_is_announced_as_nothing_in_particular() -> void:
+	# The control, and the rule the two above are exceptions to: a neutral hit says nothing extra,
+	# which is Pokemon's own dispatch - compare, and return silently when the answer is 100.
+	# Without this a clause appended unconditionally would pass both tests above.
+	var battle := _fight(_answers(&"ice", 200), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"an unresisted hit was described as one: %s" % battle.message()).not_contains("weak to it")
+	assert_str(battle.message()).not_contains("shrugs")
