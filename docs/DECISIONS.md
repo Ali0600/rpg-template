@@ -80,8 +80,8 @@ one-glance menu of things still worth trying.
   synthesized from the manifest, so they are called "You" and know everything their level has
   reached. Revisit hook: leader-override fields on `GameManifest` beside `player_character`.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
-  `ally_rows()` (which returns only the standing) and `_resolve_next`'s walk over `_orders`
-  (which would sort rather than iterate).
+  `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
+  (which would take an agility order rather than index order).
 
 ---
 
@@ -119,33 +119,53 @@ The largest system the audit ever listed as missing, and the two calls that deci
 (Final Fantasy I–VI ship exactly that; a follower line is `deferred — worth trying`, and the
 revisit hook is a driver reading the leader's `Locomotion.Step` history — it is meaningfully
 harder under free pixel movement, which has no grid steps to trail). And **capacity is three**,
-declared by the view and enforced by the build: the band between the fighters' feet and the help
-line holds three blocks at 320x180, and the demo ships two.
+declared by the view and audited by the layout suite at exactly that number: the band between the
+fighters' feet and the help line holds three blocks at 320x180, and the demo ships two. This
+entry said "enforced by the build" until M27.1 went looking for the check and found none — the
+layout is proven AT capacity, but no gate refuses a manifest that exceeds it, and saying so was
+worse than the gap because it is the kind of sentence a later reader takes as settled.
 
-## The round is command-all-then-resolve, in party order — *M27*
+## A member acts the moment they choose, in party order — *M27, reversed in M27.1*
 
 **The fork: when does a member's choice happen?**
 
-- **Every standing member declares, then the round resolves.** *Chosen.* Final Fantasy I's
-  manual has the player enter commands for all four characters before the round executes, and
-  Dragon Quest gives orders only at the start of a turn. It also preserves this template's
-  shape exactly: the enemy still acts after the player's side, and a solo round is
-  declare-one-resolve-immediately, which is frame-for-frame what shipped.
+- **Each member acts the moment they choose.** *Chosen in M27.1, on play.* The turn belongs to
+  one member at a time: they pick, it happens, and the next member is asked once the blow has
+  landed. [Super Mario RPG](https://www.nintendo.com/us/whatsnew/heres-all-you-need-to-know-about-battling-in-super-mario-rpg/)
+  is the genre precedent — "all the characters will wait their turn to perform an action", and
+  "when it's your turn to act, you'll choose an action" — though it orders those turns by Speed
+  where this template uses party order.
+- *Every standing member declares, then the round resolves* (Final Fantasy I's manual; Dragon
+  Quest gives orders only at the start of a turn). **Shipped in M27 and rejected on play.** The
+  citations were sound and the implementation was correct; what they could not tell us is how it
+  feels to hold the controller. The first person to play it: *"if I choose Attack with the MC, it
+  doesn't attack right after, the new party member chooses. It shouldn't be like that."* A press
+  whose effect is invisible for a whole extra menu reads as a press the game ignored. `rejected —
+  a faithful convention that plays badly here`, and the lesson is that a convention with named
+  games behind it is still a hypothesis about feel.
 - *ATB, interleaved on per-character timers* (FF4–6, Chrono Trigger). Rejected outright:
   `BattleLogic` has no clock by design — it is handed one physics frame at a time, which is what
   lets a QA script press on an exact frame. ATB needs the thing this class refuses to have.
 
+**What the reversal deleted, rather than moved.** The declaration queue; the `cancel` that took
+back the previous member's order (nothing is left to unwind once each choice has already
+happened, so a menu `cancel` is refused for everybody — the pre-party rule, restored rather than
+special-cased); and the re-checks asking whether a queued cast or item could still be paid for,
+which guarded a gap between choosing and acting that no longer exists. Redundant defence that no
+test can reach is an unkillable mutant waiting to be misdiagnosed, so it went with the rule.
+
 **The fork: what decides who acts first?**
 
-- **Party order, declared.** *Chosen.* Dragon Quest rolls agility, and rolling anything here
+- **Party order.** *Chosen.* Dragon Quest rolls agility, and rolling anything here
   would put a random draw in the turn order of a template whose whole determinism story is what
   makes sixteen play sessions a gate. The precedent that makes this genre-honest rather than a
   concession: **Final Fantasy I's own resolution order is a random shuffle of all thirteen
   combatants that ignores everyone's stats**, so the foundational entry does not derive order
   from a stat either.
 - *An agility stat on `CombatDef`.* `deferred — worth trying`, and it pairs with the backlog's
-  "flee odds and damage variance" — the revisit hook is `_resolve_next`'s walk over `_orders`,
-  which would sort rather than iterate.
+  "flee odds and damage variance". The revisit hook moved with M27.1: it used to be
+  `_resolve_next`'s walk over the queue, and it is now `_advance()`, which walks `_living()` in
+  index order and would instead walk it in an agility order settled once per round.
 
 **And the cursor.** `Phase.ALLY` opens only when more than one member is standing — the same
 argument that kept an enemy cursor out when fights went 1v1, applied to the ally side. Skipping

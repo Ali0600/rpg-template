@@ -302,7 +302,7 @@ func _paint() -> void:
 ## What one member is worth. At ONE member this is exactly the line that shipped - the name is
 ## "You" because the world synthesizes the solo leader with that name, so there is no branch
 ## here for it - and the magic half is a second line below. At two or more the magic folds in
-## and a marker says whose turn it is to give an order, or who is about to be hit.
+## and a marker says whose turn it is, or who is about to be hit.
 ##
 ## The magic half only exists for a game that has magic: a "0 MP" on a game with no spells is
 ## a stat the player can do nothing about and would spend the whole run wondering at.
@@ -316,9 +316,12 @@ func _member_caption(at: int) -> String:
 	return line
 
 
-## Whether this member is the one the screen should point at right now: the one being asked for
-## an order, or the one the enemy has aimed at. Never both at once - the fight is either taking
-## orders or swinging.
+## Whether this member is the one the screen should point at right now: the one whose turn it
+## is, or the one the enemy has aimed at. Never both at once, because nobody on the player's
+## side holds the turn while the enemy has it.
+##
+## The mark stays put across a member's whole turn - choosing AND swinging - which is what makes
+## it readable: it moves once, when the turn does, rather than blinking off at the press.
 func _marked(at: int) -> bool:
 	if _logic.commander() == at:
 		return true
@@ -441,8 +444,8 @@ func _help_text() -> String:
 		BattleLogic.Phase.ALLY:
 			return "W/S to choose who    E to confirm    Esc to go back"
 		BattleLogic.Phase.MENU:
-			# Whose orders are being taken, once there is more than one member to ask - without
-			# it a player with two fighters has to infer from the marker which menu this is.
+			# Whose turn it is, once there is more than one member to ask - without it a player
+			# with two fighters has to infer from the marker which menu this is.
 			if _logic.member_count() > 1 and _logic.commander() >= 0:
 				return "%s: W/S to choose    E to pick" % _logic.member_name(_logic.commander())
 			return "W/S to choose    E to pick"

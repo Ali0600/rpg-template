@@ -478,8 +478,9 @@ scripts/data/save_data.gd	s|if not companions.is_empty\(\) and party.is_empty\(\
 scripts/data/migrations.gd	s|\td\["companions"\] = \{\}|\tpass|	tests/unit/test_saves.gd	the v8 to v9 step forgets the key it exists to add
 scripts/autoload/qa.gd	s|if not GameState.has_companion\(member\):|if false:|	tests/unit/test_qa_ops.gd	a companion who never joined answers assertions about their health
 scripts/autoload/qa.gd	s|\t\t\t_fail\("assert_gold names member '%s', and there is one purse" % member\)|\t\t\tpass|	tests/unit/test_qa_ops.gd	the harness invents a per-member purse
-scripts/ui/battle_logic.gd	s|^\tif next >= 0:$|\tif false:|	tests/unit/test_battle_logic.gd	the first order resolves before anybody else is asked
-scripts/ui/battle_logic.gd	s|^\t\tvar taken: Order = _orders.pop_back\(\)$|\t\tvar taken: Order = _orders.back()|	tests/unit/test_battle_logic.gd	cancel hands the menu back and keeps the order it took
+scripts/ui/battle_logic.gd	s|^\t\tif who > acted:$|\t\tif false:|	tests/unit/test_battle_logic.gd	the turn never reaches the second member
+scripts/ui/battle_logic.gd	s|^\tvar acted := _commander$|\tvar acted := -1|	tests/unit/test_battle_logic.gd	the first member takes every turn and the enemy never acts
+scripts/ui/battle_logic.gd	s|^\t_commander = -1$|\tpass|	tests/integration/test_battle_layout.gd	a member stays marked while the enemy is taking aim
 scripts/ui/battle_logic.gd	s|^\tif standing.size\(\) < 2:$|\tif false:|	tests/unit/test_battle_logic.gd	a solo heal opens a cursor with one row on it
 scripts/ui/battle_logic.gd	s|\tif row.kind == SpellDef.Kind.HEAL:|\tif false:|	tests/unit/test_battle_logic.gd	a heal in a party lands on whoever cast it
 scripts/ui/battle_logic.gd	s|\tchosen.target = standing\[_index\]|\tchosen.target = _commander|	tests/unit/test_battle_logic.gd	the ally cursor is drawn, read and ignored

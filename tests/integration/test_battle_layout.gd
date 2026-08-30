@@ -304,10 +304,9 @@ func test_a_full_party_choosing_a_spell_is_drawn_without_anything_overlapping() 
 		_spell("Ember", 3), _spell("Mend", 4), _spell("Lull", 5),
 		_spell("Cinder", 6), _spell("Balm", 7), _spell("Hush", 8),
 	])
-	screen.logic().press()
-	screen._paint()
+	# Straight down to Magic and in. No opening press to hand the menu along any more: a press
+	# is a swing now, and the page being audited belongs to whoever is being asked.
 	assert_int(screen.logic().phase()).is_equal(BattleLogic.Phase.MENU)
-	# Down to Magic, then in.
 	screen.logic().move(1)
 	screen.logic().press()
 	screen._paint()
@@ -351,10 +350,9 @@ func test_only_the_member_who_is_swinging_leans_forward() -> void:
 	# because leaning is a position and the audit measures collisions.
 	var screen := _full_party_screen()
 	var logic := screen.logic()
-	for i in BattleScreen.MAX_PARTY:
-		logic.press()
+	logic.press()
 	assert_int(logic.phase()).override_failure_message(
-		"the round did not begin resolving").is_equal(BattleLogic.Phase.PLAYER_ACT)
+		"choosing Attack did not swing").is_equal(BattleLogic.Phase.PLAYER_ACT)
 	# Halfway through the wind-up, where the lean is at its most visible.
 	for i in 20:
 		if logic.count() <= logic.cue_span() / 2:
@@ -371,3 +369,44 @@ func test_only_the_member_who_is_swinging_leans_forward() -> void:
 				"member %d leaned while member %d was swinging" % [i, swinging]).is_equal(swinging)
 	assert_int(moved).override_failure_message(
 		"nobody leaned at all, so this proves nothing about who did").is_equal(1)
+
+
+func test_exactly_one_member_is_marked_at_a_time() -> void:
+	# The marker is one arrow: it follows a member from being asked through their swing, and
+	# once the whole party has gone it moves to whoever the enemy has aimed at. A member left
+	# holding the turn after their turn ends puts TWO arrows on screen, and a player reading
+	# which one means "you are about to be hit" is reading the wrong one.
+	var screen := _full_party_screen()
+	var logic := screen.logic()
+	for round_step in BattleScreen.MAX_PARTY:
+		screen._paint()
+		assert_int(_marked_count(screen)).override_failure_message(
+			"%d members were marked while member %d had the turn"
+			% [_marked_count(screen), logic.commander()]).is_equal(1)
+		logic.press()
+		_walk(logic, BattleLogic.Phase.PLAYER_ACT)
+		_walk(logic, BattleLogic.Phase.MESSAGE)
+	assert_int(logic.phase()).override_failure_message(
+		"the enemy never took its turn, so the marker was never asked to move").is_equal(
+		BattleLogic.Phase.ENEMY_ACT)
+	screen._paint()
+	assert_int(_marked_count(screen)).override_failure_message(
+		"%d members were marked while the enemy took aim" % _marked_count(screen)).is_equal(1)
+
+
+## How many member captions are currently carrying the marker.
+func _marked_count(screen: BattleScreen) -> int:
+	var out := 0
+	for label: Label in screen._member_labels:
+		if label.visible and label.text.begins_with("> "):
+			out += 1
+	return out
+
+
+## Ticks the fight out of `from`, bounded, failing rather than hanging if it never leaves.
+func _walk(logic: BattleLogic, from: BattleLogic.Phase, bound := 400) -> void:
+	for i in bound:
+		if logic.phase() != from:
+			return
+		logic.tick()
+	fail("the fight never left phase %d within %d frames" % [from, bound])

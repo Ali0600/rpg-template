@@ -80,6 +80,19 @@ func _until_leaves(battle: BattleLogic, from: BattleLogic.Phase, bound := 400) -
 		battle.tick()
 	fail("the fight never left phase %d within %d frames" % [from, bound])
 
+## Attacks with whoever has the turn and carries the fight through to whoever gets it next.
+##
+## A party fight only reaches the second member's menu THROUGH the first member's swing, so a
+## test that wants to read what member 1 is offered has to let member 0 act. Asserts it arrived
+## rather than assuming: landing somewhere else - the enemy's turn, a won fight - would otherwise
+## have the test read member 0's page a second time and pass for the wrong reason.
+func _to_the_next_member(battle: BattleLogic, who := 1) -> void:
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.commander()).override_failure_message(
+		"the turn did not reach member %d after a swing" % who).is_equal(who)
+
 ## Ticks a cue down to exactly `at` frames remaining, so a press lands on a known frame.
 func _tick_to(battle: BattleLogic, at: int) -> void:
 	for i in 500:
@@ -845,71 +858,65 @@ func test_a_solo_fight_asks_one_member_and_swings_at_once() -> void:
 	assert_int(battle.phase()).override_failure_message(
 		"a solo Attack stopped going straight into its cue").is_equal(BattleLogic.Phase.PLAYER_ACT)
 
-func test_a_party_takes_every_order_before_anything_happens() -> void:
-	# Command all, then resolve - Final Fantasy I's manual and Dragon Quest both. The first
-	# member's Attack must NOT swing; it waits for the second to be asked.
+func test_a_member_swings_the_moment_they_choose() -> void:
+	# The rule this milestone is named for. Choosing Attack SWINGS - the second member is not
+	# asked first. Playing the shipped round, a player read the pause as the game ignoring them.
 	var battle := _party_fight(_enemy(99))
 	assert_int(battle.commander()).is_equal(0)
 	battle.press()
 	assert_int(battle.phase()).override_failure_message(
-		"the first member's order resolved before the second was asked") \
-		.is_equal(BattleLogic.Phase.MENU)
-	assert_int(battle.commander()).override_failure_message(
-		"the menu was not handed to the second member").is_equal(1)
-	battle.press()
-	assert_int(battle.phase()).override_failure_message(
-		"the round did not begin resolving once everybody had spoken") \
+		"the first member's Attack did not swing when it was chosen") \
 		.is_equal(BattleLogic.Phase.PLAYER_ACT)
-
-func test_the_round_resolves_in_party_order() -> void:
-	var battle := _party_fight(_enemy(99))
-	battle.press()
-	battle.press()
 	assert_int(battle.acting_member()).override_failure_message(
-		"the round did not start with the first member").is_equal(0)
+		"somebody other than the member who chose is swinging").is_equal(0)
+
+func test_the_menu_passes_to_the_next_member_after_the_swing() -> void:
+	# AFTER, and the enemy's health is what proves it. Asserting only "the menu reached member 1"
+	# passes against a round that asks everybody first and swings later - the shipped shape this
+	# test exists to reject - because the cursor arrives there either way.
+	var battle := _party_fight(_enemy(99))
+	var before := battle.enemy_hp()
+	battle.press()
 	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
 	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
-	assert_int(battle.acting_member()).override_failure_message(
-		"the second member did not swing after the first").is_equal(1)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"the second member was asked before the first member's blow had landed").is_less(before)
+	assert_int(battle.phase()).override_failure_message(
+		"the second member was never asked").is_equal(BattleLogic.Phase.MENU)
+	assert_int(battle.commander()).override_failure_message(
+		"the menu went to the wrong member").is_equal(1)
 
-func test_a_cancel_takes_back_the_previous_members_order() -> void:
-	# Both series let a party walk its declarations backwards; without it a mis-press on the
-	# first of two can only be fixed by playing the round out.
+func test_the_enemy_waits_for_every_member() -> void:
+	# The half of the old round that survives: the party still goes in order and the enemy
+	# still goes last. Only the asking moved.
 	var battle := _party_fight(_enemy(99))
 	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	battle.press()
+	assert_int(battle.acting_member()).override_failure_message(
+		"the second member did not swing after the first").is_equal(1)
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"the enemy did not take its turn once the whole party had gone") \
+		.is_equal(BattleLogic.Phase.ENEMY_ACT)
+
+func test_a_cancel_on_the_menu_is_refused_mid_round_too() -> void:
+	# There is nothing to take back any more: the previous member's act already happened, and a
+	# cancel that unwound it would be undoing damage the enemy has already been dealt. So the
+	# pre-party rule holds for everybody - a fight is left by winning, losing or fleeing.
+	var battle := _party_fight(_enemy(99))
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
 	assert_int(battle.commander()).is_equal(1)
 	assert_bool(battle.cancel()).override_failure_message(
-		"cancel refused to take back an order").is_true()
-	assert_int(battle.commander()).override_failure_message(
-		"cancel did not hand the menu back to the member who gave the order").is_equal(0)
-	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
-	# And the order is GONE, not merely re-offered. Handing the menu back while keeping what it
-	# said leaves that member acting twice in the round, which every assertion above is blind
-	# to - both members are asked, the round resolves, and the fight simply plays out wrong.
-	battle.press()
-	battle.press()
-	# Counted on the EDGE into each act rather than by collapsing runs of the same member: the
-	# kept order makes member 0 swing twice IN A ROW, and a dedup on "different from last"
-	# reads those two as one and agrees with a correct round exactly.
-	var swung: Array[int] = []
-	# Seeded as MENU rather than as the live phase: the last press already began the first
-	# act, so reading the phase here would make the round's opening swing look like no edge
-	# at all and the count would start one short.
-	var was := BattleLogic.Phase.MENU
-	for i in 400:
-		if battle.finished() or battle.phase() == BattleLogic.Phase.ENEMY_ACT:
-			break
-		if battle.phase() == BattleLogic.Phase.PLAYER_ACT and was != BattleLogic.Phase.PLAYER_ACT:
-			swung.append(battle.acting_member())
-		was = battle.phase()
-		battle.tick()
-	assert_array(swung).override_failure_message(
-		"the round ran %s - a cancelled order was kept and acted on twice" % str(swung)) \
-		.is_equal([0, 1])
+		"cancel unwound an act that had already landed").is_false()
 
 func test_a_solo_cancel_on_the_menu_is_still_refused() -> void:
-	# The control: with one member there is never a previous order, so a fight is still left by
-	# winning, losing or fleeing and never by pressing back.
+	# The control, and now the same rule rather than a coincidence of having nobody to take an
+	# order back from.
 	var battle := _fight(_enemy(99))
 	assert_bool(battle.cancel()).is_false()
 
@@ -974,7 +981,7 @@ func test_each_member_casts_from_their_own_spell_list() -> void:
 	assert_int(battle.spell_rows().size()).is_equal(1)
 	assert_str((battle.spell_row(0) as BattleLogic.SpellRow).name).override_failure_message(
 		"the first member was offered somebody else's spells").is_equal("Ember")
-	battle.press()
+	_to_the_next_member(battle)
 	assert_str((battle.spell_row(0) as BattleLogic.SpellRow).name).override_failure_message(
 		"the second member was offered the first member's spells").is_equal("Mend")
 
@@ -986,7 +993,7 @@ func test_affordability_follows_whoever_is_choosing() -> void:
 		[_spell(SpellDef.Kind.ATTACK, 6, 7, 0, "Ember")])
 	assert_bool(battle.can_afford(battle.spell_row(0))).override_failure_message(
 		"the leader could not afford a spell they had the magic for").is_true()
-	battle.press()
+	_to_the_next_member(battle)
 	# The companion carries 4 mp against a cost of 6.
 	assert_bool(battle.can_afford(battle.spell_row(0))).override_failure_message(
 		"a spell the companion cannot pay for was offered as affordable").is_false()
@@ -994,12 +1001,16 @@ func test_affordability_follows_whoever_is_choosing() -> void:
 func test_one_member_falling_does_not_end_the_fight() -> void:
 	# The rule in every reference game: the survivors fight on, and the fallen stay down.
 	var battle := _party_fight(_enemy(99, 40), 20, 1)
-	battle.press()
-	battle.press()
+	# Played by mashing: press whenever somebody is being asked, tick otherwise. With every
+	# choice acting on the spot, a loop that only ticks stalls forever on the next member's menu
+	# and nobody ever gets hit - the fight would look peaceful rather than fail.
 	for i in 600:
 		if battle.finished() or battle.member_down(0) or battle.member_down(1):
 			break
-		battle.tick()
+		if battle.phase() == BattleLogic.Phase.MENU:
+			battle.press()
+		else:
+			battle.tick()
 	assert_bool(battle.member_down(0) or battle.member_down(1)).override_failure_message(
 		"nobody fell in a fight against something that hits for forty").is_true()
 	# Ticked PAST the line rather than read at the moment of the blow: a fight that is ending
@@ -1054,8 +1065,10 @@ func test_a_fallen_member_is_never_asked_for_an_order() -> void:
 		.is_equal(BattleLogic.Phase.PLAYER_ACT)
 
 func test_the_seal_carries_every_member_by_id() -> void:
+	# The leader's swing ends it before the companion is ever asked, which is the sharper case:
+	# a member who did nothing this fight still has to come back in the sealed party, or the
+	# world would write them out of existence on the way home.
 	var battle := _party_fight(_enemy(4))
-	battle.press()
 	battle.press()
 	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
 	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
@@ -1067,10 +1080,8 @@ func test_the_seal_carries_every_member_by_id() -> void:
 
 func test_the_enemy_aims_at_somebody_who_is_standing() -> void:
 	var battle := _party_fight(_enemy(99))
+	_to_the_next_member(battle)
 	battle.press()
-	battle.press()
-	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
-	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
 	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
 	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
 	assert_int(battle.phase()).is_equal(BattleLogic.Phase.ENEMY_ACT)

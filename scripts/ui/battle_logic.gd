@@ -154,10 +154,11 @@ class Fighter:
 		return combat.max_mp(level)
 
 
-## One thing a member has decided to do this round, waiting for the round to resolve.
+## What a member has just chosen to do, on its way to happening.
 ##
-## Declarations are collected before ANY of them happen, which is what "command all, then
-## resolve" means - so this holds the choice and the target, and nothing about the outcome.
+## It exists for the step between the two, which is the ally cursor: a heal or an item is chosen
+## before it is aimed, so the choice has to be held somewhere while the player picks who. It
+## holds the choice and the target, and nothing about the outcome.
 class Order:
 	var member: int = 0
 	var row: int = Row.ATTACK
@@ -180,13 +181,11 @@ var _sounds: Array[StringName] = []
 ## Untyped Array because a typed default for a nested class is not a constant expression -
 ## the same reason PauseMenu._items is untyped.
 var _items: Array = []
-## What has been declared this round, oldest first. Cleared as each round begins.
-var _orders: Array = []
-## Which member is choosing right now, or -1 when nobody is. The MENU, SPELLS, ITEMS and ALLY
-## pages all belong to this member.
+## Whose turn it is on the player's side, or -1 when it is the enemy's. The MENU, SPELLS, ITEMS
+## and ALLY pages all belong to this member, and so does the act they choose - a member holds
+## the turn from being asked until their blow has landed, which is what lets the view mark one
+## member throughout rather than losing them mid-swing.
 var _commander: int = 0
-## How far through _orders the resolution has walked, or -1 when it is not walking.
-var _order_at: int = -1
 ## Which member is swinging, so the view knows who to lean forward.
 var _acting: int = -1
 ## Which member the enemy has aimed at. Chosen BEFORE the cue begins rather than at the impact,
@@ -266,11 +265,8 @@ func _fighter(at: int) -> Fighter:
 	return _members[at] as Fighter
 
 
-## Starts a fresh round of declarations: nothing decided, the first member on their feet
-## choosing, and the cursor home on Attack.
+## Starts a fresh round: the first member on their feet choosing, and the cursor home on Attack.
 func _begin_round() -> void:
-	_orders = []
-	_order_at = -1
 	_acting = -1
 	_target = -1
 	_pending = null
@@ -394,8 +390,8 @@ func member_down(at: int) -> bool:
 	return _fighter(at).down()
 
 
-## Which member is choosing, or -1 when nobody is. The view marks them so a player with two
-## fighters knows whose turn they are giving orders for.
+## Which member has the turn - choosing or swinging - or -1 while the enemy has it. The view
+## marks them so a player with two fighters knows who they are pressing for.
 func commander() -> int:
 	return _commander
 
@@ -567,17 +563,9 @@ func cancel() -> bool:
 		_index = Row.ITEM
 		_want(Sfx.Cue.MENU_MOVE)
 		return true
-	if _phase == Phase.MENU and not _orders.is_empty():
-		# Taking back the previous member's order and handing the menu back to them. Both
-		# Final Fantasy and Dragon Quest let a party walk its declarations backwards, and
-		# without it a mis-press on the first of two members can only be fixed by playing the
-		# round out. With ONE member there is never a previous order, so this answers false and
-		# a solo cancel is refused exactly as it always was.
-		var taken: Order = _orders.pop_back()
-		_commander = taken.member
-		_index = taken.row
-		_want(Sfx.Cue.MENU_MOVE)
-		return true
+	# And nowhere else - including a party's menu mid-round. There is no previous choice left to
+	# take back once every choice acts on the spot: the member before this one has already swung,
+	# and unwinding that would mean giving the enemy its health back.
 	return false
 
 
@@ -626,7 +614,7 @@ func _confirm_command() -> void:
 			var order := Order.new()
 			order.member = _commander
 			order.row = Row.ATTACK
-			_declare(order)
+			_perform(order)
 		Row.MAGIC:
 			_phase = Phase.SPELLS
 			_index = 0
@@ -634,36 +622,12 @@ func _confirm_command() -> void:
 			_phase = Phase.ITEMS
 			_index = 0
 		Row.FLEE:
-			# Running is a PARTY decision, not one member's - so it resolves immediately and
-			# takes whatever has already been declared with it. A round where one member flees
-			# and the rest keep swinging is not a thing any reference game offers.
+			# Running is a PARTY decision, not one member's: whoever picks it takes everybody,
+			# and the members after them do not get asked. A round where one member flees and
+			# the rest keep swinging is not a thing any reference game offers.
 			_flee()
 		_:
 			pass
-
-
-## Records one member's choice and hands the menu to the next member still standing. When
-## nobody is left to ask, the round resolves - which is what "command all, then resolve" is.
-func _declare(order: Order) -> void:
-	_orders.append(order)
-	var standing := _living()
-	var next := -1
-	for i in standing:
-		var already := false
-		for placed: Order in _orders:
-			if placed.member == i:
-				already = true
-				break
-		if not already:
-			next = i
-			break
-	if next >= 0:
-		_commander = next
-		_phase = Phase.MENU
-		_index = Row.ATTACK
-		return
-	_commander = -1
-	_resolve_next()
 
 
 ## Opens the ally cursor, or skips it when there is only one place the thing could land.
@@ -675,7 +639,7 @@ func _aim_at_ally(order: Order, from: Phase) -> void:
 	var standing := _living()
 	if standing.size() < 2:
 		order.target = _commander
-		_declare(order)
+		_perform(order)
 		return
 	_pending = order
 	_ally_from = from
@@ -690,7 +654,7 @@ func _confirm_ally() -> void:
 	var chosen := _pending
 	chosen.target = standing[_index]
 	_pending = null
-	_declare(chosen)
+	_perform(chosen)
 
 
 ## Casting, which is three verbs behind one row.
@@ -721,7 +685,7 @@ func _confirm_spell() -> void:
 		# The only thing in the fight that has more than one place it could land.
 		_aim_at_ally(order, Phase.SPELLS)
 		return
-	_declare(order)
+	_perform(order)
 
 
 func _confirm_item() -> void:
@@ -737,27 +701,15 @@ func _confirm_item() -> void:
 	_aim_at_ally(order, Phase.ITEMS)
 
 
-# -- resolving the round ---------------------------------------------------------------------
+# -- taking the turn ---------------------------------------------------------------------------
 
 
-## Performs the next declared order, or hands the round to the enemy when there are none left.
+## Carries out what a member just chose, the moment they chose it.
 ##
-## There is deliberately NO "skip a member who fell" guard here, and it is worth saying why,
-## because it is the first thing a reader expects. Only standing members are ever asked for an
-## order, and the enemy acts once the party's whole round has resolved - so nothing on the
-## player's side can take damage between choosing and acting, and a member cannot fall mid
-## round. A guard for it would be a branch no test could reach, which this repo treats as
-## decoration rather than as safety. The day an enemy acts BETWEEN player actions is the day it
-## becomes reachable, and the day to write it.
-func _resolve_next() -> void:
-	_acting = -1
-	_order_at += 1
-	if _order_at >= _orders.size():
-		_begin_enemy_turn()
-		return
-	_perform(_orders[_order_at])
-
-
+## This is the whole shape of the round: a choice does not wait for anybody. Command-all-then-
+## resolve shipped first and a player rejected it at the controls - choosing Attack and watching
+## the menu move on to somebody else reads as the game ignoring the press, however faithful to
+## Final Fantasy I's manual it is.
 func _perform(order: Order) -> void:
 	match order.row:
 		Row.ATTACK:
@@ -768,18 +720,39 @@ func _perform(order: Order) -> void:
 		Row.ITEM:
 			_use(order)
 		_:
-			_resolve_next()
+			_advance()
+
+
+## Hands the turn to the next member still standing, or to the enemy once the party has all
+## gone. Whoever just acted is the mark: everybody before them has been asked, nobody after has.
+##
+## The fallen are skipped because _living() is re-read here rather than fixed when the round
+## began. What still cannot happen is a member falling MID-round: the enemy acts once the whole
+## party has gone, so nothing on the player's side takes damage between one act and the next.
+## The day an enemy acts between two members is the day that becomes reachable.
+func _advance() -> void:
+	_acting = -1
+	var acted := _commander
+	# `who` rather than `i`, deliberately: `for i in _living():` is the line the experience
+	# mutant anchors on over in _win, and a second copy of it here would have sed editing
+	# whichever comes first in the file and reporting a verdict about the other one.
+	for who in _living():
+		if who > acted:
+			_commander = who
+			_phase = Phase.MENU
+			_index = Row.ATTACK
+			return
+	_begin_enemy_turn()
 
 
 func _cast(order: Order) -> void:
 	var caster := _fighter(order.member)
 	var row := order.spell
-	# Checked again at the moment it happens, not only when it was chosen: a member can declare
-	# a cast and be hit before their turn comes round, and the mp they were counting on may
-	# have gone into something else in between.
-	if row == null or row.cost > caster.mp:
-		_say("%s cannot manage it." % caster.name, Phase.PLAYER_ACT)
-		return
+	# Not re-checked for affordability here, and that is a consequence of acting on the spot:
+	# _confirm_spell refuses what cannot be paid for in the same frame this runs, with nothing
+	# in between that could spend the magic. Under the queued round a member could declare a
+	# cast and have their mp go elsewhere before their turn came - that gap no longer exists,
+	# and a guard for it would be a branch no test could reach.
 	caster.mp -= row.cost
 	_want(Sfx.Cue.CAST)
 	match row.kind:
@@ -815,11 +788,8 @@ func _use(order: Order) -> void:
 	var user := _fighter(order.member)
 	var row := order.item
 	var on := _fighter(order.target if order.target >= 0 else order.member)
-	if row == null or row.count <= 0:
-		# The bag emptied between choosing and acting - two members reaching for the last tonic
-		# in one round is exactly the case a queued round makes possible.
-		_say("%s reaches for nothing." % user.name, Phase.PLAYER_ACT)
-		return
+	# No emptied-bag re-check, for _cast's reason: two members reaching for the last tonic in one
+	# round was a case the queued round made possible, and taking the turn on the spot closes it.
 	var healed := mini(on.hp + row.heal, on.max_hp()) - on.hp
 	if healed > 0:
 		_want(Sfx.Cue.HEAL)
@@ -839,17 +809,14 @@ func _use(order: Order) -> void:
 
 ## Running, which the whole party does together or not at all.
 ##
-## Declared by whichever member is choosing and resolved on the spot, taking any orders already
-## declared with it - a round where one member flees and the others keep swinging is not a
-## thing any reference game offers, and it would leave the fled member somewhere the fight has
-## no way to describe.
+## Chosen by whichever member has the turn and answered on the spot, for everybody - a round
+## where one member flees and the others keep swinging is not a thing any reference game offers,
+## and it would leave the fled member somewhere the fight has no way to describe.
 func _flee() -> void:
 	if _enemy.boss:
 		# Refused, and it still costs the turn: a free retry would make "can I run" a question
-		# with no downside, which is not a decision. The rest of the round is dropped, because
-		# the members who had already declared were declaring for a round that is now over.
-		_orders = []
-		_order_at = -1
+		# with no downside, which is not a decision. The members who had not gone yet lose their
+		# turn with it, because the round the party spent trying to run is over.
 		_commander = -1
 		_say("There is no way past the %s." % _enemy.name, Phase.ENEMY_ACT)
 		return
@@ -880,6 +847,9 @@ func _party_name() -> String:
 ## actually taken rather than by a clock.
 func _begin_enemy_turn() -> void:
 	_acting = -1
+	# Nobody on the player's side holds the turn now, which is what keeps the view marking one
+	# fighter: the mark is the commander while the party is going and the target once it is not.
+	_commander = -1
 	if _enemy_asleep_turns > 0:
 		_enemy_asleep_turns -= 1
 		_say("The %s sleeps on." % _enemy.name, Phase.MENU)
@@ -1024,9 +994,9 @@ func _leave_message() -> void:
 	_message = ""
 	match _after_message:
 		Phase.PLAYER_ACT:
-			# "Carry on down the round." Every act the party declared ends here, and the walk
-			# hands over to the enemy when it runs out of orders.
-			_resolve_next()
+			# "Carry on round the party." Every member's act ends here, and the turn goes to
+			# whoever has not had it - or to the enemy when everybody has.
+			_advance()
 		Phase.ENEMY_ACT:
 			_begin_enemy_turn()
 		Phase.MENU:

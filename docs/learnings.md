@@ -909,6 +909,46 @@ so gold only buys items and nothing outside a fight restores HP; and no way to s
 HP or level outside a battle.
 
 
+## A cited convention is still a hypothesis about how something feels to hold
+
+The reference pass tells you what the genre DOES. It cannot tell you how your version of it
+feels under a thumb, and those come apart most sharply on the mechanics that are about *pacing*
+rather than about content.
+
+**Why it came up.** M27's party research was the best this repo has done: every claim cited to
+a named game, forks recorded, the round shape argued from Final Fantasy I's own manual (enter
+commands for all four characters, *then* the round executes) and Dragon Quest's turn structure.
+It shipped command-all-then-resolve, fully tested, layout-audited, mutation-covered. The first
+person to play it rejected it in one sentence: *"if I choose Attack with the MC, it doesn't
+attack right after, the new party member chooses. It shouldn't be like that."* Nothing was
+broken. The citations were accurate. A press whose effect is invisible for a whole extra menu
+simply reads as a press the game missed, and no amount of authority behind the design changes
+what the hand expects.
+
+The replacement — each member acting the moment they choose — turns out to be equally attested
+(Super Mario RPG: characters "wait their turn to perform an action", and "when it's your turn to
+act, you'll choose an action"). So the research had not been wrong; it had been *incomplete in a
+way that could not be noticed from the inside*, because it surveyed the NES entries thoroughly
+and stopped, and the two families it found both looked fine on paper. Choosing between them was
+never a research question.
+
+**What made the reversal cheap** is worth as much as the lesson: resolution order never changed,
+only the asking, so the same choices produced the same damage, the same seeded draws and the same
+sealed numbers. The played session came out at identical hp and xp afterwards, which is what
+proved the change was choreography rather than balance. When a rework leaves an invariant like
+that available, assert it explicitly — "if any expected value changes, stop and investigate" —
+because silently re-recording the numbers is how a real regression gets accepted as part of a
+refactor.
+
+**Takeaway:** classify each researched decision as *content* (what exists — a description bar, a
+price column, a status page; research settles it) or *pacing* (when things happen relative to the
+press — a round shape, a window, an animation length; research narrows it and a person decides
+it). Put pacing decisions in front of a player early, in the milestone that ships them, flagged
+the way this repo already flags unjudged numbers. And when one is reversed, delete the machinery
+it needed rather than leaving it switchable: the queue, its take-back, and the staleness re-checks
+that only existed because a choice could go stale all went in the same commit as the rule.
+
+
 ## Designing a feature so it needs no persistence
 
 Some state does not have to be stored — it can be **recomputed from something already

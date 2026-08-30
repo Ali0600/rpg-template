@@ -225,10 +225,10 @@ play sessions a gate. Visible enemies also make a template's demo game legible i
 step-counter never is. Recorded in
 [Encounters are visible and presses are timed](DECISIONS.md).
 
-**Gap: no party.** It is the largest missing *system* in the template, and it reaches into
-`BattleLogic`, the status page and the equip screen (whose gear becomes per-character). The
-rest of this section is the research that gap needs, because "a party of three or four" with
-no games behind it is exactly the kind of sentence this file's preamble calls an opinion.
+**The party was the largest missing *system* in the template until M27**, and it reached into
+`BattleLogic`, the status page and the equip screen (whose gear became per-character). The rest
+of this section is the research that gap needed, because "a party of three or four" with no
+games behind it is exactly the kind of sentence this file's preamble calls an opinion.
 
 ### 7a. What a party is, in the games this template is modelled on
 
@@ -257,9 +257,12 @@ bench, no creation flow: one fact changes, and the party is larger. Create-at-st
 costs a whole pre-game screen. Guild recruitment (DQ3) costs a roster, a bench and a swap
 mode. From DQ4 onward the series drops creation entirely and joins are narrative.
 
-**Command entry.** Two families. **Command-all-then-resolve** is the NES norm: FF1's manual
+**Command entry.** Three families. **Command-all-then-resolve** is the NES norm: FF1's manual
 has the player enter commands for all four characters and *then* the round executes, and DQ
-works the same way — orders are given at the beginning of a turn only. **ATB** (FF4–6,
+works the same way — orders are given at the beginning of a turn only. **Act-as-you-choose**
+gives the turn to one character at a time: Super Mario RPG's characters "wait their turn to
+perform an action", and "when it's your turn to act, you'll choose an action" — the choice and
+the blow are the same beat, and SMRPG orders those turns by Speed. **ATB** (FF4–6,
 Chrono Trigger) interleaves per-character timers instead. Resolution order is where the two
 NES references disagree with each other: **DQ orders by Agility**, through a randomised
 formula, while **FF1's order is a fully random shuffle of all thirteen combatants and does
@@ -316,8 +319,12 @@ bottom for all four.
 
 **What M27 shipped against it.** A party is a list even when it is one, so a game declaring
 none still fights through the same code. Membership is derived from a flag, which is the story
-join in its cheapest form. The round is command-all-then-resolve in party order — FF1's own
-order ignores stats, so a declared one is inside the convention. Falling is not losing, the
+join in its cheapest form. A member acts the moment they choose, in party order — SMRPG's shape
+rather than FF1's, and the one place this milestone's research led it wrong: M27 shipped
+command-all-then-resolve on FF1's and DQ's authority, and the first person to play it rejected
+it in a sentence (M27.1, and `DECISIONS.md` carries the reversal). Both are inside the genre;
+only one of them survived contact with a controller, and no amount of citation could have told
+us which. Order is party order — FF1's own ignores stats. Falling is not losing, the
 living earn the full award (DQ's rule, not FF1's division), and the fallen are put back up by
 the inn, which is the priced town service the genre already gave this template. One overworld
 sprite, FF's answer. An ally cursor, no enemy cursor.
