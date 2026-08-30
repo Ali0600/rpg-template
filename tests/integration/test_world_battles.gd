@@ -138,9 +138,9 @@ func _good_save() -> SaveData:
 func test_a_fight_takes_control_and_gives_it_back() -> void:
 	await _boot()
 	var player: ActorBody = _world.player()
-	assert_bool(_world.open_battle_with(_enemy(), "quest_village/foe")).is_true()
+	assert_bool(_world.open_battle_with([_enemy()], "quest_village/foe")).is_true()
 	assert_str(Router.state_name()).is_equal("battle")
-	assert_bool(_world.open_battle_with(_enemy(), "quest_village/foe")).override_failure_message(
+	assert_bool(_world.open_battle_with([_enemy()], "quest_village/foe")).override_failure_message(
 		"a second fight opened over the first").is_false()
 
 	var held := player.global_position
@@ -171,7 +171,7 @@ func test_winning_pays_out_once_and_only_once() -> void:
 	# a missing latch pays the same xp again on every frame that follows.
 	await _boot()
 	var before := GameState.player_xp
-	_world.open_battle_with(_enemy(1, 1, 5), "quest_village/foe")
+	_world.open_battle_with([_enemy(1, 1, 5)], "quest_village/foe")
 	await _fight_it_out()
 	await _steps(20)
 	assert_int(GameState.player_xp).override_failure_message(
@@ -192,7 +192,7 @@ func test_a_screen_nobody_closes_still_reports_its_result_once() -> void:
 		counted[0] += 1)
 	screen.setup(BattleHelpers.solo(_combat(), _enemy(1, 1, 5), 20, 0, 1),
 		load("res://data/styles/dusk16.tres") as SpriteStyle, Vector2i(320, 180),
-		FileSpriteSource.create(&"dusk16"), &"quest_warden")
+		FileSpriteSource.create(&"dusk16"))
 
 	# Enough frames to end the fight several times over, if it could.
 	for i in 12:
@@ -208,13 +208,13 @@ func test_a_key_is_not_offered_as_something_to_drink() -> void:
 	# The control - an item that DOES belong there - arrives with the tonic and the content.
 	await _boot()
 	GameState.give_item(&"gate_key")
-	_world.open_battle_with(_enemy(999), "quest_village/foe")
+	_world.open_battle_with([_enemy(999)], "quest_village/foe")
 	assert_array(_world.battle_screen().logic().item_rows()).override_failure_message(
 		"the fight offered the player something that cannot be drunk").is_empty()
 
 func test_a_beaten_enemy_is_remembered_as_beaten() -> void:
 	await _boot()
-	_world.open_battle_with(_enemy(), "quest_village/foe")
+	_world.open_battle_with([_enemy()], "quest_village/foe")
 	await _fight_it_out()
 	assert_bool(GameState.was_seen("quest_village/foe")).override_failure_message(
 		"nothing recorded the fight, so the enemy is standing there again").is_true()
@@ -239,7 +239,7 @@ func test_winning_a_fight_leaves_the_player_where_the_fight_left_them() -> void:
 	# player at full health, and every fight would be free.
 	await _boot()
 	GameState.set_party(9, 0, 1, 0)
-	_world.open_battle_with(_enemy(20, 3, 5), "quest_village/foe")
+	_world.open_battle_with([_enemy(20, 3, 5)], "quest_village/foe")
 	await _fight_it_out()
 	assert_int(GameState.player_hp).override_failure_message(
 		"the player came out of a fight with more health than they went in with"
@@ -251,7 +251,7 @@ func test_a_fight_is_offered_only_the_spells_the_player_has_reached() -> void:
 	# them" passes the level-2 half, and one written as "none" passes neither.
 	await _boot()
 	GameState.set_party(9, 0, 1, 8)
-	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
 	var early: Array = _world.battle_screen().logic().spell_rows()
 	var early_names := PackedStringArray()
 	for row: BattleLogic.SpellRow in early:
@@ -266,7 +266,7 @@ func test_a_fight_is_offered_only_the_spells_the_player_has_reached() -> void:
 func test_a_spell_arrives_when_its_level_does() -> void:
 	await _boot()
 	GameState.set_party(9, 0, 2, 11)
-	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
 	var names := PackedStringArray()
 	for row: BattleLogic.SpellRow in _world.battle_screen().logic().spell_rows():
 		names.append(String(row.id))
@@ -289,7 +289,7 @@ func test_the_battle_screen_draws_the_magic_and_what_each_spell_costs() -> void:
 	# green. A cost the player cannot see is a decision they cannot make.
 	await _boot()
 	GameState.set_party(9, 0, 1, 5)
-	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
 	var caption := "".join(_screen_text())
 	assert_str(caption).override_failure_message(
 		"the battle screen never says how much magic the player has").contains("MP 5/")
@@ -318,7 +318,7 @@ func test_every_row_of_the_longest_page_is_actually_drawn() -> void:
 	# from either one alone would pass half of this and truncate the other.
 	await _boot()
 	GameState.set_party(9, 0, 2, 11)
-	_world.open_battle_with(_enemy(4, 1, 0), "quest_village/foe")
+	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
 	var visible := _screen_text()
 	for command in BattleScreen.COMMANDS:
 		assert_bool(_is_drawn(visible, command)).override_failure_message(
@@ -355,7 +355,7 @@ func test_a_fight_is_handed_the_players_magic_and_gives_it_back() -> void:
 	# No xp on the foe, because a level-up refills the magic and would agree with a fight that
 	# had quietly handed back full MP all along.
 	GameState.set_party(9, 0, 1, carried)
-	_world.open_battle_with(_enemy(1, 1, 0), "quest_village/foe")
+	_world.open_battle_with([_enemy(1, 1, 0)], "quest_village/foe")
 	assert_int(_world.battle_screen().logic().member_mp(0)).override_failure_message(
 		"the fight opened without the magic the player was carrying").is_equal(carried)
 	await _fight_it_out()
@@ -368,7 +368,7 @@ func test_a_fight_is_handed_the_players_magic_and_gives_it_back() -> void:
 func test_losing_ends_the_run() -> void:
 	await _boot()
 	GameState.set_party(1, 0, 1, 0)
-	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
+	_world.open_battle_with([_enemy(999, 99)], "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).override_failure_message(
 		"a lost fight dropped the player back into the world").is_equal("game_over")
@@ -379,7 +379,7 @@ func test_a_lost_fight_earns_nothing() -> void:
 	await _boot()
 	GameState.set_party(1, 0, 1, 0)
 	var before := GameState.player_xp
-	_world.open_battle_with(_enemy(999, 99, 25), "quest_village/foe")
+	_world.open_battle_with([_enemy(999, 99, 25)], "quest_village/foe")
 	await _fight_it_out()
 	assert_int(GameState.player_xp).is_equal(before)
 	assert_bool(GameState.was_seen("quest_village/foe")).override_failure_message(
@@ -392,7 +392,7 @@ func test_continuing_from_a_save_puts_the_player_back_in_it() -> void:
 	await _boot()
 	assert_bool(SaveManager.save(0, _good_save())).is_true()
 	GameState.set_party(1, 0, 1, 0)
-	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
+	_world.open_battle_with([_enemy(999, 99)], "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).is_equal("game_over")
 
@@ -411,7 +411,7 @@ func test_starting_again_rebuilds_the_game_from_the_beginning() -> void:
 	await _boot()
 	GameState.set_flag(&"lit_the_lantern", true)
 	GameState.set_party(1, 99, 3, 0)
-	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
+	_world.open_battle_with([_enemy(999, 99)], "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).is_equal("game_over")
 
@@ -436,7 +436,7 @@ func test_continuing_with_nothing_saved_is_refused_and_the_screen_keeps_answerin
 	# player with no saves is stuck on a menu that has stopped responding entirely.
 	await _boot()
 	GameState.set_party(1, 0, 1, 0)
-	_world.open_battle_with(_enemy(999, 99), "quest_village/foe")
+	_world.open_battle_with([_enemy(999, 99)], "quest_village/foe")
 	await _fight_it_out()
 	assert_str(Router.state_name()).is_equal("game_over")
 

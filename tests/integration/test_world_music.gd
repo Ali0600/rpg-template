@@ -145,13 +145,13 @@ func _in_the_town() -> Node2D:
 
 func test_a_fight_takes_the_room_over() -> void:
 	var world := await _in_the_town()
-	assert_bool(world.open_battle_with(_foe(), "quest_town/foe")).is_true()
+	assert_bool(world.open_battle_with([_foe()], "quest_town/foe")).is_true()
 	assert_str(String(AudioBus.music_id())).override_failure_message(
 		"the town's theme played on through a fight").is_equal("skirmish")
 
 func test_a_win_stings_and_then_gives_the_room_back() -> void:
 	var world := await _in_the_town()
-	world.open_battle_with(_foe(), "quest_town/foe")
+	world.open_battle_with([_foe()], "quest_town/foe")
 	world._on_battle_finished(BattleLogic.Outcome.VICTORY, [])
 	assert_str(String(AudioBus.music_id())).override_failure_message(
 		"a win went straight back to the map without a sting").is_equal("triumph")
@@ -166,14 +166,14 @@ func test_a_win_stings_and_then_gives_the_room_back() -> void:
 func test_running_away_gives_the_room_back_at_once() -> void:
 	# No sting, because nothing was won - and no waiting either.
 	var world := await _in_the_town()
-	world.open_battle_with(_foe(), "quest_town/foe")
+	world.open_battle_with([_foe()], "quest_town/foe")
 	world._on_battle_finished(BattleLogic.Outcome.FLED, [])
 	assert_str(String(AudioBus.music_id())).override_failure_message(
 		"running away played the victory fanfare").is_equal("barred_gate")
 
 func test_losing_stops_the_music() -> void:
 	var world := await _in_the_town()
-	world.open_battle_with(_foe(), "quest_town/foe")
+	world.open_battle_with([_foe()], "quest_town/foe")
 	world._on_battle_finished(BattleLogic.Outcome.DEFEAT, [])
 	assert_str(String(AudioBus.music_id())).override_failure_message(
 		"the fight's theme played on over the game-over screen").is_empty()
@@ -190,7 +190,7 @@ func test_a_game_that_names_no_battle_theme_sounds_exactly_as_it_did() -> void:
 	await get_tree().physics_frame
 	assert_bool(world.enter_map(&"quest_town", &"start")).is_true()
 	var started := AudioBus.music_starts()
-	world.open_battle_with(_foe(), "quest_town/foe")
+	world.open_battle_with([_foe()], "quest_town/foe")
 	world._on_battle_finished(BattleLogic.Outcome.VICTORY, [])
 	assert_int(AudioBus.music_starts()).override_failure_message(
 		"a game with no battle theme still had its music moved by a fight").is_equal(started)

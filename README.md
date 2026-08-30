@@ -195,6 +195,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M26** — a battle theme and a victory fanfare: a fight takes the room's music over, a win stings once and hands the room back to whatever the map states
 - [x] **M27** — a party: a second fighter who joins through a conversation, an ally cursor that only exists once there is somebody to aim at, and per-member equipment and status pages
 - [x] **M27.1** — a member acts the moment they choose: choosing Attack swings, and the turn passes to the next fighter once the blow has landed, rather than collecting everybody's orders first
+- [x] **M28** — fights that hold a crowd: a map record names a formation, a cursor picks which foe to strike, every living enemy takes its own turn, and a spell can carry a shape that reaches all of them
 
 ## Experience Gained
 

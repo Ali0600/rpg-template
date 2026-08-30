@@ -100,6 +100,31 @@ func test_the_shipped_quest_can_actually_be_fought() -> void:
 	assert_array(manifest.problems()).override_failure_message(
 		str(manifest.problems())).is_empty()
 
+func test_no_map_asks_for_a_bigger_formation_than_the_screen_draws() -> void:
+	# The capacity is the content contract, and this is the half that was missing. The view has
+	# declared MAX_PARTY since M27 and nothing refused a manifest that exceeded it - the layout
+	# was audited AT capacity, which proves the drawing and not the data. Both sides are gated
+	# here now, because the failure mode of "too many to draw" is silence.
+	for path in ContentScan.files("res://data/maps", ["json"]):
+		var map := MapData.load_from(path)
+		for entry: Variant in map.enemies:
+			var record: Dictionary = entry
+			var size := 1 + (record.get("group", []) as Array).size()
+			assert_int(size).override_failure_message(
+				"%s places a formation of %d, and the screen draws %d"
+				% [path, size, BattleScreen.MAX_FOES]).is_less_equal(BattleScreen.MAX_FOES)
+
+func test_no_game_asks_for_a_bigger_party_than_the_screen_draws() -> void:
+	for path in ContentScan.files("res://data/games", ["tres"]):
+		var manifest := load(path) as GameManifest
+		if manifest == null:
+			continue
+		# Plus the leader, who is synthesized rather than declared and still needs a block.
+		var size := manifest.party.size() + 1
+		assert_int(size).override_failure_message(
+			"%s declares a party of %d, and the screen draws %d"
+			% [path, size, BattleScreen.MAX_PARTY]).is_less_equal(BattleScreen.MAX_PARTY)
+
 func test_the_curve_lines_up_with_what_the_quest_actually_pays() -> void:
 	# The difficulty design, pinned. Two hollow slinks must be exactly level 2, because that is
 	# what the Keeper's numbers assume; and the Keeper must carry the player to level 3. If a

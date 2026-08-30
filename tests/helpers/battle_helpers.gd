@@ -26,10 +26,23 @@ static func companion(id: StringName, combat: CombatDef, member_name := "Rook", 
 		attack_mod, defense_mod, spells)
 
 
-## A fight with one member on the player's side - the shape a game with no party gets.
+## A fight with one member on the player's side against one foe - the shape a game with no party
+## and a plain map record gets, and the shape almost every rule in the suite is about.
+##
+## It takes a bare `EnemyDef` and wraps it, which is why formations cost the suite almost
+## nothing: some ninety assertions were written through this one function against a single
+## enemy, and they say the same thing about a formation of one without moving.
 static func solo(combat: CombatDef, enemy: EnemyDef, hp := 20, xp := 0, level := 1,
 		items: Array = [], attack_mod := 0, defense_mod := 0, mp := 8,
 		spells: Array = [], seed_value := 7) -> BattleLogic:
-	return BattleLogic.of(combat, enemy,
+	return BattleLogic.of(combat, [enemy],
 		[leader(combat, hp, xp, level, mp, attack_mod, defense_mod, spells)],
 		items, "map/foe", seed_value)
+
+
+## A fight against a formation, with one member on the player's side. The foe-side mirror of
+## `solo`, for the rules that only exist once there is more than one thing to point at.
+static func against(combat: CombatDef, enemies: Array, hp := 20, xp := 0, level := 1,
+		items: Array = [], mp := 8, spells: Array = [], seed_value := 7) -> BattleLogic:
+	return BattleLogic.of(combat, enemies,
+		[leader(combat, hp, xp, level, mp, 0, 0, spells)], items, "map/foe", seed_value)

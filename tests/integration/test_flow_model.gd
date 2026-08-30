@@ -152,7 +152,7 @@ func _arrive_at(state: String, adapter := "") -> void:
 			# here because win and lose leave through the same door and differ only in who is
 			# standing in the ring.
 			var foe := _foe(999, 99) if adapter == "lose_battle" else _foe()
-			assert_bool(_world.open_battle_with(foe, "flow/foe")).is_true()
+			assert_bool(_world.open_battle_with([foe], "flow/foe")).is_true()
 		"game_over":
 			assert_bool(_world.open_game_over()).is_true()
 	await _steps(1)
@@ -200,7 +200,7 @@ func _drive(adapter: String) -> void:
 					break
 				await get_tree().physics_frame
 		"open_battle":
-			assert_bool(_world.open_battle_with(_foe(), "flow/foe")).is_true()
+			assert_bool(_world.open_battle_with([_foe()], "flow/foe")).is_true()
 			await _steps(1)
 		"win_battle", "lose_battle":
 			for i in 90:

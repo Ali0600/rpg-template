@@ -159,7 +159,7 @@ func test_worn_gear_reaches_the_fight() -> void:
 	GameState.equip(&"weapon", &"bronze_sword")
 	GameState.equip(&"armor", &"leather_vest")
 	var foe := load("res://data/enemies/slink.tres") as EnemyDef
-	assert_bool(world.open_battle_with(foe, "map/foe")).is_true()
+	assert_bool(world.open_battle_with([foe], "map/foe")).is_true()
 	await _steps(2)
 	var screen: BattleScreen = world.battle_screen()
 	var logic: BattleLogic = screen.logic()
@@ -172,7 +172,7 @@ func test_a_fight_with_nothing_worn_gets_nothing() -> void:
 	# The near miss: a wire that always passed 3 would pass the test above.
 	var world := _boot()
 	var foe := load("res://data/enemies/slink.tres") as EnemyDef
-	assert_bool(world.open_battle_with(foe, "map/foe")).is_true()
+	assert_bool(world.open_battle_with([foe], "map/foe")).is_true()
 	await _steps(2)
 	var screen: BattleScreen = world.battle_screen()
 	var logic: BattleLogic = screen.logic()
