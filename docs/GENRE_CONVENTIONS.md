@@ -47,7 +47,8 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
-| [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, three spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
+| [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
+| [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -645,9 +646,55 @@ elemental resistance system (the spell's name carries the flavour, EarthBound-st
 targeting step (fights are 1v1, so single-enemy and single-ally are unambiguous), and no
 teach-by-item or equip-a-pool learning.
 
-**Remaining gap:** buffs and debuffs. Sleep is the only status effect, and it acts on the enemy
-only. EarthBound gives a whole quarter of its PSI to Assist; this template has no stat-modifying
-spell and no duration system to hang one on.
+### 13a. Statuses, and which way they point
+
+M25 left this section closing on a gap — sleep was the only status effect and it acted on the
+enemy only. This is the research M30 needed before closing it.
+
+**The party is a legitimate target, and every reference says so.** Final Fantasy I's manual
+sells its cures by naming the afflictions: `PURE` *"will cure you if you are poisoned by an
+enemy"*, `SOFT` *"will restore to life any character turned to stone by an enemy spell"*, and
+Ghouls *"have the capability to paralyze members of your party"*. Darkness and silence are
+there too, as the things `LAMP` and `MUTE` deal in. So the era's status vocabulary runs at the
+party from the first game in the set, and a template whose only status verb points outward is
+missing half of it.
+
+**Buffs on the party are attested in all three.** FF1 has `TMPR` on one ally — *"Weapons
+strength … by 14 points"* — and `FOG` on the caster — *"Shields by envelopment in a thick fog.
+Armor will increase 8 points"*. Dragon Quest's **Buff** doubles one character's defence for 3
+MP and lasts 4–6 turns, and its mirror **Sap** halves one foe's for 6–9. EarthBound devotes a
+whole PSI branch to it: Assist is *"creating shields, boosting or weakening the stats of an ally
+or foe (excluding HP or PP), or inflicting a status ailment"*, and its members are Offense up,
+Defense down, Shield, PSI Shield, Hypnosis, Paralysis and Brainshock. Note what that list is:
+**boosts and afflictions are one system pointed two ways**, not two systems.
+
+**Durations are counted in turns, and in the references they are ROLLED.** DQ's 4–6 and 6–9 are
+ranges. This template will not roll them — flee odds and damage variance were both made
+deterministic in M13 so that a designer can reason about a fight and a QA script can replay it,
+and a status duration is the same kind of number. A recorded divergence with an existing
+precedent rather than a new argument.
+
+**How a status is SHOWN is the part the manuals do not answer.** FF1's manual describes every
+ailment's effect and never once says how the screen reports it. Two independent secondary
+sources say the game replaces the character's **HP readout** in the battle block with an
+abbreviation — `POIS`, `STON`, `DARK` — which is a sensible thing to do with a block that has
+room for one number and nothing else. Both first-hand confirmations are bot-blocked (403/402),
+so this is cited as secondary and marked as such rather than quoted as fact.
+
+**This template.** A status is battle-only: it lasts a stated number of turns and expires with
+the fight, which is where DQ's Buff and FF1's TMPR/FOG live too, and which keeps `BattleLogic`
+pure — no save field, no migration, nothing written. Two spell kinds rather than one signed
+number (`BOOST` at an ally, `SAP` at a foe), because a verb spelled as the absence of its
+opposite is one every reader has to decode. Enemy moves gain the same vocabulary, which is what
+makes the system point both ways. The battle caption keeps its numbers and **appends** a tag:
+FF1 replaces the HP readout because its block cannot hold both, and this one has a caption line
+*and* a bar, so keeping both is the honest adaptation rather than an imitation of a constraint
+this screen does not have.
+
+**Remaining gap:** persistent afflictions. FF1's poison follows you onto the map and drains as
+you walk, and DQ's does the same; here a status cannot outlive the fight it was inflicted in.
+That is a save field, a migration, a map tick and a cure — a milestone of its own, and
+`DECISIONS.md` carries it with its hook.
 
 ---
 
@@ -765,6 +812,24 @@ Multi-enemy research (§7b) is drawn from these:
   before the quest starts: no smaller party exists to author encounters for
 - [StrategyWiki — Chrono Trigger gameplay](https://strategywiki.org/wiki/Chrono_Trigger/Gameplay)
   — fixed encounter points; contact starts the fight on the map itself
+
+Status research (§13a) is drawn from these:
+
+- [Final Fantasy NES manual](https://world-of-nintendo.com/manuals/nes/final_fantasy.shtml),
+  a third time — the party-side afflictions named through their cures (`PURE` for poison, `SOFT`
+  for stone, Ghouls that "paralyze members of your party", `LAMP` and `MUTE`), and the two
+  buffs: `TMPR` on one ally and `FOG` on the caster, with their exact magnitudes. It describes
+  every effect and never says how the screen reports one.
+- [Dragon Quest wiki — Buff](https://dragon-quest.org/wiki/Buff) and
+  [Sap](https://dragon-quest.org/wiki/Sap) — doubling one ally's defence for 3 MP over 4–6
+  turns, halving one foe's over 6–9: durations as ROLLED RANGES, which is the thing this
+  template deliberately does not copy
+- [EarthBound Wiki — PSI](https://earthbound.fandom.com/wiki/PSI) — the Assist branch as one
+  system pointed both ways: "boosting or weakening the stats of an ally or foe … or inflicting
+  a status ailment", with Offense up and Defense down inside the same list
+- **Secondary, and flagged as such:** that FF1 replaces a character's HP readout in the battle
+  block with `POIS` / `STON` / `DARK`. Two independent summaries agree; the manual is silent and
+  both first-hand pages are bot-blocked (403/402), so §13a cites it without leaning on it.
 
 - The user's own [`jrpg-design-codex`](https://github.com/Ali0600/jrpg-design-codex) — design
   *patterns* (progression systems, build economies), not screen anatomy. Cite it for what a

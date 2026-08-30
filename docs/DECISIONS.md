@@ -42,9 +42,12 @@ one-glance menu of things still worth trying.
 - **Elemental resistances.** M25 gave spells element NAMES and no matrix. Revisit hook:
   `EnemyDef` gains a resistance map and `BattleLogic._confirm_spell`'s attack branch scales
   `row.power` by it — `SpellDef` would need the element as a field rather than as flavour.
-- **Buffs, debuffs, and status effects on the PLAYER.** `SpellDef.Kind.SLEEP` is the only
-  status verb and it acts on the enemy only. Revisit hook: `_enemy_asleep_turns` is the shape
-  a duration takes, and a second one beside it is where a poison or a guard-up would live.
+- ~~**Buffs, debuffs, and status effects on the PLAYER.**~~ **Taken up by M30** — `BOOST` and
+  `SAP` aim either way, enemy moves can afflict the party, and durations count in turns. What
+  is still out is **persistent affliction**: a status cannot outlive the fight it was inflicted
+  in, where FF1's and DQ's poison follow you onto the map. Revisit hook: the `Status` holder,
+  which would need a second home on `GameState` beside the party's numbers — plus a save
+  version, a map tick and a cure.
 - **Teaching a spell with an item.** Dragon Quest's scrolls, as a supplement to level
   learning. Revisit hook: it needs a stored known-spells set, which M25 deliberately does not
   have — so this one costs a save field and a migration, not just a verb.
@@ -127,6 +130,52 @@ ships two games and balances one.
 
 **The cost, stated:** seven QA sessions gain a recruit leg they did not need, and the village
 now has a soft wall in it. That second one is a feel question and only playing answers it.
+
+## Statuses expire with the fight, and point both ways — *M30*
+
+`GENRE_CONVENTIONS.md` §13 carried the same closing line from M25 to M29: sleep was the only
+status effect and it acted on the enemy only. §13a is the research that closed it, and it found
+that boosts and afflictions are not two systems — EarthBound's Assist branch is one branch doing
+both, "boosting or weakening the stats of an ally or foe … or inflicting a status ailment".
+
+**The fork: how long does a status live?**
+
+- **Battle-only, counted in turns.** *Chosen (user's call).* Everything lives in the pure
+  `BattleLogic`, expires when the fight ends, and writes nothing — no `GameState` field, no save
+  v10, no migration, and "a fight never writes" survives intact. It is also where the references
+  put their buffs: DQ's Buff and FF1's `TMPR`/`FOG` are all battle-only.
+- *Persistent afflictions* — FF1's poison follows you onto the map and drains as you walk, and
+  DQ's does the same. `deferred — worth trying`, and it is a milestone rather than a field: a
+  save version, a migration, a map tick that can reduce HP outside a fight, a cure to buy, and a
+  decision about what reaching zero on the overworld means. Revisit hook: the `Status` holder,
+  which would need a second home on `GameState` beside the party's numbers.
+
+**The fork: one signed number, or two verbs?**
+
+- **`Kind.BOOST` at an ally and `Kind.SAP` at a foe.** *Chosen.* Each names what it does, and
+  the target follows from the kind exactly as it does for `HEAL` and `ATTACK`.
+- *One kind with a signed `power`.* `rejected — a verb spelled as the absence of its opposite`.
+  That is the same argument `Kind.UNEQUIP` was created for: a negative boost is a decode every
+  reader has to remember, and the one who forgets ships a spell that heals when it should hurt.
+
+**The fork: rolled durations, or stated ones?**
+
+- **A fixed `status_turns` in data.** *Chosen.* DQ rolls its ranges (Buff 4–6, Sap 6–9), and
+  this template does not: M13 made flee odds and damage variance deterministic so a designer can
+  reason about a fight and a QA script can replay it byte-for-byte, and a duration is the same
+  kind of number. `rejected — a rolled duration` for that reason, and the entry is here so the
+  next person does not re-derive it.
+
+**The display divergence, stated.** Two secondary sources say FF1 replaces a character's HP
+readout in the battle block with `POIS`/`STON`/`DARK`; the manual is silent and both first-hand
+pages are bot-blocked, so §13a cites it without leaning on it. This screen **appends** a tag and
+keeps its numbers, because FF1 replaces out of necessity — one block, room for one number — and
+this one has a caption line and a bar. Imitating a constraint the screen does not have would
+cost the player information for the sake of fidelity.
+
+**`Row.STATUS` gains nothing, deliberately.** A battle-only effect cannot be true while the
+pause menu is open, so a status line there would describe a system the player can never catch in
+the act — the same reasoning that keeps an `MP 0/0` line off a member with no magic.
 
 ## A scripted fight is played well by the harness, not by arithmetic — *M29*
 
