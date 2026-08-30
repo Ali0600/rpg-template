@@ -34,8 +34,15 @@ var warps: Array = []
 ## on, and whether it blocks you comes from that tile's own metadata - so adding a chest is
 ## an art change plus four lines of data, and MapBuilder gains no rendering code at all.
 var objects: Array = []
-## Things that fight back. Each is {"id", "enemy", "tile", "facing"}, where `enemy` names an
-## EnemyDef under data/enemies/.
+## Things that fight back. Each is {"id", "enemy", "tile", "facing"} plus an optional
+## {"group": [...]}, where every name is an EnemyDef under data/enemies/.
+##
+## ONE RECORD IS ONE ENCOUNTER, however many foes it names. The body on the tile is the first of
+## them and `group` rides with it, which is Super Mario RPG's shape - you walk into one sprite
+## and a formation is what it opens. Adjacent records never merge into one fight, which is
+## EarthBound's model and refused here: its manual says other enemies join "occasionally", and a
+## roll over where wandering bodies happen to stand is exactly the randomness in the movement
+## loop that visible encounters exist to avoid.
 ##
 ## Unlike an object, an enemy IS a sprite - it stands on its tile with generated art, and
 ## walking next to it starts the fight. It is not an interaction target: there is no pressing
@@ -157,10 +164,22 @@ func enemy_at(at: Vector2i) -> Dictionary:
 			return {
 				"id": StringName(str(enemy.get("id", ""))),
 				"enemy": StringName(str(enemy.get("enemy", ""))),
+				"foes": _formation_of(enemy),
 				"tile": Vector2i(spot[0], spot[1]),
 				"facing": str(enemy.get("facing", "")),
 			}
 	return {}
+
+
+## Everything a record fights with, in order: the body on the tile, then its group. The world
+## reads this rather than `enemy`, so a record that names no group is a formation of one and
+## needs no branch anywhere downstream.
+static func _formation_of(enemy: Dictionary) -> Array[StringName]:
+	var out: Array[StringName] = []
+	_add_ref(out, enemy.get("enemy", ""))
+	for extra: Variant in enemy.get("group", []):
+		_add_ref(out, extra)
+	return out
 
 
 ## Every EnemyDef this map names, for the content gate. The item_refs precedent: a misspelt
@@ -168,7 +187,8 @@ func enemy_at(at: Vector2i) -> Dictionary:
 func enemy_refs() -> Array[StringName]:
 	var out: Array[StringName] = []
 	for entry: Variant in enemies:
-		_add_ref(out, (entry as Dictionary).get("enemy", ""))
+		for named: StringName in _formation_of(entry as Dictionary):
+			_add_ref(out, named)
 	return out
 
 
@@ -416,6 +436,7 @@ func _object_problems(bounds: Vector2i) -> Array[String]:
 	# Enemies share the same id namespace, and the reason is sharper than for objects: being
 	# beaten is recorded as the same map-scoped `seen` key an opened chest uses. An enemy and a
 	# chest called "guard" are one memory - beat the guard and the chest is already empty.
+	var occupied := {}
 	for entry: Variant in enemies:
 		var enemy: Dictionary = entry
 		var enemy_id := str(enemy.get("id", ""))
@@ -428,6 +449,11 @@ func _object_problems(bounds: Vector2i) -> Array[String]:
 
 		if str(enemy.get("enemy", "")).is_empty():
 			out.append("enemy '%s' names no EnemyDef" % enemy_id)
+		# A group entry that names nothing would open a fight one foe short, and the fight would
+		# still look deliberate - so it is refused here rather than push_error'd at the trigger.
+		for extra: Variant in enemy.get("group", []):
+			if str(extra).is_empty():
+				out.append("enemy '%s' fights beside something with no name" % enemy_id)
 		var spot := JsonFile.to_int_array(enemy.get("tile", []))
 		if spot.size() != 2:
 			out.append("enemy '%s' has no tile" % enemy_id)
@@ -435,6 +461,13 @@ func _object_problems(bounds: Vector2i) -> Array[String]:
 		var stands := Vector2i(spot[0], spot[1])
 		if stands.x < 0 or stands.y < 0 or stands.x >= bounds.x or stands.y >= bounds.y:
 			out.append("enemy '%s' at %s is outside the %s map" % [enemy_id, stands, bounds])
+		# Two records on one tile is a fight that cannot be reached: enemy_at answers with the
+		# first one it finds, so the second is a body nobody can walk into and a formation
+		# nobody can open. It reads as a placement that simply does not work.
+		if occupied.has(stands):
+			out.append("enemy '%s' stands on %s, where '%s' already is"
+				% [enemy_id, stands, occupied[stands]])
+		occupied[stands] = enemy_id
 	return out
 
 

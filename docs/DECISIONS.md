@@ -223,8 +223,10 @@ harder under free pixel movement, which has no grid steps to trail). And **capac
 declared by the view and audited by the layout suite at exactly that number: the band between the
 fighters' feet and the help line holds three blocks at 320x180, and the demo ships two. This
 entry said "enforced by the build" until M27.1 went looking for the check and found none — the
-layout is proven AT capacity, but no gate refuses a manifest that exceeds it, and saying so was
-worse than the gap because it is the kind of sentence a later reader takes as settled.
+layout was proven AT capacity, which proves the drawing and not the data. **M28 made the
+sentence true**, on both sides: a content gate now refuses a manifest declaring more members
+than the screen draws and a map record naming a bigger formation, each proven by a mutant that
+zeroes the constant.
 
 ## A member acts the moment they choose, in party order — *M27, reversed in M27.1*
 

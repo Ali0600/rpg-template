@@ -198,9 +198,9 @@ scripts/ui/battle_logic.gd	s|var taken := maxi\(base / 2, 1\) if blocked else ba
 scripts/ui/battle_logic.gd	s|if _pressed_at >= 0:|if false:|	tests/unit/test_battle_logic.gd	mashing the button re-arms the window, so timing means pressing a lot
 scripts/ui/battle_logic.gd	s|return _count <= _combat.timed_window_frames|return true|	tests/unit/test_battle_logic.gd	the timing window is open for the whole cue
 scripts/ui/battle_logic.gd	s|return _pressed_at >= 0 and _pressed_at <= _combat.timed_window_frames|return _pressed_at >= 0|	tests/unit/test_battle_logic.gd	any press at all counts as a timed one
-scripts/ui/battle_logic.gd	s|_moves_rng.next_int\(0, _enemy.moves.size\(\) - 1\)|0|	tests/unit/test_battle_logic.gd	an enemy only ever uses its first move, so half its content never ships
+scripts/ui/battle_logic.gd	s|moves\[_moves_rng.next_int\(0, moves.size\(\) - 1\)\]|moves[0]|	tests/unit/test_battle_logic.gd	an enemy only ever uses its first move, so half its content never ships
 scripts/ui/battle_logic.gd	s|^\t\t\twho.hp = who.max_hp\(\)$|\t\t\tpass|	tests/unit/test_battle_logic.gd	levelling up stops healing, so the boss is unreachable
-scripts/ui/battle_logic.gd	s|if _enemy.boss:|if false:|	tests/unit/test_battle_logic.gd	a boss can be walked away from
+scripts/ui/battle_logic.gd	s|^\tvar barring := _boss\(\)$|\tvar barring := -1|	tests/unit/test_battle_logic.gd	a boss can be walked away from
 scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_SEEN, "key": _seen_key\}\)|pass|	tests/unit/test_battle_logic.gd	a beaten enemy is never marked beaten and comes back
 scripts/ui/battle_logic.gd	s|var healed := mini\(on.hp \+ row.heal, on.max_hp\(\)\) - on.hp|var healed := row.heal|	tests/unit/test_battle_logic.gd	a tonic heals past the player's own maximum
 scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_TAKE_ITEM, "id": row.id, "count": 1\}\)|pass|	tests/unit/test_battle_logic.gd	a tonic is drunk and never consumed
@@ -220,7 +220,7 @@ scripts/autoload/game_state.gd	s|^\tplayer_level = 1$|\tpass|	tests/unit/test_sa
 scripts/world/map_data.gd	s|map.enemies = file.get_array\("enemies"\)|map.enemies = []|	tests/unit/test_map_data.gd	maps stop carrying the enemies written into them
 scripts/world/map_data.gd	s|out.append\("enemy .%s. names no EnemyDef" % enemy_id\)|pass|	tests/unit/test_map_data.gd	an enemy naming no definition ships as a fight that never opens
 scripts/world/map_data.gd	s|out.append\("enemy id .%s. is used twice" % enemy_id\)|pass|	tests/unit/test_map_data.gd	an enemy and a chest share one memory of being dealt with
-scripts/world/map_data.gd	s|_add_ref\(out, \(entry as Dictionary\).get\("enemy", ""\)\)|pass|	tests/unit/test_map_data.gd	a misspelt enemy id goes unlisted and ships
+scripts/world/map_data.gd	s|^\t\tfor named: StringName in _formation_of\(entry as Dictionary\):$|\t\tfor named: StringName in []:|	tests/unit/test_map_data.gd	a misspelt enemy id goes unlisted and ships
 scripts/world/world_scene.gd	s|Router.open_overlay\(Router.State.BATTLE\)|pass|	tests/integration/test_world_battles.gd	a fight opens without taking control, so the player walks away mid-battle
 scripts/world/world_scene.gd	s|open_game_over\(\)$|pass|	tests/integration/test_world_battles.gd	losing drops the player back into the world as if nothing happened
 scripts/world/world_scene.gd	s|if _game == null or _game.combat == null or GameState.player_hp > 0:|if true:|	tests/integration/test_world_battles.gd	a new game starts its first fight with a player at nought health
@@ -316,7 +316,7 @@ scripts/world/actor_body.gd	s|platform_floor_layers = 0|platform_floor_layers = 
 scripts/autoload/game_state.gd	s|if n <= 0 or n > gold:|if false:|	tests/unit/test_saves.gd	a player buys what they cannot afford and the purse goes negative
 scripts/autoload/game_state.gd	s|gold -= n|pass|	tests/unit/test_saves.gd	spending pays for nothing and money is infinite
 scripts/data/migrations.gd	s|d\["gold"\] = 0|pass|	tests/unit/test_saves.gd	an old save loads with no purse at all
-scripts/ui/battle_logic.gd	s|if _outcome == Outcome.VICTORY and _enemy.gold > 0:|if false:|	tests/unit/test_battle_logic.gd	winning a fight pays nothing
+scripts/ui/battle_logic.gd	s|if _outcome == Outcome.VICTORY and purse > 0:|if false:|	tests/unit/test_battle_logic.gd	winning a fight pays nothing
 scripts/data/save_data.gd	s|if gold < 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save carrying a negative purse loads without complaint
 scripts/ui/shop_menu.gd	s|if _page == Page.BUY and not affordable\(_index\):|if false:|	tests/unit/test_shop_menu.gd	a player buys what they cannot afford and the purse decides afterwards
 scripts/ui/shop_menu.gd	s|return r != null and r.price <= _gold|return r != null|	tests/unit/test_shop_menu.gd	every row reads as affordable, so the refusal never fires
@@ -432,10 +432,10 @@ scripts/ui/battle_logic.gd	s|^\treturn row.cost <= _fighter\(_commander\).mp$|\t
 scripts/ui/battle_logic.gd	s|\tif not can_afford\(row\):|\tif false:|	tests/unit/test_battle_logic.gd	casting past the purse goes through and the magic runs negative
 scripts/ui/battle_logic.gd	s|^\tcaster.mp -= row.cost$|\tpass|	tests/fixtures/qa/quest/cast_a_spell_in_a_fight.json	every spell is free, so the magic is a number that never moves
 scripts/ui/battle_logic.gd	s|\t\t\t_phase = Phase.SPELLS|\t\t\tpass|	tests/unit/test_battle_logic.gd	the Magic command opens nothing at all
-scripts/ui/battle_logic.gd	s|\t\t\t_enemy_asleep_turns = row.status_turns|\t\t\tpass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
-scripts/ui/battle_logic.gd	s|\t\t\t_enemy_hp = maxi\(_enemy_hp - row.power, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
-scripts/ui/battle_logic.gd	s|\tif _enemy_asleep_turns > 0:|\tif false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
-scripts/ui/battle_logic.gd	s|\t\t_enemy_asleep_turns -= 1|\t\tpass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
+scripts/ui/battle_logic.gd	s|\t\t\tsleeper.asleep_turns = row.status_turns|\t\t\tpass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
+scripts/ui/battle_logic.gd	s|\t\t\thit.hp = maxi\(hit.hp - row.power, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
+scripts/ui/battle_logic.gd	s|\tif it.asleep_turns > 0:|\tif false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
+scripts/ui/battle_logic.gd	s|\t\tit.asleep_turns -= 1|\t\tpass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
 scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tests/unit/test_battle_logic.gd	backing out of the spells lands the cursor on Attack instead of Magic
 scripts/world/world_scene.gd	s|if def == null or def.learn_level > at_level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
 scripts/ui/battle_screen.gd	s|\treturn clampi\(_logic.index\(\) - VISIBLE_ROWS \+ 1, 0, count - VISIBLE_ROWS\)|\treturn 0|	tests/integration/test_battle_layout.gd	a page longer than the window never scrolls, so its last rows cannot be reached
@@ -503,3 +503,13 @@ scripts/world/world_scene.gd	s|\treturn \[\] if out.size\(\) < 2 else out|\tretu
 scripts/world/world_scene.gd	s|\t_pause_member = member|\tpass|	tests/integration/test_world_party.gd	picking a member changes whose page is drawn not at all
 scripts/world/world_scene.gd	s|\t\tGameState.set_companion\(member.id, curve.max_hp\(at\), int\(numbers.get\("xp", 0\)\), at,|\t\tGameState.set_companion(member.id, 1, int(numbers.get("xp", 0)), at,|	tests/integration/test_world_party.gd	a night's sleep leaves the companion where they fell
 scripts/world/world_scene.gd	s|^\tfor joined in _active_party\(\):$|\tfor joined in []:|	tests/fixtures/qa/quest/recruit_a_companion.json	somebody joins and has no numbers until the next fight asks for them
+scripts/ui/battle_logic.gd	s|^\tif alive.size\(\) < 2:$|\tif true:|	tests/unit/test_battle_logic.gd	a formation is swung at without ever asking which one
+scripts/ui/battle_logic.gd	s|^\t\tif next_up > taken:$|\t\tif false:|	tests/unit/test_battle_logic.gd	only the first foe in a formation ever takes a turn
+scripts/ui/battle_logic.gd	s|\t\tearned \+= _foe\(at\).def.xp|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the experience of one of its foes
+scripts/ui/battle_logic.gd	s|\t\tpurse \+= _foe\(at\).def.gold|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the coin of one of its foes
+scripts/ui/battle_logic.gd	s|\t\t\t\teach.hp = maxi\(each.hp - row.power, 0\)|\t\t\t\tpass|	tests/unit/test_battle_logic.gd	a spell that reaches everything announces damage and deals none
+scripts/ui/battle_logic.gd	s|\t\t\tdisplay = "%s %s" % \[entry.name, char\("A".unicode_at\(0\) \+ nth\)\]|\t\t\tpass|	tests/unit/test_battle_logic.gd	two foes of one kind are both called the same thing
+scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	tests/unit/test_map_data.gd	two enemies stand on one tile and the second can never be fought
+scripts/ui/battle_screen.gd	s|\t\tvar theirs := acting and not player_side and swinging_foe == at|\t\tvar theirs := acting and not player_side|	tests/integration/test_battle_layout.gd	every foe leans when any one of them swings
+scripts/ui/battle_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
+scripts/ui/battle_screen.gd	s|^const MAX_PARTY := 3$|const MAX_PARTY := 0|	tests/unit/test_battle_content.gd	a game may declare a party bigger than the screen draws

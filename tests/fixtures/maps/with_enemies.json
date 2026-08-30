@@ -10,5 +10,7 @@
     { "id": "lurker", "enemy": "cave_lurker", "tile": [3, 3], "facing": "down" },
     { "id": "nowhere", "enemy": "cave_lurker", "tile": [99, 99] },
     { "id": "nameless", "tile": [4, 1] },
-    { "id": "giver", "enemy": "cave_lurker", "tile": [5, 1] }
+    { "id": "giver", "enemy": "cave_lurker", "tile": [5, 1] },
+    { "id": "stacked", "enemy": "cave_lurker", "tile": [3, 3] },
+    { "id": "pair", "enemy": "cave_lurker", "tile": [2, 3], "group": ["cave_gloom", ""] }
   ] }

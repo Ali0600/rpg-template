@@ -162,6 +162,50 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
+and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
+it - Super Mario RPG's shape, where one touched sprite opens a formation the ROM already knew
+about. Adjacent records never merge into one fight: EarthBound does that and its own manual says
+"occasionally", which would make a fight's composition a roll over where wandering bodies happen
+to stand. ONE RECORD IS ONE ENCOUNTER - one seen key, one seed, whatever the count - and a fight
+of one is a formation of one, so nothing downstream needs a branch. "Fights are solo" was never a
+convention this template honoured; Dragon Quest I is the only reference that fights one at a
+time, and it was a scope line that M28 retired.
+
+**Every living foe takes a turn, after the whole party has gone.** Each behind its own defend
+cue, each drawing its own target - which is every reference game's rule, and the cost is that a
+formation of three is three blows to defend against in a round. No reference skips an enemy's
+attack for pacing, so the relief is the CAP: `BattleScreen.MAX_FOES`, enforced on content the way
+`MAX_PARTY` now is. Sleep is per foe (FF1's sleepers each roll their own wake), the award SUMS
+the formation, and any boss in it refuses the escape - unfleeability is a property of the
+encounter rather than an average over its members.
+
+**The FOE cursor is the ALLY cursor mirrored, skip and all.** It opens over the living foes when
+there is more than one, and is skipped outright when there is not - which is Super Mario RPG's
+own rule ("if there is more than one enemy") and what keeps every fight this template already
+shipped pressing the same keys. `Order` carries `target` for allies and `foe` for foes as two
+fields, because a single signed number is a decode every reader has to remember and the one who
+forgets aims a heal at member 1. A stale target cannot happen here: the cursor lists the living
+at the moment it opens and the blow lands on the same beat, so FF1's "Ineffective" - its most
+complained-about behaviour, and a consequence of entering commands first - is unreachable. That
+is M27.1's round shape paying for a rule this template never has to write.
+
+**The two seeded streams stay two**, drawn in foe order, so a fight of one draws exactly what it
+drew before and every shipped session replays byte-identically with no compatibility branch. A
+foe dying or sleeping shifts the draws of foes AFTER it within that fight, which is deterministic
+in the seed and the inputs - all the replay guarantee ever claimed.
+
+**A spell's target shape is data.** `SpellDef.Target` is `ONE` or `ALL`, and `ALL` is legal for
+an ATTACK only. Groups and multi-target magic arrive together in the genre - DQ1 has no group
+spells because it has no groups, and DQ2 introduces both in one game - so the field arrived with
+formations rather than before them.
+
+**The foe bars are a stated divergence.** No reference game shows enemy health at all: FF1 lists
+names in their own box, DQ2 shows names and a living count, Super Mario RPG charges a whole turn
+to peek. This screen has drawn a numeric bar for its single foe since M13 and been played that
+way ever since, so it extends per foe rather than being removed. `docs/DECISIONS.md` carries the
+fork and the genre's own answer as the deferred alternative.
+
 **A party is a LIST even when it is one, and who is in it is derived from a flag.** A game
 with no `party` on its manifest is handed one synthesized member - the manifest's own
 `player_character` and `combat`, named "You", knowing everything its level has reached - so
@@ -213,10 +257,11 @@ way into the next fight.
 `derive("moves")`, so the moves an existing fight draws are untouched and every solo replay is
 byte-identical. Chosen BEFORE the defend cue opens, because the cue is the thing being reacted to
 - the target's armour applies, the halving is theirs, and the screen marks them while there is
-still time to press. `BattleScreen.MAX_PARTY` is the capacity the view DECLARES and the layout
-audit measures against; a party of one draws exactly the layout that shipped. It is not yet a
-gate on content - nothing refuses a manifest carrying more members than that, so the M13.3 rule
-is half-applied here and the missing half is a check that every game's party fits it.
+still time to press. `BattleScreen.MAX_PARTY` and `MAX_FOES` are the capacities the view DECLARES,
+the layout audit measures against AND the content gate refuses data for; a party of one draws
+exactly the layout that shipped. M27 declared the first of those and enforced nothing - the
+layout was audited at capacity, which proves the drawing and not the data - and M27.1 found the
+claim overstated. Both halves of the M13.3 rule now hold, on both sides.
 
 **Magic is a level curve, and knowing a spell is DERIVED from level.** `CombatDef.base_mp`/
 `mp_per_level` size the pool the way `attack_at` sizes a swing - zero is the default and means

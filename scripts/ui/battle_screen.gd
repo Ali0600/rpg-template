@@ -42,6 +42,10 @@ const ROW_PITCH := 11
 const ROWS_Y := 120.0
 const VISIBLE_ROWS := 4
 const HERO_BAR_Y := 120.0
+## Where a LONE foe's bar sits - the spot it has occupied since fights existed, written out as a
+## constant now that its neighbours are computed. It was `mid - 44.0` inline, which is the same
+## number at this viewport and a worse thing to compare a layout assertion against.
+const FOE_BAR_Y := 46.0
 
 ## How many fighters this screen can draw on the player's side, and therefore how large a party
 ## a game on this template may declare. THE CAPACITY IS THE CONTENT CONTRACT, not an
@@ -60,6 +64,20 @@ const MAX_PARTY := 3
 ## and at three there is not.
 const MEMBERS_Y := 112.0
 const MEMBER_PITCH := 17.0
+
+## The same contract on the other side: how many foes this screen can draw, and therefore how
+## large a formation a map record may name. Three for the same reason - it is what the band
+## above the cue line holds, and it is the size the genre's own small fights come in.
+##
+## The pitch is tighter than the party's because a foe's caption carries no magic: a bar and one
+## line, three times, between the title and the cue band at y=60.
+const MAX_FOES := 3
+const FOES_Y := 20.0
+## Thirteen rather than fourteen, and the layout audit is why: at fourteen the third foe's
+## caption ends exactly on the cue band's first pixel. Nothing overlapped, so the overlap audit
+## was happy - but a block that touches the one thing the player is reacting to has no room to
+## be wrong in, and the bound test asks for clearance rather than for a tie.
+const FOE_PITCH := 13.0
 
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
@@ -85,14 +103,16 @@ var _member_homes: Array[Vector2] = []
 var _member_bars: Array[ColorRect] = []
 var _member_fills: Array[ColorRect] = []
 var _member_labels: Array[Label] = []
-var _foe_view: SpriteView = null
-var _foe_home := Vector2.ZERO
-var _foe_bar := ColorRect.new()
-var _foe_fill := ColorRect.new()
+## And one entry per foe, index-aligned with the fight's own formation order. Five lists on each
+## side, mirrored deliberately: the two sides are the same problem drawn at opposite corners.
+var _foe_views: Array[SpriteView] = []
+var _foe_homes: Array[Vector2] = []
+var _foe_bars: Array[ColorRect] = []
+var _foe_fills: Array[ColorRect] = []
+var _foe_labels: Array[Label] = []
 ## The magic line, drawn only for a party of ONE - at two or more it folds into the caption,
 ## because there is no room for a second line each.
 var _hero_mp := Label.new()
-var _foe_label := Label.new()
 
 var _gate := InputGate.new()
 
@@ -106,13 +126,14 @@ func _ready() -> void:
 	layer = LAYER
 
 
-## The party's art is not passed in any more: each member carries their own, so the screen asks
-## the fight who it is drawing rather than being told once about a hero.
+## Nobody's art is passed in any more. The party's stopped being when members gained their own;
+## the foe's stops now for the same reason, because a formation has as many as it has - so the
+## screen asks the fight who it is drawing rather than being told once about a hero and a foe.
 func setup(logic: BattleLogic, style: SpriteStyle, viewport_size: Vector2i,
-		source: SpriteSource, foe_character: StringName) -> void:
+		source: SpriteSource) -> void:
 	_logic = logic
 	_style = style
-	_build(viewport_size, source, foe_character)
+	_build(viewport_size, source)
 	_paint()
 
 
@@ -120,7 +141,7 @@ func logic() -> BattleLogic:
 	return _logic
 
 
-func _build(viewport_size: Vector2i, source: SpriteSource, foe_character: StringName) -> void:
+func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	# Opaque, unlike the pause menu's 0.85. A pause is a moment inside a place and being able
 	# to see where you stood is most of what makes it feel like one; a battle is somewhere
 	# else, and showing the road behind it would make the fight look like a menu.
@@ -134,7 +155,7 @@ func _build(viewport_size: Vector2i, source: SpriteSource, foe_character: String
 
 	var mid := float(viewport_size.y) * 0.5
 	var count := _logic.member_count()
-	_foe_home = Vector2(float(viewport_size.x) * 0.74, mid + 8.0)
+	var foes := _logic.foe_count()
 	# The generated walk and idle sheets, unchanged. A battle-only "attack" clip would mean new
 	# rig parts, a new clip in SheetBuilder and a change to the sheet contract - so the lunge
 	# is done by moving the NODE, which needs none of it and re-skins with everything else.
@@ -146,7 +167,12 @@ func _build(viewport_size: Vector2i, source: SpriteSource, foe_character: String
 		_member_homes.append(home)
 		_member_views.append(_make_fighter(source, _logic.member_character(i), home,
 			Dir.D.RIGHT))
-	_foe_view = _make_fighter(source, foe_character, _foe_home, Dir.D.LEFT)
+	# The formation stands in the mirror of that file - back and up the other way, so the first
+	# foe is where the only foe always stood and the rest step behind it.
+	for at in foes:
+		var spot := Vector2(float(viewport_size.x) * 0.74 + at * 18.0, mid + 8.0 - at * 14.0)
+		_foe_homes.append(spot)
+		_foe_views.append(_make_fighter(source, _logic.foe_character(at), spot, Dir.D.LEFT))
 
 	var right := float(viewport_size.x) - MARGIN
 	# The party's blocks are the bottom-right corner, mirroring the enemy's top-right one, and
@@ -170,7 +196,21 @@ func _build(viewport_size: Vector2i, source: SpriteSource, foe_character: String
 	_hero_mp.add_theme_font_size_override("font_size", HELP_SIZE)
 	_align_right(_hero_mp, right)
 	add_child(_hero_mp)
-	_build_bar(_foe_bar, _foe_fill, _foe_label, Vector2(right - BAR_WIDTH, mid - 44.0))
+	# The formation's blocks, in the corner the single foe's bar has always been in. At ONE foe
+	# the block sits exactly where it shipped and the caption stays left-anchored, which is the
+	# `_member_block_y` bargain: a fight of one is pixel-identical to every screenshot taken
+	# before formations existed, and the audit pins that.
+	for at in foes:
+		var foe_bar := ColorRect.new()
+		var foe_fill := ColorRect.new()
+		var foe_label := Label.new()
+		_build_bar(foe_bar, foe_fill, foe_label,
+			Vector2(right - BAR_WIDTH, _foe_block_y(at, foes)))
+		if foes > 1:
+			_align_right(foe_label, right)
+		_foe_bars.append(foe_bar)
+		_foe_fills.append(foe_fill)
+		_foe_labels.append(foe_label)
 
 	_cue.position = Vector2(0.0, mid - 30.0)
 	_cue.size = Vector2(viewport_size.x, 12.0)
@@ -258,6 +298,14 @@ func _member_block_y(at: int, count: int) -> float:
 	return MEMBERS_Y + at * MEMBER_PITCH
 
 
+## And where one foe's does. The same bargain in the opposite corner: a formation of ONE keeps
+## the spot the single enemy's bar has occupied since fights existed.
+func _foe_block_y(at: int, count: int) -> float:
+	if count <= 1:
+		return FOE_BAR_Y
+	return FOES_Y + at * FOE_PITCH
+
+
 func _paint() -> void:
 	if _style == null or _logic == null:
 		return
@@ -271,7 +319,7 @@ func _paint() -> void:
 	_message.add_theme_color_override("font_color", text)
 	_cue.add_theme_color_override("font_color", text)
 
-	_title.text = _logic.enemy_name().to_upper()
+	_title.text = _foes_title().to_upper()
 	_message.text = _logic.message()
 	_help.text = _help_text()
 
@@ -285,9 +333,13 @@ func _paint() -> void:
 	_hero_mp.text = _hero_mp_caption()
 	_hero_mp.visible = not _hero_mp.text.is_empty()
 	_hero_mp.add_theme_color_override("font_color", text)
-	_paint_bar(_foe_bar, _foe_fill, _foe_label, dim, text,
-		_logic.enemy_hp(), _logic.enemy_max_hp(),
-		"%s  %d/%d" % [_logic.enemy_name(), _logic.enemy_hp(), _logic.enemy_max_hp()])
+	for at in _foe_labels.size():
+		# A felled foe dims and stays, for the member rule's reason turned around: something that
+		# vanished mid-fight would read as having fled, and the formation is what the player is
+		# counting down.
+		_paint_bar(_foe_bars[at], _foe_fills[at], _foe_labels[at], dim,
+			dim if _logic.foe_down(at) else text,
+			_logic.enemy_hp(at), _logic.enemy_max_hp(at), _foe_caption(at))
 
 	# The one cue the player is reacting to, showing exactly when the rules say the window is
 	# open. Reading it from the logic rather than re-deriving a countdown here is what keeps
@@ -334,6 +386,44 @@ func _hero_mp_caption() -> String:
 	return "MP %d/%d" % [_logic.member_mp(0), _logic.member_max_mp(0)]
 
 
+## What one foe is worth. At ONE foe this is character-for-character the line that shipped, left
+## anchored where it always was; at two or more it right-aligns like the party's and carries the
+## marker, so the thing the cursor is on and the thing about to swing both say so.
+##
+## That the number is here AT ALL is this template's loudest divergence from its own sources -
+## no reference game shows enemy health, and Super Mario RPG charges a whole turn to read it.
+## The bar shipped in M13 and has been played ever since; extending it is the consistent answer
+## rather than the genre's one. See docs/DECISIONS.md.
+func _foe_caption(at: int) -> String:
+	var line := "%s  %d/%d" % [_logic.enemy_name(at), _logic.enemy_hp(at),
+		_logic.enemy_max_hp(at)]
+	if _logic.foe_count() > 1:
+		line = ("> " if _foe_marked(at) else "  ") + line
+	return line
+
+
+## Whether this foe is the one the screen should point at: the one the cursor is over, or the one
+## a swing is already on its way to. The member marker's rule mirrored - it holds through the
+## blow rather than blinking off when the cursor closes, because the aim is the thing the player
+## just chose and the wind-up is when they want to see it.
+func _foe_marked(at: int) -> bool:
+	if _logic.phase() == BattleLogic.Phase.FOE:
+		var rows := _logic.foe_rows()
+		var row := _logic.index()
+		return row >= 0 and row < rows.size() and rows[row] == at
+	return _logic.struck_foe() == at
+
+
+## What the fight is called. One foe names itself, which is what every screenshot before
+## formations shows; several are joined, because a title that named only the first would be
+## wrong about the fight the moment it mattered.
+func _foes_title() -> String:
+	var names: Array[String] = []
+	for at in _logic.foe_count():
+		names.append(_logic.enemy_name(at))
+	return " & ".join(names)
+
+
 func _paint_bar(back: ColorRect, fill: ColorRect, label: Label, dim: Color, text: Color,
 		value: int, most: int, caption: String) -> void:
 	back.color = dim
@@ -369,16 +459,21 @@ func _paint_fighters() -> void:
 		var mine := acting and player_side and swinging == i
 		_member_views[i].position = _member_homes[i] + Vector2(reach if mine else 0.0, 0.0)
 		_member_views[i].set_pose(&"walk" if mine else &"idle", Dir.D.RIGHT)
-	if _foe_view != null:
-		_foe_view.position = _foe_home - Vector2(reach if acting and not player_side else 0.0, 0.0)
-		_foe_view.set_pose(&"walk" if acting and not player_side else &"idle", Dir.D.LEFT)
+	var swinging_foe := _logic.acting_foe()
+	for at in _foe_views.size():
+		# And only the foe taking its turn, for the same reason. With a formation acting one at a
+		# time, a whole side leaning together would say nothing about which of them is hitting you.
+		var theirs := acting and not player_side and swinging_foe == at
+		_foe_views[at].position = _foe_homes[at] - Vector2(reach if theirs else 0.0, 0.0)
+		_foe_views[at].set_pose(&"walk" if theirs else &"idle", Dir.D.LEFT)
 
 
 func _paint_rows(text: Color, dim: Color) -> void:
 	var choosing := _logic.phase() == BattleLogic.Phase.MENU \
 		or _logic.phase() == BattleLogic.Phase.ITEMS \
 		or _logic.phase() == BattleLogic.Phase.SPELLS \
-		or _logic.phase() == BattleLogic.Phase.ALLY
+		or _logic.phase() == BattleLogic.Phase.ALLY \
+		or _logic.phase() == BattleLogic.Phase.FOE
 	var first := _first_visible()
 	for i in _rows.size():
 		var row := _rows[i]
@@ -432,6 +527,13 @@ func _label_for(at: int) -> String:
 		var who := rows[at]
 		return "%s  %d/%d" % [_logic.member_name(who), _logic.member_hp(who),
 			_logic.member_max_hp(who)]
+	if _logic.phase() == BattleLogic.Phase.FOE:
+		var alive := _logic.foe_rows()
+		if at < 0 or at >= alive.size():
+			return ""
+		var which := alive[at]
+		return "%s  %d/%d" % [_logic.enemy_name(which), _logic.enemy_hp(which),
+			_logic.enemy_max_hp(which)]
 	return COMMANDS[at]
 
 
@@ -443,6 +545,8 @@ func _help_text() -> String:
 			return "W/S to choose    E to use    Esc to go back"
 		BattleLogic.Phase.ALLY:
 			return "W/S to choose who    E to confirm    Esc to go back"
+		BattleLogic.Phase.FOE:
+			return "W/S to choose a foe    E to strike    Esc to go back"
 		BattleLogic.Phase.MENU:
 			# Whose turn it is, once there is more than one member to ask - without it a player
 			# with two fighters has to infer from the marker which menu this is.

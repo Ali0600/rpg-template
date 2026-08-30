@@ -587,14 +587,21 @@ func _try_encounter(tile: Vector2i) -> void:
 		var seen_key := Interaction.seen_key(GameState.current_map, String(record["id"]))
 		if GameState.was_seen(seen_key):
 			continue
-		var def := Registry.get_resource(&"EnemyDef", record["enemy"]) as EnemyDef
-		if def == null:
-			# Said out loud rather than skipped: a misspelt enemy id is a fight that never
-			# happens, and a map that merely looks empty is the hardest kind of content bug.
-			push_error("World: map '%s' places enemy '%s', which no file in data/enemies describes"
-				% [GameState.current_map, record["enemy"]])
+		# Every name the record carries, which is one for a lone enemy and several for a
+		# formation. A missing one is said out loud and the fight goes ahead without it, because
+		# a formation that opens one foe short is a legible bug where a fight that silently never
+		# happens is the hardest kind of content bug there is.
+		var defs: Array[EnemyDef] = []
+		for named: StringName in record.get("foes", [] as Array[StringName]):
+			var def := Registry.get_resource(&"EnemyDef", named) as EnemyDef
+			if def == null:
+				push_error("World: map '%s' places enemy '%s', which no file in data/enemies describes"
+					% [GameState.current_map, named])
+				continue
+			defs.append(def)
+		if defs.is_empty():
 			continue
-		open_battle_with(def, seen_key)
+		open_battle_with(defs, seen_key)
 		return
 
 
@@ -889,24 +896,33 @@ func _item_rows() -> Array:
 	return out
 
 
-## Starts a fight against a resolved enemy. Public and taking a DEF rather than a map record,
+## Starts a fight against a resolved FORMATION. Public and taking defs rather than a map record,
 ## so a test can stage any fight it likes without needing a map that places one - the same
 ## reason try_interact() and open_pause() are public.
 ##
+## An Array even for one foe, for the reason the party is a list even at one: there is a single
+## code path through a fight, and the fights this template shipped for fifteen milestones are
+## simply formations of one.
+##
 ## `seen_key` is what a victory will mark, passed in rather than rebuilt here because the
-## caller already knows which record this came from.
-func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
-	if _battle != null or _shop != null or _game_over != null or _game == null or def == null:
+## caller already knows which record this came from - and it stays ONE key however many foes
+## stood on it, because the record is the encounter.
+func open_battle_with(defs: Array, seen_key: String) -> bool:
+	if _battle != null or _shop != null or _game_over != null or _game == null or defs.is_empty():
 		return false
 	if _game.combat == null:
 		# A map placed an enemy in a game that has no combat definition. Said out loud: the
 		# alternative is a fight that silently never opens, which reads as a broken trigger.
 		push_error("World: game '%s' has no combat, but something tried to start a fight" % _game.id)
 		return false
-	var faults := def.problems()
-	if not faults.is_empty():
-		push_error("World: enemy '%s' is not fit to fight: %s" % [def.id, ", ".join(faults)])
-		return false
+	for entry: EnemyDef in defs:
+		if entry == null:
+			push_error("World: a formation for '%s' carries nothing to fight" % seen_key)
+			return false
+		var faults := entry.problems()
+		if not faults.is_empty():
+			push_error("World: enemy '%s' is not fit to fight: %s" % [entry.id, ", ".join(faults)])
+			return false
 
 	_ensure_party()
 	_player.halt()
@@ -916,16 +932,17 @@ func open_battle_with(def: EnemyDef, seen_key: String) -> bool:
 	_battle.sound_wanted.connect(_on_sound_wanted)
 	_battle.finished.connect(_on_battle_finished)
 	add_child(_battle)
-	_battle.setup(BattleLogic.of(_game.combat, def, _battle_members(), _battle_items(),
+	_battle.setup(BattleLogic.of(_game.combat, defs, _battle_members(), _battle_items(),
 		seen_key, _battle_seed(seen_key)),
-		_style, get_viewport_rect().size, _source, def.character)
+		_style, get_viewport_rect().size, _source)
 	# A fight takes the room's music over. A game naming no battle theme touches nothing at all,
 	# which is not merely a legal shape but is exactly the behaviour every fight had before this
 	# existed - so the field being empty is the old game, unchanged.
 	if not String(_game.battle_music).is_empty():
 		AudioBus.play_music(_game.battle_music)
 	Router.open_overlay(Router.State.BATTLE)
-	EventBus.battle_changed.emit({"enemy": def.id, "open": true, "outcome": &""})
+	EventBus.battle_changed.emit(
+		{"enemies": _battle.logic().foe_ids(), "open": true, "outcome": &""})
 	return true
 
 
@@ -1395,9 +1412,12 @@ func _battle_seed(seen_key: String) -> int:
 ## goes on to build another screen, so leaving the battle up while that happens would stack two
 ## full-screen views and free one of them mid-dispatch.
 func _on_battle_finished(outcome: int, effects: Array) -> void:
-	var enemy_name := &""
+	# Ids, and the same ids the open announced. This used to be the display name on the way out
+	# and the def's id on the way in - one field answering in two vocabularies, which nothing
+	# noticed because nothing listens. Read before the screen goes, because it is what holds them.
+	var fought: Array[StringName] = []
 	if _battle != null and _battle.logic() != null:
-		enemy_name = StringName(_battle.logic().enemy_name())
+		fought = _battle.logic().foe_ids()
 	_close_battle()
 	match outcome:
 		BattleLogic.Outcome.DEFEAT:
@@ -1408,13 +1428,13 @@ func _on_battle_finished(outcome: int, effects: Array) -> void:
 			# states its own music again - the title plays the manifest's theme, and a restart
 			# or a load enters a map, which states one either way.
 			AudioBus.stop_music()
-			EventBus.battle_changed.emit({"enemy": enemy_name, "open": false, "outcome": &"defeat"})
+			EventBus.battle_changed.emit({"enemies": fought, "open": false, "outcome": &"defeat"})
 			open_game_over()
 		_:
 			_apply_effects(effects)
 			_despawn_beaten_enemies()
 			_leave_battle_music(outcome == BattleLogic.Outcome.VICTORY)
-			EventBus.battle_changed.emit({"enemy": enemy_name, "open": false,
+			EventBus.battle_changed.emit({"enemies": fought, "open": false,
 				"outcome": &"fled" if outcome == BattleLogic.Outcome.FLED else &"victory"})
 
 

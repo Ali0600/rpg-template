@@ -62,7 +62,7 @@ func _party_fight(enemy: EnemyDef = null, leader_hp := 20, friend_hp := 16, item
 		leader_spells: Array = [], friend_spells: Array = [], seed_value := 7) -> BattleLogic:
 	var foe := enemy if enemy != null else _enemy()
 	var curve := _combat()
-	return BattleLogic.of(curve, foe, [
+	return BattleLogic.of(curve, [foe], [
 		BattleHelpers.leader(curve, leader_hp, 0, 1, 8, 0, 0, leader_spells),
 		BattleHelpers.companion(&"rook", curve, "Rook", friend_hp, 0, 1, 4, 0, 0, friend_spells),
 	], items, "map/foe", seed_value)
@@ -1039,7 +1039,7 @@ func test_a_fallen_member_earns_nothing_and_the_standing_earn_everything() -> vo
 	# Dragon Quest's rule: every living member takes the full award, and nobody divides it.
 	# The fallen earn nothing, which is both series' rule.
 	var curve := _combat()
-	var battle := BattleLogic.of(curve, _enemy(4), [
+	var battle := BattleLogic.of(curve, [_enemy(4)], [
 		BattleHelpers.leader(curve, 20, 0, 1, 8),
 		BattleHelpers.companion(&"rook", curve, "Rook", 0, 0, 1, 4),
 	], [], "map/foe", 7)
@@ -1054,7 +1054,7 @@ func test_a_fallen_member_earns_nothing_and_the_standing_earn_everything() -> vo
 
 func test_a_fallen_member_is_never_asked_for_an_order() -> void:
 	var curve := _combat()
-	var battle := BattleLogic.of(curve, _enemy(99), [
+	var battle := BattleLogic.of(curve, [_enemy(99)], [
 		BattleHelpers.leader(curve, 20, 0, 1, 8),
 		BattleHelpers.companion(&"rook", curve, "Rook", 0, 0, 1, 4),
 	], [], "map/foe", 7)
@@ -1110,3 +1110,199 @@ func test_the_same_seed_aims_the_enemy_the_same_way() -> void:
 		"the same seed aimed the enemy differently on a replay").is_equal(first)
 	assert_bool(first.size() > 1).override_failure_message(
 		"the replay compared fewer than two draws, so it proves nothing").is_true()
+
+
+# -- a formation -------------------------------------------------------------------------------
+#
+# Everything below only exists once there is more than one thing to point at. The rules a fight
+# against one foe already proved are not repeated here; what is proved is the cursor, whose turn
+# it is on that side, and what a crowd is worth.
+
+## Two foes, which is the smallest formation and the one the demo ships. Named differently on
+## purpose - the lettering that duplicates get is its own rule with its own test.
+func _pair(first_hp := 10, second_hp := 10, spells: Array = [], seed_value := 7) -> BattleLogic:
+	var curve := _combat()
+	var one := _enemy(first_hp)
+	var two := _enemy(second_hp)
+	two.id = &"test_gloom"
+	two.name = "Gloom"
+	return BattleLogic.of(curve, [one, two],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0, spells)], [], "map/foe", seed_value)
+
+
+## A spell that reaches every living foe rather than one.
+func _sweep(cost := 3, power := 7, name := "Gale") -> BattleLogic.SpellRow:
+	return BattleLogic.SpellRow.of(StringName(name.to_lower()), name, cost,
+		SpellDef.Kind.ATTACK, power, 0, SpellDef.Target.ALL)
+
+func test_a_swing_asks_which_foe_when_there_is_more_than_one() -> void:
+	var battle := _pair()
+	battle.press()
+	assert_int(battle.phase()).override_failure_message(
+		"attacking a formation did not ask which one").is_equal(BattleLogic.Phase.FOE)
+	assert_int(battle.size()).override_failure_message(
+		"the cursor was not offered every living foe").is_equal(2)
+
+func test_a_swing_at_one_foe_never_asks() -> void:
+	# The control that keeps every fight this template already shipped pressing the same keys,
+	# and Super Mario RPG's own rule: it asks which enemy only if there is more than one.
+	var battle := _fight(_enemy(99))
+	battle.press()
+	assert_int(battle.phase()).override_failure_message(
+		"a lone foe was offered as a choice").is_equal(BattleLogic.Phase.PLAYER_ACT)
+
+func test_the_blow_lands_on_the_foe_the_cursor_chose() -> void:
+	var battle := _pair()
+	battle.press()
+	battle.move(1)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	assert_int(battle.enemy_hp(1)).override_failure_message(
+		"the chosen foe was not the one that was hit").is_less(10)
+	assert_int(battle.enemy_hp(0)).override_failure_message(
+		"a foe nobody aimed at took damage").is_equal(10)
+
+func test_cancelling_the_foe_cursor_goes_back_to_the_command_row() -> void:
+	var battle := _pair()
+	battle.press()
+	assert_bool(battle.cancel()).is_true()
+	assert_int(battle.phase()).override_failure_message(
+		"backing out of the foe cursor left the menu").is_equal(BattleLogic.Phase.MENU)
+	assert_int(battle.index()).override_failure_message(
+		"the cursor did not come back to the row it was on").is_equal(BattleLogic.Row.ATTACK)
+
+func test_a_fallen_foe_is_never_offered_as_a_target() -> void:
+	# One shot kills the first, and the cursor is then a question with one answer - so it stops
+	# being asked at all, which is the same rule that skips it at one foe from the start.
+	var battle := _pair(1, 10)
+	battle.press()
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_bool(battle.foe_down(0)).is_true()
+	battle.press()
+	assert_int(battle.phase()).override_failure_message(
+		"the cursor opened over a formation with one foe left standing") \
+		.is_equal(BattleLogic.Phase.PLAYER_ACT)
+
+func test_every_living_foe_takes_a_turn() -> void:
+	# Each of them acts, each behind its own cue - which is every reference game's rule, and the
+	# cost of it: a formation of two is two blows to defend against in a round.
+	var battle := _pair(99, 99)
+	battle.press()
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.acting_foe()).override_failure_message(
+		"the formation's turn did not start with the first foe").is_equal(0)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"the second foe never got its turn").is_equal(BattleLogic.Phase.ENEMY_ACT)
+	assert_int(battle.acting_foe()).override_failure_message(
+		"the second foe was not the one acting").is_equal(1)
+
+func test_a_sleeping_foe_loses_its_turn_and_the_others_do_not() -> void:
+	var battle := _pair(99, 99, [_spell(SpellDef.Kind.SLEEP, 3, 0, 2, "Lull")])
+	# Cast it, then aim it at the FIRST of them.
+	_to_the_spells(battle)
+	battle.press()
+	battle.press()
+	# Read BEFORE the round runs on: the enemy phase spends a sleep turn as it skips one, so
+	# walking first would measure what the sleep has left rather than what it landed as.
+	assert_int(battle.enemy_asleep_turns(0)).override_failure_message(
+		"the sleep did not land on the foe the cursor chose").is_equal(2)
+	assert_int(battle.enemy_asleep_turns(1)).override_failure_message(
+		"one cast put the whole formation to sleep").is_equal(0)
+	# And the other one still swings: a sleeping foe loses ITS turn, not the formation's.
+	var hp := battle.member_hp(0)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	for i in 400:
+		if battle.phase() == BattleLogic.Phase.MENU or battle.finished():
+			break
+		battle.tick()
+	assert_int(battle.enemy_asleep_turns(0)).override_failure_message(
+		"the sleeping foe did not spend a turn asleep").is_equal(1)
+	assert_int(battle.member_hp(0)).override_failure_message(
+		"the whole formation lost its turn to one sleeping foe").is_less(hp)
+
+func test_the_award_sums_the_whole_formation() -> void:
+	# Final Fantasy I's gold is "the direct sum of the gold values of all monsters killed", and
+	# the experience works the same way - a foe felled early still counts.
+	var curve := _combat()
+	var one := _enemy(1, 3, 1, 5, false, 4)
+	var two := _enemy(1, 3, 1, 12, false, 6)
+	two.id = &"test_gloom"
+	two.name = "Gloom"
+	var battle := BattleLogic.of(curve, [one, two],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8)], [], "map/foe", 7)
+	for i in 400:
+		if battle.finished():
+			break
+		if battle.phase() == BattleLogic.Phase.MENU or battle.phase() == BattleLogic.Phase.FOE:
+			battle.press()
+		else:
+			battle.tick()
+	assert_int(battle.outcome()).is_equal(BattleLogic.Outcome.VICTORY)
+	assert_int(_sealed(battle).get("xp", -1)).override_failure_message(
+		"the fight paid for one foe rather than for the formation").is_equal(17)
+	var coin := 0
+	for effect: Dictionary in battle.effects():
+		if effect.get("op", &"") == GameContext.OP_GOLD:
+			coin = int(effect.get("amount", 0))
+	assert_int(coin).override_failure_message(
+		"the purse was paid for one foe rather than for the formation").is_equal(10)
+
+func test_the_fight_is_won_only_when_every_foe_is_down() -> void:
+	var battle := _pair(1, 10)
+	battle.press()
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	assert_bool(battle.foe_down(0)).override_failure_message(
+		"the first foe survived a blow that should have felled it").is_true()
+	assert_bool(battle.finished()).override_failure_message(
+		"felling one of two ended the fight").is_false()
+	assert_int(battle.outcome()).is_equal(BattleLogic.Outcome.NONE)
+
+func test_a_formation_letters_the_names_it_repeats() -> void:
+	# EarthBound's convention. "The Slink is down" says nothing about which of them fell.
+	var curve := _combat()
+	var battle := BattleLogic.of(curve, [_enemy(), _enemy()],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8)], [], "map/foe", 7)
+	assert_str(battle.enemy_name(0)).is_equal("Test Enemy A")
+	assert_str(battle.enemy_name(1)).is_equal("Test Enemy B")
+
+func test_a_name_that_appears_once_is_left_alone() -> void:
+	# The control for the lettering, and the reason a fight of one reads as it always did.
+	var battle := _pair()
+	assert_str(battle.enemy_name(0)).override_failure_message(
+		"a name that appears once was lettered anyway").is_equal("Test Enemy")
+
+func test_any_boss_in_the_formation_refuses_the_escape() -> void:
+	# Unfleeability is a property of the encounter rather than an average over its members.
+	var curve := _combat()
+	var minion := _enemy(10)
+	var boss := _enemy(30, 8, 3, 25, true)
+	boss.id = &"test_keeper"
+	boss.name = "Keeper"
+	var battle := BattleLogic.of(curve, [minion, boss],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8)], [], "map/foe", 7)
+	battle.move(BattleLogic.Row.FLEE)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.outcome()).override_failure_message(
+		"a formation with a boss in it was fled").is_equal(BattleLogic.Outcome.NONE)
+
+func test_a_spell_that_reaches_everything_asks_nobody_and_hits_all_of_them() -> void:
+	var battle := _pair(20, 20, [_sweep()])
+	_to_the_spells(battle)
+	battle.press()
+	assert_int(battle.phase()).override_failure_message(
+		"a spell that reaches everything asked which one").is_not_equal(BattleLogic.Phase.FOE)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.enemy_hp(0)).override_failure_message(
+		"the first foe was not reached").is_equal(13)
+	assert_int(battle.enemy_hp(1)).override_failure_message(
+		"the second foe was not reached").is_equal(13)

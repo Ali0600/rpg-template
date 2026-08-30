@@ -30,7 +30,10 @@ signal flow_changed(info: Dictionary)
 signal save_changed(info: Dictionary)
 
 ## A fight opened or resolved.
-## { "enemy": StringName, "open": bool, "outcome": StringName }
+## { "enemies": Array[StringName], "open": bool, "outcome": StringName }
+## `enemies` is every foe's id, in formation order - one of them for an ordinary fight. It was a
+## single `enemy` until formations existed, and it answered with the def's id on the way in and
+## the display name on the way out; nothing consumes this signal, so nothing noticed.
 ## `outcome` is empty while the fight is on, then "victory", "defeat" or "fled".
 signal battle_changed(info: Dictionary)
 

@@ -270,12 +270,41 @@ func test_an_enemy_sharing_an_id_with_an_object_is_reported() -> void:
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
 	assert_str(str(map.problems(_known_tiles()))).contains("used twice")
 
+func test_two_enemies_on_one_tile_are_reported() -> void:
+	# enemy_at answers with the first record it finds, so the second is a body nobody can walk
+	# into and a fight nobody can open. It reads as a placement that simply does not work.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_str(str(map.problems(_known_tiles()))).contains("already is")
+
+func test_a_formation_naming_nothing_is_reported() -> void:
+	# A group entry with no name would open the fight one foe short, and the fight would still
+	# look deliberate - so it is refused here rather than said out loud at the trigger.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_str(str(map.problems(_known_tiles()))).contains("fights beside something with no name")
+
+func test_a_record_projects_every_foe_it_names() -> void:
+	# The body on the tile first, then its group - which is the only thing the encounter check
+	# reads, so a name dropped here is a foe that silently never turns up.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	var found := map.enemy_at(Vector2i(2, 3))
+	assert_array(found.get("foes", [])).override_failure_message(
+		"a record's formation did not project as the body plus its group") \
+		.is_equal([&"cave_lurker", &"cave_gloom"])
+
+func test_a_lone_enemy_projects_as_a_formation_of_one() -> void:
+	# The control: a record with no group needs no branch anywhere downstream, because it is
+	# already a formation - of one.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_array(map.enemy_at(Vector2i(3, 3)).get("foes", [])).is_equal([&"cave_lurker"])
+
 func test_every_enemy_a_map_names_is_listed() -> void:
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
 	var refs := map.enemy_refs()
 	assert_bool(refs.has(&"cave_lurker")).override_failure_message(
 		"an enemy went unlisted, so a misspelt id on a map would ship").is_true()
-	assert_int(refs.size()).override_failure_message("an enemy was listed twice").is_equal(1)
+	assert_bool(refs.has(&"cave_gloom")).override_failure_message(
+		"a foe named only in a group went unlisted, so a misspelt one would ship").is_true()
+	assert_int(refs.size()).override_failure_message("an enemy was listed twice").is_equal(2)
 
 func test_a_map_with_no_enemies_has_none() -> void:
 	# The control, and the shape every shipped map had before this milestone: absence must

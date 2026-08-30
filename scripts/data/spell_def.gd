@@ -32,6 +32,15 @@ extends Resource
 ## this scale. See docs/DECISIONS.md.
 enum Kind { ATTACK, HEAL, SLEEP }
 
+## How many things it reaches. The shape belongs to the SPELL rather than to a runtime cursor,
+## which is Final Fantasy I's model ("some spells will affect all enemies on the screen") and
+## Dragon Quest II's, whose list splits into one / a group / everything.
+##
+## Groups and multi-target magic arrive together in the genre - DQ1 has no group spells because
+## it has no groups, and DQ2 introduces both in the same game - so this field arrived with
+## formations rather than before them.
+enum Target { ONE, ALL }
+
 ## Matched on everywhere. The content gate requires it to equal the file's own name, as items
 ## and enemies do.
 @export var id: StringName = &""
@@ -52,6 +61,12 @@ enum Kind { ATTACK, HEAL, SLEEP }
 @export var learn_level: int = 1
 
 @export var kind: Kind = Kind.ATTACK
+
+## ONE is the default and means the spell asks who. ALL is legal for an ATTACK only: a heal or a
+## sleep that reached everybody is a real genre noun in both cases, but neither is needed to
+## fight a crowd, and shipping a field's every combination before any of them has content is how
+## a template grows rules nobody chose. `problems()` refuses the rest.
+@export var target: Target = Target.ONE
 
 ## Damage for an ATTACK, hit points restored for a HEAL, unused for a SLEEP. One field rather
 ## than two named ones because a spell is exactly one of these kinds and the second field would
@@ -76,6 +91,10 @@ func problems() -> Array[String]:
 		out.append("spell '%s' is learned at level %d" % [id, learn_level])
 	# A hand-edited .tres can carry any integer here, and an unknown kind would fall through
 	# every branch in the fight and cost a turn doing nothing.
+	if target < 0 or target >= Target.size():
+		out.append("spell '%s' has target %d, which is not a shape" % [id, target])
+	elif target == Target.ALL and kind != Kind.ATTACK:
+		out.append("spell '%s' reaches everything, which only an attack may do" % id)
 	if kind < 0 or kind >= Kind.size():
 		out.append("spell '%s' has kind %d, which is not a kind of spell" % [id, kind])
 	elif kind == Kind.SLEEP:

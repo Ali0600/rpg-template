@@ -76,7 +76,7 @@ func _screen(level := 1, mp := 8, spells: Array = [], items: Array = [],
 	var logic := BattleHelpers.solo(combat, _enemy(), combat.max_hp(level), 0, level, items,
 		0, 0, mp, spells)
 	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
-		FileSpriteSource.create(&"dusk16"), &"quest_warden")
+		FileSpriteSource.create(&"dusk16"))
 	_screens.append(screen)
 	return screen
 
@@ -96,9 +96,37 @@ func _full_party_screen(spells: Array = []) -> BattleScreen:
 		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
 			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
 			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, spells))
-	var logic := BattleLogic.of(combat, _enemy(), members, [], "map/foe", 7)
+	var logic := BattleLogic.of(combat, [_enemy()], members, [], "map/foe", 7)
 	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
-		FileSpriteSource.create(&"dusk16"), &"quest_warden")
+		FileSpriteSource.create(&"dusk16"))
+	_screens.append(screen)
+	return screen
+
+
+## A screen with a full party AND a full formation - every block this view can be asked to draw,
+## at once. The capacity on both sides is the content contract, so this is the audit that
+## matters: a layout that holds three of one and three of the other only when they are not both
+## there is one that fails on the first map that ships a crowd.
+func _full_field_screen() -> BattleScreen:
+	var screen := BattleScreen.new()
+	add_child(screen)
+	var combat := _combat(true)
+	var members: Array = []
+	for i in BattleScreen.MAX_PARTY:
+		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
+			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
+			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, []))
+	var foes: Array = []
+	for at in BattleScreen.MAX_FOES:
+		# Long names here too, and DIFFERENT ones: a formation that repeats a name gets lettered,
+		# which makes every caption a little wider than the file it came from.
+		var foe := _enemy()
+		foe.id = StringName("foe%d" % at)
+		foe.name = "Deepdweller%d" % at
+		foes.append(foe)
+	var logic := BattleLogic.of(combat, foes, members, [], "map/foe", 7)
+	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
+		FileSpriteSource.create(&"dusk16"))
 	_screens.append(screen)
 	return screen
 
@@ -119,7 +147,8 @@ func _visible_rects(screen: BattleScreen) -> Array:
 	# A bar's FILL is drawn inside its own track by construction - that is what a bar is - so
 	# the two are one widget rather than two peers. Excluded by identity rather than by "one
 	# rect contains another", which would also excuse a label genuinely buried under a panel.
-	var fills: Array[ColorRect] = [screen._foe_fill]
+	var fills: Array[ColorRect] = []
+	fills.append_array(screen._foe_fills)
 	fills.append_array(screen._member_fills)
 	for node in SceneHelpers.find_all_by_class(screen, "ColorRect"):
 		var rect := node as ColorRect
@@ -410,3 +439,109 @@ func _walk(logic: BattleLogic, from: BattleLogic.Phase, bound := 400) -> void:
 			return
 		logic.tick()
 	fail("the fight never left phase %d within %d frames" % [from, bound])
+
+
+func test_a_full_field_is_drawn_without_anything_overlapping() -> void:
+	# Both sides at capacity, which is the state no shipped map produces yet and every shipped
+	# map is allowed to.
+	_assert_nothing_overlaps(_full_field_screen(), "full field")
+
+
+func test_every_foe_of_a_full_formation_has_a_visible_block() -> void:
+	# The overlap audit proves nothing COLLIDES; it cannot prove anything was drawn. A layout
+	# that forgot the third foe would pass it perfectly.
+	var screen := _full_field_screen()
+	var drawn := 0
+	for label: Label in screen._foe_labels:
+		if label.visible and not label.text.strip_edges().is_empty():
+			drawn += 1
+	assert_int(drawn).override_failure_message(
+		"a formation of %d drew %d captions" % [BattleScreen.MAX_FOES, drawn]) \
+		.is_equal(BattleScreen.MAX_FOES)
+
+
+func test_a_lone_foe_keeps_the_block_it_has_always_had() -> void:
+	# The parity pin on the other side: a fight against one foe is pixel-identical to every
+	# screenshot taken before formations existed, and this is the assertion that says so.
+	var screen := _screen()
+	assert_int(screen._foe_bars.size()).is_equal(1)
+	assert_float(screen._foe_bars[0].global_position.y).override_failure_message(
+		"the lone foe's bar moved from where it has always been") \
+		.is_equal(BattleScreen.FOE_BAR_Y)
+
+
+func test_the_formation_fits_above_the_cue_line() -> void:
+	# The bound the pitch is chosen against, asserted rather than eyeballed: the lowest thing a
+	# foe's block draws must still sit above the band the "!" uses, or the crowd covers the one
+	# thing the player is reacting to.
+	var screen := _full_field_screen()
+	var lowest := 0.0
+	for label: Label in screen._foe_labels:
+		lowest = maxf(lowest, label.global_position.y + label.get_theme_font_size("font_size"))
+	for bar: ColorRect in screen._foe_bars:
+		lowest = maxf(lowest, bar.global_position.y + bar.size.y)
+	assert_float(lowest).override_failure_message(
+		"the formation's last block reaches y=%f, into the cue band" % lowest) \
+		.is_less(float(VIEWPORT.y) * 0.5 - 30.0)
+
+
+func test_only_the_foe_that_is_swinging_leans_forward() -> void:
+	# The mirror of the party's rule, and unseeable by the overlap audit for the same reason:
+	# leaning is a position, and the audit measures collisions.
+	var screen := _full_field_screen()
+	var logic := screen.logic()
+	# Play the party's whole round out, so the formation's turn begins.
+	for i in 400:
+		if logic.phase() == BattleLogic.Phase.ENEMY_ACT or logic.finished():
+			break
+		if logic.phase() == BattleLogic.Phase.MENU or logic.phase() == BattleLogic.Phase.FOE:
+			logic.press()
+		else:
+			logic.tick()
+	assert_int(logic.phase()).override_failure_message(
+		"the formation never got its turn").is_equal(BattleLogic.Phase.ENEMY_ACT)
+	for i in 20:
+		if logic.count() <= logic.cue_span() / 2:
+			break
+		logic.tick()
+	screen._paint()
+	var swinging := logic.acting_foe()
+	assert_int(swinging).is_greater_equal(0)
+	var moved := 0
+	for at in screen._foe_views.size():
+		if not screen._foe_views[at].position.is_equal_approx(screen._foe_homes[at]):
+			moved += 1
+			assert_int(at).override_failure_message(
+				"foe %d leaned while foe %d was swinging" % [at, swinging]).is_equal(swinging)
+	assert_int(moved).override_failure_message(
+		"no foe leaned at all, so this proves nothing about which one did").is_equal(1)
+
+
+func test_exactly_one_foe_is_marked_while_the_cursor_is_up() -> void:
+	# The marker is one arrow on that side too: it sits on the foe the cursor is over, and stays
+	# on the one a swing is already travelling toward.
+	var screen := _full_field_screen()
+	var logic := screen.logic()
+	logic.press()
+	assert_int(logic.phase()).override_failure_message(
+		"a full formation did not ask which one").is_equal(BattleLogic.Phase.FOE)
+	screen._paint()
+	assert_int(_marked_foes(screen)).override_failure_message(
+		"%d foes were marked while the cursor was on one" % _marked_foes(screen)).is_equal(1)
+	logic.move(1)
+	screen._paint()
+	assert_int(_marked_foes(screen)).override_failure_message(
+		"moving the cursor left %d foes marked" % _marked_foes(screen)).is_equal(1)
+	logic.press()
+	screen._paint()
+	assert_int(_marked_foes(screen)).override_failure_message(
+		"the mark did not stay on the foe the blow is travelling toward").is_equal(1)
+
+
+## How many foe captions are currently carrying the marker.
+func _marked_foes(screen: BattleScreen) -> int:
+	var out := 0
+	for label: Label in screen._foe_labels:
+		if label.visible and label.text.begins_with("> "):
+			out += 1
+	return out
