@@ -1330,11 +1330,13 @@ func _spells_up_to(level: int, only: Array[StringName], everything: bool) -> Arr
 			return a.learn_level < b.learn_level
 		return a.name < b.name)
 	for def in known:
-		# `target` travels too. It is the newest field on SpellDef and the easiest to drop here,
-		# because nothing downstream complains: a sweep that arrives shaped as a single target
-		# simply opens the cursor and hits one thing, which looks like a spell working.
+		# EVERY field travels, and this line is where they get dropped. It happened once already:
+		# M28 added `target` and did not pass it here, so a sweep arrived shaped as a single
+		# target, opened the cursor and hit one thing - which looks exactly like a spell working.
+		# Nothing downstream complains, because a defaulted field is a legal field. `stat` is the
+		# newest and would fail the same silent way: every boost would move attack.
 		out.append(BattleLogic.SpellRow.of(def.id, def.name, def.mp_cost, def.kind, def.power,
-			def.status_turns, def.target))
+			def.status_turns, def.target, def.stat))
 	return out
 
 

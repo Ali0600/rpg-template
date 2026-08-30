@@ -271,17 +271,28 @@ func test_a_spells_shape_survives_the_trip_into_the_fight() -> void:
 	await _boot()
 	GameState.set_party(9, 0, 2, 11)
 	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
-	var shapes := {}
+	# EVERY field is compared against the file it came from, rather than one named field being
+	# spot-checked. Spot-checking is what let `target` ship unpassed: the field that gets dropped
+	# is always the newest one, which is by definition the one no existing assertion names.
+	var checked := 0
 	for row: BattleLogic.SpellRow in _world.battle_screen().logic().spell_rows():
-		shapes[String(row.id)] = row.target
-	assert_bool(shapes.has("gale")).override_failure_message(
-		"the level-2 page did not carry the spell this asserts about").is_true()
-	assert_int(int(shapes["gale"])).override_failure_message(
-		"a spell that reaches everything arrived at the fight aiming at one thing") \
-		.is_equal(SpellDef.Target.ALL)
-	assert_int(int(shapes["ember"])).override_failure_message(
-		"a single-target spell arrived reaching everything, so nothing here is being read") \
-		.is_equal(SpellDef.Target.ONE)
+		var def := Registry.get_resource(&"SpellDef", row.id) as SpellDef
+		assert_object(def).override_failure_message(
+			"the fight offered '%s', which no file describes" % row.id).is_not_null()
+		assert_int(row.kind).override_failure_message("'%s' changed kind" % row.id).is_equal(def.kind)
+		assert_int(row.power).override_failure_message("'%s' changed power" % row.id).is_equal(def.power)
+		assert_int(row.cost).override_failure_message("'%s' changed cost" % row.id).is_equal(def.mp_cost)
+		assert_int(row.status_turns).override_failure_message(
+			"'%s' changed duration" % row.id).is_equal(def.status_turns)
+		assert_int(row.target).override_failure_message(
+			"'%s' arrived aimed at something else - this is how it shipped once" % row.id) \
+			.is_equal(def.target)
+		assert_int(row.stat).override_failure_message(
+			"'%s' arrived moving a different stat" % row.id).is_equal(def.stat)
+		checked += 1
+	# A loop over an empty page proves nothing, and this one is reached through a level.
+	assert_int(checked).override_failure_message(
+		"the level-2 spell page was empty, so nothing above was compared").is_greater(1)
 
 func test_a_spell_arrives_when_its_level_does() -> void:
 	await _boot()

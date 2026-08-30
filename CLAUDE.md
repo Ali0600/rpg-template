@@ -292,10 +292,12 @@ alongside hp - a fight, an inn, a level - so a call site that forgot it would si
 the player. Saves are v8; mp rides inside the `party` dict, because a game with no party has no
 magic either.
 
-**Three spell kinds, and a cast has no timing window.** `SpellDef.Kind` is `ATTACK | HEAL |
-SLEEP`, closed the way `ItemDef.SLOTS` is. Three rather than two because every reference game
-ships a non-damage, non-heal effect among its FIRST spells - Sleep is tier one in Final
-Fantasy, and Dragon Quest 1's whole eight-spell list still has it. An ATTACK deals FLAT damage
+**Five spell kinds, and a cast has no timing window.** `SpellDef.Kind` is `ATTACK | HEAL |
+SLEEP | BOOST | SAP`, closed the way `ItemDef.SLOTS` is, and APPENDED to rather than reordered -
+a `.tres` stores an enum as the integer it was written as, so inserting a kind re-labels every
+shipped spell. More than two because every reference game ships a non-damage, non-heal effect
+among its FIRST spells - Sleep is tier one in Final Fantasy, and Dragon Quest 1's whole
+eight-spell list still has it. An ATTACK deals FLAT damage
 that ignores the enemy's armour, which is what gives magic a job beside a stronger swing; the
 timed press stays a property of SWINGING, or the whole fight becomes one reflex test and the
 menu decides nothing. `Row.MAGIC` sits between Attack and Item - every reference game's order,
@@ -303,6 +305,45 @@ and the row every counting test and play session below it had to move for. A cas
 cannot cover is refused, SAID and costs no turn (money's precedent), and `can_afford()` is the
 one function the screen dims by and the press refuses by, so the two cannot disagree. There is
 no targeting step: fights are 1v1, so an offense spell hits *the* enemy.
+
+**A status is battle-only, counted in turns, and points BOTH WAYS.** One `Status` holder rides
+both `Fighter` and `Foe` - the same fields, the same tick, the same fold - because a party
+member and an enemy being afflicted differently is how one side quietly stops expiring.
+EarthBound's Assist branch is one branch doing both ("boosting or weakening the stats of an ally
+or foe ... or inflicting a status ailment"), so this is the genre's shape rather than a
+convenience. `BOOST` aims at an ally and `SAP` at a foe: two verbs, never one signed `power`,
+which is `Kind.UNEQUIP`'s argument - a verb spelled as the absence of its opposite is a decode
+every reader has to remember. An `EnemyDef` move carrying a `status` afflicts INSTEAD of hurting,
+and `problems()` refuses one that tries to do both, because a single defend cue cannot answer
+two questions.
+
+**Durations are STATED and expire with the fight.** Dragon Quest rolls its ranges (Buff 4-6, Sap
+6-9) and this template does not: M13 made flee odds and damage variance deterministic so a
+designer can reason about a fight and a QA script can replay it. A turn is counted at the top of
+the holder's OWN turn, where `asleep_turns` has always been counted - so a shift of one covers
+the enemy's answer and a shift of two also covers your next swing. Nothing is saved, nothing is
+migrated, and `BattleLogic` still writes nothing; persistent affliction is a milestone of its own.
+
+**Four contributors reach two numbers, so `_attack_of`/`_defense_of` are the ONLY places either
+is assembled.** The level curve, worn equipment and a status shift all feed attack and defense,
+and before M30 each hit resolver added its own two up. A third contributor is exactly when that
+stops being safe: the copy somebody forgets is not a crash, it is a buff that works when you
+swing and not when you are swung at, which reads as the spell being broken. A guard is floored at
+nought rather than allowed to invert - a sap deep enough would otherwise make a blow land for
+more than it does on an unarmoured target.
+
+**A well-timed guard SHRUGS AN AFFLICTION OFF ENTIRELY**, where a timed guard against a blow only
+halves it. All-or-nothing because there is no half of being asleep, and because a cue with
+nothing to do would quietly become decoration in exactly the fights built on statuses. A sleeping
+party member is skipped by `_hand_turn_to` the way a sleeping foe is skipped by
+`_begin_foe_turn`, and SAYS SO: a turn that passed in silence reads as a press the game dropped,
+which is the complaint that killed M27's round shape.
+
+**The battle caption APPENDS a status tag and keeps its numbers.** Final Fantasy I overwrites the
+HP readout with `POIS`/`STON`/`DARK` because its block holds one number and no more; this one has
+a caption line AND a bar, so keeping both is the honest adaptation rather than the faithful one.
+`Row.STATUS` gains nothing at all - a battle-only effect cannot be true while the pause menu is
+open, and a line there would describe a system the player can never catch in the act.
 
 **Money can leave through a conversation, and a refusal is SAID.** A dialog choice carrying
 `spend_gold` is checked against the purse before anything is collected, and a choice that

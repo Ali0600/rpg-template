@@ -41,11 +41,26 @@ extends Resource
 ## attack + power - the player's defense, so power is the move's own contribution and a
 ## zero-power move is this enemy's plain hit.
 ##
+## A move may AFFLICT instead of hurting, which is what makes the status system point both ways
+## rather than only outward: `{"name": "Lull", "status": "sleep", "turns": 2}` costs the target
+## their next two turns, and `{"name": "Wither", "status": "sap", "stat": "defense",
+## "power": 2, "turns": 3}` takes two off their armour for three. A status move deals NO damage -
+## it spends the enemy's turn on the affliction, exactly as the player's own SLEEP and SAP spend
+## theirs - so `problems()` refuses one that also carries power.
+##
+## A well-timed guard SHRUGS IT OFF. The defend cue is already the player's answer to a blow, and
+## giving it nothing to do against an affliction would make the timing mechanic go quiet in
+## exactly the fights that need it most. See docs/DECISIONS.md.
+##
 ## Inline rather than a MoveDef resource: a handful of enemies with two moves each does not
 ## need a fourth registered type, and a move that is only ever named by one enemy has nothing
 ## to share. The day moves are reused across enemies, this becomes an Array[MoveDef] and the
 ## data files gain one indirection - nothing else here changes.
 @export var moves: Array[Dictionary] = []
+
+## What a move's `status` may say. A closed vocabulary for the reason SpellDef.Kind is an enum:
+## a typo in a data file would otherwise be a move that reaches its turn and does nothing.
+const STATUSES := ["sleep", "sap"]
 
 
 ## Everything wrong with this enemy, in the idiom of every other problems() here: all of
@@ -78,4 +93,36 @@ func problems() -> Array[String]:
 			out.append("enemy '%s' move %d has no name" % [id, i])
 		if int(move.get("power", 0)) < 0:
 			out.append("enemy '%s' move %d has negative power" % [id, i])
+		out.append_array(_move_status_problems(i, move))
+	return out
+
+
+## The status half of a move, checked separately because a plain damaging move has none of it and
+## a move that carries a misspelt one would simply reach its turn and do nothing.
+func _move_status_problems(i: int, move: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	var status := str(move.get("status", ""))
+	if status.is_empty():
+		# Not a status move. `turns` and `stat` on one would be fields nothing reads, which is
+		# how a data file comes to describe an effect the fight never applies.
+		for stray in ["turns", "stat"]:
+			if move.has(stray):
+				out.append("enemy '%s' move %d has '%s' but no status" % [id, i, stray])
+		return out
+	if not STATUSES.has(status):
+		out.append("enemy '%s' move %d inflicts '%s', which is not a status" % [id, i, status])
+	if int(move.get("power", 0)) != 0:
+		# It spends the turn on the affliction. A move that hurt AND afflicted would make one
+		# defend cue answer two questions, and a blocked one ambiguous about which it stopped.
+		out.append("enemy '%s' move %d both afflicts and deals %d damage"
+			% [id, i, int(move.get("power", 0))])
+	if int(move.get("turns", 0)) <= 0:
+		out.append("enemy '%s' move %d afflicts for %d turns"
+			% [id, i, int(move.get("turns", 0))])
+	if status == "sap":
+		if not ["attack", "defense"].has(str(move.get("stat", ""))):
+			out.append("enemy '%s' move %d saps '%s', which is not a stat"
+				% [id, i, str(move.get("stat", ""))])
+		if int(move.get("amount", 0)) <= 0:
+			out.append("enemy '%s' move %d saps by %d" % [id, i, int(move.get("amount", 0))])
 	return out

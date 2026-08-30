@@ -1306,3 +1306,181 @@ func test_a_spell_that_reaches_everything_asks_nobody_and_hits_all_of_them() -> 
 		"the first foe was not reached").is_equal(13)
 	assert_int(battle.enemy_hp(1)).override_failure_message(
 		"the second foe was not reached").is_equal(13)
+
+# -- statuses, which now point both ways ----------------------------------------------------
+#
+# DURATIONS ARE COUNTED AT THE TOP OF THE HOLDER'S OWN TURN, which is where `asleep_turns` has
+# always been counted. So a shift of ONE turn covers the enemy's answer to the cast and is gone
+# by your next swing; a shift of TWO also covers that swing. Worth stating because it is the
+# thing every number below is chosen against.
+
+func _shift(kind: int, stat: int, power := 2, turns := 2, name := "Ward") -> BattleLogic.SpellRow:
+	return BattleLogic.SpellRow.of(StringName(name.to_lower()), name, 3, kind, power, turns,
+		SpellDef.Target.ONE, stat)
+
+## Carries a solo fight from the message a cast just raised through to the next MENU - which
+## means letting the enemy have its turn, because in a fight of one the round is player, enemy,
+## player. Asserts it arrived rather than assuming: landing in a cue instead would have every
+## number below read at the wrong moment.
+func _round_to_the_menu(battle: BattleLogic) -> void:
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	if battle.phase() == BattleLogic.Phase.ENEMY_ACT:
+		_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+		_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"the round did not come back to the menu").is_equal(BattleLogic.Phase.MENU)
+
+## Swings with whoever has the turn and answers with the damage it did.
+func _swing_for(battle: BattleLogic) -> int:
+	var before := battle.enemy_hp()
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	return before - battle.enemy_hp()
+
+func test_a_boost_raises_the_number_the_swing_actually_uses() -> void:
+	# THE FOLD, which is what this milestone is really about. A boost that changed a field
+	# nothing read would pass every test that asserts the field and none that swings - so this
+	# asserts the DAMAGE, one layer downstream of the thing being set.
+	#
+	# Level 1 on the test curve is 5 attack against 1 defense, so a plain hit is 4. +3 makes 7.
+	var battle := _fight(_enemy(99, 3, 1), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_shift(SpellDef.Kind.BOOST, SpellDef.Stat.ATTACK, 3, 3)])
+	_to_the_spells(battle)
+	battle.press()
+	_round_to_the_menu(battle)
+	assert_int(_swing_for(battle)).override_failure_message(
+		"a boost was cast and the swing that followed it hit for the unboosted number"
+	).is_equal(7)
+
+func test_a_boost_expires_and_the_swing_goes_back_to_normal() -> void:
+	# A shift with no end is a stat change wearing a duration as decoration. Two turns: the
+	# first swing after the cast is boosted, the second is not.
+	var battle := _fight(_enemy(99, 3, 1), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_shift(SpellDef.Kind.BOOST, SpellDef.Stat.ATTACK, 3, 2)])
+	_to_the_spells(battle)
+	battle.press()
+	_round_to_the_menu(battle)
+	assert_int(_swing_for(battle)).is_equal(7)
+	_round_to_the_menu(battle)
+	assert_int(_swing_for(battle)).override_failure_message(
+		"the boost never wore off - it is a permanent stat change wearing a duration"
+	).is_equal(4)
+
+func test_a_sap_lowers_the_guard_the_next_blow_is_measured_against() -> void:
+	# The same verb pointed the other way. 5 attack against 4 defense is 1; sapping 3 off makes
+	# it 4, so the number moves in the direction the word promises.
+	var battle := _fight(_enemy(99, 3, 4), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_shift(SpellDef.Kind.SAP, SpellDef.Stat.DEFENSE, 3, 3)])
+	_to_the_spells(battle)
+	battle.press()
+	_round_to_the_menu(battle)
+	assert_int(_swing_for(battle)).override_failure_message(
+		"a sap was cast and the blow after it was still measured against full armour"
+	).is_equal(4)
+
+func test_a_sap_cannot_drive_a_guard_below_nothing() -> void:
+	# Sapping 9 off 1 armour must read as "no armour", not as armour that helps the attacker.
+	# Without the floor this hits for 14 rather than 5, which is a sap better than no armour.
+	var battle := _fight(_enemy(99, 3, 1), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_shift(SpellDef.Kind.SAP, SpellDef.Stat.DEFENSE, 9, 3)])
+	_to_the_spells(battle)
+	battle.press()
+	_round_to_the_menu(battle)
+	assert_int(_swing_for(battle)).override_failure_message(
+		"an over-sapped guard went negative and started helping the attacker").is_equal(5)
+
+func test_recasting_a_boost_refreshes_it_rather_than_stacking() -> void:
+	# Four casts of a stacking buff is a fight that cannot be lost, and no reference game in the
+	# set stacks. The second cast must leave the same number as the first.
+	var battle := _fight(_enemy(99, 3, 1), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_shift(SpellDef.Kind.BOOST, SpellDef.Stat.ATTACK, 3, 5)])
+	for cast in 2:
+		_to_the_spells(battle)
+		battle.press()
+		_round_to_the_menu(battle)
+	assert_int(_swing_for(battle)).override_failure_message(
+		"two boosts stacked - four casts would make the fight unloseable").is_equal(7)
+
+func _afflicting(move: Dictionary, hp := 99) -> EnemyDef:
+	# One move only, so which one it draws is not a question this test has to answer.
+	var out := _enemy(hp, 3, 1)
+	out.moves = [move]
+	return out
+
+## Swings, lets the blow land, and hands the fight over to the enemy's cue WITHOUT pressing on
+## it - which is how a test takes an affliction on the chin.
+func _to_the_enemys_cue(battle: BattleLogic) -> void:
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.phase()).override_failure_message(
+		"the fight did not reach the enemy's cue").is_equal(BattleLogic.Phase.ENEMY_ACT)
+
+func test_an_enemy_move_can_put_a_member_to_sleep() -> void:
+	# The other direction, and the whole point of M30: until now a status could only ever travel
+	# from the party outward. An affliction deals no damage, so the health is the control - a
+	# move that hurt as well would make "did the status land" unanswerable from the numbers.
+	var battle := _fight(_afflicting({"name": "Lull", "status": "sleep", "turns": 1}), 20)
+	_to_the_enemys_cue(battle)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	assert_str(battle.message()).contains("asleep")
+	assert_int(battle.member_hp(0)).override_failure_message(
+		"an affliction dealt damage as well, so it is two moves wearing one name").is_equal(20)
+	assert_str(battle.member_tag(0)).override_failure_message(
+		"nothing on the caption says the member is asleep").is_equal("ZZZ")
+
+## Ticks forward and reports what the fight SAID and whether it ever offered a menu.
+##
+## `_until_leaves` cannot answer either question here: a skipped turn raises its message inside
+## the frame the previous one ends, so the phase never stops being MESSAGE and the walk goes
+## straight through both. Watching every frame is the only way to see a line that is replaced
+## rather than cleared.
+func _watch(battle: BattleLogic, frames: int) -> Dictionary:
+	var said: Array[String] = []
+	var menu := false
+	for i in frames:
+		if battle.phase() == BattleLogic.Phase.MENU:
+			menu = true
+		var line := battle.message()
+		if not line.is_empty() and (said.is_empty() or said[-1] != line):
+			said.append(line)
+		battle.tick()
+	return {"said": said, "menu": menu}
+
+func test_a_sleeping_member_is_never_handed_the_menu() -> void:
+	# The skip, which is the party-side mirror of the one the formation already had. The fight
+	# must go straight back to the enemy: a menu here would be a turn the player got for free,
+	# and silence with no menu would read as the game having stopped.
+	var battle := _fight(_afflicting({"name": "Lull", "status": "sleep", "turns": 1}), 20)
+	_to_the_enemys_cue(battle)
+	var seen := _watch(battle, 400)
+	assert_array(seen["said"]).override_failure_message(
+		"the sleeping member's skipped turn passed in silence, which reads as a stopped game"
+	).contains(["You sleeps on."])
+	assert_bool(seen["menu"]).override_failure_message(
+		"a sleeping member was handed the menu anyway - a free turn").is_false()
+
+func test_a_timed_guard_shrugs_an_affliction_off_entirely() -> void:
+	# The defend cue's answer to a status, and the reason it is all-or-nothing: there is no half
+	# of being asleep. Without this the cue would go quiet in exactly the fights built on
+	# statuses, which is where a player most wants it to be worth something.
+	var battle := _fight(_afflicting({"name": "Lull", "status": "sleep", "turns": 2}), 20)
+	_to_the_enemys_cue(battle)
+	_tick_to(battle, WINDOW)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	assert_str(battle.message()).contains("Shrugged off")
+	assert_str(battle.member_tag(0)).override_failure_message(
+		"a well-timed guard did not stop the affliction").is_equal("")
+
+func test_an_enemy_can_sap_the_guard_a_later_blow_is_measured_against() -> void:
+	# Sap from the other side too, so the vocabulary really is symmetric rather than sleep-only.
+	# Level 1 defense is 1 against attack 3, so a plain hit is 2; two off the guard makes 4.
+	var battle := _fight(_afflicting({"name": "Wither", "status": "sap", "stat": "defense",
+		"amount": 2, "turns": 4}), 20)
+	_to_the_enemys_cue(battle)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	assert_str(battle.member_tag(0)).is_equal("DEF-")
+	# Its next move is the same one, so the damage still cannot come from it - only the swing
+	# after the sap can, and it is measured against the lowered guard.
+	assert_int(battle.member_hp(0)).is_equal(20)

@@ -365,7 +365,17 @@ func _member_caption(at: int) -> String:
 		if _logic.member_max_mp(at) > 0:
 			line += "  MP %d/%d" % [_logic.member_mp(at), _logic.member_max_mp(at)]
 		line = ("> " if _marked(at) else "  ") + line
+	# APPENDED, never in place of the numbers. Final Fantasy I overwrites the HP readout with the
+	# status because its block holds one number and no more; this one has a caption line and a
+	# bar, so keeping both is the honest adaptation rather than the faithful one.
+	line += _tag_suffix(_logic.member_tag(at))
 	return line
+
+
+## A status tag as it is written into a caption, or nothing at all. One function for both sides,
+## so the party and the formation can never come to spell the same condition differently.
+func _tag_suffix(tag: String) -> String:
+	return "" if tag.is_empty() else "  " + tag
 
 
 ## Whether this member is the one the screen should point at right now: the one whose turn it
@@ -399,6 +409,7 @@ func _foe_caption(at: int) -> String:
 		_logic.enemy_max_hp(at)]
 	if _logic.foe_count() > 1:
 		line = ("> " if _foe_marked(at) else "  ") + line
+	line += _tag_suffix(_logic.foe_tag(at))
 	return line
 
 
