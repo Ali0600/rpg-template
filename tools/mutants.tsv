@@ -530,3 +530,6 @@ scripts/world/world_scene.gd	s|def.target, def.stat\)\)|def.target))|	tests/inte
 data/spells/ward.tres	s|status_turns = 3|status_turns = 0|	tests/unit/test_battle_content.gd	the game's one buff lasts no turns, so it announces itself and changes nothing
 data/enemies/gloom.tres	s|"turns": 3|"turns": 0|	tests/unit/test_battle_content.gd	the game's one affliction lasts no turns
 data/spells/ward.tres	s|learn_level = 2|learn_level = 9|	tests/fixtures/qa/quest/a_ward_against_the_chill.json	the buff is learned past the level cap, so no played fight can reach it
+# --- M31: the flow model, composed ---
+scripts/world/world_scene.gd	s|\t_pause.queue_free\(\)|\tpass|	tests/integration/test_flow_model.gd	a closed pause screen is never freed, so it eats the cancel key and the menu never opens a second time
+scripts/world/world_scene.gd	s|\t_shop.queue_free\(\)|\tpass|	tests/integration/test_flow_model.gd	a closed shop screen is never freed, so the second visit to a counter opens nothing at all
