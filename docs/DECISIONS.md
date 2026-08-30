@@ -67,9 +67,10 @@ one-glance menu of things still worth trying.
   and `MapData.enemy_at` returning a group; all three are what M28 does.
 - **A boss with minions**, as a fight SHAPE rather than a formation with a boss in it. Super
   Mario RPG's Mack summons his bodyguards back and leaves the field until they are cleared,
-  which is a rule about the encounter rather than about any enemy in it. M28 ships formations
-  and not this. Revisit hook: the encounter record, which names the foes and could name a rule
-  about them.
+  which is a rule about the encounter rather than about any enemy in it. **M29 gives the Keeper
+  an escort**, which is the formation and not the shape: its minions stay dead, and killing the
+  boss first leaves them standing. Still deferred, and the revisit hook is unchanged — the
+  encounter record, which names the foes and could name a rule about them.
 - **Followers on the overworld** (Chrono Trigger's caterpillar). M27 ships one sprite, which is
   Final Fantasy I–VI's own answer. Revisit hook: a driver reading the leader's `Locomotion.Step`
   history and feeding it back as an intent, beside `NpcBrain` — harder under free pixel movement
@@ -85,6 +86,90 @@ one-glance menu of things still worth trying.
   (which would take an agility order rather than index order).
 
 ---
+
+## Ordinary fights are pairs, and the second sword moved onto the road — *M29*
+
+M28 built formations and spent them on one optional encounter in a corner; a normal
+playthrough never met a crowd. M29 spends them on the game: both hollow fights and the cave
+become pairs, and the Keeper gets an escort. The research is `GENRE_CONVENTIONS.md` §7b's new
+paragraphs, and it answers the question with a date — Dragon Quest I fights one monster with
+one hero, Dragon Quest II is the first with a party AND the first with "enemies in much
+greater numbers", in the same release. A party and a formation are one design decision seen
+from two sides.
+
+Which forces the fork, because this template's companion was **declinable**. The arithmetic is
+not close: a lone player who mashes dies to the *first* slink pair, in a hollow whose own data
+comments call it a tutorial that cannot kill you, and a lone player who times **every** press
+still loses to the Keeper's escort. Sizing fights for two while letting the player travel alone
+ships two games and balances one.
+
+**The fork: how is the second character guaranteed?**
+
+- **The roads out of the village require her.** *Chosen.* `requires_flag: rook_joins` plus a
+  `locked_dialog` on the hollow and cave warps — the shape the barred keep gate has used since
+  M12, so it cost no mechanism. It keeps the recruit conversation, keeps `joins_on_flag` proven
+  as a live template seam rather than a feature only a test exercises, and Rook's existing line
+  already argues it: *"Two of us come back from it; one doesn't."* The warden's *"one sword is
+  enough for a village this size"* stops being flavour and becomes the rule the map enforces.
+  It is also the genre's answer — DQ2 hands you the Prince through the story, and only lets you
+  continue short-handed much later, when he falls ill.
+- *She joins at boot.* Simplest by a distance, and no play session would need a recruit leg.
+  `rejected — it deletes the only place the demo exercises joins_on_flag`, turning a template
+  seam into dead code the day it shipped, and throws away a written scene to save editing test
+  fixtures.
+- *Keep the solo route winnable.* Tune the pairs down until one character clears them.
+  `rejected — it makes the pairs token`: the fights would have to be weak enough that the
+  second body is decoration, which is the opposite of what was asked for. Worth naming because
+  it is the option that looks like it preserves player freedom and actually spends the feature.
+- *A difficulty setting.* `deferred — worth trying` if a solo run is ever wanted back. Revisit
+  hook: `GameManifest` would carry the alternative combat/formation data, which is a real
+  design (two authored games) rather than a multiplier.
+
+**The cost, stated:** seven QA sessions gain a recruit leg they did not need, and the village
+now has a soft wall in it. That second one is a feel question and only playing answers it.
+
+## The Keeper's escort is mixed, and fills the screen — *M29*
+
+**The fork: what stands beside the boss?**
+
+- **Keeper + Gloom + Slink.** *Chosen (user's call).* A mixed formation, which is Final Fantasy
+  I's attested shape ("a mix of up to 6 small and 2 large"), and three bodies exactly fills
+  `BattleScreen.MAX_FOES`, so the boss out-scales the ordinary pairs instead of matching them.
+  It also reuses art that already exists. Timed play wins with roughly half the party's health
+  intact; mashing loses in about three rounds — so the difficulty statement the Keeper was
+  built to make survives, now made of a formation against a party rather than a duel.
+- *Keeper + two Slinks.* A gentler version of the same idea, and the one the arithmetic
+  recommended. `rejected — the mixed pair is more interesting for the same press count`.
+- *Keeper + one minion.* `rejected — the boss fight would be the same size as every other
+  fight`, which stops "the boss has minions" reading as anything.
+- *Keeper + two Glooms.* Not offered, because it was **measured as unwinnable**: two glooms
+  plus the Keeper out-damage a level-2 party faster than the party can clear 58 health, even
+  with every press timed. Recorded so nobody re-proposes it as the obvious escalation.
+
+Killing the Keeper does not end the fight — every foe must fall, which is the template's rule
+and the genre's. The Mack shape (minions respawn, the boss leaves the field) stays in the
+backlog; this is a formation with a boss in it, and says so.
+
+## Gold halved per body, rather than prices doubled — *M29*
+
+Twice as many bodies pay twice as much. The purse is what the smith's prices and the "two
+tonics sit between the two outcomes" tuning are built against, so it had to be held.
+
+- **Halve each enemy's gold.** *Chosen.* `slink` 4 → 2, `gloom` 6 → 3, `keeper` 25 → 20, so
+  every fight pays exactly what that fight paid before. Two-line edit, the economy is untouched,
+  and the play sessions' `assert_gold` values are *predicted to be unchanged* — which makes
+  them an independent check on the arithmetic rather than numbers to re-record.
+- *Double the prices instead.* `rejected — more edits, and it moves numbers a player reads`.
+  The inn's four gold a night is a nice number and the shop is tuned; halving a reward the
+  player never sees itemised is the quieter change.
+- *Leave gold alone and let the player be rich.* `rejected — it silently retunes the shop`,
+  which is a design change nobody asked for arriving as a side effect of a content change.
+
+XP goes the other way for the same reason: awards are left alone and the **curve doubles**
+(`[10, 12]` → `[20, 24]`, in both combat definitions), which reproduces every levelling beat
+exactly — level 2 still lands at the end of the hollow, the optional cave is still worth
+precisely one level, and the Keeper is still met at level 2 and left at 3. Halving xp per enemy
+would have needed non-integer awards; doubling the curve is one number on each side.
 
 ## A fight holds a crowd, and one map record names it — *M28*
 

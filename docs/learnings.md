@@ -1111,3 +1111,23 @@ that makes the shipped warden a reliable blocker.
 wall-anchored. And measure where the tests already walk before placing anything solid — a
 `print` on the tile-change hook plus a run of every session answers it exactly, where reasoning
 about the map answers it plausibly.
+
+## An undefined regex construct picks a side, and the two platforms disagree
+
+A pattern can be malformed and still *work* — on the machine you wrote it on. In an extended
+regex a closing parenthesis with no group open is undefined, so implementations are free to
+guess: BSD `sed` (macOS) treats it as a literal and matches, GNU `sed` (most Linux CI images)
+does not. Same file, same expression, opposite answers.
+
+**Why it came up.** A mutation row ended `def.target\))` — first paren escaped, second bare.
+`mutants_aim.sh` confirmed it landed on exactly one line locally, the PR was opened with
+auto-merge armed, and CI reported the row STALE twenty minutes later on a machine nobody was
+watching. The milestone was reported as shipped while that PR sat unmerged.
+
+**Takeaway.** Escape every literal parenthesis in a regex, including the closing one, even
+where it currently works. More generally: when a tool is available in two implementations
+(`sed`, `awk`, `date`, `readlink`, shells), an *undefined* construct is worse than an invalid
+one — invalid fails everywhere and gets fixed in a minute, undefined fails only where you
+aren't looking. Where a check exists to keep such patterns honest, teach it to refuse the
+ambiguous construct outright rather than to test whether it happens to match here; that is a
+guard that travels, and a lint rule beats remembering.
