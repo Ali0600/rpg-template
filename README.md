@@ -108,8 +108,8 @@ hollow, and what nests on it now is why nobody has fetched it.
 | --- | --- |
 | World | town, cave, village, hollow, keep — joined by five doors |
 | Verbs | walk, talk, read a well, open a stash once, carry a key, unlock a gate with it, trade a word for a flask of oil, burn the oil lighting a lantern |
-| Fights | four, three of them unavoidable: two slinks in the hollow, a gloom in the cave, and the Keeper standing between the keep's door and its lantern |
-| Combat | menu turns with a timing window — a press on the cue doubles your hit or halves theirs. XP, three levels, and a tonic you can drink mid-fight |
+| Fights | five, three of them unavoidable: two slinks in the hollow, a gloom in the cave, and the Keeper standing between the keep's door and its lantern. The optional two are the gloom and a slink-and-gloom **pair** in the back of the hollow |
+| Combat | menu turns with a timing window — a press on the cue doubles your hit or halves theirs. A party of up to three, a formation of up to three against it, a cursor to pick which foe, XP, three levels, and a tonic you can drink mid-fight |
 | Code | **one file**: which of the warden's four lines to say |
 | Look | `dusk16`, one of three palettes that share a single rig |
 
