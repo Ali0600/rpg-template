@@ -1233,3 +1233,39 @@ lined up: a cut on a repeated marker, and an assertion that could not tell the p
 navigation into the screen — never on a marker the script reaches more than once. Then read the
 kept tail rather than assuming it: a derived fixture's bug is always in the region you did not
 look at, because the region you wrote is the one you checked.
+
+## A test that rebuilds the world for every case can never see the second visit
+
+Checking each unit once, from a clean fixture, is the cheap and usually right way to test a set
+of transitions. The cost is invisible: every defect that needs a *history* to appear is out of
+reach, and the suite reads as exhaustive because it covers every unit.
+
+**Why it came up.** A state-machine gate drove all 17 declared transitions, each on a world
+built for it — every edge individually correct, and nothing about sequences. Injecting faults
+showed the gap precisely: a screen that is *closed* but never *freed* stays in the tree and goes
+on consuming the key that opens it, so the second time the player opens the menu nothing
+happens. Per-edge cannot see that, because per-edge nothing is ever opened twice. The fix was a
+layer that walks the same edges in seeded sequences on one world that is never rebuilt.
+
+**Takeaway.** When a suite tears the world down between cases, name what that teardown hides —
+anything cumulative, anything about a second visit, anything about order — and add one layer
+that composes cases without rebuilding. And *measure* that it earns its place: inject faults and
+run them against the old gate and the new one. Of seven candidates here, five behaved
+identically both ways, including all three that had been reasoned out in advance as certain.
+
+## A reduction that cannot produce an invalid candidate needs no way to recognise one
+
+When you minimise a failing sequence, the generic move is delta debugging: drop things, keep
+whatever still fails. Over a *graph* walk that move mostly produces sequences that are not walks
+at all, and the search then has to tell "this did not reproduce the failure" apart from "this
+could never have run" on every candidate.
+
+**Why it came up.** A failing 24-step journey through the flow model needed to be reported as
+something a person could read. Deleting the steps between two positions in the same state —
+eliding a cycle — leaves the two ends touching, so every candidate is drivable by construction.
+The first real failure minimised to five steps, and the answer was the bug stated exactly.
+
+**Takeaway.** Look for a reduction move that preserves the structure's own validity rule, and
+you delete the entire "is this candidate even legal" branch along with the bugs that live in it.
+Then keep the search PURE — offer a candidate, be told whether it still fails — so the part that
+decides what to try next is unit-testable without the expensive machinery that runs it.

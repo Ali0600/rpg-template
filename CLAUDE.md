@@ -558,6 +558,21 @@ that replayed the game's opening conversation over the loaded save. The failure 
 built to catch is an UNDECLARED INTERMEDIATE STATE: an action that arrives where it promised,
 having gone somewhere nobody wrote down.
 
+**The edges are also walked in SEQUENCES, and a failing walk is shrunk before it is reported.**
+Per-edge checking builds a world, drives one action and throws the world away, which is silent
+about anything that only goes wrong the SECOND time - it found a pause screen and a shop screen
+that were closed but never freed, and that went on eating the very key that opens them. So six
+seeded walks of twenty-four steps run on ONE world that is never rebuilt between steps, asserting
+the same trace and the same invariants after every step. `FlowWalk` (`tests/helpers/`) is pure -
+a walk is a list of edge indices - so the planner and the minimiser are unit-tested with no scene
+at all, and the minimiser is driven from OUTSIDE (offer a candidate, be told whether it still
+fails) because only the suite can run one. **Cycle elision is the shrink move**: deleting the
+steps between two positions in the SAME state is the one edit that cannot disconnect a walk, so
+every candidate is drivable and a failed re-run means exactly one thing. It earned itself on the
+first bug it saw, cutting a 24-step walk to `continue, open_pause, close_pause, open_pause,
+close_pause`. Coverage is ASSERTED - every walkable edge must be driven by one of the seeds, or a
+walk that never reaches a game over reports green about defeat.
+
 **Two moves are two hops, and both are deliberate.** A defeat is `battle -> world -> game_over`
 and leaving a game over for the title is `game_over -> world -> title`, because the screen being
 left is torn down before the next is built - two full-screen views are never stacked. An EMPTY
