@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="SpellDef" load_steps=2 format=3]
+
+; The spell that arrives with crowds, and the reason it exists at all is a genre fact rather
+; than a balance one: Dragon Quest I has no group spells BECAUSE it has no groups, and DQ2
+; introduces both in the same game. Shipping formations with a single-target-only spell list has
+; no precedent in the reference set.
+;
+; Learned at level 2, which is where the two hollow slinks leave the player - in the same room
+; as the pair in the north-west pocket. The tool and the thing it is for arrive together, which
+; is the whole reason for that level rather than the next one: at 3 it would land after the
+; Keeper, as a reward for a game that is already over.
+;
+; 4 damage to EVERY living foe, against Ember's 7 to one. The trade is the decision the row
+; poses, and against the shipped pair it is close on purpose: Gale is 8 damage for 3 magic where
+; Ember is 7 for the same, so the sweep wins the moment there are two and loses the moment there
+; is one. Flat, like every attack spell here - armour does not reduce it, which is what makes
+; magic the answer to something well-armoured.
+;
+; At level 2 the pool is 11, so it can be cast three times and still leave a Mend.
+;
+; UNJUDGED: the name, the 4, and the 3. Nobody has cast it.
+
+[ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+id = &"gale"
+name = "Gale"
+description = "A flat, cold wind. It finds everything standing."
+mp_cost = 3
+learn_level = 2
+kind = 0
+target = 1
+power = 4

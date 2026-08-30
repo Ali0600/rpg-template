@@ -263,6 +263,26 @@ func test_a_fight_is_offered_only_the_spells_the_player_has_reached() -> void:
 		"a level-2 spell was offered to a level-1 player").is_false()
 	assert_bool(early_names.has("ember")).is_true()
 
+func test_a_spells_shape_survives_the_trip_into_the_fight() -> void:
+	# The seam between the file and the fight, which nothing else covers: BattleLogic's own tests
+	# build a SpellRow directly and say what they mean, so a resolver that dropped a field would
+	# pass every one of them. This is how it shipped once - `target` went unpassed, and a sweep
+	# arrived shaped as a single target, which looks exactly like a spell working.
+	await _boot()
+	GameState.set_party(9, 0, 2, 11)
+	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
+	var shapes := {}
+	for row: BattleLogic.SpellRow in _world.battle_screen().logic().spell_rows():
+		shapes[String(row.id)] = row.target
+	assert_bool(shapes.has("gale")).override_failure_message(
+		"the level-2 page did not carry the spell this asserts about").is_true()
+	assert_int(int(shapes["gale"])).override_failure_message(
+		"a spell that reaches everything arrived at the fight aiming at one thing") \
+		.is_equal(SpellDef.Target.ALL)
+	assert_int(int(shapes["ember"])).override_failure_message(
+		"a single-target spell arrived reaching everything, so nothing here is being read") \
+		.is_equal(SpellDef.Target.ONE)
+
 func test_a_spell_arrives_when_its_level_does() -> void:
 	await _boot()
 	GameState.set_party(9, 0, 2, 11)

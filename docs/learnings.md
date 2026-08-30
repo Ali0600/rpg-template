@@ -909,6 +909,37 @@ so gold only buys items and nothing outside a fight restores HP; and no way to s
 HP or level outside a battle.
 
 
+## A regex that rewrites call sites does not know about nested commas
+
+Changing a function's signature across ~90 call sites is exactly the job a regex is for, and
+exactly the job where a regex quietly produces something that still looks like code.
+
+**Why it came up.** M28 made `open_battle_with(def, key)` take a list, so 25 test call sites
+needed `def` wrapped in brackets. The rewrite was
+`open_battle_with\((?!\[)([^,]+?), ` → `open_battle_with([\1], `. On
+`open_battle_with(_enemy(), "key")` that is perfect. On
+`open_battle_with(_enemy(1, 1, 5), "key")` the `[^,]+?` stops at the FIRST comma — inside the
+argument's own parentheses — and the result was `open_battle_with([_enemy(1], 1, 5), "key")`.
+Twelve of them, all still shaped like function calls.
+
+**What made it expensive was where the failure surfaced.** The parse error broke one test file,
+gdUnit4 crashed on it with signal 11, and the crash was reported against
+`test_image_file.gd` — a suite about reading PNGs, with no connection to battles at all. I ran
+that suite alone (green), then diffed against a clean checkout to establish the crash was mine
+before I had any idea which file was at fault. The whole detour was avoidable: the compile gate
+had already named the real file, and I had read past it because the tests were passing.
+
+**Takeaway:** a regex over code must be verified structurally, not by eye and not by "the tests
+still run". After any bulk rewrite of call sites, re-parse or bracket-balance **every line you
+touched** — a ten-line script that walks each rewritten line counting `([` against `)]` finds
+in one second what a segfault in an unrelated suite hides for ten minutes. And when a crash
+lands somewhere implausible, trust the *compiler's* file over the crash's: a parse error
+anywhere can take down a test runner everywhere, so the stack trace names where it died, not
+where it was wrong. (Pairs with the mutation-harness rule about proving a sabotage applied
+where you meant it — same family: a mechanical edit is a hypothesis until something structural
+confirms it landed.)
+
+
 ## A cited convention is still a hypothesis about how something feels to hold
 
 The reference pass tells you what the genre DOES. It cannot tell you how your version of it
