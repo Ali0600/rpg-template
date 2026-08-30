@@ -30,7 +30,25 @@ extends Resource
 ## No element here, deliberately. A resistance table is a system with a matrix, an enemy field
 ## and a rule per pairing; naming the attack spell "Ember" costs nothing and reads the same at
 ## this scale. See docs/DECISIONS.md.
-enum Kind { ATTACK, HEAL, SLEEP }
+##
+## BOOST and SAP arrived in M30 and are APPENDED rather than inserted, because a `.tres` stores
+## an enum as the integer it was when the file was written: putting a new kind in the middle
+## would silently re-label every shipped spell.
+##
+## They are two verbs and not one signed number. A single kind whose `power` may be negative is
+## a verb spelled as the absence of its opposite - the exact shape `PauseMenu.Kind.UNEQUIP`
+## exists to avoid - and the reader who forgets the sign ships a spell that helps when it should
+## hurt. The target follows from the kind, as it already does for HEAL and ATTACK.
+enum Kind { ATTACK, HEAL, SLEEP, BOOST, SAP }
+
+## Which number a BOOST or a SAP moves. Unused by the other kinds.
+##
+## Two, because two is what the references move: Final Fantasy I's TMPR raises weapon strength
+## and its FOG raises armour, Dragon Quest's Buff doubles defence, EarthBound's Assist branch
+## carries Offense up beside Defense down. Speed is not here because this template has no
+## agility - turn order is party order, and a stat nothing reads would be a knob wired to
+## nothing.
+enum Stat { ATTACK, DEFENSE }
 
 ## How many things it reaches. The shape belongs to the SPELL rather than to a runtime cursor,
 ## which is Final Fantasy I's model ("some spells will affect all enemies on the screen") and
@@ -68,12 +86,26 @@ enum Target { ONE, ALL }
 ## a template grows rules nobody chose. `problems()` refuses the rest.
 @export var target: Target = Target.ONE
 
-## Damage for an ATTACK, hit points restored for a HEAL, unused for a SLEEP. One field rather
-## than two named ones because a spell is exactly one of these kinds and the second field would
-## be zero in every file that has it - a value that is always zero is a question nobody asked.
+## Damage for an ATTACK, hit points restored for a HEAL, the SIZE of the shift for a BOOST or a
+## SAP, unused for a SLEEP. One field rather than four named ones because a spell is exactly one
+## of these kinds and the other three would be zero in every file that has them - a value that is
+## always zero is a question nobody asked.
+##
+## Always POSITIVE, including for a SAP: the kind says which way it points, so the number never
+## has to. See the note on `Kind`.
 @export var power: int = 1
 
-## How many of the enemy's turns a SLEEP takes away. Unused by the other kinds.
+## Which number a BOOST or a SAP moves. Unused by the other kinds, and defaulting to ATTACK
+## rather than to a "none" that only these two kinds could ever mean.
+@export var stat: Stat = Stat.ATTACK
+
+## How many turns the effect lasts - the enemy's, for a SLEEP; the afflicted party's or foe's,
+## for a BOOST or a SAP. Unused by ATTACK and HEAL.
+##
+## A STATED number, where the references roll one: Dragon Quest's Buff runs 4-6 turns and its Sap
+## 6-9. M13 made flee odds and damage variance deterministic so that a designer can reason about
+## a fight and a QA script can replay it byte-for-byte, and a duration is the same kind of
+## number. docs/DECISIONS.md carries the fork.
 @export var status_turns: int = 1
 
 
@@ -100,6 +132,17 @@ func problems() -> Array[String]:
 	elif kind == Kind.SLEEP:
 		if status_turns <= 0:
 			out.append("spell '%s' puts the enemy out for %d turns" % [id, status_turns])
+	elif kind == Kind.BOOST or kind == Kind.SAP:
+		# A shift needs BOTH halves to mean anything: a size with no duration expires before the
+		# turn it was cast on ends, and a duration with no size is a spell that spends MP,
+		# announces itself and changes no number. Either reads in play as a broken button.
+		if power <= 0:
+			out.append("spell '%s' shifts a stat by %d - casting it would do nothing"
+				% [id, power])
+		if status_turns < 1:
+			out.append("spell '%s' lasts %d turns" % [id, status_turns])
+		if stat < 0 or stat >= Stat.size():
+			out.append("spell '%s' moves stat %d, which is not a stat" % [id, stat])
 	elif power <= 0:
 		# An ATTACK or a HEAL with no power is a spell that spends MP and changes nothing,
 		# which reads in play as a broken button rather than as a weak spell.

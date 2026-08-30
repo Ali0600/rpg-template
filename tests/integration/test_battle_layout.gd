@@ -85,7 +85,7 @@ func _screen(level := 1, mp := 8, spells: Array = [], items: Array = [],
 ## capacity is the content contract, so the audit is run at it rather than at the size the demo
 ## happens to ship: a layout that holds two and not three is a layout that fails the day a game
 ## declares what the manifest already lets it declare.
-func _full_party_screen(spells: Array = []) -> BattleScreen:
+func _full_party_screen(spells: Array = [], afflicted := false) -> BattleScreen:
 	var screen := BattleScreen.new()
 	add_child(screen)
 	var combat := _combat(true)
@@ -96,6 +96,12 @@ func _full_party_screen(spells: Array = []) -> BattleScreen:
 		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
 			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
 			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, spells))
+	if afflicted:
+		# Set before the fight is built, which is the only way in from outside: a Fighter is
+		# handed to `of()` and never handed back. The longest tag the vocabulary has, so the
+		# caption is at its widest.
+		for member: BattleLogic.Fighter in members:
+			member.status.shift(SpellDef.Stat.DEFENSE, -2, 3)
 	var logic := BattleLogic.of(combat, [_enemy()], members, [], "map/foe", 7)
 	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
 		FileSpriteSource.create(&"dusk16"))
@@ -445,6 +451,25 @@ func test_a_full_field_is_drawn_without_anything_overlapping() -> void:
 	# Both sides at capacity, which is the state no shipped map produces yet and every shipped
 	# map is allowed to.
 	_assert_nothing_overlaps(_full_field_screen(), "full field")
+
+
+func test_a_full_party_wearing_statuses_still_fits() -> void:
+	# Statuses APPEND to a caption, so every one of them makes a line wider - and every other
+	# fixture here carries none, which means the widest caption this screen can be asked to draw
+	# is not the one anything measures.
+	#
+	# The PARTY side is the binding case and the only one afflicted here: a member's caption is
+	# already the longer of the two ("You  Lv1  20/20  MP 8/8" against "Deepdweller  10/10"), so
+	# a tag that fits there fits beside a foe. Afflicting the foes as well would need a seam on
+	# the logic that exists only for this test, which is a worse trade than saying which case
+	# binds and measuring that one.
+	var screen := _full_party_screen([], true)
+	var logic := screen.logic()
+	for at in logic.member_count():
+		assert_str(logic.member_tag(at)).override_failure_message(
+			"member %d was afflicted by the fixture and came back with no tag, so this audit is "
+			% at + "measuring the same captions the untagged one already did").is_not_empty()
+	_assert_nothing_overlaps(screen, "full party wearing statuses")
 
 
 func test_every_foe_of_a_full_formation_has_a_visible_block() -> void:

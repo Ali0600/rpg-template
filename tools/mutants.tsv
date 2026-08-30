@@ -337,8 +337,8 @@ scripts/ui/shop_menu.gd	s|return 0 if r == null or _count <= 0 else r.price \* _
 scripts/ui/shop_menu.gd	s|_saying = Saying.POOR|pass|	tests/unit/test_shop_menu.gd	a refusal makes no words, which reads as a dead key
 scripts/ui/shop_menu.gd	s|return r.description if r != null else ""|return ""|	tests/unit/test_shop_menu.gd	the description bar goes blank and the shop stops saying what it sells
 scripts/ui/shop_menu.gd	s|_saying = Saying.HOW_MANY|pass|	tests/unit/test_shop_menu.gd	the keeper stops asking how many and the count runs unannounced
-scripts/ui/battle_logic.gd	s|damage\(swinger.combat.attack_at\(swinger.level\) \+ swinger.attack_mod,|damage(swinger.combat.attack_at(swinger.level),|	tests/unit/test_battle_logic.gd	a sword changes nothing and gear is decoration
-scripts/ui/battle_logic.gd	s|on.combat.defense_at\(on.level\) \+ on.defense_mod\)|on.combat.defense_at(on.level))|	tests/unit/test_battle_logic.gd	armour changes nothing and gear is decoration
+scripts/ui/battle_logic.gd	s|who.attack_mod \+ who.status.attack_bonus\(\)|who.status.attack_bonus()|	tests/unit/test_battle_logic.gd	a sword changes nothing and gear is decoration
+scripts/ui/battle_logic.gd	s|who.defense_mod \+ who.status.defense_bonus\(\)|who.status.defense_bonus()|	tests/unit/test_battle_logic.gd	armour changes nothing and gear is decoration
 scripts/autoload/game_state.gd	s|if wearers_of\(id\) - already \+ 1 > inventory.count\(id\):|if false:|	tests/unit/test_saves.gd	the player equips a sword they do not own
 scripts/autoload/game_state.gd	s|\t_strip_phantom_markers\(id\)|\tpass|	tests/unit/test_saves.gd	the last sword leaves the bag and stays equipped as a phantom
 scripts/data/migrations.gd	s|d\["equipment"\] = \{\}|pass|	tests/unit/test_saves.gd	an old save loads with no equipment map at all
@@ -439,10 +439,10 @@ scripts/ui/battle_logic.gd	s|^\treturn row.cost <= _fighter\(_commander\).mp$|\t
 scripts/ui/battle_logic.gd	s|\tif not can_afford\(row\):|\tif false:|	tests/unit/test_battle_logic.gd	casting past the purse goes through and the magic runs negative
 scripts/ui/battle_logic.gd	s|^\tcaster.mp -= row.cost$|\tpass|	tests/fixtures/qa/quest/cast_a_spell_in_a_fight.json	every spell is free, so the magic is a number that never moves
 scripts/ui/battle_logic.gd	s|\t\t\t_phase = Phase.SPELLS|\t\t\tpass|	tests/unit/test_battle_logic.gd	the Magic command opens nothing at all
-scripts/ui/battle_logic.gd	s|\t\t\tsleeper.asleep_turns = row.status_turns|\t\t\tpass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
+scripts/ui/battle_logic.gd	s|sleeper.status.asleep_turns = row.status_turns|pass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
 scripts/ui/battle_logic.gd	s|\t\t\thit.hp = maxi\(hit.hp - row.power, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
-scripts/ui/battle_logic.gd	s|\tif it.asleep_turns > 0:|\tif false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
-scripts/ui/battle_logic.gd	s|\t\tit.asleep_turns -= 1|\t\tpass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
+scripts/ui/battle_logic.gd	s|if it.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
+scripts/ui/battle_logic.gd	s|it.status.asleep_turns -= 1|pass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
 scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tests/unit/test_battle_logic.gd	backing out of the spells lands the cursor on Attack instead of Magic
 scripts/world/world_scene.gd	s|if def == null or def.learn_level > at_level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
 scripts/ui/battle_screen.gd	s|\treturn clampi\(_logic.index\(\) - VISIBLE_ROWS \+ 1, 0, count - VISIBLE_ROWS\)|\treturn 0|	tests/integration/test_battle_layout.gd	a page longer than the window never scrolls, so its last rows cannot be reached
@@ -489,7 +489,7 @@ scripts/ui/battle_logic.gd	s|^\t\tif who > acted:$|\t\tif false:|	tests/unit/tes
 scripts/ui/battle_logic.gd	s|^\tvar acted := _commander$|\tvar acted := -1|	tests/unit/test_battle_logic.gd	the first member takes every turn and the enemy never acts
 scripts/ui/battle_logic.gd	s|^\t_commander = -1$|\tpass|	tests/integration/test_battle_layout.gd	a member stays marked while the enemy is taking aim
 scripts/ui/battle_logic.gd	s|^\tif standing.size\(\) < 2:$|\tif false:|	tests/unit/test_battle_logic.gd	a solo heal opens a cursor with one row on it
-scripts/ui/battle_logic.gd	s|\tif row.kind == SpellDef.Kind.HEAL:|\tif false:|	tests/unit/test_battle_logic.gd	a heal in a party lands on whoever cast it
+scripts/ui/battle_logic.gd	s|\tif row.kind == SpellDef.Kind.HEAL or row.kind == SpellDef.Kind.BOOST:|\tif false:|	tests/unit/test_battle_logic.gd	a heal in a party lands on whoever cast it
 scripts/ui/battle_logic.gd	s|\tchosen.target = standing\[_index\]|\tchosen.target = _commander|	tests/unit/test_battle_logic.gd	the ally cursor is drawn, read and ignored
 scripts/ui/battle_logic.gd	s|^\t\tif _living\(\).is_empty\(\):$|\t\tif true:|	tests/unit/test_battle_logic.gd	one member falling loses the whole fight
 scripts/ui/battle_logic.gd	s|^\tfor i in _living\(\):$|\tfor i in _members.size():|	tests/unit/test_battle_logic.gd	a member who was down through the fight earns experience
@@ -520,4 +520,9 @@ scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	test
 scripts/ui/battle_screen.gd	s|\t\tvar theirs := acting and not player_side and swinging_foe == at|\t\tvar theirs := acting and not player_side|	tests/integration/test_battle_layout.gd	every foe leans when any one of them swings
 scripts/ui/battle_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
 scripts/ui/battle_screen.gd	s|^const MAX_PARTY := 3$|const MAX_PARTY := 0|	tests/unit/test_battle_content.gd	a game may declare a party bigger than the screen draws
-scripts/world/world_scene.gd	s|\t\t\tdef.status_turns, def.target\)\)|\t\t\tdef.status_turns))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
+scripts/world/world_scene.gd	s|\t\t\tdef.status_turns, def.target, def.stat\)\)|\t\t\tdef.status_turns, def.stat))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
+scripts/ui/battle_logic.gd	s|who.status.attack_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a boost never reaches the swing, so the spell announces itself and changes no number
+scripts/ui/battle_logic.gd	s|it.status.defense_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a sap never reaches the guard the blow is measured against
+scripts/ui/battle_logic.gd	s|maxi\(0, it.def.defense \+ it.status.defense_bonus\(\)\)|it.def.defense + it.status.defense_bonus()|	tests/unit/test_battle_logic.gd	an over-sapped guard goes negative and starts helping the attacker
+scripts/ui/battle_logic.gd	s|if member.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping party member is handed the menu anyway, which is a free turn
+scripts/ui/battle_logic.gd	s|if pressed_in_time\(\):|if false:|	tests/unit/test_battle_logic.gd	a well-timed guard stops shrugging off an affliction, so the cue goes quiet in status fights

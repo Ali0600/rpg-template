@@ -99,9 +99,12 @@ class SpellRow:
 	## ONE asks which foe, ALL skips the question. Defaulted on the factory rather than required,
 	## so the three call sites that predate formations still read as they did.
 	var target: int = SpellDef.Target.ONE
+	## Which number a BOOST or a SAP moves. Defaulted for the same reason `target` is.
+	var stat: int = SpellDef.Stat.ATTACK
 
 	static func of(spell_id: StringName, spell_name: String, mp_cost: int, spell_kind: int,
-			spell_power: int, turns: int, shape: int = SpellDef.Target.ONE) -> SpellRow:
+			spell_power: int, turns: int, shape: int = SpellDef.Target.ONE,
+			moves: int = SpellDef.Stat.ATTACK) -> SpellRow:
 		var out := SpellRow.new()
 		out.id = spell_id
 		out.name = spell_name
@@ -110,7 +113,68 @@ class SpellRow:
 		out.power = spell_power
 		out.status_turns = turns
 		out.target = shape
+		out.stat = moves
 		return out
+
+
+## What is currently true OF a fighter or a foe that is not one of their numbers.
+##
+## ONE holder, carried by both sides, which is the whole of "the status system points both ways":
+## a party member and an enemy are afflicted by the same fields, ticked by the same function, and
+## read by the same fold. A second copy shaped slightly differently is how one side quietly
+## stops expiring.
+##
+## Named fields rather than a list of effects. Every other struct here is written this way, and a
+## fixed shape is what makes a replayed fight easy to reason about - a list would need an order,
+## and an order is a thing that can differ between two runs that should be identical.
+##
+## Everything here is BATTLE-ONLY and dies with the fight. Nothing reads it afterwards, nothing
+## saves it, and `BattleLogic` still writes nothing - which is why this milestone needed no save
+## version. Persistent affliction is a milestone of its own; docs/DECISIONS.md carries it.
+class Status:
+	## Turns this one still spends asleep. Decremented by whoever is taking the turn, so each
+	## sleeper counts its own down - Final Fantasy I's rule, and one a battle-wide flag could not
+	## express.
+	var asleep_turns: int = 0
+	var attack_delta: int = 0
+	var attack_turns: int = 0
+	var defense_delta: int = 0
+	var defense_turns: int = 0
+
+	## What this is contributing RIGHT NOW. Zero once the turns run out, so an expired shift is
+	## indistinguishable from one that never happened and no caller has to check both.
+	func attack_bonus() -> int:
+		return attack_delta if attack_turns > 0 else 0
+
+	func defense_bonus() -> int:
+		return defense_delta if defense_turns > 0 else 0
+
+	## Shifts a stat, replacing whatever was there rather than stacking onto it. Re-casting a
+	## boost refreshes it; it does not double it. Stacking is how a fight becomes unloseable in
+	## four casts, and no reference game in this set stacks either.
+	func shift(which: int, delta: int, turns: int) -> void:
+		if which == SpellDef.Stat.ATTACK:
+			attack_delta = delta
+			attack_turns = turns
+		else:
+			defense_delta = delta
+			defense_turns = turns
+
+	## One turn passes for the SHIFTS. Sleep is counted separately by the turn-taker, because
+	## sleeping is the thing that consumes the turn rather than something that ran during it.
+	func tick() -> void:
+		attack_turns = maxi(attack_turns - 1, 0)
+		defense_turns = maxi(defense_turns - 1, 0)
+
+	## What the battle screen writes beside the numbers, or "" for nothing worth a tag.
+	func tag() -> String:
+		if asleep_turns > 0:
+			return "ZZZ"
+		if attack_turns > 0:
+			return "ATK+" if attack_delta > 0 else "ATK-"
+		if defense_turns > 0:
+			return "DEF+" if defense_delta > 0 else "DEF-"
+		return ""
 
 
 ## One fighter on the player's side, fully resolved before the fight is built.
@@ -134,6 +198,9 @@ class Fighter:
 	var mp: int = 0
 	var attack_mod: int = 0
 	var defense_mod: int = 0
+	## What is currently true of them beyond their numbers. Its own object rather than loose
+	## fields, so the party side and the foe side are afflicted by exactly the same shape.
+	var status := Status.new()
 	## SpellRows, already narrowed to what THIS member can cast at THIS level.
 	var spells: Array = []
 
@@ -201,7 +268,9 @@ class Foe:
 	## reads exactly as it always did.
 	var name: String = ""
 	var hp: int = 0
-	var asleep_turns: int = 0
+	## The same holder the party carries. `asleep_turns` used to be a field right here, and
+	## moving it in is what let one tick and one fold serve both sides.
+	var status := Status.new()
 
 	static func of(enemy: EnemyDef, display: String) -> Foe:
 		var out := Foe.new()
@@ -362,9 +431,12 @@ func _begin_round() -> void:
 	_foe_turn = -1
 	_struck = -1
 	var standing := _living()
-	_commander = standing[0] if not standing.is_empty() else -1
-	_phase = Phase.MENU
-	_index = Row.ATTACK
+	if standing.is_empty():
+		_commander = -1
+		_phase = Phase.MENU
+		_index = Row.ATTACK
+		return
+	_hand_turn_to(standing[0])
 
 
 ## What a member's gear is contributing, so the wiring from the world is assertable rather than
@@ -437,7 +509,7 @@ func can_afford(row: SpellRow) -> bool:
 
 ## Turns this foe still owes to a sleep. Zero is "awake", so a caller never has to ask twice.
 func enemy_asleep_turns(at: int = 0) -> int:
-	return _foe(at).asleep_turns
+	return _foe(at).status.asleep_turns
 
 
 ## The party, by index. There are no leader shims - a `player_hp()` standing for `member_hp(0)`
@@ -483,6 +555,15 @@ func member_down(at: int) -> bool:
 	return _fighter(at).down()
 
 
+## The short word for whatever is currently true of them beyond their numbers, or "" for
+## nothing. The view writes it beside the health rather than instead of it: Final Fantasy I
+## replaces the HP readout because its block holds one number and no more, and this screen has a
+## caption line AND a bar. Imitating a constraint this screen does not have would cost the
+## player a number to be faithful to a layout.
+func member_tag(at: int) -> String:
+	return _fighter(at).status.tag()
+
+
 ## Which member has the turn - choosing or swinging - or -1 while the enemy has it. The view
 ## marks them so a player with two fighters knows who they are pressing for.
 func commander() -> int:
@@ -519,6 +600,13 @@ func foe_count() -> int:
 
 func foe_down(at: int) -> bool:
 	return _foe(at).down()
+
+
+## The foe side of `member_tag`, and the same word list. A sleeping enemy has said "sleeps on"
+## in a message since M25, which is a thing you have to be watching to catch; the tag is what
+## makes it readable at a glance on a formation of three.
+func foe_tag(at: int) -> String:
+	return _foe(at).status.tag()
 
 
 func foe_character(at: int) -> StringName:
@@ -856,7 +944,9 @@ func _confirm_spell() -> void:
 	order.member = _commander
 	order.row = Row.MAGIC
 	order.spell = row
-	if row.kind == SpellDef.Kind.HEAL:
+	if row.kind == SpellDef.Kind.HEAL or row.kind == SpellDef.Kind.BOOST:
+		# Both land on OUR side, so both take the ally cursor - and both skip it at one standing
+		# member, which is what keeps a solo fight pressing the keys it always did.
 		_aim_at_ally(order, Phase.SPELLS)
 		return
 	if row.target == SpellDef.Target.ALL:
@@ -917,11 +1007,39 @@ func _advance() -> void:
 	# whichever comes first in the file and reporting a verdict about the other one.
 	for who in _living():
 		if who > acted:
-			_commander = who
-			_phase = Phase.MENU
-			_index = Row.ATTACK
+			_hand_turn_to(who)
 			return
 	_begin_enemy_phase()
+
+
+## Gives the turn to `who` - or spends it sleeping on their behalf.
+##
+## The player-side mirror of `_begin_foe_turn`, and it exists for the same reason that one does:
+## the MESSAGE. A turn that passed a sleeping member in silence would read as a press the game
+## dropped, which is precisely the complaint that killed M27's round shape. Saying "X sleeps on."
+## and letting `_leave_message` walk on to the next member costs one line and answers it.
+##
+## Both callers go through here - `_begin_round` for the first member and `_advance` for every
+## one after - so a sleeper can never be handed the menu, whichever door the turn arrives by.
+func _hand_turn_to(who: int) -> void:
+	_commander = who
+	# `member` rather than `it`, deliberately: `_begin_foe_turn` calls its foe `it`, and the
+	# sleep check below would otherwise be character-identical to that one - so a mutant aimed
+	# at either would edit whichever came first and report a verdict about the other side.
+	var member := _fighter(who)
+	member.status.tick()
+	if member.status.asleep_turns > 0:
+		member.status.asleep_turns -= 1
+		_say("%s sleeps on." % member.name, Phase.PLAYER_ACT)
+		return
+	_phase = Phase.MENU
+	_index = Row.ATTACK
+
+
+## What a message calls the stat a shift moved. Here rather than on `SpellDef` because it is
+## wording, and the enum is the fact.
+func _stat_word(which: int) -> String:
+	return "attack" if which == SpellDef.Stat.ATTACK else "guard"
 
 
 func _cast(order: Order) -> void:
@@ -948,9 +1066,23 @@ func _cast(order: Order) -> void:
 					Phase.PLAYER_ACT)
 		SpellDef.Kind.SLEEP:
 			var sleeper := _foe(order.foe if order.foe >= 0 else 0)
-			sleeper.asleep_turns = row.status_turns
+			sleeper.status.asleep_turns = row.status_turns
 			_say("%s casts %s. The %s sleeps." % [caster.name, row.name, sleeper.name],
 				Phase.PLAYER_ACT)
+		SpellDef.Kind.BOOST:
+			# At an ALLY, and the target arm is the heal's exactly: -1 means the cursor was
+			# skipped because there was only one of us, which is the caster.
+			var lifted := _fighter(order.target if order.target >= 0 else order.member)
+			lifted.status.shift(row.stat, row.power, row.status_turns)
+			_say("%s casts %s. %s's %s rises." % [caster.name, row.name, lifted.name,
+				_stat_word(row.stat)], Phase.PLAYER_ACT)
+		SpellDef.Kind.SAP:
+			# The same verb pointed the other way, at a foe, on the attack spell's target arm.
+			# The MINUS lives here rather than in the data: `power` is a size on every kind.
+			var drained := _foe(order.foe if order.foe >= 0 else 0)
+			drained.status.shift(row.stat, -row.power, row.status_turns)
+			_say("%s casts %s. The %s's %s drops." % [caster.name, row.name, drained.name,
+				_stat_word(row.stat)], Phase.PLAYER_ACT)
 		_ when row.target == SpellDef.Target.ALL:
 			# Everything still standing, for the same flat damage. The one place in the fight a
 			# single choice reaches more than one thing.
@@ -1089,10 +1221,14 @@ func _next_foe_or_round() -> void:
 func _begin_foe_turn(at: int) -> void:
 	_foe_turn = at
 	var it := _foe(at)
-	if it.asleep_turns > 0:
+	# BEFORE the sleep check, not after it. A sleeping foe returns from this function, so a tick
+	# below the branch would let a sap sit on it for as long as it stayed asleep - the affliction
+	# outlasting its own duration because the target was too incapacitated to notice.
+	it.status.tick()
+	if it.status.asleep_turns > 0:
 		# Its own counter, so the rest of the formation still swings. FF1's sleepers each roll
 		# their own wake, which one flag on the fight could not express.
-		it.asleep_turns -= 1
+		it.status.asleep_turns -= 1
 		_say("The %s sleeps on." % it.name, Phase.ENEMY_ACT)
 		return
 	# WHO is chosen before the cue opens, not at the impact. The cue is the thing being reacted
@@ -1112,8 +1248,7 @@ func _begin_cue(next: Phase, frames: int) -> void:
 func _land_player_hit() -> void:
 	var swinger := _fighter(_acting)
 	var aimed := _foe(_struck if _struck >= 0 else 0)
-	var base := damage(swinger.combat.attack_at(swinger.level) + swinger.attack_mod,
-		aimed.def.defense)
+	var base := damage(_attack_of(swinger), _foe_defense(aimed))
 	var timed := pressed_in_time()
 	var dealt := base * 2 if timed else base
 	# The IMPACT is the feedback, not the press. A click the moment the button went down would
@@ -1133,8 +1268,10 @@ func _land_enemy_hit() -> void:
 	var move := _pick_move()
 	var swinging := _foe(_foe_turn)
 	var on := _fighter(_target)
-	var base := damage(swinging.def.attack + int(move.get("power", 0)),
-		on.combat.defense_at(on.level) + on.defense_mod)
+	if not str(move.get("status", "")).is_empty():
+		_land_affliction(move, swinging, on)
+		return
+	var base := damage(_foe_attack(swinging) + int(move.get("power", 0)), _defense_of(on))
 	var blocked := pressed_in_time()
 	var taken := maxi(base / 2, 1) if blocked else base
 	_want(Sfx.Cue.BLOCK if blocked else Sfx.Cue.HURT)
@@ -1157,6 +1294,36 @@ func _land_enemy_hit() -> void:
 	# ENEMY_ACT rather than MENU: the next foe in the formation may still be owed a turn, and
 	# _leave_message asks _next_foe_or_round which it is. At one foe that walk finds nobody left
 	# and starts the round in the same tick the MENU arm used to.
+	_say(line, Phase.ENEMY_ACT)
+
+
+## A move that afflicts rather than hurts, and the defend cue's answer to it.
+##
+## A WELL-TIMED GUARD SHRUGS IT OFF ENTIRELY, where a timed guard against a blow only halves it.
+## All-or-nothing because there is no half of being asleep, and because the alternative - a
+## shorter affliction for a good press - would make the cue's reward invisible in the moment it
+## was earned. It is also what keeps the timing mechanic meaningful in exactly the fights that
+## lean on statuses; a cue with nothing to do would quietly become decoration there.
+##
+## No defeat check: an affliction deals no damage, so it cannot be the thing that fells anybody.
+## `EnemyDef.problems()` refuses a move that tries to do both.
+func _land_affliction(move: Dictionary, swinging: Foe, on: Fighter) -> void:
+	var move_name := str(move.get("name", "attacks"))
+	if pressed_in_time():
+		_want(Sfx.Cue.BLOCK)
+		_say("%s: %s. Shrugged off." % [swinging.name, move_name], Phase.ENEMY_ACT)
+		return
+	_want(Sfx.Cue.HURT)
+	var turns := int(move.get("turns", 1))
+	var line := ""
+	if str(move.get("status", "")) == "sleep":
+		on.status.asleep_turns = turns
+		line = "%s: %s. %s drops asleep." % [swinging.name, move_name, on.name]
+	else:
+		var which := SpellDef.Stat.ATTACK if str(move.get("stat", "")) == "attack" \
+			else SpellDef.Stat.DEFENSE
+		on.status.shift(which, -int(move.get("amount", 1)), turns)
+		line = "%s: %s. %s's %s drops." % [swinging.name, move_name, on.name, _stat_word(which)]
 	_say(line, Phase.ENEMY_ACT)
 
 
@@ -1283,3 +1450,35 @@ func _leave_message() -> void:
 ## simply never ends, which reads as a frozen game rather than as a balance problem.
 static func damage(attack: int, defense: int) -> int:
 	return maxi(1, attack - defense)
+
+
+# -- what a fighter's numbers actually are -------------------------------------------------
+#
+# FOUR contributors now reach two numbers: the level curve, worn equipment, and a status shift -
+# and on the foe side the def and a shift. Before M30 there were two, and each hit resolver
+# added them up itself. A third contributor is exactly when that stops being safe: the copy
+# somebody forgets to update is not a crash, it is a buff that works when you swing and not when
+# you are swung at, which reads as the spell being broken.
+#
+# So these are the ONLY places either number is assembled, and every call site reads them.
+# `lessons.md` names this twice - compute a compound value once above the branches, and populate
+# a field other systems read even where your own path ignores it.
+
+
+func _attack_of(who: Fighter) -> int:
+	return maxi(0, who.combat.attack_at(who.level) + who.attack_mod + who.status.attack_bonus())
+
+
+## Floored at nought rather than allowed to go negative: a sap deep enough to invert this would
+## make a hit land for MORE than it does on an unarmoured target, which is not what "your guard
+## is down" means. `damage()`'s own floor of 1 then keeps the blow real.
+func _defense_of(who: Fighter) -> int:
+	return maxi(0, who.combat.defense_at(who.level) + who.defense_mod + who.status.defense_bonus())
+
+
+func _foe_attack(it: Foe) -> int:
+	return maxi(0, it.def.attack + it.status.attack_bonus())
+
+
+func _foe_defense(it: Foe) -> int:
+	return maxi(0, it.def.defense + it.status.defense_bonus())
