@@ -149,17 +149,34 @@ func test_a_game_with_no_voice_at_all_is_still_valid() -> void:
 	# The theme goes with the voice. A game keeping one while dropping the other is not silent,
 	# it is a title naming a tune that cannot be played - which problems() reports, and the
 	# test below is the one that proves it.
-	silent.title_music = &""
-	silent.battle_music = &""
-	silent.victory_music = &""
+	for field in _music_fields():
+		silent.set(field, &"")
 	assert_array(silent.problems()).is_empty()
 
 
-## The three tunes a manifest can name, so every check below runs once per field rather than
-## once for the one that was written first. A fourth field added without its own row here
-## fails nothing, which is why the LOOP in problems() is a loop.
+## Every tune a manifest can name, DERIVED from the manifest rather than written out.
+##
+## It used to be a hand-kept list of three with a comment admitting the hazard - "a fourth field
+## added without its own row here fails nothing". M32 added the fourth, and the comment was
+## right: every check below silently went on covering three. So the list is now read off the
+## object, and a fifth field is covered by existing.
 func _music_fields() -> Array[StringName]:
-	return [&"title_music", &"battle_music", &"victory_music"]
+	var out: Array[StringName] = []
+	for entry: Dictionary in GameManifest.new().get_property_list():
+		var field := StringName(str(entry.get("name", "")))
+		if String(field).ends_with("_music"):
+			out.append(field)
+	assert_int(out.size()).override_failure_message(
+		"no music fields were found at all, so every check driven by this list ran on nothing"
+	).is_greater(2)
+	return out
+
+
+func test_the_derived_music_list_finds_the_fields_that_exist() -> void:
+	# The list above drives four other tests, so a bug in it makes those four vacuous rather
+	# than red - the shape this project has been bitten by twice. Named fields, checked once.
+	assert_array(_music_fields()).contains(
+		[&"title_music", &"battle_music", &"victory_music", &"game_over_music"])
 
 
 func test_a_theme_with_no_voice_to_play_it_is_reported() -> void:

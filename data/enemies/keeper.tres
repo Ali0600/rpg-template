@@ -21,6 +21,13 @@
 ; The two tonics from the smith are what sit between those two extremes, for a party that
 ; lands some presses and misses others. Gold is 20 rather than 25 so the formation still pays
 ; the 25 this fight always paid.
+;
+; IT HAS ITS OWN THEME, which is the one place this game leaves natural A minor - vigil
+; leans on G#, and a boss should be the thing that sounds wrong. The field is on the ENEMY
+; rather than behind the boss flag because the references disagree about which fights get a
+; second battle theme: Dragon Quest I reserves one for the Dragonlord, Final Fantasy I has
+; none at all, Final Fantasy IV plays one for nearly every boss. In a formation the first
+; foe that states a track wins, so his escort does not have to be silent about it.
 
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
@@ -35,4 +42,5 @@ defense = 3
 xp = 25
 gold = 20
 boss = true
+music = &"vigil"
 moves = [{ "name": "Bar", "power": 0 }, { "name": "Crush", "power": 4 }]

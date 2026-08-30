@@ -1,0 +1,79 @@
+{
+	"_readme": [
+		"The Keeper. Four bars at 120 - eight seconds, the overworld theme's length rather than",
+		"the fight's six, because a boss is the longest fight in the game and the loop that",
+		"carries it should not come round twice before the first round ends.",
+		"",
+		"WHY A SECOND FIGHT THEME EXISTS AT ALL, and why it hangs off the ENEMY. The references",
+		"disagree about which fights get one, and the disagreement is the whole argument: Dragon",
+		"Quest I (1986) ships eight tracks and reserves its second battle theme for the",
+		"Dragonlord; Final Fantasy I has ONE and plays it for every fight including Chaos;",
+		"Final Fantasy II gave major bosses 'Battle Theme 2'; by IV it plays for all but two. A",
+		"field on EnemyDef sits anywhere on that range without the template choosing. See",
+		"docs/GENRE_CONVENTIONS.md 14.",
+		"",
+		"The one place this soundtrack leaves the key with no sharps in it. Everything else here",
+		"is natural A minor; this leans on G#, the harmonic minor's raised seventh, which is what",
+		"turns the walk down to E from a cadence into a threat. It is deliberate and it is the",
+		"only file that does it - a boss should be the thing that sounds wrong.",
+		"",
+		"The bass is a PEDAL in eighths rather than skirmish's alternating root and fifth: an",
+		"ordinary fight is a stand, and this is being leaned on. It moves only in bars two and",
+		"three, so the pressure lets up exactly once per loop.",
+		"",
+		"Written to loop like every other track here - it ends on the dominant so the return to A",
+		"resolves, and the drum fills into the seam rather than stopping at it."
+	],
+	"bpm": 120,
+	"beats_per_bar": 4,
+	"steps_per_beat": 4,
+	"instruments": {
+		"lead": {
+			"wave": "tone",
+			"gain": 0.3,
+			"attack_ms": 4,
+			"release_ms": 40
+		},
+		"bass": {
+			"wave": "tone",
+			"gain": 0.3,
+			"attack_ms": 2,
+			"release_ms": 24
+		},
+		"drum": {
+			"wave": "noise",
+			"gain": 0.14,
+			"attack_ms": 1,
+			"release_ms": 34
+		}
+	},
+	"voices": [
+		{
+			"instrument": "lead",
+			"bars": [
+				"A4:4 -:2 A4:2 C5:4 B4:4",
+				"A4:4 -:2 G#4:2 A4:4 E5:4",
+				"F5:4 E5:4 D5:4 C5:4",
+				"B4:4 A4:4 G#4:4 E4:4"
+			]
+		},
+		{
+			"instrument": "bass",
+			"bars": [
+				"A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 A2:2",
+				"A2:2 A2:2 A2:2 A2:2 E2:2 E2:2 E2:2 E2:2",
+				"F2:2 F2:2 F2:2 F2:2 D2:2 D2:2 D2:2 D2:2",
+				"E2:2 E2:2 E2:2 E2:2 E2:2 E2:2 E2:2 E2:2"
+			]
+		},
+		{
+			"instrument": "drum",
+			"bars": [
+				"x:4 -:2 x:2 x:4 x:4",
+				"x:4 -:2 x:2 x:4 x:4",
+				"x:4 -:2 x:2 x:4 x:4",
+				"x:2 x:2 x:2 x:2 x:2 x:2 x:2 x:2"
+			]
+		}
+	]
+}

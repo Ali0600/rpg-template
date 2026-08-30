@@ -37,6 +37,21 @@ extends Resource
 ## a designer thinking "can I run from this" is thinking about the thing, not the tile.
 @export var boss: bool = false
 
+## The tune THIS fight plays, outranking the manifest's `battle_music`. A track id under
+## data/music, validated by the world that opens the fight - an EnemyDef has no voice to check
+## it against, since which SoundStyle renders it is a property of the running game.
+##
+## On the ENEMY rather than behind the `boss` flag, because the references disagree about which
+## fights get one and a template that picked would be picking for every game built on it.
+## Dragon Quest I (1986) reserves its second battle theme for the Dragonlord; Final Fantasy I
+## has ONE and plays it for every fight including Chaos; Final Fantasy II gave major bosses
+## "Battle Theme 2"; by IV it plays for all but two. A field on the enemy sits anywhere on that
+## range. See docs/GENRE_CONVENTIONS.md §14.
+##
+## In a formation the FIRST foe that states one wins, scanned in the order the record names
+## them: a formation with a boss anywhere in it is a boss fight, and that needs no second field.
+@export var music: StringName = &""
+
 ## What it does on its turn, as `{"name": String, "power": int}`. Damage is
 ## attack + power - the player's defense, so power is the move's own contribution and a
 ## zero-power move is this enemy's plain hit.

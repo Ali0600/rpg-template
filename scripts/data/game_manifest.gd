@@ -78,6 +78,19 @@ extends Resource
 ## different moments and the id has to say so.
 @export var victory_music: StringName = &""
 
+## The tune a GAME OVER plays. A loop, not a jingle: the screen sits there until the player
+## chooses, so a one-shot would leave them in silence deciding what to do about it.
+##
+## It arrived in M32 because the code it replaced justified itself with a genre claim that is
+## false. `_on_battle_finished` cut the music dead and said "every game this borrows from cuts
+## the music at a game over" - and Final Fantasy I ships "Dead Music", a game-over theme, in
+## 1987. The references do not fall silent at a death, they CHANGE what is playing, and each
+## Final Fantasy has a different one. See docs/GENRE_CONVENTIONS.md §14.
+##
+## Empty keeps the silence exactly, which is what a game with nothing to say at a death wants
+## and what every session recorded before M32 still hears.
+@export var game_over_music: StringName = &""
+
 ## The one line of on-screen help. It belongs to the game because it names the game's verbs:
 ## "E or space to talk" is wrong for a game whose button does anything else.
 ## What the player starts with in their purse. Beside start_map and start_spawn because it is
@@ -197,11 +210,12 @@ func problems() -> Array[String]:
 			out.append("sound_style '%s' has no generated cues (expected %s) - run tools/gen_sounds.gd"
 				% [sound_style.id, cue])
 
-	# The themes, same shape three times: a game naming a tune nobody rendered is a silence, and
+	# The themes, same shape four times: a game naming a tune nobody rendered is a silence, and
 	# silence is a legal shape here - so the only way to tell it from a misspelling is to check.
-	# One loop rather than three copies, because the third copy is where the check goes stale.
+	# One loop rather than four copies, because the fourth copy is where the check goes stale -
+	# and M32 adding a field to this list without touching a line of the check is the argument.
 	for named: Array in [["title_music", title_music], ["battle_music", battle_music],
-			["victory_music", victory_music]]:
+			["victory_music", victory_music], ["game_over_music", game_over_music]]:
 		var field := String(named[0])
 		var tune := StringName(named[1])
 		if String(tune).is_empty():
