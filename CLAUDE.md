@@ -674,6 +674,14 @@ validator that has only ever passed is decoration.
   trio and every such chain stopped ending the fight, half a script away from what moved.
   `press_until_state` is the opposite and is still right for playing BADLY on purpose - only the
   first press of a cue counts, so mashing never lands one.
+- **Authoring a session by SLICING another one cuts on the step that opens the leg**, never on a
+  repeated marker. Taking "everything up to the last `assert_state battle`" kept the source
+  script's own spell leg, so the new script's cursor landed two rows off and cast the wrong
+  spell - and every assertion still passed, because the two spells cost the same. Slice on the
+  note or the walk that BEGINS the part being replaced.
+- **Select the last row of a page with one press UP, not N presses down.** Counting is what
+  CLAUDE.md already warns about for suites, and it is worse here: a QA script has no enum to
+  name, so a miscount is silent. Wrapping onto the last row is one deliberate press.
 - **A QA leg is held until a WALL or a BODY stops it**, never for a computed number of tiles.
   An arriving hold carries the player onward into the next map, so a leg that follows a warp
   must re-anchor against geometry rather than assume where the last one left off. The one
