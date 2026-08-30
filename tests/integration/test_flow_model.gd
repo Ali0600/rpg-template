@@ -160,7 +160,13 @@ func _arrive_at(state: String, adapter := "") -> void:
 
 ## Runs one declared action from the state it declares. Everything before this is setup and is
 ## not recorded; recording starts here and stops when the action has settled.
-func _drive(adapter: String) -> void:
+##
+## `next_adapter` is the adapter about to be driven AFTER this one, and exactly one arm reads
+## it: a fight is opened winnable or unwinnable, and which one it must be is decided by the way
+## the walk intends to leave it. `_arrive_at` has looked one edge ahead for the same reason
+## since M23 — this is that lookahead, moved to where a walk can use it. Empty (the per-edge
+## default) means a winnable fight, which is what the single `open_battle` edge has always run.
+func _drive(adapter: String, next_adapter := "") -> void:
 	_seen.clear()
 	_recording = true
 	match adapter:
@@ -200,7 +206,8 @@ func _drive(adapter: String) -> void:
 					break
 				await get_tree().physics_frame
 		"open_battle":
-			assert_bool(_world.open_battle_with([_foe()], "flow/foe")).is_true()
+			var ring := _foe(999, 99) if next_adapter == "lose_battle" else _foe()
+			assert_bool(_world.open_battle_with([ring], "flow/foe")).is_true()
 			await _steps(1)
 		"win_battle", "lose_battle":
 			for i in 90:
@@ -360,6 +367,123 @@ func test_every_state_can_be_arrived_at_and_left() -> void:
 			"no declared edge arrives at '%s'" % state).is_true()
 		assert_bool(left.has(state)).override_failure_message(
 			"no declared edge leaves '%s', so it is a trap" % state).is_true()
+
+
+# --- the composition layer -----------------------------------------------------------------
+#
+# Everything above drives each edge ONCE, from a world built for it. That is silent about every
+# SEQUENCE of edges, and the bug this model exists for was a sequence: Continue arrived at WORLD
+# exactly as declared, having passed through the start map on the way. Below, the same edges are
+# driven in seeded random order on ONE world that is never rebuilt between steps.
+
+
+## The number of walks and how long each is. Six and twenty-four is what it takes to drive every
+## walkable edge at least once across the set - which the coverage test asserts rather than
+## hopes for, because a random walk that never reaches a game over reports green either way.
+const WALK_SEEDS := 6
+const WALK_LENGTH := 24
+
+
+## The first invariant of a state that does not hold, or "" when they all do. Returns a name
+## rather than asserting, because a walk has to keep hold of its failure long enough to shrink
+## it - a gdUnit assertion inside the loop would end the test at the 40-step version.
+func _broken_invariant(state: String) -> String:
+	var states: Dictionary = _model().get("states", {})
+	var vertex: Dictionary = states.get(state, {})
+	for raw: Variant in vertex.get("invariants", []) as Array:
+		var name := str(raw)
+		if not _known_invariant(name):
+			return "%s (which this suite does not implement)" % name
+		if not _invariant_holds(name):
+			return name
+	return ""
+
+
+## A world at the title with a save on disk, so `continue` is walkable from step one. Exactly
+## the setup the per-edge Continue case already uses; a walk needs it once at the start rather
+## than in the middle of the sequence.
+func _begin_walk() -> void:
+	await _arrive_at("title")
+	await _seed_a_save()
+
+
+## Drives a whole planned walk on one world. Returns "" when every step conformed, or the first
+## step that did not, worded so the reader can see where in the walk it went wrong.
+func _run_walk(edges: Array, sequence: Array[int]) -> String:
+	await _begin_walk()
+	for step in sequence.size():
+		var edge: Dictionary = edges[sequence[step]]
+		var next_adapter := ""
+		if step + 1 < sequence.size():
+			var following: Dictionary = edges[sequence[step + 1]]
+			next_adapter = str(following.get("adapter", ""))
+		var action := str(edge.get("action", ""))
+		var arrives := str(edge.get("to", ""))
+		await _drive(str(edge.get("adapter", "")), next_adapter)
+		if _trace() != _declared(edge):
+			return "step %d ('%s') was declared as %s and emitted %s" % [
+				step + 1, action, _declared(edge), _trace()]
+		if Router.state_name() != arrives:
+			return "step %d ('%s') said it would end in '%s' and ended in '%s'" % [
+				step + 1, action, arrives, Router.state_name()]
+		var broken := _broken_invariant(arrives)
+		if not broken.is_empty():
+			return "step %d ('%s') reached '%s', where '%s' is supposed to hold and does not" % [
+				step + 1, action, arrives, broken]
+	return ""
+
+
+## Minimises a failing walk by re-running shorter ones. FlowWalk decides what to try; this only
+## answers whether the candidate still fails, which is the whole reason the search could be
+## unit-tested without a scene tree.
+func _shrink_walk(edges: Array, failing: Array[int]) -> Array[int]:
+	var shrinker := FlowWalk.Shrinker.new(edges, "title", failing)
+	while shrinker.has_candidate():
+		var candidate := shrinker.candidate()
+		var failure := await _run_walk(edges, candidate)
+		_teardown_world()
+		shrinker.report(not failure.is_empty())
+	return shrinker.best()
+
+
+func test_seeded_walks_conform_to_the_model_step_after_step() -> void:
+	# An edge that behaves differently because of what came before it fails here and nowhere
+	# else. The world is built once per walk and every step lands on the one the last step left,
+	# so a leaked overlay, a screen that outlived its state or a second visit that takes a
+	# different path all arrive as a trace that disagrees with the model.
+	var edges: Array = _model().get("edges", [])
+	for seed_value in WALK_SEEDS:
+		var walk := FlowWalk.plan(edges, "title", seed_value, WALK_LENGTH)
+		var failure := await _run_walk(edges, walk)
+		_teardown_world()
+		if failure.is_empty():
+			continue
+		var shrunk := await _shrink_walk(edges, walk)
+		fail("seed %d: %s\n  the walk was %s\n  and the shortest one that still fails is %s"
+			% [seed_value, failure, FlowWalk.actions_of(edges, walk),
+			FlowWalk.actions_of(edges, shrunk)])
+		return
+
+
+func test_the_walks_between_them_drive_every_edge_in_the_model() -> void:
+	# A random walk that never reaches a game over is green and proves nothing about defeat. So
+	# the seeds are not left to luck: every edge a walk is allowed to take must actually be
+	# taken by one of them, and this fails the day a new edge is added that they cannot reach.
+	var edges: Array = _model().get("edges", [])
+	var driven: Array[int] = []
+	for seed_value in WALK_SEEDS:
+		for index in FlowWalk.plan(edges, "title", seed_value, WALK_LENGTH):
+			if not driven.has(index):
+				driven.append(index)
+	var missed: Array[String] = []
+	for i in edges.size():
+		var edge: Dictionary = edges[i]
+		if FlowWalk.NOT_WALKABLE.has(str(edge.get("action", ""))):
+			continue
+		if not driven.has(i):
+			missed.append(str(edge.get("action", "")))
+	assert_array(missed).override_failure_message(
+		"%d seeded walks never drive %s" % [WALK_SEEDS, missed]).is_empty()
 
 
 func _teardown_world() -> void:
