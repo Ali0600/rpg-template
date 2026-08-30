@@ -292,6 +292,50 @@ alongside hp - a fight, an inn, a level - so a call site that forgot it would si
 the player. Saves are v8; mp rides inside the `party` dict, because a game with no party has no
 magic either.
 
+**An element is a percent in the data, and the fight multiplies ONCE.** `SpellDef.element` is
+an open string (empty means elementless and lands at face value); `EnemyDef.resistances` is
+element -> percent taken, where 200 burns, 50 shrugs and 0 is untouched. An open vocabulary
+because the template never branches on "fire" - it looks the word up in the foe's own map - and a
+closed one would be this template picking the elements of every game built on it. Percents rather
+than tier words for the reason every number here is data: `weak` would put a bare `* 2` in a
+script, and it would cap the genre at two tiers when the references run from quarter damage
+through immunity. An entry of exactly 100 is REFUSED rather than allowed as a no-op - it reads
+like a decision and changes nothing, so it is a typo or a note belonging in a comment.
+
+`_spell_damage` is the one place the multiply happens, called by both arms of the attack branch.
+Two arms each doing it is the `_attack_of`/`_defense_of` shape and the same failure: the copy
+somebody forgets is a weakness that works when you aim and silently not when you sweep, which
+reads as the spell being broken. Damage is floored at 1 wherever the element does not stop the
+spell outright, so *resisted* and *immune* stay things a player can tell apart - 1 power halved is
+0 by integer division, which would collapse them - and a zero SAYS so.
+
+An element is legal on an ATTACK only: a heal has no damage for a resistance to scale, and a
+field nothing reads is how a data file comes to describe an effect the fight never applies.
+
+**A weakness and a resistance are ANNOUNCED, and a neutral hit is not.** The genre splits here
+and **the split tracks the arithmetic**: Pokemon multiplies and announces every non-neutral hit;
+Dragon Quest's resistance is a CHANCE to negate outright, so only the failure needs words; Final
+Fantasy I multiplies (1.5x weak, 0.5x resist - not the doubling everyone quotes) and says nothing
+at all, its whole 35-entry battle-message table holding no elemental string. This template
+multiplies, so it announces: a bare damage figure cannot tell a player whether 12 was big,
+because they have nothing to compare it against on the turn it happens. FF1 is the outlier that
+proves the rule rather than the precedent that excuses it - its elemental system also shipped
+half-broken. A SWEEP gets no clause, and that is the same rule: its caption already names what
+each foe took side by side, so the comparison is in the numbers. See `docs/GENRE_CONVENTIONS.md`
+S13b, which is research rather than recollection - the FF1 and Pokemon figures come from
+disassemblies of the shipped ROMs, because the wikis were bot-blocked.
+
+**The two halves live in different directories and are joined by a bare string**, so
+`test_battle_content` requires every element a resistance answers to be one some shipped spell is
+made of. A typo on either side is a pairing that silently never fires while both files stay
+individually valid - the fight just applies 100% and nothing anywhere complains.
+
+**The balance gate cannot see any of this, and that is stated rather than assumed.**
+`BattleDriver` only ever chooses Attack and declares a `fault` if a spell page opens, so both
+policies are structurally blind to magic. No shipped fight can be unbalanced by an element, and
+equally nothing plays one - `fire_finds_the_gloom` and the cross-content check are the whole of
+the evidence. A casting policy is in `docs/DECISIONS.md` with its hook.
+
 **Five spell kinds, and a cast has no timing window.** `SpellDef.Kind` is `ATTACK | HEAL |
 SLEEP | BOOST | SAP`, closed the way `ItemDef.SLOTS` is, and APPENDED to rather than reordered -
 a `.tres` stores an enum as the integer it was written as, so inserting a kind re-labels every
@@ -700,6 +744,14 @@ validator that has only ever passed is decoration.
   keys and have no enum to name - write the count out with the row list in a comment above
   it, so inserting a row moves them deliberately. M20 inserted Equipment and then Status,
   and paid exactly that price, in three files, twice, on purpose.
+- **`assert_foe_hp` is how a session proves HOW MUCH a blow was worth.** An element's whole
+  effect is the size of a number, and every other reading is blind to it: the magic spent is the
+  same whatever it hit, the fight is won either way, and no session reads a caption. So a shipped
+  weakness with no `assert_foe_hp` behind it is a feature nothing would notice the loss of.
+  Battle-only, for `assert_status`'s reason. **Aim it by reading the map's record**, not by
+  assuming: `the_pair` names a slink AND a gloom, so foe 0 is the slink - a first draft aimed
+  there and failed with the slink's arithmetic (10 - 7 = 3), which is correct behaviour and the
+  wrong target.
 - **`assert_status` is how a session proves WHICH spell was cast.** A cost cannot: three of the
   demo's spells cost 3 magic, so "the pool went down by three" is satisfied by whichever row the
   cursor happened to land on - a mutant moving the spell under test past the level cap passed a

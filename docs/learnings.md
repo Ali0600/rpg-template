@@ -1305,3 +1305,60 @@ would have offered Continue to a player with nothing saved. Five suites caught i
 the compiler: it verifies shapes and cannot verify meanings. Give the new type a named predicate
 for the question the null used to answer (`has_save()`), so the surviving call sites read as the
 question rather than as the representation.
+
+## When the secondary sources are blocked, the shipped binary is the primary one
+
+A disassembly is a reverse-engineered rendering of the actual bytes that shipped. When a wiki
+describes a game's mechanic and a disassembly of that game shows the branch, the disassembly is
+the stronger source — not the fallback.
+
+**Why it came up.** Researching elemental damage before building it, every Final Fantasy wiki
+returned 402/403, GameFAQs returned 403 on every guide, and the Internet Archive was offline, so
+the usual route to "what multiplier does FF1 use" was closed. Reading the disassembly instead
+answered it in one grep — and contradicted the answer everyone repeats. FF1 does not double on a
+weakness; its own code comment reads `damage *= 1.5`, and its physical weakness is a flat +4 that
+**never fires at all**, the player's attack element being annotated `BUGGED … always 0`. Half of
+the system that defines the convention did not work in the shipped game. No secondary source
+carried that.
+
+**Takeaway.** For any question about how a shipped program behaves — a game's formula, a
+protocol's framing, a library's actual default — prefer an artifact derived from the binary
+(disassembly, decompilation, the source itself) over prose describing it, and treat a blocked
+wiki as a prompt to go one layer down rather than as a dead end. The widely-repeated number is
+the one most worth checking, because nothing is re-deriving it.
+
+## Where a system announces itself should follow from its arithmetic, not from taste
+
+Whether to tell the user what just happened reads like a UX preference. It is usually determined
+by whether the number alone carries the information.
+
+**Why it came up.** Deciding whether a fight should say "weak to it" or just show a bigger
+number, the references looked like a coin toss: Pokémon announces every non-neutral hit, Dragon
+Quest announces only failures, Final Fantasy I says nothing whatever. The pattern appeared once
+the *mechanics* were lined up beside the *messages*. Pokémon and FF1 multiply; DQ's resistance is
+a **chance to negate outright**, so there is no partial result to describe and only the failure
+needs words. Where effectiveness is a multiplier, a bare number cannot answer "is 12 big?" —
+the player has nothing to compare it against on the turn it happens — so the words are load
+bearing. Our system multiplies, which decided it.
+
+**Takeaway.** When surveying how references present something and they disagree, sort them by
+the underlying mechanic before concluding the choice is arbitrary. And note the corollary that
+settled this one: our sweep needed no announcement, because it prints every target's damage side
+by side — the comparison the words exist to supply was already in the output.
+
+## Two identical lines make a mutation report about the wrong function
+
+A mutation harness that finds its target by text edits whichever match comes first. Two
+character-identical lines in one file therefore make every mutant aimed at either one report a
+verdict about the other.
+
+**Why it came up.** A damage helper and a wording helper both opened with the same lookup —
+`var pct := target.def.resistance_to(row.element)` — because both needed the same answer for
+different reasons. The aim check refused the ambiguity immediately, and the fix was to rename one
+local (`answer`), never to loosen the pattern. The hazard is that the duplication arrives
+*later*: the old mutant was aimed correctly the day it was written, and new code stole its aim.
+
+**Takeaway.** Duplicated lines are a testing-infrastructure hazard, not only a style one. Keep an
+always-on check that every mutation pattern matches exactly one line, and when it fires, make the
+two lines differ rather than making the pattern cleverer — a more specific pattern is one more
+thing that rots on the next refactor.
