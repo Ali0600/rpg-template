@@ -16,7 +16,8 @@
 ; speeds. They are set to the game's values so a reader diffing the two files sees no
 ; difference where none is meant.
 ;
-; UNJUDGED BY EAR. Nobody has played a fight with two people in it.
+; UNJUDGED BY EAR, in the sense scrapper.tres sets out: the balance gate plays these numbers
+; every run and can only report who wins, never how it feels.
 
 [ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
 

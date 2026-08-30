@@ -16,8 +16,9 @@ one-glance menu of things still worth trying.
 - **Asymmetric side parts** (a satchel on one hip only). Blocked by
   `mirror_left_from_right`; revisit hook is the `left = flip_x(right)` branch in
   `sprite_compositor.gd`.
-- **Slots that say WHY they cannot be loaded** ("unreadable" rather than "empty"). Revisit
-  hook: `SaveManager._read` already computes the distinction and `peek()` discards it.
+- ~~**Slots that say WHY they cannot be loaded**~~ ("unreadable" rather than "empty").
+  **Taken up by M32**, exactly at the hook this entry named: `peek()` returns a `SlotSummary`
+  instead of discarding what `_read` already knew, and the row says `damaged`.
 - **Using an item from the bag** (a general "Use" verb on the pause menu's item list). Still
   deferred after M13: `ItemDef.battle_heal` is the template's first and only use verb, and it
   is deliberately narrow — a potion heals in every RPG ever written, where "use the rope on
@@ -51,12 +52,15 @@ one-glance menu of things still worth trying.
 - **Teaching a spell with an item.** Dragon Quest's scrolls, as a supplement to level
   learning. Revisit hook: it needs a stored known-spells set, which M25 deliberately does not
   have — so this one costs a save field and a migration, not just a verb.
-- **A game-over theme.** M26 cuts the music at a defeat rather than replacing it. Revisit hook:
-  a `GameManifest.game_over_music` and one arm in `_on_battle_finished`'s DEFEAT branch — the
-  work is deciding whether the title's theme should then displace it, which is a feel call.
-- **Per-encounter themes** (a boss that sounds like one). Revisit hook: an `EnemyDef.music`
-  outranking the manifest's `battle_music` in `open_battle_with`, which is one `or` — the design
-  question is whether the fanfare should differ too, and what a fled boss fight hands back to.
+- ~~**A game-over theme.**~~ **Taken up by M32**, and the research turned it from a
+  nice-to-have into a correction: the branch that cut the music justified itself with a genre
+  claim that is false. The "does the title's theme displace it" question answered itself — every
+  way out of a game over already states its own music, so nothing had to be given back.
+- ~~**Per-encounter themes**~~ (a boss that sounds like one). **Taken up by M32** at the hook
+  named here. Both design questions dissolved: a fled boss fight cannot happen (a boss refuses
+  every escape), and **whether the fanfare should differ after a boss is still deferred** — it is
+  a second field answering a second question. Revisit hook: `_leave_battle_music`, which already
+  takes `won` and would take the foes.
 - **Moving the music player to `PLAYBACK_TYPE_STREAM` on the web.** Godot's web SAMPLE
   playback loops by listening for the source node's `ended` DOM event and rebuilding the node
   in JavaScript, so a web loop is one browser event away from silently not happening;
@@ -89,6 +93,68 @@ one-glance menu of things still worth trying.
   (which would take an agility order rather than index order).
 
 ---
+
+## A death and a boss get their own music, and a slot says why it is unreadable — *M32*
+
+**The fork nobody expected to have:** whether a defeat should play anything at all. It was not
+on the table — `_on_battle_finished` cut the music dead and said so in a comment, "every game
+this borrows from cuts the music at a game over". The reference pass found that false. Final
+Fantasy I ships **"Dead Music"** in 1987, and each Final Fantasy since has its own Game Over
+scene. The references *change* what is playing at a death; they do not fall silent.
+
+That is worth recording as a class of mistake rather than as a fact. **A wrong genre claim in a
+code comment is more durable than a gap**, because a gap invites work and a claim invites
+citation — and this one sat in the exact place anyone would look before changing the branch.
+The rule that would have caught it is the one already in CLAUDE.md: research the surface before
+building it. M26 built the surface and wrote the convention down from memory.
+
+- **`game_over_music` on the manifest, played through `play_or_silence`** — *chosen.* "A game
+  states its game-over music or states silence" is the same sentence a map's music is written
+  as, and that function already exists for exactly it. A LOOP rather than a jingle: the screen
+  is sat on while a player decides what to do about a lost run.
+- *A jingle that plays once and then falls silent.* `rejected` — it is a fanfare's shape, and a
+  fanfare is for a moment rather than for a screen you are still looking at.
+- *Displace it with the title's theme on the way out.* `rejected — nothing had to be built`:
+  every way out of a game over already states its own music, so the question the backlog entry
+  called "a feel call" answered itself the moment the field existed.
+
+**The fork within the boss theme: where does it live?**
+
+- **A `music` field on `EnemyDef`** — *chosen*, and the references are the argument. Dragon
+  Quest I (1986) ships eight tracks with one reserved for the Dragonlord; Final Fantasy I has
+  ONE battle theme and plays it for every fight including Chaos; FF2 gives major bosses "Battle
+  Theme 2"; by FF4 it plays for all but two. They disagree about *which* fights get one, so a
+  template that decided would be deciding for every game built on it. A field on the enemy sits
+  anywhere on that range. Note also that DQ had a boss theme before Final Fantasy existed, and
+  FF1 had a game-over theme in the same game that had no boss theme — neither is downstream of
+  the other, which is why they are two fields rather than one "extra music" feature.
+- *Behind the existing `boss` flag.* Simplest, and no new field. `rejected — it fuses two
+  questions`: `boss` means "cannot be fled", and a game wanting a themed non-boss (a rival, a
+  duel) would have to make it unfleeable to get the music.
+- *On the map's encounter record.* `rejected` — the encounter is where the FORMATION lives, and
+  a theme belongs to the thing you are fighting rather than to the tile it stands on. It would
+  also have to be repeated at every record that fields the same enemy.
+- **In a formation, the first foe that STATES a track wins** — scanned in record order rather
+  than read from `defs[0]`. A formation with a boss anywhere in it is a boss fight, and reading
+  only the leader would make the Keeper's theme depend on where his escort was written down.
+
+**The fork on the slot list: one object or two arrays.**
+
+- **`SlotSummary`, replacing `Array[SaveData]` end to end** — *chosen.* The damaged fact and the
+  save are one reading of one slot.
+- *Keep `Array[SaveData]` and pass an `Array[bool]` beside it.* Much smaller — two signatures
+  instead of nine. `rejected — it is the drift hazard this repo already has a rule against`: two
+  paths answering one question, and the drift here pairs one slot's data with another slot's
+  verdict, which is a wrong answer rather than a crash.
+- *Have the world hand down finished row labels.* `rejected` — "Slot 2:" is view vocabulary, and
+  `slot_label` is the one place three screens share it.
+
+**What the type change cost, recorded because it is the interesting part.** `_has_any_save()`
+tested each entry against `null`. An empty slot is now an *object*, so that check silently went
+from "there is a save" to "there is a slot" — true of every row, and it would have offered
+Continue to a player with nothing saved. Five suites caught it. **Widening a type turns every
+null test written against the old one into a question with a different meaning**, and the ones
+that still compile are the dangerous half.
 
 ## The flow model is walked, and a failing walk is shrunk — *M31*
 

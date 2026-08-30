@@ -200,6 +200,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M29** — the crowd becomes the ordinary case: every encounter is a formation, the boss brings an escort, both roads out of the village stay shut until the second sword is along, and the balance gate stopped doing arithmetic about the fight and started playing it
 - [x] **M30** — statuses that run both ways: a buff and a debuff the party can cast, an affliction enemies can inflict, durations counted in turns, and a well-timed guard that shrugs one off entirely
 - [x] **M31** — the flow model is walked, not just stepped over: seeded random journeys through the state machine on one world that is never rebuilt, and a failing journey minimised to the shortest one that still fails before it is reported
+- [x] **M32** — a death and a boss get their own music, and a save slot that cannot be read says so instead of drawing as empty
 
 ## Experience Gained
 
@@ -248,6 +249,13 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - Justified a new test layer by measurement rather than argument: seven candidate faults were
   injected and run against both the old and new gates, and the layer shipped on the two that
   the existing gate demonstrably could not detect.
+- Caught a factual error in a design document by running a domain-research pass before
+  implementing against it — the code's own justifying comment asserted an industry convention
+  that the primary sources contradict, and had stood for four release cycles.
+- Replaced a pair of parallel arrays with a single value object across nine call sites in a UI
+  layer, on the reasoning that two collections answering one question drift into mismatched
+  pairs rather than into crashes; the type widening surfaced a latent null-check whose meaning
+  had silently inverted, caught by five existing suites.
 
 - Built deterministic audio sequencing on the simulation's own frame clock rather than on the
   audio device's completion callback, after measuring that the headless driver used by every
