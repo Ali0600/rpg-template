@@ -446,10 +446,46 @@ first model keeps composition in level design where this template's determinism 
 it; the second makes a fight's shape depend on the movement loop, which is the same objection
 M13 raised against step-counter encounters in the first place.
 
-**Gap:** multi-enemy fights are the system this section's research exists for, and they land
-in M28 — the cursor, the formation on the record, and the foe side of the screen. Still out
-after that: a bench larger than the battle line, and followers on the map. Each is a recorded
-divergence with a revisit hook rather than an oversight.
+**Does the crowd grow with the party?** M28 answered "what is a formation"; this is the
+question M29 asks, and the genre answers it with a date. **Dragon Quest I** is one hero
+against one monster. **Dragon Quest II** is the first in the series with a party — three
+characters — and it is the same game in which "enemies could appear in much greater numbers",
+against the first game where "all battles were 1-on-1". The two arrived *together*, in one
+release, along with the three targeting shapes that only a crowd needs (one, group, all). That
+is not a coincidence to reason around: a party and a formation are the same design decision
+seen from opposite sides of the field, and the genre made it once.
+
+Which means party size is not a variable an encounter reconciles with — it is a **fact the
+encounter table is authored against**. **Final Fantasy I** makes this literal: its manual has
+no smaller party in it — "each of the Four Warriors in your party must have an occupation",
+and the selection "continues until all characters are chosen and named" — so every one of its
+formations was written knowing exactly how many swords would answer it. DQ2 gets
+there through the story instead — the Prince of Cannock is chased down and joins at the inn at
+Leftwyne — and the one place DQ2 lets you carry on short-handed is deliberately *late*: when
+the Prince falls ill, the others may cure him "**or may leave him behind**", long after the
+fights he was sized against were authored.
+
+What no classic-era reference appears to do is adjust a formation's **size** to whoever
+happens to be in the party. Composition is authored in a table — FF1's dumped formation ROM,
+SMRPG's 512 records, Chrono Trigger's fixed encounter points, all cited above — so the two
+numbers are reconciled by a designer, once, rather than by the game at every encounter. The
+runtime alternative does exist, but as a *modern* idea and a different knob: what searching
+turns up is enemy **level** scaling, sold as engine plugins, not enemy counts chosen to match
+a party. Stated as a limit rather than a finding: this is a negative, and negatives are only
+as good as the looking.
+
+The consequence for a template is sharper than for a game. **A formation sized for two is a
+promise, and a companion the player may decline turns one design into two** — of which only
+one was ever balanced. The genre's own answer is to put the second sword on the critical path,
+and M29 takes it.
+
+**Gap:** multi-enemy fights are the system this section's research exists for; they land in
+M28 — the cursor, the formation on the record, the foe side of the screen — and M29 spends
+them on the game itself, ordinary encounters in pairs and a boss with an escort. Still out
+after that: SMRPG's Mack shape, where minions *respawn* and the boss leaves the field until
+they are cleared, which is a fight shape rather than a bigger number; a bench larger than the
+battle line; and followers on the map. Each is a recorded divergence with a revisit hook
+rather than an oversight.
 
 ---
 
@@ -718,6 +754,15 @@ Multi-enemy research (§7b) is drawn from these:
   the fight" — the merge model, and its *occasionally*
 - [EarthBound Wiki — Instant Win](https://earthbound.fandom.com/wiki/Instant_Win) — skipping a
   foregone fight, and refusing to when the enemies outnumber the standing party
+- [How Dragon Quest's Battle System Evolved](https://playdragonquest.wordpress.com/2020/08/03/how-dragon-quests-battle-system-evolved/)
+  — DQ1's battles "all 1-on-1"; DQ2 bringing a party of three AND enemies "in much greater
+  numbers" in the same release, with one/group/all targeting arriving beside them
+- [Dragon Quest wiki — Prince of Cannock](https://dragon-quest.org/wiki/Prince_of_Cannock) —
+  the second character joins by story at the inn at Leftwyne, and the party "may leave him
+  behind" only much later, when he falls ill
+- [Final Fantasy NES manual](https://world-of-nintendo.com/manuals/nes/final_fantasy.shtml),
+  again — "each of the Four Warriors in your party must have an occupation", chosen and named
+  before the quest starts: no smaller party exists to author encounters for
 - [StrategyWiki — Chrono Trigger gameplay](https://strategywiki.org/wiki/Chrono_Trigger/Gameplay)
   — fixed encounter points; contact starts the fight on the map itself
 
