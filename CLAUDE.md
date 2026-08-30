@@ -633,7 +633,11 @@ validator that has only ever passed is decoration.
 - Running gdUnit4 by hand needs `--ignoreHeadlessMode -c`, or it refuses with `Abnormal exit
   with 103` and no test output at all.
 - `mutants.tsv` patterns are EXTENDED regexes, so `+` is a quantifier: `_index + delta` matches
-  nothing and fails as `PATTERN-NOT-FOUND`. Escape it.
+  nothing and fails as `PATTERN-NOT-FOUND`. Escape it. **A bare `)` is worse than wrong, it is
+  wrong somewhere else**: a lone paren with no group open is undefined in an ERE, so BSD sed
+  (macOS) takes it as a literal and matches while GNU sed (the runner) does not - the row aims
+  perfectly here and goes STALE in CI twenty minutes later. `mutants_aim.sh` now refuses a bare
+  paren on either platform, which is the only reason this is a note rather than a recurring bug.
 - **`LintCore.SOURCE_ROOTS` is the one list of directories this project owns.** The linter
   and `compile_all.gd` read it; `check.sh`'s parse gate keeps no list at all and excludes
   what is not ours. A new top-level source directory goes there and nowhere else, and
