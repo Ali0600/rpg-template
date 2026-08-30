@@ -275,9 +275,11 @@ the group holds several you hit one at random — i.e. the target's shape is a p
 action, which is the cheaper half. Ally targeting is attested plainly: EarthBound's manual
 says to "Select the target of the attack, if applicable" with B to cancel, and DQ2's item
 flow opens "a menu to select which character you want" when an item can be used on someone.
-Whether a cursor is *skipped* when only one target is legal is not something I could verify
-for either NES reference; what is verified is the consequence of not skipping — FF1 lets you
-aim at an enemy that is already dead and answers "Ineffective", and DQ2 whiffs the same way.
+Whether a cursor is *skipped* when only one target is legal went unverified for either NES
+reference through M27 — **§7b answers it**: Super Mario RPG skips the step outright, asking
+which enemy only "if there is more than one". What was already verified is the consequence of
+*not* skipping — FF1 lets you aim at an enemy that is already dead and answers "Ineffective",
+and DQ2 whiffs the same way.
 
 **Falling, and losing.** Zero HP means down, not dead-dead: the member stays down, takes no
 turns, and earns nothing. **Neither NES reference retargets** — FF1's wasted attacks are the
@@ -329,8 +331,125 @@ living earn the full award (DQ's rule, not FF1's division), and the fallen are p
 the inn, which is the priced town service the genre already gave this template. One overworld
 sprite, FF's answer. An ally cursor, no enemy cursor.
 
-**Gap:** multi-enemy fights, and with them an enemy cursor. A bench larger than the battle line.
-Followers on the map. Each is a recorded divergence with a revisit hook rather than an oversight.
+### 7b. What a crowd of enemies is, in those same games
+
+Everything above concerns the player's side. This is the other half of the same fight, and it
+is the research M28 needed before building — because "fights are one foe" was never a
+convention, only a scope line.
+
+**How many, and what a formation is.** The genre's fights are *formations*, authored in a
+table, not counts rolled at runtime. **Final Fantasy I** carries nine enemy slots, and its
+combat loop shuffles thirteen entries — nine enemies plus four heroes; a formation may be
+"1-9 small enemies, 1-4 large enemies or a mix of up to 6 small and 2 large", so a *size*
+budget rather than a flat cap. **Super Mario RPG** stores 512 formation records in ROM; the
+Mack fight is the boss "accompanied by a quartet of Bodyguards", i.e. five sprites from one
+touched body. **Dragon Quest II** fields one to eight, with larger sprites consuming two
+slots. **EarthBound** labels its enemies A through H, and its manual notes the party may face
+them "possibly in two separate rows if enough enemies are present". **Dragon Quest I** fights
+exactly one — which is the shape this template shipped from M13 to M27, and a real genre shape
+rather than an absence. So the attested floor for a *multi*-enemy fight is **two**, and both
+FF1 and DQ2 range upward from one; what no reference does is decide the number at runtime.
+
+Composition comes in three flavours, all attested: **same-species groups** (DQ2's "monster
+groups", the source of "3 Slimes appear!"), **mixed formations** (FF1's explicit "6 small and
+2 large"), and **boss-plus-minions**, whose sharpest example is SMRPG's Mack — the bodyguards
+respawn, and "if the player fails to defeat all bodyguards within one turn, [Mack] will jump
+out of the battle screen and will not return until all bodyguards on the field are defeated".
+That last one is a different fight *shape*, not merely a bigger number, and it is worth
+recognising as its own thing rather than as a formation with a boss in it.
+
+**Targeting: individual, at these sizes.** FF1's manual says to "Move the 'finger' with the
+Control Pad and press the A Button to select which enemy to FIGHT" — a pointer over the
+sprites, with the names living in their own window on the bottom left. **Super Mario RPG**
+does the same with the D-pad and, decisively for a template, **skips the step when there is
+one enemy**: you attack, and "if there is more than one enemy, you then select which enemy".
+EarthBound hedges identically in its manual ("Select the target of the attack, *if
+applicable*") and disambiguates duplicates with letter suffixes. Dragon Quest is the outlier:
+it targets a **group** and hits one of its members at random. That is a compression device for
+eight sprites, and it comes at a cost the individual cursor does not pay — DQ2 still whiffs
+when the chosen group has already been emptied. At two or three visibly-drawn foes, every
+reference whose enemies are individually rendered asks for an individual.
+
+**A dead target is a problem this template does not have.** FF1's "Ineffective" — aim at an
+enemy that died earlier in the round and waste the turn — is the game's most complained-about
+behaviour, and the remakes added automatic retargeting to answer it. Note *why* it happens:
+FF1 enters all four commands before the round resolves, so a target can die in the gap between
+choosing and striking. It is a consequence of command-all-then-resolve, not of per-enemy
+targeting. Under **act-as-you-choose** the gap does not exist — the choice and the blow are
+one beat — which is the round shape M27.1 adopted from SMRPG. So the dividend is free and it
+is worth naming: a cursor listing the living at the moment it opens cannot go stale, and no
+retarget rule is needed. (Group targeting would *reintroduce* the whiff, since a group can
+empty between rounds.)
+
+**Every living enemy acts, every round.** FF1's nine enemies are nine of the thirteen entries
+in its turn shuffle. SMRPG interleaves both sides by Speed, where a fast character "could
+attack multiple times before another character attacks once". Dragon Quest orders by Agility.
+No 2D reference in this file's scope has enemies act as a *block* after the whole party — the
+template's "party in order, then the enemy" is already a recorded divergence, and extending it
+to "then each living foe in order" widens an existing divergence rather than opening a new one.
+The pacing consequence is real and has to be accepted rather than designed around: N foes mean
+N incoming blows, and here N defend cues. **SMRPG is the precedent that this is playable** —
+its timed blocks are per incoming attack, and blocking well halves or negates the damage. What
+the references do *not* do is skip enemy attacks to save time; the relief comes from elsewhere
+— FF1 caps large enemies at four, DQ2 pairs groups with group-clearing magic, and EarthBound
+skips the whole battle when it is a foregone conclusion (and pointedly refuses that shortcut
+when "the number of enemies is greater than the number of characters who aren't unconscious").
+For a template, the honest lever is a **small cap**.
+
+**Groups and multi-target magic arrived together.** This is the strongest single finding for
+scoping. **Dragon Quest I has no group spells because it has no groups**; DQ2 introduces both
+in the same game, and its spell list is explicitly shaped by target — Firebal hits one, Sleep
+and Infernos hit a group, Explodet hits everything. (Sources disagree on whether Firebane is
+group or all; the existence of both shapes in DQ2 is not in doubt.) FF1's manual says the same
+thing from the other direction: "Depending on the spell, you may need to choose which enemy to
+use it on (some spells will affect all enemies on the screen)". EarthBound's PSI splits by row
+versus all. So a spell's **target shape is a property of the spell**, authored in data — which
+is exactly what this template's own backlog nominated years of milestones ago — and shipping
+groups with a single-target-only spell list has no precedent in the reference set.
+
+**Status is tracked per enemy.** FF1's sleep is the clean case: SLEP is cast at every enemy,
+but each sleeper rolls its own wake, and "any sleeping creature has a chance to wake up on its
+turn based on its maximum hit points". A battle-wide asleep flag cannot express that. DQ2's
+group-targeted Sleep implies the same, since a group can hold both sleeping and waking members.
+
+**The award is summed, and paid once at the end.** FF1's gold is "the direct sum of the gold
+values of all monsters killed", and its experience is a per-battle total (which FF1 then
+divides among survivors and DQ does not — the division fork is §7a's, and this template
+already chose DQ's rule). A foe felled early in a fight still counts toward the total.
+
+**Fleeing is a property of the encounter.** FF1's escape "depends on your agility level";
+SMRPG lets you run from ordinary fights and refuses for bosses and mandatory encounters; DQ's
+Dragonlord cannot be fled. Nothing in the reference set makes escape depend on the *number* of
+enemies — a fight is unfleeable because the designer said so. This template already says so
+with geometry rather than a flag, which is the same statement made in level design.
+
+**The read-out, and the one number nobody shows.** FF1 puts enemies left and the party right,
+with enemy *names* in their own box and **four HP boxes for the party only**. DQ2's lower-right
+window "shows the enemy names and how many of them are still active in the fight" — names and
+a living count, no health. EarthBound shows the party's HP/PP and the enemy sprites. SMRPG
+shows no enemy HP either, and makes it a *reward*: Mallow's Psychopath spends a turn to read
+one enemy's remaining HP. Chrono Trigger shows none. **That is five references to zero against
+displaying enemy health**, and it is the sharpest divergence this template has from its own
+sources — `BattleScreen` has drawn a numeric `name  hp/max` bar for its single foe since M13.
+Extending that bar per foe is therefore a deliberate, stated divergence rather than a neutral
+layout choice, and it is recorded as one in `DECISIONS.md`.
+
+**Authoring a formation, when encounters are visible.** Two models, both attested, and they
+differ in exactly the way this template cares about. **One body names a formation**: SMRPG's
+battles "begin by moving into an enemy on a main game map" while the composition lives in the
+ROM's formation table, and Chrono Trigger's encounters sit at set points where "all encounter
+triggers will always be the same". **Neighbours join in**: EarthBound's manual says a battle
+begins when you touch an enemy and "occasionally, other nearby enemies may join in on the
+fight, even though they were wandering around separately" — note *occasionally*, which makes
+composition a function of a random roll and of where wandering sprites happened to be. The
+first model keeps composition in level design where this template's determinism story needs
+it; the second makes a fight's shape depend on the movement loop, which is the same objection
+M13 raised against step-counter encounters in the first place.
+
+**Gap:** multi-enemy fights are the system this section's research exists for, and they land
+in M28 — the cursor, the formation on the record, and the foe side of the screen. Still out
+after that: a bench larger than the battle line, and followers on the map. Each is a recorded
+divergence with a revisit hook rather than an oversight.
 
 ---
 
@@ -568,6 +687,40 @@ Party research (§7a) is drawn from these, and each claim above names the game i
   "Select the target of the attack, if applicable", B to cancel; cycling members in Goods
 - [Wikipedia — Chrono Trigger](https://en.wikipedia.org/wiki/Chrono_Trigger) and
   [EarthBound](https://en.wikipedia.org/wiki/EarthBound) — three-of-seven, story joins
+Multi-enemy research (§7b) is drawn from these:
+
+- [TASVideos — Final Fantasy 1](https://tasvideos.org/GameResources/NES/FinalFantasy1) — nine
+  enemy slots in a thirteen-entry shuffle; formations of "1-9 small, 1-4 large, or a mix of up
+  to 6 small and 2 large", so a size budget rather than a count
+- [Final Fantasy NES manual](https://world-of-nintendo.com/manuals/nes/final_fantasy.shtml) —
+  the "finger" cursor over the enemy sprites; enemy NAMES in their own box and HP boxes for the
+  party only; "some spells will affect all enemies on the screen"; escape depends on agility
+- [Final Fantasy — Monster Formation FAQ](https://gamefaqs.gamespot.com/nes/522595-final-fantasy/faqs/59202)
+  — the formation table dumped from ROM: composition is authored, never rolled
+- [Side Quest Hell — Ineffective Attacks](http://sidequesthell.blogspot.com/2015/06/ineffective-attacks.html)
+  and [Gamer Corner Guides — SLEP](https://guides.gamercorner.net/ff/spells/slep) /
+  [Sleep](https://guides.gamercorner.net/ff/statuses/sleep) — the stale-target whiff as a
+  consequence of entering commands first, and sleep rolled per sleeping enemy
+- [Realm of Darkness — Dragon Warrior II spells](https://www.realmofdarkness.net/dq/nes-dw2-spells/)
+  and [Dragon Quest wiki — DQ2 spell list](https://dragon-quest.org/wiki/List_of_spells_in_Dragon_Quest_II)
+  — one / group / all as a property of each spell (the two disagree on Firebane's shape)
+- [Take on the NES Library — Dragon Warrior II](https://takeontheneslibrary.com/finished/79-dragon-warrior-ii/)
+  — one to eight monsters, big sprites taking two slots; group targeting hitting one at random
+  and whiffing at an emptied group; the lower-right window of names and living counts
+- [Super Mario Wiki — How to battle!](https://www.mariowiki.com/Super_Mario_RPG:_How_to_battle!),
+  [Mack](https://www.mariowiki.com/Mack) and [Psychopath](https://www.mariowiki.com/Psychopath)
+  — the cursor skipped at one enemy; a boss with respawning minions as its own fight shape;
+  enemy HP as a move you spend a turn on rather than a number on screen
+- [Data Crystal — Super Mario RPG ROM map](https://datacrystal.tcrf.net/wiki/Super_Mario_RPG:_Legend_of_the_Seven_Stars/ROM_map)
+  — 512 formation records behind the bodies you touch on the map
+- [EarthBound SNES manual](http://world-of-nintendo.com/manuals/super_nes/earthbound.shtml) —
+  two rows of enemies when there are enough; "occasionally, other nearby enemies may join in on
+  the fight" — the merge model, and its *occasionally*
+- [EarthBound Wiki — Instant Win](https://earthbound.fandom.com/wiki/Instant_Win) — skipping a
+  foregone fight, and refusing to when the enemies outnumber the standing party
+- [StrategyWiki — Chrono Trigger gameplay](https://strategywiki.org/wiki/Chrono_Trigger/Gameplay)
+  — fixed encounter points; contact starts the fight on the map itself
+
 - The user's own [`jrpg-design-codex`](https://github.com/Ali0600/jrpg-design-codex) — design
   *patterns* (progression systems, build economies), not screen anatomy. Cite it for what a
   system should do, not for what a screen should contain.

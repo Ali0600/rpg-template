@@ -61,14 +61,15 @@ one-glance menu of things still worth trying.
   mixer and waits on nothing. NOT shipped, because it has never been needed here — see the
   entry below. Revisit hook: one line in `AudioBus._ready`, and the symptom to watch for is
   music that plays once and stops with nothing in the console.
-- **A targeting step for ENEMIES.** M27 gave a party an ALLY cursor and deliberately no enemy
-  one, because fights are still one foe and a cursor with one row is a mode with one option in
-  it. Revisit hook: a multi-enemy fight; `SpellDef` would gain a target shape, and the FFVII
-  Materia precedent (the shape is a property of the spell, not a runtime cursor) is the cheaper
-  half of it.
-- **Multi-enemy fights.** The other half of the divergence M13 chose and M27 left standing.
-  Revisit hook: `BattleLogic._enemy` and `_enemy_hp` becoming a list the way the player's side
-  just did, and `MapData.enemy_at` returning a group rather than a record.
+- ~~**A targeting step for ENEMIES.**~~ and ~~**Multi-enemy fights.**~~ Both **taken up by
+  M28** — the research is `GENRE_CONVENTIONS.md` §7b and the decisions are below. The hooks
+  named `SpellDef` gaining a target shape, `BattleLogic._enemy`/`_enemy_hp` becoming a list,
+  and `MapData.enemy_at` returning a group; all three are what M28 does.
+- **A boss with minions**, as a fight SHAPE rather than a formation with a boss in it. Super
+  Mario RPG's Mack summons his bodyguards back and leaves the field until they are cleared,
+  which is a rule about the encounter rather than about any enemy in it. M28 ships formations
+  and not this. Revisit hook: the encounter record, which names the foes and could name a rule
+  about them.
 - **Followers on the overworld** (Chrono Trigger's caterpillar). M27 ships one sprite, which is
   Final Fantasy I–VI's own answer. Revisit hook: a driver reading the leader's `Locomotion.Step`
   history and feeding it back as an intent, beside `NpcBrain` — harder under free pixel movement
@@ -84,6 +85,106 @@ one-glance menu of things still worth trying.
   (which would take an agility order rather than index order).
 
 ---
+
+## A fight holds a crowd, and one map record names it — *M28*
+
+The research is `GENRE_CONVENTIONS.md` §7b. What it settled first is that "one foe" was never
+a convention this template was honouring — Dragon Quest I is the only reference that fights
+one at a time, and every other game in the set fields formations. So this is a scope line
+being retired, not a divergence being abandoned.
+
+**The fork: where does a formation come from?**
+
+- **One map record names its foes.** *Chosen.* The record keeps its `enemy` and gains an
+  optional `group`, so the body you walk into is the first foe and the rest ride with it.
+  Super Mario RPG is the shape — battles "begin by moving into an enemy on a main game map"
+  while 512 formation records sit in ROM behind them — and Chrono Trigger's set encounter
+  points are the same idea. Composition stays level design. Existing records need no edit,
+  because a record with no `group` is a formation of one.
+- *Adjacent bodies merge into one fight.* EarthBound does this, and its manual is the reason
+  to refuse it: "**occasionally**, other nearby enemies may join in on the fight, even though
+  they were wandering around separately." Occasionally is a roll, and composition would then
+  depend on where a wandering NPC happened to stand — which is the objection M13 raised
+  against step-counter encounters, arriving by a different door. `rejected — it makes a
+  fight's shape a function of the movement loop`.
+- *An `encounter` resource beside `EnemyDef`.* `deferred — worth trying` the day a formation
+  needs a rule of its own rather than a list (a boss with respawning minions is the attested
+  case). Revisit hook: the record's `group`, which would become an id.
+
+**One record is one encounter is one seen key is one seed**, whatever the foe count. That
+falls out of the record being the unit, and it is what keeps a fought-and-fled crowd replaying
+identically: a foe downed before the party ran is standing again next time, because the
+encounter was never marked. Deliberate, and stated because the alternative — a seen key per
+foe — would make "which half of this fight did I already win" a thing saves have to carry.
+
+## The cursor points at one foe, and is skipped when there is only one — *M28*
+
+**The fork: how does the player say which foe?**
+
+- **An individual cursor over the living foes.** *Chosen*, and it is the ally cursor mirrored
+  exactly, down to the skip. Final Fantasy I moves a "finger" over the enemy sprites; Super
+  Mario RPG uses the D-pad and asks **only "if there is more than one enemy"** — which also
+  answers the question §7a had to leave open in M27 about whether the classics skip a
+  one-option cursor. That skip is what keeps every fight this template has already shipped
+  pressing the same keys.
+- *Dragon Quest's group cursor*, which picks a group and hits a random member. `rejected` — it
+  is a compression device for eight sprites, and at two or three it costs a whiff the
+  individual cursor does not have (DQ2 misses outright at a group that has emptied).
+
+**A stale target cannot happen here, and that is M27.1 paying for itself.** FF1's
+"Ineffective" — aiming at an enemy that died earlier in the round — is its most complained-
+about behaviour, and it exists *because* FF1 enters every command before the round resolves.
+Act-as-you-choose closes the gap: the cursor lists the living at the moment it opens, and the
+blow lands on the same beat. No retarget rule, no dead-target message, no test for either.
+
+## Every living foe takes a turn, and the cap is what keeps that bearable — *M28*
+
+- **Each living foe acts, in foe order, after the whole party.** *Chosen.* Every reference
+  game gives every living enemy a turn — FF1's nine are nine of the thirteen entries in its
+  shuffle, SMRPG interleaves both sides by Speed, DQ orders by Agility. None of them has
+  enemies act as a *block* after the party, so this extends the divergence the template
+  already recorded ("party in order, then the enemy") rather than opening a new one.
+- The cost is honest and unavoidable: **N foes mean N defend cues in a round.** SMRPG is the
+  precedent that a timed block per incoming blow is playable. What no reference does is skip
+  an enemy's attack for pacing, so the relief comes from the cap: **three foes**, declared by
+  the view and — this time — enforced by a content gate that refuses a map record asking for
+  more. (M27 declared `MAX_PARTY` and enforced nothing, which M27.1 found and wrote down; the
+  same gate now covers both sides.)
+- Status is **per foe**: FF1's sleepers each roll their own wake, so a battle-wide asleep flag
+  cannot express the rule. A sleeping foe loses its own turn and the others still swing.
+
+**The two seeded streams stay two.** Draws are ordered by foe order over the existing
+`derive("moves")` and `derive("target")`, so a one-foe fight draws exactly the sequence it
+drew before and every shipped session replays byte-identically with no compatibility branch.
+Rejected: a derived stream per foe, which would need foe 0 to keep the bare label — an
+index-zero special case whose only observable effect is the compatibility itself. The
+consequence, stated: a foe dying or falling asleep shifts the draws of foes after it *within
+that fight*. That is deterministic in the seed and the inputs, which is all the replay
+guarantee ever claimed.
+
+## A spell's target shape is data, and the foe bars multiply — *M28*
+
+**Groups and multi-target magic arrive together, in the genre and here.** Dragon Quest I has
+no group spells because it has no groups; DQ2 introduces both in one game and shapes its list
+by target (Firebal at one, Sleep and Infernos at a group, Explodet at everything). FF1's
+manual says the same from the other side. So `SpellDef` gains a `Target` of `ONE` or `ALL` —
+the shape is a property of the spell, authored in data, which is what this template's own
+backlog nominated. `ALL` is refused on heals and on sleep for now: both are verbs whose
+multi-target versions are real genre nouns and neither is needed to ship a crowd.
+
+**The fork: does the enemy side show health?**
+
+- **A bar per foe.** *Chosen by the person this is built for*, and it is a divergence stated
+  out loud rather than a neutral layout call. **No reference game shows enemy HP** — FF1 lists
+  enemy *names* in their own box and spends its four HP boxes on the party, DQ2's window shows
+  names and how many are still up, EarthBound and Chrono Trigger show nothing, and Super Mario
+  RPG makes it a *reward*: Mallow's Psychopath spends a whole turn to read one enemy's
+  remaining health. Five references to zero. But the numeric foe bar has been on this screen
+  since M13 and has been played that way ever since, so the choice was between extending a
+  shipped divergence consistently and removing something the player already reads. Extending
+  it also mirrors the party's own blocks, which is one visual language rather than two.
+- *Names and a living count* (DQ2's answer, and the genre's). `deferred — worth trying`, and
+  the hook is small on purpose: it lives in `_foe_caption` and one `_build` branch.
 
 ## A party is a list even when it is one, and membership is a flag — *M27*
 
@@ -1150,6 +1251,11 @@ because M27 is about to change the third of the three.
 **What stays diverged after M27.** The first two. Multi-enemy fights stay out of scope, so a
 party arrives with an **ally** cursor and no enemy one — and the reason is the same one that
 kept the cursor out in M25: a mode with one option in it is not a choice.
+
+**M28 closes the solo half too**, and the reason to record it here rather than only below is
+that this entry is where a reader comes to ask what the fight diverges on. After M28 the
+answer is two things, not three: encounters are still **visible** and presses are still
+**timed**. The number of foes is no longer one of them.
 
 ## A view that renders data declares its capacity, and the build enforces it — *M13.3*
 
