@@ -356,15 +356,25 @@ func test_every_row_of_the_longest_page_is_actually_drawn() -> void:
 			"the command '%s' is not on screen: %s" % [command, visible]).is_true()
 
 	_open_the_spells()
-	var spells: Array = _world.battle_screen().logic().spell_rows()
+	var logic: BattleLogic = _world.battle_screen().logic()
+	var spells: Array = logic.spell_rows()
 	assert_int(spells.size()).override_failure_message(
 		"a level-2 player was offered no spells, so the page half of this proves nothing") \
 		.is_greater(0)
-	var page := _screen_text()
+	# WALKED rather than read in one glance. The list scrolls at VISIBLE_ROWS, so once a game
+	# ships more spells than that "every row is on screen at once" stops being true and stops
+	# being the rule worth having - the rule is that every row can be REACHED. Walking the whole
+	# page also catches the failure this test was written for, a pool cut short: a row with no
+	# label to paint into never appears at any cursor position.
+	var seen := PackedStringArray()
+	for i in spells.size():
+		seen.append_array(_screen_text())
+		logic.move(1)
+		_world.battle_screen()._paint()
 	for row: BattleLogic.SpellRow in spells:
-		assert_bool(_is_drawn(page, row.name)).override_failure_message(
-			"the spell '%s' is in the fight and not on the screen: %s" % [row.name, page]) \
-			.is_true()
+		assert_bool(_is_drawn(seen, row.name)).override_failure_message(
+			"the spell '%s' is in the fight and never appeared while walking the whole page: %s"
+			% [row.name, seen]).is_true()
 
 ## Whether any visible line carries this row's name. A row is drawn with a cursor prefix or
 ## without one, so matching the whole line would only ever find one of the two.

@@ -1181,3 +1181,38 @@ cast that silently failed, and cost an hour of tracing menu navigation and input
 For anything that batches its writes — a transaction, a collected effect list, a deferred
 flush — the only honest assertion points are before it opens and after it commits. A mid-run
 read is not a weaker check; it is a check of something else.
+
+## A cost is not an identity: asserting the resource cannot say which thing spent it
+
+Checking that a pool went down by N proves something was spent, not *what*. The moment two
+options cost the same, the assertion stops distinguishing them — and it keeps passing.
+
+**Why it came up.** A play session cast a new buff through the real menu and asserted the magic
+pool afterwards: 11 became 8, so the spell had landed. Three of that game's spells cost 3. A
+mutant that moved the buff past the level cap made the cursor land on a damage spell instead,
+which cost the same 3 — and the session passed while testing nothing it claimed to. The fix was
+to assert the thing only that spell produces: the status tag on the caption.
+
+**Takeaway.** Assert an effect that is *unique* to the path under test, not a side effect it
+shares with its neighbours. Costs, timestamps, "a row was written", "the counter went up" are
+all shared by construction. If the unique effect is not observable, that is a gap in the
+instrument and worth closing — here it meant one new read on the view, and it made the display
+decision assertable for the first time as well.
+
+## A validation gate written for one content type is not inherited by its siblings
+
+Content types accumulate. The gate that scans and validates them is usually written for the
+first one and then quietly not extended, so the newest type — the one most likely to be
+malformed — is the one nothing checks.
+
+**Why it came up.** Enemy files had been scanned against `problems()` since they existed:
+every file valid, named after its id, no duplicates. Spell files had shipped four milestones
+earlier and were never scanned at all. It surfaced only because a mutant broke a shipped spell's
+duration and every gate stayed green — the class's own unit tests were fine, because they test
+the class, not the content.
+
+**Takeaway.** When a validator exists for one directory of content, enumerate the sibling
+directories and ask which of them it covers. Better: write the scan over the *set* of content
+types rather than one type, so a new directory is covered by construction. And note the shape of
+the discovery — a mutation aimed at DATA is what found a missing gate, which is an argument for
+mutating data and not only code.

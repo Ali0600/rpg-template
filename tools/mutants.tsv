@@ -526,3 +526,7 @@ scripts/ui/battle_logic.gd	s|it.status.defense_bonus\(\)|0|	tests/unit/test_batt
 scripts/ui/battle_logic.gd	s|maxi\(0, it.def.defense \+ it.status.defense_bonus\(\)\)|it.def.defense + it.status.defense_bonus()|	tests/unit/test_battle_logic.gd	an over-sapped guard goes negative and starts helping the attacker
 scripts/ui/battle_logic.gd	s|if member.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping party member is handed the menu anyway, which is a free turn
 scripts/ui/battle_logic.gd	s|if pressed_in_time\(\):|if false:|	tests/unit/test_battle_logic.gd	a well-timed guard stops shrugging off an affliction, so the cue goes quiet in status fights
+scripts/world/world_scene.gd	s|def.target, def.stat\)\)|def.target))|	tests/integration/test_world_battles.gd	a spell's stat is dropped between the file and the fight, so every boost moves attack
+data/spells/ward.tres	s|status_turns = 3|status_turns = 0|	tests/unit/test_battle_content.gd	the game's one buff lasts no turns, so it announces itself and changes nothing
+data/enemies/gloom.tres	s|"turns": 3|"turns": 0|	tests/unit/test_battle_content.gd	the game's one affliction lasts no turns
+data/spells/ward.tres	s|learn_level = 2|learn_level = 9|	tests/fixtures/qa/quest/a_ward_against_the_chill.json	the buff is learned past the level cap, so no played fight can reach it

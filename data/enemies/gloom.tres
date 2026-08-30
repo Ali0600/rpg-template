@@ -10,6 +10,17 @@
 ; test_battle_content says so.
 ;
 ; Gold halved (6 -> 3) for the reason slink.tres gives: a fight pays what that fight paid.
+;
+; CHILL IS THE GAME'S ONE AFFLICTION, and it replaced this enemy's plain 0-power hit rather than
+; being added beside it - a third move would have diluted the two that were tuned. It takes two
+; off the target's guard for three turns and deals no damage at all, so the Gloom now either
+; hurts you or makes the next thing that hurts you worse. Ward is the reply, learned at the same
+; level the Keeper is met at; a debuff the player cannot answer is a mechanic that happens TO
+; them rather than one they play against.
+;
+; A well-timed guard shrugs it off entirely, which is the only reason it is safe on an enemy
+; that appears in the game's unfleeable fight: the press that was already worth making is worth
+; making for one more reason.
 
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
@@ -24,4 +35,4 @@ defense = 2
 xp = 12
 gold = 3
 boss = false
-moves = [{ "name": "Chill", "power": 0 }, { "name": "Grasp", "power": 3 }]
+moves = [{ "name": "Chill", "status": "sap", "stat": "defense", "amount": 2, "turns": 3 }, { "name": "Grasp", "power": 3 }]

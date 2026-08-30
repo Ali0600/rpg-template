@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="SpellDef" load_steps=2 format=3]
+
+; The first spell in this game that changes a number rather than a hit point, and the reason it
+; exists is the same genre fact Gale's does: a buff is not an advanced feature. Final Fantasy I
+; sells TMPR and FOG in its manual, Dragon Quest's Buff doubles one ally's defence, and a whole
+; branch of EarthBound's PSI is stat shifts. A spell list of damage and healing is thinner than
+; anything the references shipped.
+;
+; Learned at level 2, which is where the hollow leaves the player - so it is in hand for the
+; Keeper, which is the fight it was written for and the only one in the game that cannot be
+; fled. Learning it at 3 would land it after the game is over, which is Gale's argument exactly.
+;
+; +2 guard for three turns, at 3 magic. Against the Keeper's Crush that is 10 damage becoming 8,
+; and against the Gloom beside it 7 becoming 5 - a blow softened rather than a blow prevented,
+; which is the shape a buff should have when a timed guard already halves things. Three turns
+; because durations are counted at the top of the caster's OWN turn: one would cover only the
+; enemy's answer, and three covers the round it was cast in and two more.
+;
+; It is also the answer to the Gloom's Chill, which saps the same number. The two were written
+; together on purpose - a debuff the player has no reply to is a mechanic that happens TO them.
+;
+; At level 2 the pool is 11: a Ward and two Embers, or a Ward, a Mend and a little left.
+;
+; UNJUDGED: the name, the +2, the three turns, and the 3 magic. Nobody has cast it.
+
+[ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+id = &"ward"
+name = "Ward"
+description = "A held breath, and blows land softer for a while."
+mp_cost = 3
+learn_level = 2
+kind = 3
+target = 0
+power = 2
+stat = 1
+status_turns = 3

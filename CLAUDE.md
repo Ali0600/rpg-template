@@ -661,6 +661,11 @@ validator that has only ever passed is decoration.
   keys and have no enum to name - write the count out with the row list in a comment above
   it, so inserting a row moves them deliberately. M20 inserted Equipment and then Status,
   and paid exactly that price, in three files, twice, on purpose.
+- **`assert_status` is how a session proves WHICH spell was cast.** A cost cannot: three of the
+  demo's spells cost 3 magic, so "the pool went down by three" is satisfied by whichever row the
+  cursor happened to land on - a mutant moving the spell under test past the level cap passed a
+  session asserting only that. Assert the effect that is UNIQUE to the path, and note the read is
+  battle-only, because a status cannot outlive the fight it was got in.
 - **A scripted fight is won with `fight_well`, never with counted waits.** The op confirms
   through every menu and presses inside every timing window - the scripted twin of
   `BattleDriver.Policy.PERFECT`, reading `BattleScreen.cue_on()`/`choosing()`. Landing timed
