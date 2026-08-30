@@ -458,7 +458,7 @@ scripts/autoload/audio_bus.gd	s|\t_music_left = ceili\(once.get_length\(\) \* fl
 scripts/autoload/audio_bus.gd	s|\t_music_left -= 1|\tpass|	tests/unit/test_audio_bus.gd	the chain never counts down, so a fanfare is the last thing the game plays
 scripts/autoload/audio_bus.gd	s|\t\treturn play_or_silence\(then_id\)|\t\treturn false|	tests/unit/test_audio_bus.gd	a fanfare nobody rendered takes the map's theme down with it
 scripts/autoload/audio_bus.gd	s|\t_music_left = -1|\tpass|	tests/unit/test_audio_bus.gd	the last fight's hand-back fires over the top of the next fight
-scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_game.battle_music\)|\t\tpass|	tests/fixtures/qa/quest/hear_the_battle_out.json	the road's theme plays on through every fight
+scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(scored\)|\t\tpass|	tests/fixtures/qa/quest/hear_the_battle_out.json	the road's theme plays on through every fight
 scripts/world/world_scene.gd	s|\t\t\t_leave_battle_music\(outcome == BattleLogic.Outcome.VICTORY\)|\t\t\tpass|	tests/fixtures/qa/quest/hear_the_battle_out.json	a fight ends and its theme keeps playing over the map it was fought in
 scripts/world/world_scene.gd	s|\t\tAudioBus.play_music_then\(_game.victory_music, here\)|\t\tAudioBus.play_or_silence(here)|	tests/fixtures/qa/quest/hear_the_battle_out.json	a win is not stung at all, it just goes quiet
 scripts/data/game_manifest.gd	s|\t\t\tout.append\(\"%s '%s' has no voice to play it in\" % \[field, tune\]\)|\t\t\tpass|	tests/unit/test_game_manifest.gd	a game names a tune and has nothing to play it with, and nothing says so
@@ -533,3 +533,8 @@ data/spells/ward.tres	s|learn_level = 2|learn_level = 9|	tests/fixtures/qa/quest
 # --- M31: the flow model, composed ---
 scripts/world/world_scene.gd	s|\t_pause.queue_free\(\)|\tpass|	tests/integration/test_flow_model.gd	a closed pause screen is never freed, so it eats the cancel key and the menu never opens a second time
 scripts/world/world_scene.gd	s|\t_shop.queue_free\(\)|\tpass|	tests/integration/test_flow_model.gd	a closed shop screen is never freed, so the second visit to a counter opens nothing at all
+# --- M32: the game over and the boss have their own music ---
+scripts/world/world_scene.gd	s|AudioBus.play_or_silence\(_game.game_over_music\)|AudioBus.stop_music()|	tests/integration/test_world_music.gd	a defeat cuts the music dead again, so a game that names a game-over theme never plays it
+scripts/world/world_scene.gd	s|\t\t\treturn entry.music|\t\t\treturn &\"\"|	tests/integration/test_world_music.gd	an enemy's own theme stops outranking the manifest's, so every boss fight sounds like an ordinary one
+data/games/quest.tres	s|game_over_music = &\"dirge\"|game_over_music = &\"\"|	tests/fixtures/qa/quest/fall_at_the_keep.json	the shipped game loses its game-over theme, and the only session that reaches one hears nothing
+data/enemies/keeper.tres	s|music = &\"vigil\"|music = &\"\"|	tests/fixtures/qa/quest/fall_at_the_keep.json	the boss gives up his own theme, so the fight the demo is built around sounds like the ones in the hollow

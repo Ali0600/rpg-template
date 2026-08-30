@@ -119,7 +119,7 @@ func test_walking_between_two_maps_that_share_a_theme_does_not_restart_it() -> v
 
 ## A fight the world can stage anywhere, so the music arms can be driven without walking to an
 ## enemy's tile. open_battle_with takes the definition, which is what makes this possible.
-func _foe() -> EnemyDef:
+func _foe(track := &"") -> EnemyDef:
 	var out := EnemyDef.new()
 	out.id = &"test_foe"
 	out.name = "Test Foe"
@@ -128,6 +128,7 @@ func _foe() -> EnemyDef:
 	out.attack = 1
 	out.defense = 0
 	out.xp = 0
+	out.music = track
 	out.moves = [{"name": "Clout", "power": 0}]
 	return out
 
@@ -171,12 +172,56 @@ func test_running_away_gives_the_room_back_at_once() -> void:
 	assert_str(String(AudioBus.music_id())).override_failure_message(
 		"running away played the victory fanfare").is_equal("barred_gate")
 
-func test_losing_stops_the_music() -> void:
+func test_losing_plays_the_game_over_theme() -> void:
+	# It used to assert silence, on a comment claiming every reference game cuts the music at a
+	# death. Final Fantasy I ships "Dead Music" in 1987. The fight's theme must still stop - that
+	# was never the wrong half - but what replaces it is the game's own statement.
 	var world := await _in_the_town()
 	world.open_battle_with([_foe()], "quest_town/foe")
 	world._on_battle_finished(BattleLogic.Outcome.DEFEAT, [])
 	assert_str(String(AudioBus.music_id())).override_failure_message(
-		"the fight's theme played on over the game-over screen").is_empty()
+		"a defeat left '%s' playing rather than the game-over theme" % AudioBus.music_id()) \
+		.is_equal("dirge")
+
+
+func test_a_game_that_names_no_game_over_theme_still_falls_silent() -> void:
+	# The control for the field, and the reason it defaults empty: silence is what every session
+	# recorded before M32 heard, and a game with nothing to say at a death must still hear it.
+	var world := _boot()
+	var quiet := _manifest()
+	quiet.game_over_music = &""
+	assert_bool(world.start_game(quiet)).is_true()
+	await get_tree().physics_frame
+	assert_bool(world.enter_map(&"quest_town", &"start")).is_true()
+	world.open_battle_with([_foe()], "quest_town/foe")
+	world._on_battle_finished(BattleLogic.Outcome.DEFEAT, [])
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"a game naming no game-over theme played '%s' anyway" % AudioBus.music_id()).is_empty()
+
+
+func test_an_enemy_that_names_a_theme_outranks_the_game_s() -> void:
+	var world := await _in_the_town()
+	assert_bool(world.open_battle_with([_foe(&"vigil")], "quest_town/boss")).is_true()
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"the ordinary fight theme played over an enemy that named its own").is_equal("vigil")
+
+
+func test_the_first_foe_that_names_a_theme_scores_the_whole_formation() -> void:
+	# Order matters and the rule has to be stated: a boss escorted by mooks is a boss fight
+	# wherever in the record the escort is written down. Read from defs[0] alone, a Keeper listed
+	# after his Gloom would fight to the ordinary theme - which is the shipped formation's shape
+	# reversed, so this is a real arrangement rather than a hypothetical one.
+	var world := await _in_the_town()
+	assert_bool(world.open_battle_with([_foe(), _foe(&"vigil")], "quest_town/escort")).is_true()
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"a formation with a scored foe in it fought to the ordinary theme").is_equal("vigil")
+
+
+func test_a_formation_that_names_nothing_still_fights_to_the_game_s_theme() -> void:
+	var world := await _in_the_town()
+	assert_bool(world.open_battle_with([_foe(), _foe()], "quest_town/pair")).is_true()
+	assert_str(String(AudioBus.music_id())).override_failure_message(
+		"a plain formation stopped using the game's own battle theme").is_equal("skirmish")
 
 func test_a_game_that_names_no_battle_theme_sounds_exactly_as_it_did() -> void:
 	# THE control, and the reason both fields default to empty: a game that names neither must

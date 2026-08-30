@@ -1,0 +1,78 @@
+{
+	"_readme": [
+		"The game over. Four bars at 120, which is eight seconds - the same length as the",
+		"overworld theme, because a screen you sit on deciding what to do about a lost run is",
+		"the one place a short loop nags hardest.",
+		"",
+		"IT EXISTS BECAUSE THE CODE IT REPLACED WAS WRONG ABOUT THE GENRE. _on_battle_finished",
+		"cut the music dead at a defeat and justified it in a comment: 'every game this borrows",
+		"from cuts the music at a game over'. Final Fantasy I ships 'Dead Music' in 1987, and",
+		"each Final Fantasy since has had its own game-over scene. The references CHANGE what",
+		"is playing at a death; they do not fall silent. See docs/GENRE_CONVENTIONS.md 14.",
+		"",
+		"Slow WITHOUT a slow tempo: the grid is the same 120 every other tune here uses, and the",
+		"weight comes from note LENGTH - halves and wholes where the fight moves in eighths. One",
+		"bpm across the soundtrack means the three voices render at one grid and a reader",
+		"comparing two files is comparing the music rather than the arithmetic.",
+		"",
+		"A minor: Am - F - Dm - E, the oldest lament progression there is, ending on the",
+		"dominant so the loop's return to A is the resolution. The same last-bar constraint",
+		"skirmish is written under, for the same reason - Tune.render writes no fade tail.",
+		"",
+		"NO DRUM. A death with a beat under it is a march, and this is a stand-still. The third",
+		"voice is a bell an octave up answering the lead on the half bar, which is the one thing",
+		"that keeps eight seconds of long notes from reading as a held chord."
+	],
+	"bpm": 120,
+	"beats_per_bar": 4,
+	"steps_per_beat": 4,
+	"instruments": {
+		"lead": {
+			"wave": "tone",
+			"gain": 0.28,
+			"attack_ms": 14,
+			"release_ms": 90
+		},
+		"bass": {
+			"wave": "tone",
+			"gain": 0.24,
+			"attack_ms": 8,
+			"release_ms": 70
+		},
+		"bell": {
+			"wave": "tone",
+			"gain": 0.14,
+			"attack_ms": 4,
+			"release_ms": 120
+		}
+	},
+	"voices": [
+		{
+			"instrument": "lead",
+			"bars": [
+				"A4:8 G4:4 F4:4",
+				"E4:8 F4:4 E4:4",
+				"D4:8 C4:4 D4:4",
+				"E4:16"
+			]
+		},
+		{
+			"instrument": "bass",
+			"bars": [
+				"A2:16",
+				"F2:16",
+				"D2:16",
+				"E2:16"
+			]
+		},
+		{
+			"instrument": "bell",
+			"bars": [
+				"-:8 A5:8",
+				"-:8 F5:8",
+				"-:8 D5:8",
+				"-:8 E5:8"
+			]
+		}
+	]
+}

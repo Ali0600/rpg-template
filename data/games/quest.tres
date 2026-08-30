@@ -35,6 +35,7 @@ player_character = &"quest_wanderer"
 title_music = &"barred_gate"
 battle_music = &"skirmish"
 victory_music = &"triumph"
+game_over_music = &"dirge"
 config = ExtResource("2_config")
 party = Array[Resource]([ExtResource("9_party")])
 combat = ExtResource("4_combat")

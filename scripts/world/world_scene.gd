@@ -938,12 +938,27 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 	# A fight takes the room's music over. A game naming no battle theme touches nothing at all,
 	# which is not merely a legal shape but is exactly the behaviour every fight had before this
 	# existed - so the field being empty is the old game, unchanged.
-	if not String(_game.battle_music).is_empty():
-		AudioBus.play_music(_game.battle_music)
+	var scored := _encounter_music(defs)
+	if not String(scored).is_empty():
+		AudioBus.play_music(scored)
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit(
 		{"enemies": _battle.logic().foe_ids(), "open": true, "outcome": &""})
 	return true
+
+
+## What THIS fight sounds like: the first foe that names a track, or the game's own battle
+## theme, or nothing.
+##
+## Scanned in formation order rather than taken from the leader, because a formation with a boss
+## anywhere in it is a boss fight - and reading only `defs[0]` would make the Keeper's theme
+## depend on where in the record his escort was written down. Empty from every foe falls through
+## to the manifest, which is every fight this template has ever opened.
+func _encounter_music(defs: Array) -> StringName:
+	for entry: EnemyDef in defs:
+		if entry != null and not String(entry.music).is_empty():
+			return entry.music
+	return _game.battle_music
 
 
 ## A night, over the world. Deferred by its caller for the same reason a counter is: the
@@ -1428,11 +1443,20 @@ func _on_battle_finished(outcome: int, effects: Array) -> void:
 		BattleLogic.Outcome.DEFEAT:
 			# Nothing is applied. A lost fight earns no xp, marks nothing beaten and consumes
 			# nothing - the run is over, and the save the player goes back to is the truth.
-			# Silence, whatever was playing. Every game this borrows from cuts the music at a
-			# game over, the defeat sting is already a cue, and every way OUT of a game over
-			# states its own music again - the title plays the manifest's theme, and a restart
-			# or a load enters a map, which states one either way.
-			AudioBus.stop_music()
+			# The game over's own theme, or silence when it names none.
+			#
+			# This used to be `stop_music()` unconditionally, justified in a comment that said
+			# "every game this borrows from cuts the music at a game over". That is false:
+			# Final Fantasy I ships "Dead Music" in 1987 and each Final Fantasy since has had
+			# its own game-over scene. The references CHANGE what is playing at a death, they do
+			# not fall silent - so silence is a divergence and belongs behind an empty field
+			# rather than in the code as a convention.
+			#
+			# play_or_silence, not two branches: "a game states its game-over music or states
+			# silence" is the same sentence a map's music is written as, and it is the one
+			# function that already says it. Every way OUT of a game over states its own music
+			# again, so nothing here has to be given back.
+			AudioBus.play_or_silence(_game.game_over_music)
 			EventBus.battle_changed.emit({"enemies": fought, "open": false, "outcome": &"defeat"})
 			open_game_over()
 		_:
