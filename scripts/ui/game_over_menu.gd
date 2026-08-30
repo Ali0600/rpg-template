@@ -15,7 +15,7 @@ extends SlotMenu
 const ROW_TITLE := Row.NEW_GAME + 1
 
 
-static func of(slots: Array[SaveData]) -> GameOverMenu:
+static func of(slots: Array[SlotSummary]) -> GameOverMenu:
 	var menu := GameOverMenu.new()
 	menu._slots = slots.duplicate()
 	# Deliberately NOT _open_on_a_pressable_row(), which the title does. The argument for it

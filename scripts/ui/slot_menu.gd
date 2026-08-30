@@ -37,7 +37,7 @@ class Pick:
 		return out
 
 
-var _slots: Array[SaveData] = []
+var _slots: Array[SlotSummary] = []
 var _page := Page.TOP
 var _index := 0
 
@@ -64,7 +64,16 @@ func row_count() -> int:
 	return Row.size()
 
 
+## What is in a slot, or null for one with nothing loadable in it. Kept answering SaveData
+## rather than the summary, because every caller of THIS is deciding whether there is something
+## to load - and an empty slot and a damaged one are the same answer to that question.
 func slot(at: int) -> SaveData:
+	var found := summary(at)
+	return null if found == null else found.data
+
+
+## The whole reading, for the one caller that needs to tell empty from damaged: the row's label.
+func summary(at: int) -> SlotSummary:
 	if at < 0 or at >= _slots.size():
 		return null
 	return _slots[at]
@@ -120,7 +129,7 @@ func cancel() -> Pick:
 
 ## New slot contents, same cursor. Called after a refused load, so the row the player is
 ## looking at shows what the slots hold now.
-func refresh(slots: Array[SaveData]) -> void:
+func refresh(slots: Array[SlotSummary]) -> void:
 	_slots = slots.duplicate()
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
@@ -141,9 +150,14 @@ func _open_on_a_pressable_row() -> void:
 	_index = Row.CONTINUE if _has_any_save() else Row.NEW_GAME
 
 
+## Whether there is anything here to continue FROM. Through has_save() rather than a null test
+## on the entry: since M32 a slot is always a reading, and an empty one is an object like any
+## other - so `!= null` went from "there is a save" to "there is a slot", which is true of every
+## row and would have offered Continue to a player with nothing saved. The type change is what
+## made the old test wrong; the tests are what said so.
 func _has_any_save() -> bool:
-	for data in _slots:
-		if data != null:
+	for summary: SlotSummary in _slots:
+		if summary != null and summary.has_save():
 			return true
 	return false
 

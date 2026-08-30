@@ -153,7 +153,11 @@ func test_peeking_at_a_slot_is_silent() -> void:
 	var seen: Array[Dictionary] = []
 	var handler := func(info: Dictionary) -> void: seen.append(info)
 	EventBus.save_changed.connect(handler)
-	assert_object(SaveManager.peek(&"quest", 0)).is_null()
+	var glanced := SaveManager.peek(&"quest", 0)
+	assert_bool(glanced.has_save()).override_failure_message(
+		"peeking handed back a save from a file that is not JSON").is_false()
+	assert_bool(glanced.damaged).override_failure_message(
+		"a file that IS there and cannot be read came back as an empty slot").is_true()
 	EventBus.save_changed.disconnect(handler)
 	assert_int(seen.size()).override_failure_message("peeking announced a load").is_equal(0)
 	assert_bool(FileAccess.file_exists(SaveManager.corrupt_path(&"quest", 0))).override_failure_message(
@@ -164,12 +168,14 @@ func test_peeking_reads_a_real_save() -> void:
 	# equally quiet and completely useless.
 	SaveManager.save(1, _save_for(&"quest", &"quest_village"))
 	var seen := SaveManager.peek(&"quest", 1)
-	assert_object(seen).is_not_null()
-	assert_str(String(seen.map)).is_equal("quest_village")
+	assert_bool(seen.has_save()).is_true()
+	assert_bool(seen.damaged).is_false()
+	assert_str(String(seen.data.map)).is_equal("quest_village")
 
 func test_saving_over_unreadable_bytes_parks_them_first() -> void:
-	# The menu offers Load only for slots that read back, so an unreadable slot looks EMPTY -
-	# which makes saving into it the one path that could destroy a damaged file silently.
+	# The menu offers Load only for slots that read back, and since M32 an unreadable one says
+	# "damaged" rather than "empty" - but Save is still offered for it, which makes this the one
+	# path that could destroy the bytes. It parks them first, and always has.
 	SaveDirs.write_raw(&"quest", 0, "{ ruined ")
 	assert_bool(SaveManager.save(0, _save_for(&"quest", &"quest_village"))).is_true()
 	assert_str(FileAccess.get_file_as_string(SaveManager.corrupt_path(&"quest", 0))).override_failure_message(
@@ -689,3 +695,31 @@ func test_a_save_carrying_a_real_count_loads() -> void:
 	assert_object(loaded).is_not_null()
 	assert_int(int(loaded.items["gate_key"])).is_equal(2)
 
+
+
+func test_an_empty_slot_and_an_unreadable_one_are_different_answers() -> void:
+	# The whole point of the summary. Both used to be one null, so a menu drew a file it could
+	# not read as an invitation to save over it - and the file being saved over is the one a
+	# player would want back. Both directions asserted, because "everything is damaged" would
+	# pass a check that only looked at the broken slot.
+	SaveDirs.write_raw(&"quest", 0, "{ ruined ")
+	SaveManager.save(1, _save_for(&"quest", &"quest_village"))
+	assert_bool(SaveManager.peek(&"quest", 0).damaged).override_failure_message(
+		"an unreadable file read as an empty slot").is_true()
+	assert_bool(SaveManager.peek(&"quest", 1).damaged).override_failure_message(
+		"a perfectly good save read as damaged").is_false()
+	assert_bool(SaveManager.peek(&"quest", 2).damaged).override_failure_message(
+		"a slot with no file in it read as damaged").is_false()
+	assert_bool(SaveManager.peek(&"quest", 2).has_save()).is_false()
+
+
+func test_a_save_belonging_to_another_game_reads_as_damaged() -> void:
+	# Not merely malformed JSON: a file that parses cleanly and names the wrong game is refused
+	# by _read for a reason worth showing, and it is the fault most likely to reach a real
+	# player - copying a slot between two games built on this template.
+	var stranger := _save_for(&"other_game", &"quest_village")
+	SaveDirs.write_raw(&"quest", 0, JSON.stringify(stranger.to_dict()))
+	var glanced := SaveManager.peek(&"quest", 0)
+	assert_bool(glanced.has_save()).is_false()
+	assert_bool(glanced.damaged).override_failure_message(
+		"another game's save sitting in this game's slot read as an empty one").is_true()

@@ -135,7 +135,7 @@ func test_saving_from_the_menu_writes_this_games_slot() -> void:
 	_world.pause_screen().save_requested.emit(0)
 	assert_bool(SaveManager.has_slot(&"quest", 0)).is_true()
 
-	var written := SaveManager.peek(&"quest", 0)
+	var written := SaveManager.peek(&"quest", 0).data
 	assert_object(written).is_not_null()
 	assert_str(String(written.game)).is_equal("quest")
 	assert_str(String(written.map)).is_equal("quest_village")

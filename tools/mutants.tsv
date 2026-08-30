@@ -129,7 +129,7 @@ scripts/data/game_manifest.gd	s|style != null and config.grid_step_pixels != sty
 
 # --- M10: saves are per game ---
 scripts/autoload/save_manager.gd	s|if data.game != game:|if false:|	tests/unit/test_saves.gd	a save from another game loads into this one's slot
-scripts/autoload/save_manager.gd	s|return _read\(game, slot\).data|return load_slot(game, slot)|	tests/unit/test_saves.gd	listing the slots parks files and announces loads nobody asked for
+scripts/autoload/save_manager.gd	s|\tvar glance := _read\(game, slot\)|\tvar glance := _read(game, slot) if load_slot(game, slot) == null else _read(game, slot)|	tests/unit/test_saves.gd	listing the slots parks files and announces loads nobody asked for
 scripts/autoload/save_manager.gd	s|if arg.begins_with\(GameSelect.QA_ARG\):|if false:|	tests/unit/test_saves.gd	a scripted play session reads and writes a real player's saves
 scripts/autoload/save_manager.gd	s|if not problems.is_empty\(\):|if false:|	tests/unit/test_saves.gd	a save with no game is written to a directory named after nothing
 scripts/autoload/save_manager.gd	s|if held.exists and held.data == null:|if false:|	tests/unit/test_saves.gd	saving into a damaged slot destroys the bytes instead of parking them
@@ -538,3 +538,7 @@ scripts/world/world_scene.gd	s|AudioBus.play_or_silence\(_game.game_over_music\)
 scripts/world/world_scene.gd	s|\t\t\treturn entry.music|\t\t\treturn &\"\"|	tests/integration/test_world_music.gd	an enemy's own theme stops outranking the manifest's, so every boss fight sounds like an ordinary one
 data/games/quest.tres	s|game_over_music = &\"dirge\"|game_over_music = &\"\"|	tests/fixtures/qa/quest/fall_at_the_keep.json	the shipped game loses its game-over theme, and the only session that reaches one hears nothing
 data/enemies/keeper.tres	s|music = &\"vigil\"|music = &\"\"|	tests/fixtures/qa/quest/fall_at_the_keep.json	the boss gives up his own theme, so the fight the demo is built around sounds like the ones in the hollow
+# --- M32: a slot says why it cannot be loaded ---
+scripts/autoload/save_manager.gd	s|return SlotSummary.broken\(\) if glance.exists else SlotSummary.empty\(\)|return SlotSummary.empty()|	tests/unit/test_saves.gd	a file that is there and cannot be read is reported as an empty slot again
+scripts/ui/pause_menu.gd	s|\t\treturn "Slot %d: damaged" % \(at \+ 1\)|\t\treturn "Slot %d: empty" % (at + 1)|	tests/unit/test_pause_menu.gd	a damaged slot draws as empty, which is the wording that invites saving over it
+scripts/ui/slot_menu.gd	s|if summary != null and summary.has_save\(\):|if summary != null:|	tests/unit/test_title_menu.gd	every slot counts as a save, so a title with nothing saved offers Continue

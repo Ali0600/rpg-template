@@ -846,15 +846,15 @@ func open_pause() -> bool:
 
 ## What is in each of this game's slots, for drawing. peek() rather than load_slot(): merely
 ## looking at the menu must not park files or announce loads nobody asked for.
-func _slot_summaries() -> Array[SaveData]:
+func _slot_summaries() -> Array[SlotSummary]:
 	return _slot_summaries_for(_game)
 
 
 ## The same, for a game that is not running yet. The title draws a slot list before start_game
 ## has ever been called, so it cannot read _game or _config - it reads the manifest it is
 ## offering, which is the only thing that exists at that point.
-func _slot_summaries_for(manifest: GameManifest) -> Array[SaveData]:
-	var out: Array[SaveData] = []
+func _slot_summaries_for(manifest: GameManifest) -> Array[SlotSummary]:
+	var out: Array[SlotSummary] = []
 	if manifest == null or manifest.config == null:
 		return out
 	for slot in manifest.config.save_slots:
