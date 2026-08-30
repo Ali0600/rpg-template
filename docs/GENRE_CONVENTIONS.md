@@ -655,10 +655,94 @@ attack kind dealing FLAT damage that ignores armour, which is what gives magic a
 stronger swing. The Status page carries an `MP` line beside `HP`.
 
 **Divergences, each recorded in `DECISIONS.md`:** no field-menu Magic page (an inn already
-covers the out-of-battle restore, and there is no warp/light utility to hook one to), no
-elemental resistance system (the spell's name carries the flavour, EarthBound-style), no
-targeting step (fights are 1v1, so single-enemy and single-ally are unambiguous), and no
-teach-by-item or equip-a-pool learning.
+covers the out-of-battle restore, and there is no warp/light utility to hook one to), ~~no
+elemental resistance system~~ (**closed by M33 — see §13b**), no targeting step for a spell that
+reaches everything, and no teach-by-item or equip-a-pool learning.
+
+### 13b. Elements, and whether the game tells you
+
+M25 gave spells element NAMES and no matrix, recorded as a divergence. This is the research M33
+needed before closing it, and it answers two questions §13's Categories paragraph does not: how
+much an element is actually WORTH, and whether the player is TOLD.
+
+**Sources note.** The fan wikis for Final Fantasy were bot-blocked (402/403) and the Internet
+Archive was offline during this pass, so the FF1 and Pokémon numbers below come from
+disassemblies of the shipped ROMs — reverse-engineered renderings of the actual binary, which is
+a stronger source than a description of it, not a weaker one. Where only a secondary source was
+reachable it is marked, and where nothing was reachable the claim is left out rather than guessed.
+
+**The multiplier is smaller than everyone remembers.** "Double damage on a weakness" is the
+folklore and it is not Final Fantasy I: its damage-spell routine halves on resistance and, on
+weakness, copies-halves-adds-back — the disassembly's own comment reads `damage *= 1.5`. So
+**1.5× weak, 0.5× resist**, for magic. Pokémon Gen 1 is where 2× actually lives, as
+`SUPER_EFFECTIVE = 20` scaled by ten, against `NOT_VERY_EFFECTIVE = 05` and `NO_EFFECT = 00`.
+Both games therefore multiply, and the genre's honest range for a weakness is 1.5× to 2× rather
+than a single number worth copying.
+
+**FF1's physical weakness is a FLAT +4, and it never fires.** Worth knowing for two reasons. A
+weakness bonus does not have to be multiplicative — but a flat one stops mattering as damage
+grows through a game, which is the composition hazard `lessons.md` already carries about
+mitigation order. And the elemental swords were meant to use it: the disassembly annotates the
+lookup `BUGGED - uses player elemental weakness as attack element. This is always 0`, so half of
+the game's own elemental system was unreachable on shipping. The series that defines the
+convention did not manage to ship it working.
+
+**Dragon Quest's resistance is a CHANCE, not a multiplier.** This is the fork that matters most
+here, and it is the opposite model: a resisted spell does not do less, it does nothing. Gamer
+Corner's stat glossary for the NES game is explicit that a monster resists at a rate and that
+"if the spells work, they will deal full damage" [secondary]. Later entries tier the chance
+rather than the damage (DQ6's Burning Breath connects at 50/20/10/0% by resistance tier). Modern
+Dragon Quest switched to multipliers, but the 125%/150%/200% figures belong to the 2024 HD-2D
+remake and must not be cited for the 1987 game.
+
+**Immunity is normal; absorption is not attested.** Pokémon ships `NO_EFFECT = 00` as a
+first-class value, Dragon Quest reaches the same place by fully resisting at a rate — and FF1
+has no immunity tier at all, its resistance being only ×0.5. Healing from an element turned up
+in none of the sources actually reached, so a template that wanted it could not justify it from
+these games.
+
+**Whether the game TELLS you splits, and the split tracks the arithmetic.** Pokémon announces
+every non-neutral hit: `It's super effective!` and `It's not very effective...`, with immunity a
+separate message on a separate path (`It doesn't affect ‹target›!`), and neutral hits saying
+nothing — its routine compares the multiplier to neutral and returns silently when equal. Dragon
+Quest announces the FAILURE, which is all a binary mechanic leaves to announce. Final Fantasy I
+says nothing whatever: its complete battle-message table — all 35 constants — contains no
+elemental string of any kind, and a resisted damage spell produces no message at all. (A resisted
+STATUS spell does print, but the string is the generic "Ineffective" also used for hitting a dead
+target, so it never says why.)
+
+That is the useful shape: **where effectiveness is a multiplier, a bare number cannot tell the
+player what happened** — is 12 big? compared to what? — so Pokémon supplies the words. Where it
+is binary, the outcome is self-evident and only the failure needs any. FF1 is the outlier that
+multiplies *and* stays silent, and it is also the one whose elemental system half-worked.
+
+**This template.** `SpellDef.element` is an open string, `EnemyDef.resistances` is element →
+percent taken, and a fight multiplies. Percents rather than tier words: a tier word puts the
+multiplier in the script, which is the literal-a-designer-would-change this project keeps out of
+code, and it caps the genre at two tiers when the references run from quarter damage through
+immunity. The demo ships 200/150/50, so the table holds three different answers and the argument
+for a number rather than a word is visible in the content.
+
+Damage is floored at 1 wherever the element does not stop the spell outright, so *resisted* and
+*immune* stay distinguishable — 1 power halved is 0 by integer division, which would collapse
+them. Zero comes back only from a zero percent, and it is SAID.
+
+**Announced, on Pokémon's side of the split rather than Final Fantasy's**, because this template
+multiplies and the reasoning above applies directly: a weakness appends "X is weak to it", a
+resistance "X shrugs most of it off", and a neutral hit appends nothing at all. A sweep is the
+one exception and it is the same rule — its caption already names what each foe took side by
+side, so the comparison is in the numbers.
+
+**Divergence:** resistance is a multiplier, never a chance, so Dragon Quest's model is not
+available here. Flee odds and damage variance were both made deterministic in M13 so a designer
+can reason about a fight and a QA script can replay it byte-for-byte, and a roll to negate a
+spell is exactly that kind of number. Recorded in `DECISIONS.md`.
+
+**Remaining gaps:** elements on physical swings (FF1's Ice Brand, and the half of its system that
+never worked), and party-side resistance — nothing shields the player, because no enemy move
+carries an element. Both carry hooks in `DECISIONS.md`.
+
+---
 
 ### 13a. Statuses, and which way they point
 
@@ -814,6 +898,25 @@ Music and save-integrity research (§14 and §8, added in M32):
 - [Glitch City Wiki — damaged save data error messages](https://glitchcity.wiki/wiki/Damaged_save_data_error_messages)
   — Pokémon Gen I checksums the save and says "The file data is destroyed!" rather than
   presenting a blank slot
+
+Element research (§13b, added in M33). The Final Fantasy and Pokémon numbers come from
+disassemblies of the shipped ROMs, because the wikis were bot-blocked and the Archive was down;
+that is a stronger source than a description, and it contradicted the most-repeated claim:
+
+- [Entroper/FF1Disassembly](https://github.com/Entroper/FF1Disassembly) — `bank_0C.asm` and
+  `Constants.inc`: magic weakness is ×1.5 and resistance ×0.5, NOT doubling; physical weakness is
+  a flat +4 damage and +40 to hit; the complete 35-entry battle-message table contains no
+  elemental string; and the player's attack element is annotated `BUGGED … always 0`
+- [TASVideos — Final Fantasy 1](https://tasvideos.org/GameResources/NES/FinalFantasy1) — the
+  elemental swords "were all supposed to do extra damage to some enemies. But they don't"
+- [pret/pokered](https://github.com/pret/pokered) — `constants/battle_constants.asm` (2× / 0.5× /
+  0×, scaled by ten), `data/text/text_2.asm` (the two effectiveness strings and the separate
+  immunity line), and `engine/battle/display_effectiveness.asm` (neutral hits return silently)
+- [Gamer Corner Guides — Dragon Warrior, Hurt](https://guides.gamercorner.net/dw/spells/hurt) —
+  resistance is a RATE of full negation: "if the spells work, they will deal full damage"
+- [Dragon Quest wiki — Sizz](https://dragon-quest.org/w/index.php?title=Sizz) and
+  [Burning Breath](https://dragon-quest.org/w/index.php?title=Burning_Breath) — DQ1's fire spell
+  may fail on resistance; DQ6 tiers the CHANCE to connect rather than the damage
 
 Party research (§7a) is drawn from these, and each claim above names the game it came from:
 

@@ -201,8 +201,25 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M30** — statuses that run both ways: a buff and a debuff the party can cast, an affliction enemies can inflict, durations counted in turns, and a well-timed guard that shrugs one off entirely
 - [x] **M31** — the flow model is walked, not just stepped over: seeded random journeys through the state machine on one world that is never rebuilt, and a failing journey minimised to the shortest one that still fails before it is reported
 - [x] **M32** — a death and a boss get their own music, and a save slot that cannot be read says so instead of drawing as empty
+- [x] **M33** — elemental resistances: a spell is made of something, an enemy answers it with a percent, and a weakness or a resistance is announced rather than left as a number with nothing to compare it to
 
 ## Experience Gained
+
+- Grounded a design decision in primary evidence by reading disassemblies of the shipped
+  binaries when the usual secondary sources were unreachable — which contradicted the most
+  widely repeated claim about the reference implementation and changed the feature's output
+  format before it shipped.
+- Replaced a hand-maintained checklist in an integration test with one derived from the object
+  under test at runtime, closing a gap the test's own comment had correctly described for two
+  releases: the field that goes unpropagated is always the newest one, i.e. the one nobody
+  remembered to add a line for.
+- Diagnosed a structural blind spot in an existing simulation-based quality gate — its driver
+  exercised only one of the system's input paths, so an entire subsystem lay outside anything it
+  could measure — and documented the limitation with its remediation rather than allowing a
+  passing run to imply coverage it did not provide.
+- Added a cross-directory referential-integrity check between two independently valid data sets
+  joined only by a free-text key, where a typo on either side degraded silently to default
+  behaviour rather than failing.
 
 - Extended a single-actor combat system to N actors without changing a line of its public
   behaviour, by making the single case a list of one rather than a second code path — verified

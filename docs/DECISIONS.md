@@ -40,9 +40,19 @@ one-glance menu of things still worth trying.
 - **A field-menu Magic page.** M25 kept magic battle-only. Revisit hook: the day a spell is
   useful outside a fight — a warp, a light, a partial heal cheaper than an inn — it is a
   `PauseMenu.Row` between Items and Equipment plus a `_spell_rows()` beside `_gear_rows()`.
-- **Elemental resistances.** M25 gave spells element NAMES and no matrix. Revisit hook:
-  `EnemyDef` gains a resistance map and `BattleLogic._confirm_spell`'s attack branch scales
-  `row.power` by it — `SpellDef` would need the element as a field rather than as flavour.
+- ~~**Elemental resistances.**~~ **Taken up by M33**, at exactly the hook this entry named.
+  What is still out: **elements on physical swings** (FF1's Ice Brand — and note FF1's own
+  version of this never worked, its player attack element annotated `BUGGED … always 0` in the
+  disassembly). Revisit hook: `ItemDef` gains an element and `_land_player_hit` scales the way
+  `_cast` does. Also **party-side resistance** — nothing shields the player, because no enemy
+  move carries an element; hook is the move dict plus a map on `Fighter`.
+- **A casting policy for `BattleDriver`.** The balance gate plays every shipped fight at both
+  ends of the skill range and only ever chooses Attack — it declares a `fault` if a spell page so
+  much as opens. So magic, and therefore every element pairing, is structurally outside what the
+  gate can see: M33 could not have unbalanced a fight, and equally the gate says nothing about
+  whether its content is any good. It is the fixed-policy-bounds-coverage lesson one level up
+  from skill. Deferred because a driver that casts would re-open the balance of all six shipped
+  encounters at once. Revisit hook: `BattleDriver.Policy`, plus `_aim` learning the spell page.
 - ~~**Buffs, debuffs, and status effects on the PLAYER.**~~ **Taken up by M30** — `BOOST` and
   `SAP` aim either way, enemy moves can afflict the party, and durations count in turns. What
   is still out is **persistent affliction**: a status cannot outlive the fight it was inflicted
@@ -91,6 +101,59 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## An element is worth a percent, and the game says so out loud — *M33*
+
+**The fork: how much is a weakness worth, and who writes the number down?** Tier words on the
+enemy (`weak`/`resistant`) with the multipliers in `BattleLogic`, or a raw percent in the data.
+
+- **Tier words + template multipliers** — reads better in a `.tres`, and the enemy file says
+  something a designer can pronounce. But it puts a bare `* 2` in a script, which is exactly the
+  literal-a-designer-would-want-to-change this project keeps out of code, and it caps the genre
+  at whatever tiers the template invented: the references run from Pokémon's quarter damage
+  (0.5 × 0.5 on a dual type) through immunity, and the day a game wants a fourth answer it has to
+  come and ask for a new word. *Status: rejected — the vocabulary would be the template choosing
+  the shape of every game's table.*
+- **Percent in the data (chosen)** — `resistances = {&"fire": 200}`. One number, no vocabulary,
+  and a game sits anywhere on the range without an edit to a script. Exactly 100 is refused
+  rather than allowed as a no-op: it reads like a decision and changes nothing, so it is a typo
+  or a note that belongs in a comment. The demo ships 200, 150 and 50, so the argument for a
+  number over a word is visible in the content rather than only in this file.
+
+**The second fork: a multiplier or a CHANCE?** Dragon Quest's resistance is not a reduction at
+all — a resisted spell does not do less, it fails outright at a rate, and "if the spells work,
+they will deal full damage". That is a real, attested genre model and it is not available here.
+
+- **A chance to negate** — the DQ answer, and arguably the more dramatic one. *Status: rejected
+  — M13 made flee odds and damage variance deterministic so a designer can reason about a fight
+  and a QA script can replay it byte-for-byte, and a roll to negate a spell is precisely that
+  kind of number.* Revisit hook: `_spell_damage`, which would draw from the fight's seeded stream
+  the way `_pick_move` does.
+- **A multiplier (chosen)** — Final Fantasy's and Pokémon's model, and the one that survives the
+  determinism rule.
+
+**The third fork: does the game TELL the player?** This is the one the reference pass reversed.
+The genre splits, and §13b's finding is that **the split tracks the arithmetic**: Pokémon
+multiplies and announces every non-neutral hit; Dragon Quest is binary, so only the failure needs
+words; Final Fantasy I multiplies and says nothing at all — 35 battle-message constants and not
+one elemental string.
+
+- **Silent, FF1-style** — what the first implementation did, and the tempting one because this
+  screen already draws a foe's health bar, so the number is visible. *Status: rejected — the bar
+  shows what is left, not what was expected, so it cannot tell a player whether 12 was big. FF1
+  is also the outlier that multiplies AND stays silent, and its elemental system shipped
+  half-broken (the physical weakness bonus is unreachable for players, annotated `BUGGED` in the
+  disassembly). It is a precedent worth not leaning on.*
+- **Announced, Pokémon-style (chosen)** — a short clause where the element told, nothing at all
+  where it did not, which is Pokémon's own dispatch: compare to neutral, return silently when
+  equal. A sweep gets no clause, and that is the same rule rather than an exception — its caption
+  names what each foe took side by side, so the comparison is already in the numbers.
+
+**Not built, and recorded rather than forgotten:** the balance gate cannot see any of this.
+`BattleDriver` only ever chooses Attack, so no element pairing can move a number it measures.
+That is in the backlog above with its hook.
 
 ---
 
