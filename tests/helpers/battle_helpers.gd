@@ -46,3 +46,28 @@ static func against(combat: CombatDef, enemies: Array, hp := 20, xp := 0, level 
 		items: Array = [], mp := 8, spells: Array = [], seed_value := 7) -> BattleLogic:
 	return BattleLogic.of(combat, enemies,
 		[leader(combat, hp, xp, level, mp, 0, 0, spells)], items, "map/foe", seed_value)
+
+
+## A party assembled from a game's own manifest, at `level`, in full health and magic and
+## carrying NOTHING — no equipment, no items, no bought advantage of any kind. The balance gate
+## fights with this, and every omission is deliberately pessimistic: gear and tonics only ever
+## add, so a formation this party beats is one the real player beats.
+##
+## Deliberately a MIRROR of `world_scene._battle_members` rather than a call to it — that reads
+## live `GameState` through a node in a scene tree, and a unit test has neither. What it must
+## not mirror is WHICH members are along: that is a question about the map, and
+## `test_battle_content.gd` answers it from the warp graph rather than assuming.
+static func party_of(manifest: GameManifest, members: Array, level: int) -> Array:
+	var out: Array = []
+	if manifest == null or manifest.combat == null:
+		return out
+	var combat := manifest.combat
+	out.append(BattleLogic.Fighter.of(&"", "You", manifest.player_character, combat,
+		combat.max_hp(level), 0, level, combat.max_mp(level), 0, 0, []))
+	for member: PartyMemberDef in members:
+		if member == null:
+			continue
+		var curve: CombatDef = member.combat if member.combat != null else combat
+		out.append(BattleLogic.Fighter.of(member.id, member.name, member.character, curve,
+			curve.max_hp(level), 0, level, curve.max_mp(level), 0, 0, []))
+	return out
