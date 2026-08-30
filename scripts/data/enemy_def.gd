@@ -73,9 +73,38 @@ extends Resource
 ## data files gain one indirection - nothing else here changes.
 @export var moves: Array[Dictionary] = []
 
+## How this thing answers each element, as element -> PERCENT of the damage it takes: 200 is
+## burns twice as hot, 50 is shrugs half of it off, 0 is untouched by it entirely. An element
+## not named here is 100 and needs no entry, so the default - an empty map - is exactly the
+## behaviour every enemy had before this field existed.
+##
+## PERCENTS IN THE DATA rather than tier words with the multipliers in the script. "weak" and
+## "resist" would read better in a file and would put `* 2` in `BattleLogic`, which is precisely
+## the literal-a-designer-would-want-to-change this project keeps out of code - and it would cap
+## the genre at two tiers when the references run from Pokemon's quarter-damage through immunity
+## to outright absorption. A number lets a game sit anywhere on that range without asking for a
+## new word. See docs/DECISIONS.md.
+##
+## A value of exactly 100 is REFUSED rather than allowed as a no-op: it is an entry that reads
+## like a decision and changes nothing, so it is either a typo for something else or a note that
+## belongs in a comment. Zero is legal and means immune; there is no upper bound, because "this
+## thing dies to fire" is a design decision and not a fault.
+@export var resistances: Dictionary = {}
+
 ## What a move's `status` may say. A closed vocabulary for the reason SpellDef.Kind is an enum:
 ## a typo in a data file would otherwise be a move that reaches its turn and does nothing.
 const STATUSES := ["sleep", "sap"]
+
+
+## How much of an `element` spell's damage this thing takes, as a percent. The ONE reader of
+## `resistances`, so a missing entry means 100 in exactly one place.
+##
+## An elementless spell is 100 too: a spell that is made of nothing cannot be resisted, and
+## checking that here rather than at the call site keeps the fight's arithmetic to one line.
+func resistance_to(element: StringName) -> int:
+	if String(element).is_empty():
+		return 100
+	return int(resistances.get(element, 100))
 
 
 ## Everything wrong with this enemy, in the idiom of every other problems() here: all of
@@ -102,6 +131,7 @@ func problems() -> Array[String]:
 	# battle that stops rather than as a broken file.
 	if moves.is_empty():
 		out.append("enemy '%s' has no moves" % id)
+	out.append_array(_resistance_problems())
 	for i in moves.size():
 		var move: Dictionary = moves[i]
 		if str(move.get("name", "")).is_empty():
@@ -109,6 +139,34 @@ func problems() -> Array[String]:
 		if int(move.get("power", 0)) < 0:
 			out.append("enemy '%s' move %d has negative power" % [id, i])
 		out.append_array(_move_status_problems(i, move))
+	return out
+
+
+## Everything wrong with the resistance map, separately for `_move_status_problems`'s reason: an
+## enemy that answers no element has none of this, and every fault here is silent in play - a
+## misspelt element is a weakness no spell can ever hit, and a percent stored as a string reads
+## back as zero, which is IMMUNITY. Both present as a fight that feels wrong rather than as a
+## broken file.
+func _resistance_problems() -> Array[String]:
+	var out: Array[String] = []
+	for element: Variant in resistances:
+		var word := str(element)
+		if word.is_empty():
+			out.append("enemy '%s' answers an element with no name" % id)
+		var pct: Variant = resistances[element]
+		if typeof(pct) != TYPE_INT and typeof(pct) != TYPE_FLOAT:
+			out.append("enemy '%s' answers '%s' with %s, which is not a number"
+				% [id, word, pct])
+			continue
+		if int(pct) < 0:
+			out.append("enemy '%s' takes %d%% damage from '%s' - it would be healed by it"
+				% [id, int(pct), word])
+		elif int(pct) == 100:
+			# An entry that reads like a decision and changes nothing. It is a typo for a real
+			# number or a note that belongs in a comment, and either way saying so beats letting
+			# a designer believe they have written a resistance.
+			out.append("enemy '%s' answers '%s' with 100%%, which is what it would do anyway"
+				% [id, word])
 	return out
 
 

@@ -16,7 +16,7 @@ extends Node
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
 ## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
 ## assert_level · assert_gold · assert_mp · assert_equipped · sound_mark · assert_sound ·
-## assert_audio_ready · mark · assert_moved ·
+## assert_audio_ready · mark · assert_moved · assert_status · assert_foe_hp · fight_well ·
 ## screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
@@ -135,6 +135,8 @@ func _run(step: Dictionary) -> void:
 			_fight_well(step)
 		"assert_status":
 			_assert_status(step)
+		"assert_foe_hp":
+			_assert_foe_hp(step)
 		"assert_state":
 			var wanted := str(step.get("state", ""))
 			if Router.state_name() != wanted:
@@ -328,6 +330,27 @@ func _assert_status(step: Dictionary) -> void:
 		_fail("expected member %d to be showing '%s', found '%s'" % [at, wanted, actual])
 	else:
 		_log.append("member %d is showing '%s'" % [at, actual])
+
+
+## What a foe has left, mid-fight. Battle-only for `_assert_status`'s reason, and it exists for
+## the same one: it is the only assertion that can prove HOW MUCH a blow was worth.
+##
+## An element's whole effect is the size of a number, and every other reading a session can take
+## is blind to it - the magic spent is the same whatever it hit, the fight is won either way, and
+## a caption is not read by anything. So a shipped weakness with no `assert_foe_hp` behind it is
+## a feature nothing would notice the loss of.
+func _assert_foe_hp(step: Dictionary) -> void:
+	var screen := _battle_screen()
+	if screen == null:
+		_fail("assert_foe_hp outside a battle - there is nothing standing to have any health")
+		return
+	var at := int(step.get("foe", 0))
+	var wanted := int(step.get("expect", 0))
+	var actual := screen.logic().enemy_hp(at)
+	if actual != wanted:
+		_fail("expected foe %d to be on %d health, found %d" % [at, wanted, actual])
+	else:
+		_log.append("foe %d is on %d health" % [at, actual])
 
 
 ## The battle view, found by TYPE rather than by a path or a group, so nothing in the shipped

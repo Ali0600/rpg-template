@@ -101,10 +101,13 @@ class SpellRow:
 	var target: int = SpellDef.Target.ONE
 	## Which number a BOOST or a SAP moves. Defaulted for the same reason `target` is.
 	var stat: int = SpellDef.Stat.ATTACK
+	## What the spell is made of, looked up in the foe's own resistance map. Empty is elementless
+	## and lands at face value, so every call site that predates elements reads as it did.
+	var element: StringName = &""
 
 	static func of(spell_id: StringName, spell_name: String, mp_cost: int, spell_kind: int,
 			spell_power: int, turns: int, shape: int = SpellDef.Target.ONE,
-			moves: int = SpellDef.Stat.ATTACK) -> SpellRow:
+			moves: int = SpellDef.Stat.ATTACK, made_of: StringName = &"") -> SpellRow:
 		var out := SpellRow.new()
 		out.id = spell_id
 		out.name = spell_name
@@ -114,6 +117,7 @@ class SpellRow:
 		out.status_turns = turns
 		out.target = shape
 		out.stat = moves
+		out.element = made_of
 		return out
 
 
@@ -1042,6 +1046,51 @@ func _stat_word(which: int) -> String:
 	return "attack" if which == SpellDef.Stat.ATTACK else "guard"
 
 
+## What `row` actually takes off `target`, once that foe's answer to the spell's element is
+## applied. The ONE place a resistance is read, called by both arms of the attack branch below.
+##
+## Two arms doing this arithmetic separately is the `_attack_of`/`_defense_of` shape and the same
+## failure: the copy somebody forgets is not a crash, it is a weakness that works when you aim
+## and silently not when you sweep, which reads as the spell being broken rather than as a bug.
+##
+## FLOORED AT 1 wherever the element does not stop the spell outright, so "resisted" and "immune"
+## stay different things a player can tell apart. Zero comes back only from a zero percent, which
+## is what makes the caller's "no effect" line honest.
+func _spell_damage(row: SpellRow, target: Foe) -> int:
+	var pct := target.def.resistance_to(row.element)
+	if pct == 0:
+		return 0
+	return maxi(row.power * pct / 100, 1)
+
+
+## What the caption adds when an element told, and nothing at all when it did not.
+##
+## THE GENRE SPLITS HERE, AND THE SPLIT TRACKS THE ARITHMETIC. Pokemon multiplies and announces
+## every non-neutral hit ("It's super effective!"); Dragon Quest's resistance is a CHANCE to
+## negate the spell outright, so there is no partial result to describe and only the failure
+## needs words; Final Fantasy I multiplies (1.5x weak, 0.5x resist for magic) and says nothing at
+## all - its battle-message table contains no elemental string of any kind. This template
+## multiplies, so it takes the announcing answer: a bare damage figure cannot tell a player
+## whether 12 was big, because they have nothing to compare it against on the turn it happens.
+##
+## FF1 is the outlier that proves it rather than the precedent that excuses it - its elemental
+## system also shipped half-broken, with the physical weakness bonus unreachable for players.
+##
+## A SWEEP GETS NO CLAUSE, and that is this rule rather than an exception to it. Its caption
+## already names what each foe took side by side, so the comparison Pokemon supplies in words is
+## sitting in the numbers - and one clause per foe would not fit the box the dialog gate measures.
+## `answer` rather than `pct`, deliberately: `_spell_damage` above opens with the same lookup, and
+## two character-identical lines make a mutant aimed at either one report a verdict about the
+## other. The aim gate refuses the ambiguity rather than picking, so the names differ.
+func _effect_word(row: SpellRow, target: Foe) -> String:
+	var answer := target.def.resistance_to(row.element)
+	if answer > 100:
+		return " %s is weak to it." % target.name
+	if answer < 100:
+		return " %s shrugs most of it off." % target.name
+	return ""
+
+
 func _cast(order: Order) -> void:
 	var caster := _fighter(order.member)
 	var row := order.spell
@@ -1089,15 +1138,22 @@ func _cast(order: Order) -> void:
 			_want(Sfx.Cue.HIT)
 			var reached := _living_foes()
 			var felled: Array[String] = []
+			# Named PER FOE rather than as one figure "to each". They were the same number until
+			# an element could scale them apart, and "7 damage to each" against a formation where
+			# one of them burns and one shrugs is a caption that states something false - the
+			# exact failure a wrong claim in a comment already cost this project once.
+			var struck: Array[String] = []
 			for at in reached:
 				var each := _foe(at)
-				each.hp = maxi(each.hp - row.power, 0)
+				var took := _spell_damage(row, each)
+				each.hp = maxi(each.hp - took, 0)
+				struck.append("%s %d" % [each.name, took])
 				if each.down():
 					felled.append(each.name)
 			if _living_foes().is_empty():
 				_win(" and ".join(felled))
 				return
-			var swept := "%s casts %s. %d damage to each." % [caster.name, row.name, row.power]
+			var swept := "%s casts %s. %s." % [caster.name, row.name, ", ".join(struck)]
 			for name in felled:
 				swept += " %s is down." % name
 			_say(swept, Phase.PLAYER_ACT)
@@ -1107,8 +1163,15 @@ func _cast(order: Order) -> void:
 			# one fewer number to tune, because SpellDef.power then means damage and nothing else.
 			_want(Sfx.Cue.HIT)
 			var hit := _foe(order.foe if order.foe >= 0 else 0)
-			hit.hp = maxi(hit.hp - row.power, 0)
-			var line := "%s casts %s. %d damage." % [caster.name, row.name, row.power]
+			var dealt := _spell_damage(row, hit)
+			hit.hp = maxi(hit.hp - dealt, 0)
+			var line := "%s casts %s. %d damage.%s" % [caster.name, row.name, dealt,
+				_effect_word(row, hit)]
+			if dealt == 0:
+				# It spent the magic and the turn and moved no number, so it SAYS so: a cast that
+				# changed nothing and reported a damage figure of zero reads as a broken button,
+				# which is the argument problems() makes for refusing a powerless spell outright.
+				line = "%s casts %s, and it does nothing to %s." % [caster.name, row.name, hit.name]
 			if hit.down() and not _living_foes().is_empty():
 				line += " %s is down." % hit.name
 			if _living_foes().is_empty():

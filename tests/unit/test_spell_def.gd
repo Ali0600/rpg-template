@@ -83,3 +83,43 @@ func test_a_kind_no_spell_has_is_refused() -> void:
 	var spell := _spell()
 	spell.kind = (SpellDef.Kind.size()) as SpellDef.Kind
 	assert_array(spell.problems()).is_not_empty()
+
+# -- elements ---------------------------------------------------------------------------------
+
+func test_an_attack_spell_may_be_made_of_something() -> void:
+	# The control for every refusal below: an element on the one kind that deals damage is the
+	# whole feature, so a check written as "an element is always wrong" would pass all of them.
+	var spell := _spell()
+	spell.element = &"fire"
+	assert_array(spell.problems()).is_empty()
+
+func test_an_elementless_attack_spell_is_still_fine() -> void:
+	# Empty is the default and means "lands at face value" - every spell shipped before elements
+	# existed is this one, so refusing it would fail the whole back catalogue.
+	assert_str(String(_spell().element)).is_empty()
+	assert_array(_spell().problems()).is_empty()
+
+func test_a_heal_made_of_something_is_refused() -> void:
+	# It has no damage for a resistance to scale, so the field would be one nothing reads - which
+	# is how a data file comes to describe an effect the fight never applies.
+	var spell := _spell()
+	spell.kind = SpellDef.Kind.HEAL
+	spell.element = &"fire"
+	assert_array(spell.problems()).is_not_empty()
+
+func test_a_sleep_made_of_something_is_refused() -> void:
+	var spell := _spell()
+	spell.kind = SpellDef.Kind.SLEEP
+	spell.status_turns = 2
+	spell.element = &"ice"
+	assert_array(spell.problems()).is_not_empty()
+
+func test_a_boost_made_of_something_is_refused() -> void:
+	# The third kind checked deliberately: the refusal lives outside the kind chain, so if it had
+	# been written into one branch instead, the other two would pass while reading as covered.
+	var spell := _spell()
+	spell.kind = SpellDef.Kind.BOOST
+	spell.power = 2
+	spell.status_turns = 3
+	spell.element = &"fire"
+	assert_array(spell.problems()).is_not_empty()

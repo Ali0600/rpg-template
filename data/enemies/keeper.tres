@@ -29,6 +29,15 @@
 ; none at all, Final Fantasy IV plays one for nearly every boss. In a formation the first
 ; foe that states a track wins, so his escort does not have to be silent about it.
 
+; RESISTS FIRE (50%), so Ember lands 3 on it rather than 7. The point is that the trick which
+; deletes its escort does not delete IT - burn the Gloom, then swing. A boss that shrugged off
+; nothing would make the whole fight one repeated cast, and a boss immune to fire would make
+; the spell dead weight in the encounter it matters most in; half is the answer that keeps the
+; cast legal and stops it being the only plan.
+;
+; Its formation is where the whole system is visible at once: the same Ember is doubled
+; against the Gloom standing beside it and halved against this. UNJUDGED BY EAR.
+
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
 [resource]
@@ -42,5 +51,8 @@ defense = 3
 xp = 25
 gold = 20
 boss = true
+resistances = {
+&"fire": 50
+}
 music = &"vigil"
 moves = [{ "name": "Bar", "power": 0 }, { "name": "Crush", "power": 4 }]

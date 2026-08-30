@@ -440,7 +440,7 @@ scripts/ui/battle_logic.gd	s|\tif not can_afford\(row\):|\tif false:|	tests/unit
 scripts/ui/battle_logic.gd	s|^\tcaster.mp -= row.cost$|\tpass|	tests/fixtures/qa/quest/cast_a_spell_in_a_fight.json	every spell is free, so the magic is a number that never moves
 scripts/ui/battle_logic.gd	s|\t\t\t_phase = Phase.SPELLS|\t\t\tpass|	tests/unit/test_battle_logic.gd	the Magic command opens nothing at all
 scripts/ui/battle_logic.gd	s|sleeper.status.asleep_turns = row.status_turns|pass|	tests/unit/test_battle_logic.gd	a sleep spell says it landed and puts nothing to sleep
-scripts/ui/battle_logic.gd	s|\t\t\thit.hp = maxi\(hit.hp - row.power, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
+scripts/ui/battle_logic.gd	s|\t\t\thit.hp = maxi\(hit.hp - dealt, 0\)|\t\t\tpass|	tests/unit/test_battle_logic.gd	an attack spell announces damage and deals none
 scripts/ui/battle_logic.gd	s|if it.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
 scripts/ui/battle_logic.gd	s|it.status.asleep_turns -= 1|pass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
 scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tests/unit/test_battle_logic.gd	backing out of the spells lands the cursor on Attack instead of Magic
@@ -514,19 +514,19 @@ scripts/ui/battle_logic.gd	s|^\tif alive.size\(\) < 2:$|\tif true:|	tests/unit/t
 scripts/ui/battle_logic.gd	s|^\t\tif next_up > taken:$|\t\tif false:|	tests/unit/test_battle_logic.gd	only the first foe in a formation ever takes a turn
 scripts/ui/battle_logic.gd	s|\t\tearned \+= _foe\(at\).def.xp|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the experience of one of its foes
 scripts/ui/battle_logic.gd	s|\t\tpurse \+= _foe\(at\).def.gold|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the coin of one of its foes
-scripts/ui/battle_logic.gd	s|\t\t\t\teach.hp = maxi\(each.hp - row.power, 0\)|\t\t\t\tpass|	tests/unit/test_battle_logic.gd	a spell that reaches everything announces damage and deals none
+scripts/ui/battle_logic.gd	s|\t\t\t\teach.hp = maxi\(each.hp - took, 0\)|\t\t\t\tpass|	tests/unit/test_battle_logic.gd	a spell that reaches everything announces damage and deals none
 scripts/ui/battle_logic.gd	s|\t\t\tdisplay = "%s %s" % \[entry.name, char\("A".unicode_at\(0\) \+ nth\)\]|\t\t\tpass|	tests/unit/test_battle_logic.gd	two foes of one kind are both called the same thing
 scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	tests/unit/test_map_data.gd	two enemies stand on one tile and the second can never be fought
 scripts/ui/battle_screen.gd	s|\t\tvar theirs := acting and not player_side and swinging_foe == at|\t\tvar theirs := acting and not player_side|	tests/integration/test_battle_layout.gd	every foe leans when any one of them swings
 scripts/ui/battle_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
 scripts/ui/battle_screen.gd	s|^const MAX_PARTY := 3$|const MAX_PARTY := 0|	tests/unit/test_battle_content.gd	a game may declare a party bigger than the screen draws
-scripts/world/world_scene.gd	s|\t\t\tdef.status_turns, def.target, def.stat\)\)|\t\t\tdef.status_turns, def.stat))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
+scripts/world/world_scene.gd	s|\t\t\tdef.status_turns, def.target, def.stat, def.element\)\)|\t\t\tdef.status_turns, def.stat, def.element))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
 scripts/ui/battle_logic.gd	s|who.status.attack_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a boost never reaches the swing, so the spell announces itself and changes no number
 scripts/ui/battle_logic.gd	s|it.status.defense_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a sap never reaches the guard the blow is measured against
 scripts/ui/battle_logic.gd	s|maxi\(0, it.def.defense \+ it.status.defense_bonus\(\)\)|it.def.defense + it.status.defense_bonus()|	tests/unit/test_battle_logic.gd	an over-sapped guard goes negative and starts helping the attacker
 scripts/ui/battle_logic.gd	s|if member.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping party member is handed the menu anyway, which is a free turn
 scripts/ui/battle_logic.gd	s|if pressed_in_time\(\):|if false:|	tests/unit/test_battle_logic.gd	a well-timed guard stops shrugging off an affliction, so the cue goes quiet in status fights
-scripts/world/world_scene.gd	s|def.target, def.stat\)\)|def.target))|	tests/integration/test_world_battles.gd	a spell's stat is dropped between the file and the fight, so every boost moves attack
+scripts/world/world_scene.gd	s|def.target, def.stat, def.element\)\)|def.target, def.element))|	tests/integration/test_world_battles.gd	a spell's stat is dropped between the file and the fight, so every boost moves attack
 data/spells/ward.tres	s|status_turns = 3|status_turns = 0|	tests/unit/test_battle_content.gd	the game's one buff lasts no turns, so it announces itself and changes nothing
 data/enemies/gloom.tres	s|"turns": 3|"turns": 0|	tests/unit/test_battle_content.gd	the game's one affliction lasts no turns
 data/spells/ward.tres	s|learn_level = 2|learn_level = 9|	tests/fixtures/qa/quest/a_ward_against_the_chill.json	the buff is learned past the level cap, so no played fight can reach it
@@ -542,3 +542,13 @@ data/enemies/keeper.tres	s|music = &\"vigil\"|music = &\"\"|	tests/fixtures/qa/q
 scripts/autoload/save_manager.gd	s|return SlotSummary.broken\(\) if glance.exists else SlotSummary.empty\(\)|return SlotSummary.empty()|	tests/unit/test_saves.gd	a file that is there and cannot be read is reported as an empty slot again
 scripts/ui/pause_menu.gd	s|\t\treturn "Slot %d: damaged" % \(at \+ 1\)|\t\treturn "Slot %d: empty" % (at + 1)|	tests/unit/test_pause_menu.gd	a damaged slot draws as empty, which is the wording that invites saving over it
 scripts/ui/slot_menu.gd	s|if summary != null and summary.has_save\(\):|if summary != null:|	tests/unit/test_title_menu.gd	every slot counts as a save, so a title with nothing saved offers Continue
+scripts/ui/battle_logic.gd	s|var pct := target.def.resistance_to\(row.element\)|var pct := 100|	tests/unit/test_battle_logic.gd	a resistance is never read, so every element lands at face value
+scripts/ui/battle_logic.gd	s|return maxi\(row.power \* pct / 100, 1\)|return row.power * pct / 100|	tests/unit/test_battle_logic.gd	a resisted spell rounds down to nothing, so resisted and immune stop differing
+scripts/data/spell_def.gd	s|if kind != Kind.ATTACK and not String\(element\).is_empty\(\):|if false:|	tests/unit/test_spell_def.gd	a heal or a sleep ships made of fire, with no damage for it to scale
+scripts/data/enemy_def.gd	s|\tout.append_array\(_resistance_problems\(\)\)|\tpass|	tests/unit/test_enemy_def.gd	the resistance map is never validated at all
+scripts/data/enemy_def.gd	s|\t\telif int\(pct\) == 100:|\t\telif false:|	tests/unit/test_enemy_def.gd	an answer of exactly 100% ships, reading like a decision and changing nothing
+scripts/data/enemy_def.gd	s|\t\tif int\(pct\) < 0:|\t\tif false:|	tests/unit/test_enemy_def.gd	an enemy ships healed by an element instead of hurt by it
+scripts/world/world_scene.gd	s|def.status_turns, def.target, def.stat, def.element\)\)|def.status_turns, def.target, def.stat))|	tests/integration/test_world_battles.gd	a spell's element is dropped between the file and the fight, so every spell lands at face value
+data/enemies/gloom.tres	s|&"fire": 200|&"fire": 150|	tests/fixtures/qa/quest/fire_finds_the_gloom.json	the Gloom's weakness to fire is retuned and the played session does not notice
+scripts/ui/battle_logic.gd	s|\tif answer > 100:|\tif false:|	tests/unit/test_battle_logic.gd	a weakness lands silently, so a bigger number arrives with nothing to compare it against
+scripts/ui/battle_logic.gd	s|\tif answer < 100:|\tif false:|	tests/unit/test_battle_logic.gd	a resistance lands silently, and a small number reads as a weak spell

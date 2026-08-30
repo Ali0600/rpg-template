@@ -11,6 +11,15 @@
 ; retune the smith's shop - see docs/DECISIONS.md. The xp is untouched and the CURVE doubled
 ; instead, which keeps every levelling beat where it was.
 
+; WEAK TO WIND (150%), which is what gives Gale a job. A sweep worth 4 a body against a pair
+; is a worse deal than one Ember; at 6 it is the right answer to two small things, so the two
+; spells stop being 'the strong one' and 'the other one' and become a choice about what is in
+; front of you. Small light things going over in a gale needs no explaining.
+;
+; 150 rather than 200 deliberately: a third value in the table is the argument for percents
+; over tier words - 'weak' and 'resistant' cannot say this, and the day a game wants a fourth
+; answer it writes a number instead of asking for a new word. UNJUDGED BY EAR.
+
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
 [resource]
@@ -24,4 +33,7 @@ defense = 1
 xp = 5
 gold = 2
 boss = false
+resistances = {
+&"wind": 150
+}
 moves = [{ "name": "Scratch", "power": 0 }, { "name": "Lunge", "power": 2 }]

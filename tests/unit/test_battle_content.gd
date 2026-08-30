@@ -56,6 +56,32 @@ func test_every_shipped_spell_is_valid_and_named_after_its_file() -> void:
 	assert_int(seen.size()).override_failure_message(
 		"no spells were checked, so the loop above proved nothing").is_greater(0)
 
+func test_every_element_a_resistance_answers_is_one_some_spell_is_made_of() -> void:
+	# The two halves of the system live in different directories and are joined by a bare string,
+	# so a typo on either side is a pairing that silently never fires - the enemy looks resistant
+	# in its file, the spell looks elemental in its own, and the fight quietly applies 100%.
+	# Nothing else can see that: both files are individually valid.
+	var castable := {}
+	for path in ContentScan.files_of(SPELL_DIR, "tres"):
+		var spell := load(path) as SpellDef
+		if spell != null and not String(spell.element).is_empty():
+			castable[spell.element] = spell.id
+	var answered := 0
+	for path in ContentScan.files_of(ENEMY_DIR, "tres"):
+		var enemy := load(path) as EnemyDef
+		if enemy == null:
+			continue
+		for element: Variant in enemy.resistances:
+			answered += 1
+			assert_bool(castable.has(element)).override_failure_message(
+				"'%s' answers '%s', which no shipped spell is made of - that resistance can "
+				% [enemy.id, element] + "never fire. Spells offer: %s" % [castable.keys()]) \
+				.is_true()
+	# A game may ship no resistances at all, but THIS one does, and a loop that compared nothing
+	# would report green about a table it never opened.
+	assert_int(answered).override_failure_message(
+		"no resistance was checked, so the loop above proved nothing").is_greater(0)
+
 func test_every_shipped_combat_definition_is_valid() -> void:
 	for path in ContentScan.files_of(COMBAT_DIR, "tres"):
 		var combat := load(path) as CombatDef

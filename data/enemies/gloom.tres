@@ -11,6 +11,14 @@
 ;
 ; Gold halved (6 -> 3) for the reason slink.tres gives: a fight pays what that fight paid.
 ;
+; WEAK TO FIRE (200%), which makes Ember worth 14 against it - exactly its health, so one
+; cast ends it. That is the loudest answer in the table on purpose: the first weakness a
+; player meets has to be unmistakable, or it reads as the numbers being noisy rather than as
+; something they now know. A cold dark thing that burns needs no explaining either.
+;
+; UNJUDGED BY EAR: whether a one-cast kill is a reward for knowing something or a fight that
+; ends before it starts. 150% would make it 10 and leave the Gloom standing on 4.
+;
 ; CHILL IS THE GAME'S ONE AFFLICTION, and it replaced this enemy's plain 0-power hit rather than
 ; being added beside it - a third move would have diluted the two that were tuned. It takes two
 ; off the target's guard for three turns and deals no damage at all, so the Gloom now either
@@ -35,4 +43,7 @@ defense = 2
 xp = 12
 gold = 3
 boss = false
+resistances = {
+&"fire": 200
+}
 moves = [{ "name": "Chill", "status": "sap", "stat": "defense", "amount": 2, "turns": 3 }, { "name": "Grasp", "power": 3 }]
