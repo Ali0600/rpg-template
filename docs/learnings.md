@@ -1216,3 +1216,20 @@ directories and ask which of them it covers. Better: write the scan over the *se
 types rather than one type, so a new directory is covered by construction. And note the shape of
 the discovery — a mutation aimed at DATA is what found a missing gate, which is an argument for
 mutating data and not only code.
+
+## A fixture derived by truncation inherits whatever the cut left behind
+
+Building a new test fixture by copying an existing one and cutting the tail off is cheap and
+usually right. The hazard is *where* you cut: a marker that appears several times sends the knife
+to the last one, and the steps between the two you meant are silently kept.
+
+**Why it came up.** A new play session was sliced from an existing one at "everything up to the
+last `assert_state battle`". That kept the source script's own spell leg, so the new script's
+cursor opened two rows away from where it was written to be and cast a different spell — and
+every assertion still passed, because the two spells cost the same. Two independent mistakes
+lined up: a cut on a repeated marker, and an assertion that could not tell the paths apart.
+
+**Takeaway.** Cut on the step that *opens* the part being replaced — the note, the walk, the
+navigation into the screen — never on a marker the script reaches more than once. Then read the
+kept tail rather than assuming it: a derived fixture's bug is always in the region you did not
+look at, because the region you wrote is the one you checked.
