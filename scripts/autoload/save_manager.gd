@@ -114,13 +114,27 @@ func load_slot(game: StringName, slot: int) -> SaveData:
 	return reading.data
 
 
-## The slot list's read: what is in this slot, or null, with NOTHING done about it. A menu
-## drawing three rows must not park files, log errors or announce loads it did not perform -
-## an interface that acquires side effects by being looked at is a bug that surfaces as
-## mysterious `.corrupt` files. Whether a null here is empty, unreadable or another game's is
-## deliberately not distinguished; load_slot is where that question gets an answer.
-func peek(game: StringName, slot: int) -> SaveData:
-	return _read(game, slot).data
+## The slot list's read: what is in this slot, with NOTHING done about it. A menu drawing three
+## rows must not park files, log errors or announce loads it did not perform - an interface that
+## acquires side effects by being looked at is a bug that surfaces as mysterious `.corrupt`
+## files. That much is unchanged and is the whole reason this is not `load_slot`.
+##
+## What changed in M32 is that it stops throwing away the distinction it already computed.
+## `_read` knows whether a file EXISTS and separately whether it could be read; returning only
+## the data collapsed "nothing here" and "here and unreadable" into one null, and a menu drew
+## both as empty - offering to save over the very file a player would want back. Which FAULT it
+## has is still not carried: the row says one thing either way, and load_slot is where the whole
+## list gets pushed as an error.
+##
+## The local is `glance` and not `reading` deliberately: load_slot's own local is `reading`, and
+## two identical lines in one file make the mutant aimed at either of them AMBIGUOUS - sed edits
+## whichever comes first and reports a verdict about the other. The aim check says so on every
+## run, and the fix is to make the lines differ rather than to loosen the pattern.
+func peek(game: StringName, slot: int) -> SlotSummary:
+	var glance := _read(game, slot)
+	if glance.data != null:
+		return SlotSummary.of(glance.data)
+	return SlotSummary.broken() if glance.exists else SlotSummary.empty()
 
 
 func delete_slot(game: StringName, slot: int) -> void:

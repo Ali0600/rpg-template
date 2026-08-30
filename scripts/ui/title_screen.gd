@@ -58,7 +58,7 @@ func setup(menu: TitleMenu, style: SpriteStyle, viewport_size: Vector2i, heading
 	_paint()
 
 
-func refresh(slots: Array[SaveData]) -> void:
+func refresh(slots: Array[SlotSummary]) -> void:
 	if _menu == null:
 		return
 	_menu.refresh(slots)
@@ -130,7 +130,7 @@ func _label_for(at: int) -> String:
 	# The same row text the pause and game-over screens draw, from the same function: a slot
 	# that reads one way when you save it and another when you are choosing it is two menus
 	# describing one file.
-	return PauseMenu.slot_label(at, _menu.slot(at))
+	return PauseMenu.slot_label(at, _menu.summary(at))
 
 
 func _unhandled_input(event: InputEvent) -> void:

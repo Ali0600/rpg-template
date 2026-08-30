@@ -7,17 +7,23 @@ extends GdUnitTestSuite
 
 ## Slots with saves at the given indices. 754 seconds so a label reads 12:34 - a time nobody
 ## could produce by accident.
-func _slots(filled: Array[int], count := 3) -> Array[SaveData]:
-	var out: Array[SaveData] = []
+## Slots by index: the ones named in `filled` hold a save, the ones in `damaged` hold a file
+## that cannot be read, and the rest are empty. Three states because the menus now draw three -
+## a damaged slot used to be indistinguishable from an empty one here and on screen.
+func _slots(filled: Array[int], count := 3, damaged: Array[int] = []) -> Array[SlotSummary]:
+	var out: Array[SlotSummary] = []
 	for i in count:
+		if damaged.has(i):
+			out.append(SlotSummary.broken())
+			continue
 		if not filled.has(i):
-			out.append(null)
+			out.append(SlotSummary.empty())
 			continue
 		var data := SaveData.new()
 		data.game = &"quest"
 		data.map = &"quest_village"
 		data.play_seconds = 754.0
-		out.append(data)
+		out.append(SlotSummary.of(data))
 	return out
 
 func test_a_fresh_menu_opens_on_resume() -> void:
@@ -137,7 +143,33 @@ func test_a_clock_reads_as_minutes_until_it_reads_as_hours() -> void:
 func test_a_slot_label_names_the_map_and_the_time_or_says_empty() -> void:
 	var filled := _slots([0])
 	assert_str(PauseMenu.slot_label(0, null)).is_equal("Slot 1: empty")
+	assert_str(PauseMenu.slot_label(0, SlotSummary.empty())).is_equal("Slot 1: empty")
 	assert_str(PauseMenu.slot_label(1, filled[0])).is_equal("Slot 2: quest_village  12:34")
+
+
+func test_a_slot_that_cannot_be_read_says_so_instead_of_saying_empty() -> void:
+	# The three answers are what this milestone is about, and the pair is the assertion: a row
+	# that said "damaged" for everything would pass a check that only looked at the broken one.
+	# "Empty" is an invitation to save over the slot, and the thing being saved over is the file
+	# a player would want back - which is why the genre states it rather than showing a blank.
+	var rows := _slots([1], 3, [0])
+	assert_str(PauseMenu.slot_label(0, rows[0])).is_equal("Slot 1: damaged")
+	assert_str(PauseMenu.slot_label(1, rows[1])).is_equal("Slot 2: quest_village  12:34")
+	assert_str(PauseMenu.slot_label(2, rows[2])).is_equal("Slot 3: empty")
+
+
+func test_a_damaged_slot_is_still_refused_by_load() -> void:
+	# The refusal needed no new code - the LOAD page already turned down anything with no data
+	# behind it - so this is here to say that out loud and to keep it that way. A row a player
+	# can now SEE is a row a player will now press.
+	var menu := PauseMenu.of(_slots([], 3, [0]))
+	menu.move(PauseMenu.Row.LOAD)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).override_failure_message(
+		"a menu with only a damaged slot did not even open the load page").is_equal(
+		PauseMenu.Page.LOAD)
+	assert_int(menu.confirm().kind).override_failure_message(
+		"a damaged slot was offered as something to load").is_equal(PauseMenu.Kind.NONE)
 
 
 func _bag(entries: Array) -> Array:

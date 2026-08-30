@@ -90,7 +90,7 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 
 ## New slot contents from the world, cursor untouched. After a save that is what makes the row
 ## the player is looking at show what they just wrote.
-func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
+func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
 		status: Array[String] = [], members: Array = []) -> void:
 	if _menu == null:
@@ -202,7 +202,7 @@ func _label_for(at: int) -> String:
 		PauseMenu.Page.EQUIP_PICK:
 			return PauseMenu.pick_label(_menu.pick_row(at))
 		_:
-			return PauseMenu.slot_label(at, _menu.slot(at))
+			return PauseMenu.slot_label(at, _menu.summary(at))
 
 
 func _title_for(page: PauseMenu.Page) -> String:

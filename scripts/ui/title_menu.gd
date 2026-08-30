@@ -8,7 +8,7 @@ extends SlotMenu
 ## again", because after a death that is what it is.
 
 
-static func of(slots: Array[SaveData]) -> TitleMenu:
+static func of(slots: Array[SlotSummary]) -> TitleMenu:
 	var menu := TitleMenu.new()
 	menu._slots = slots.duplicate()
 	menu._open_on_a_pressable_row()

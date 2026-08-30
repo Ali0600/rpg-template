@@ -121,7 +121,7 @@ class GearRow:
 
 ## Indexed by slot id, which is 0-based like SaveManager's. Only the LABEL says "Slot 1" - a
 ## menu that renumbered would make a bug report and a filename disagree.
-var _slots: Array[SaveData] = []
+var _slots: Array[SlotSummary] = []
 ## One ItemRow per thing carried, in pickup order. Untyped Array because a typed default
 ## for a nested class is not a constant expression.
 var _items: Array = []
@@ -160,7 +160,7 @@ var _page := Page.TOP
 var _index := 0
 
 
-static func of(slots: Array[SaveData], items: Array = [], sound: String = "",
+static func of(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
 		status: Array[String] = [], members: Array = []) -> PauseMenu:
 	var menu := PauseMenu.new()
@@ -357,9 +357,17 @@ func size() -> int:
 			return _slots.size()
 
 
-## What is in a slot, or null for an empty one. Out of range is null too rather than an error:
-## the view asks for every row it draws and the answer "nothing" is a drawable one.
+## What is in a slot, or null for one with nothing loadable in it. Out of range is null too
+## rather than an error: the view asks for every row it draws and the answer "nothing" is a
+## drawable one. SaveData rather than the summary, because every caller here is asking whether
+## there is something to load - and an empty slot and a damaged one answer that the same way.
 func slot(at: int) -> SaveData:
+	var found := summary(at)
+	return null if found == null else found.data
+
+
+## The whole reading, for the one caller that has to tell empty from damaged: the row's label.
+func summary(at: int) -> SlotSummary:
 	if at < 0 or at >= _slots.size():
 		return null
 	return _slots[at]
@@ -485,7 +493,7 @@ func cancel() -> Pick:
 ## New slot contents, same cursor. Called after a save so the row the player is looking at
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
-func refresh(slots: Array[SaveData], items: Array = [], sound: String = "",
+func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
 		status: Array[String] = [], members: Array = []) -> void:
 	_slots = slots.duplicate()
@@ -578,7 +586,16 @@ static func pick_label(row: ItemRow) -> String:
 
 ## One row of the save slot list. The slot is displayed one-based because a player counts from one;
 ## everything else - the filename, the API, a bug report - stays zero-based.
-static func slot_label(at: int, data: SaveData) -> String:
-	if data == null:
+##
+## THREE ANSWERS, not two. A file that is there and cannot be read used to draw as "empty",
+## which is the one wording that invites a player to save over it - and the thing being saved
+## over is the file they would want back. The genre states it: Pokémon decides a save is
+## unusable by checksum and says "The file data is destroyed!" rather than showing a blank.
+## Nothing else changes about a damaged row: the LOAD page already refused anything with no
+## data behind it, so only the wording was ever missing.
+static func slot_label(at: int, summary: SlotSummary) -> String:
+	if summary == null or (summary.data == null and not summary.damaged):
 		return "Slot %d: empty" % (at + 1)
-	return "Slot %d: %s  %s" % [at + 1, data.map, clock(data.play_seconds)]
+	if summary.data == null:
+		return "Slot %d: damaged" % (at + 1)
+	return "Slot %d: %s  %s" % [at + 1, summary.data.map, clock(summary.data.play_seconds)]

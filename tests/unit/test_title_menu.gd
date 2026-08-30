@@ -5,17 +5,23 @@ extends GdUnitTestSuite
 ## places they differ are the two things worth testing here: the words, and where the cursor
 ## opens.
 
-func _slots(filled: Array[int], count := 3) -> Array[SaveData]:
-	var out: Array[SaveData] = []
+## Slots by index: the ones named in `filled` hold a save, the ones in `damaged` hold a file
+## that cannot be read, and the rest are empty. Three states because the menus now draw three -
+## a damaged slot used to be indistinguishable from an empty one here and on screen.
+func _slots(filled: Array[int], count := 3, damaged: Array[int] = []) -> Array[SlotSummary]:
+	var out: Array[SlotSummary] = []
 	for i in count:
+		if damaged.has(i):
+			out.append(SlotSummary.broken())
+			continue
 		if not filled.has(i):
-			out.append(null)
+			out.append(SlotSummary.empty())
 			continue
 		var data := SaveData.new()
 		data.game = &"quest"
 		data.map = &"quest_village"
 		data.play_seconds = 754.0
-		out.append(data)
+		out.append(SlotSummary.of(data))
 	return out
 
 
