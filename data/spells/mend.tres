@@ -6,7 +6,7 @@
 ; the cheaper answer that runs out and the tonic is the one you can stock - and at level 1,
 ; eight magic buys exactly two mends, which is the same wall a purse is.
 ;
-; UNJUDGED: nobody has fought with it.
+; UNJUDGED BY EAR: the gates fight with it every run and cannot judge it.
 
 [ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
 

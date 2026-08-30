@@ -5,7 +5,10 @@
 ; That is Dragon Quest II's split with the roles the other way round, and it is what makes
 ; taking her along a decision rather than a second copy of yourself.
 ;
-; EVERY NUMBER HERE IS UNJUDGED BY EAR. Nobody has played a fight with two people in it.
+; EVERY NUMBER HERE IS UNJUDGED BY EAR. test_battle_content plays her fights at both ends of
+; the skill range on every run, so they are proven winnable and proven to hurt - and neither
+; of those is the question. Whether a second sword makes a fight better to HOLD is a person's
+; answer, and no gate will ever supply it.
 
 [ext_resource type="Script" path="res://scripts/data/party_member_def.gd" id="1_member"]
 [ext_resource type="Resource" path="res://data/combat/scrapper_combat.tres" id="2_combat"]

@@ -10,7 +10,7 @@
 ; should arrive after the player has met the fight it answers. Two turns for 5 MP against a
 ; level-2 pool of 11: one cast a fight, and the pool is what stops it being the whole plan.
 ;
-; UNJUDGED: nobody has fought with it.
+; UNJUDGED BY EAR: the gates fight with it every run and cannot judge it.
 
 [ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
 

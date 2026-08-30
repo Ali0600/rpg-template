@@ -1269,3 +1269,39 @@ The first real failure minimised to five steps, and the answer was the bug state
 you delete the entire "is this candidate even legal" branch along with the bugs that live in it.
 Then keep the search PURE — offer a candidate, be told whether it still fails — so the part that
 decides what to try next is unit-testable without the expensive machinery that runs it.
+
+## A wrong fact in a code comment outlives a missing feature
+
+A gap in a system invites work: somebody eventually notices it and fills it. A wrong claim about
+*why* the gap is correct invites citation instead, and it sits in exactly the place the next
+person looks before touching the code.
+
+**Why it came up.** A defeat cut the music dead, under a comment reading "every game this
+borrows from cuts the music at a game over". Final Fantasy I ships a dedicated game-over theme
+in 1987, and every entry since has one; the references *change* what is playing at a death
+rather than falling silent. The claim had stood for four milestones, and it stood precisely
+because it was written where a reader would look for permission to change the branch. Nothing
+could have caught it: no gate can check a sentence.
+
+**Takeaway.** When you write down *why* a divergence from a norm is correct, mark whether the
+norm was **checked** or **remembered** — a remembered one is a hypothesis, and hypotheses belong
+in prose that says so. Two habits fall out: do the reference pass before building the surface
+rather than after, and treat "we do X because everyone does X" in an existing comment as a claim
+with an expiry date rather than as settled, especially when you are about to build on it.
+
+## Widening a type turns every null test into a different question
+
+Replacing `T` with a richer type that can no longer be null is a mechanical refactor that the
+compiler polices — except for the checks written against the old nullability, which still
+compile and now mean something else.
+
+**Why it came up.** Save slots moved from `Array[SaveData]` (null meant "empty") to
+`Array[SlotSummary]` (an empty slot is an object). Every signature the compiler flagged was
+fixed in minutes. The one it could not flag was `for entry in _slots: if entry != null: return
+true`, which had meant "there is a save" and now meant "there is a slot" — true of every row. It
+would have offered Continue to a player with nothing saved. Five suites caught it.
+
+**Takeaway.** After widening a type, grep the *old* type's null tests by hand rather than trusting
+the compiler: it verifies shapes and cannot verify meanings. Give the new type a named predicate
+for the question the null used to answer (`has_save()`), so the surviving call sites read as the
+question rather than as the representation.

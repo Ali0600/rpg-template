@@ -21,7 +21,9 @@
 ;
 ; At level 2 the pool is 11: a Ward and two Embers, or a Ward, a Mend and a little left.
 ;
-; UNJUDGED: the name, the +2, the three turns, and the 3 magic. Nobody has cast it.
+; UNJUDGED BY EAR: the name, the +2, the three turns, and the 3 magic. A scripted session casts
+; it in the Keeper's fight on every run and asserts the tag it puts on the caption, which
+; proves it LANDS and says nothing about whether it is worth a turn.
 
 [ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
 

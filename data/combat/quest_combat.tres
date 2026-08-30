@@ -39,7 +39,8 @@
 ; The magic curve is 8 and 3, which is deliberately small: at level 1 that is two casts of a
 ; three-point spell, and by level 3 it is four. Magic in a twenty-minute quest is a thing you
 ; decide to spend, not a second attack button - and an inn refills it, which is what gives the
-; four gold a night a second reason to exist. UNJUDGED: nobody has played a fight with it yet.
+; four gold a night a second reason to exist. UNJUDGED BY EAR: the gates spend the purse every
+; run and cannot say whether the price bites.
 
 [ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
 

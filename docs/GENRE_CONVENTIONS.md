@@ -510,6 +510,20 @@ built on it. A game wanting save points ships them as an object with a `GameHook
 pairs the two; this template does not, because save-anywhere is a decision already recorded
 above and pairing them would relitigate it as a side effect of a healing feature.
 
+**A damaged save is TOLD, not hidden — added in M32.** The canonical case is Pokémon's *"The
+file data is destroyed!"*: the save is checksummed, and a file that fails is declared unusable
+to the player's face rather than presented as a blank slot. This template used to do the
+opposite by accident — `SaveManager._read` distinguished "nothing here" from "here and
+unreadable" and `peek()` collapsed both to null, so a slot list drew a file it could not read as
+`empty`. That is the one wording that invites saving over it, and the thing being saved over is
+the file a player would want back. The row now says `damaged`. Nothing else changed: the load
+page already refused anything with no data behind it, and a save into that slot has parked the
+original bytes since M5.
+
+The reason is *not* shown. Which fault a file has — malformed JSON, a failed validation, a save
+naming a different game — is a developer's question, and `load_slot` pushes the whole list as an
+error when a player actually tries it.
+
 ---
 
 ## 9. Progression
@@ -721,9 +735,16 @@ maps that share a theme does not restart it.
 
 **M26 scored the fights.** `battle_music` takes the room over when one opens; `victory_music`
 plays once on a win and hands the room back to whatever the map states, which may be that map's
-own silence. A defeat cuts the music outright, which is what every reference game does at a game
-over. Both manifest fields default to empty, and empty means the pre-M26 behaviour exactly: a
-fight sounds like wherever it happens.
+own silence. Both manifest fields default to empty, and empty means the pre-M26 behaviour
+exactly: a fight sounds like wherever it happens.
+
+~~A defeat cuts the music outright, which is what every reference game does at a game over.~~
+**That sentence was wrong, and M32 is the correction.** Final Fantasy I ships **"Dead Music"**
+in 1987, and each Final Fantasy since has had its own Game Over scene — FF5's is "Requiem". The
+references *change* what is playing at a death; they do not fall silent. So the template's
+silence was a divergence written down as a convention, which is worse than a plain gap: a gap
+gets filled, and a convention gets cited. It survived four milestones because it sat in a code
+comment justifying the branch it described.
 
 The one thing that was code rather than data: a fanfare plays ONCE and then hands back, and
 "once" is a property of the play call (`AudioBus.play_music_then`) rather than of the file — the
@@ -731,9 +752,37 @@ same tune could be somebody's title theme. Length remains the whole cost here: t
 across three voices is about 2.3 MB, at 43 KB a second per voice, which is why
 `MusicTrack.MAX_SECONDS` exists.
 
-**Remaining gap:** a game-over theme, and per-encounter themes (a boss that sounds like a boss).
-Both are `deferred` in [DECISIONS.md](DECISIONS.md) — the first needs a screen to name it, the
-second an `EnemyDef` field that would outrank the manifest's.
+**M32 closed both remaining gaps.**
+
+*The game over.* `GameManifest.game_over_music`, played through the same `play_or_silence` a map
+entry uses — "a game states its game-over music or states silence" is the same sentence, and it
+already had a function. A LOOP rather than a jingle: the screen is sat on while a player decides
+what to do about a lost run, which is the one place a one-shot would leave them in silence.
+Empty is still legal and is still what every session recorded before M32 hears.
+
+*The boss.* `EnemyDef.music`, outranking the manifest's. **Which fights get a second battle
+theme is the thing the references disagree about**, and that disagreement is the argument for
+putting it on the enemy rather than behind the `boss` flag:
+
+| game | a second battle theme? |
+| --- | --- |
+| Dragon Quest I (1986) | yes — eight tracks, one of them reserved for the Dragonlord |
+| Final Fantasy I (1987) | **none.** One battle theme, played for every fight *including Chaos* |
+| Final Fantasy II (1988) | "Battle Theme 2" for major bosses and the final boss |
+| Final Fantasy IV (1991) | "Battle 2" for every boss but two |
+
+A field on the enemy sits anywhere on that range without the template choosing for every game
+built on it. In a formation the **first foe that states a track wins**, scanned in the order the
+map record names them — a formation with a boss anywhere in it is a boss fight, and reading only
+the first entry would make the Keeper's theme depend on where his escort was written down.
+
+Note the order in which the genre acquired these: Dragon Quest had a boss theme before Final
+Fantasy existed, and Final Fantasy had a game-over theme in the same game that had no boss
+theme at all. Neither is downstream of the other, which is why they are two fields.
+
+**Remaining gap:** whether the victory fanfare should differ after a boss. Deferred in
+[DECISIONS.md](DECISIONS.md) — it is a second field answering a second question, and a fled boss
+fight cannot happen here anyway (a boss refuses every escape).
 
 ---
 
@@ -748,6 +797,23 @@ Convergent-anatomy claims above are drawn from these, plus the reference games d
   [Optimize](https://finalfantasy.fandom.com/wiki/Optimize)
 - [Realm of Darkness — DQ NES vs SNES differences](https://www.realmofdarkness.net/dq/snes-dq2-differences/)
 - [Wikipedia — random encounter](https://en.wikipedia.org/wiki/Random_encounter)
+
+Music and save-integrity research (§14 and §8, added in M32):
+
+- [Final Fantasy wiki — Battle Theme 2](https://finalfantasy.fandom.com/wiki/Battle_Theme_2) and
+  [Battle (Final Fantasy)](https://finalfantasy.fandom.com/wiki/Battle_(Final_Fantasy)) — FF1's
+  single battle theme plays for every fight *including Chaos*; FF2's "Battle Theme 2" is the
+  series' first dedicated boss theme
+- [Final Fantasy wiki — Battle 2 (Final Fantasy IV)](https://finalfantasy.fandom.com/wiki/Battle_2_(Final_Fantasy_IV))
+  — debuts at the Mist Dragon and plays for every boss but two
+- [Final Fantasy wiki — Game Over (term)](https://finalfantasy.fandom.com/wiki/Game_Over_(term))
+  — each game has its own Game Over scene; FF1's is "Dead Music", FF5's is "Requiem"
+- [Wikipedia — Koichi Sugiyama](https://en.wikipedia.org/wiki/Koichi_Sugiyama) — Dragon Quest I's
+  eight melodies (Opening, Castle, Town, Field, Dungeon, Battle, Final Battle, Ending), the
+  soundtrack shape the genre copied, with a boss theme in it before Final Fantasy existed
+- [Glitch City Wiki — damaged save data error messages](https://glitchcity.wiki/wiki/Damaged_save_data_error_messages)
+  — Pokémon Gen I checksums the save and says "The file data is destroyed!" rather than
+  presenting a blank slot
 
 Party research (§7a) is drawn from these, and each claim above names the game it came from:
 

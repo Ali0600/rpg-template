@@ -11,7 +11,7 @@
 ; and a rule per pairing; the name costs nothing and reads the same at this scale. See
 ; docs/DECISIONS.md.
 ;
-; UNJUDGED: nobody has fought with it.
+; UNJUDGED BY EAR: the gates fight with it every run and cannot judge it.
 
 [ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
 

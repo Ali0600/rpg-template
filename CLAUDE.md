@@ -513,10 +513,29 @@ interrupted by the last one's chain firing into it - and a jingle asked for twic
 bypassing the no-restart guard, because a jingle is an event where a theme is a state.
 
 **`AudioBus.play_or_silence(id)` is what a PLACE sounds like** - its track, or silence when it
-names none. Three callers need that exact answer (entering a map, a fanfare handing back, a
-fight ending), and written out three times it is three copies of "a map states its music or
-states silence, never inherits" with one of them eventually stale. A defeat is the exception
-and stops the music outright: every way out of a game over states its own music again.
+names none. FOUR callers need that exact answer (entering a map, a fanfare handing back, a
+fight ending, and a defeat), and written out four times it is four copies of "a map states its
+music or states silence, never inherits" with one of them eventually stale.
+
+**A defeat plays `GameManifest.game_over_music`, and the fact that it used to play NOTHING is
+the cautionary tale in this file.** The branch called `stop_music()` under a comment reading
+"every game this borrows from cuts the music at a game over". That is false - Final Fantasy I
+ships "Dead Music" in 1987, and each Final Fantasy since has its own game-over scene; the
+references CHANGE what is playing at a death rather than falling silent. A wrong genre claim in
+a code comment is more durable than a gap, because a gap invites work and a claim invites
+citation, and this one sat exactly where anyone would look before touching the branch. The rule
+that would have caught it is already in section 1: research the surface before building it. Empty
+is still legal and is still the old behaviour precisely, which is why every session recorded
+before M32 hears the same silence.
+
+**A fight's music can be named by the ENEMY, and the first foe that states one wins.**
+`EnemyDef.music` outranks the manifest's `battle_music`, scanned in the formation's own order -
+so a boss escorted by mooks is a boss fight wherever the escort was written down. On the enemy
+rather than behind the `boss` flag because the references disagree about which fights get a
+second theme (Dragon Quest I reserves one for the Dragonlord, Final Fantasy I has none and plays
+one theme even for Chaos, Final Fantasy IV plays one for nearly every boss), and a template that
+decided would decide for every game built on it. `boss` means "cannot be fled" and fusing the two
+would make a themed duel unfleeable to get its music.
 
 **A cue is named by the template and a track is discovered.** `Sfx.Cue` is an enum so a typo is
 a compile error; a track is named in a manifest (`title_music`) or a map record (`music`) and
@@ -631,8 +650,13 @@ own globals.
 **Saves are per game, and `restore()` is the one way back in.** Slots live at
 `user://saves/<game>/slot_N.json` and each save NAMES its game; the two are cross-checked on
 every read and a file that disagrees is parked, never loaded. `peek()` is the slot list's
-silent read - drawing a menu must not park files or announce loads - which makes an unreadable
-slot look *empty*, which is why `save()` parks whatever it is about to overwrite. Escape opens
+silent read - drawing a menu must not park files or announce loads - and it returns a
+`SlotSummary`, so an unreadable slot draws as *damaged* rather than as *empty*. It used to
+collapse both into one null, and "empty" is the one wording that invites saving over the row;
+`save()` parks whatever it is about to overwrite either way. ONE object rather than an
+`Array[bool]` beside the saves, because two paths answering one question drift and the drift
+pairs one slot's data with another slot's verdict. The load page needed no change at all - it
+already refused anything with no data behind it, and only the wording was missing. Escape opens
 `PauseMenu`/`PauseScreen` from `WORLD` only. `restore()` is the
 single path from a save into a world (`from_save` then `enter_map`), and `enter_map`'s third
 argument is a restored position that nothing else passes. A `--qa-script=` run saves under

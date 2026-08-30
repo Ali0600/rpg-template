@@ -18,7 +18,8 @@
 ;
 ; At level 2 the pool is 11, so it can be cast three times and still leave a Mend.
 ;
-; UNJUDGED: the name, the 4, and the 3. Nobody has cast it.
+; UNJUDGED BY EAR: the name, the 4, and the 3. Cast by a scripted session every run, which can
+; only report that the damage arrived.
 
 [ext_resource type="Script" path="res://scripts/data/spell_def.gd" id="1_spell"]
 
