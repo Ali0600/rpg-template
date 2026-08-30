@@ -513,3 +513,4 @@ scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	test
 scripts/ui/battle_screen.gd	s|\t\tvar theirs := acting and not player_side and swinging_foe == at|\t\tvar theirs := acting and not player_side|	tests/integration/test_battle_layout.gd	every foe leans when any one of them swings
 scripts/ui/battle_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
 scripts/ui/battle_screen.gd	s|^const MAX_PARTY := 3$|const MAX_PARTY := 0|	tests/unit/test_battle_content.gd	a game may declare a party bigger than the screen draws
+scripts/world/world_scene.gd	s|\t\t\tdef.status_turns, def.target\)\)|\t\t\tdef.status_turns))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight

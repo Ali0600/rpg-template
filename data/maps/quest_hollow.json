@@ -16,7 +16,15 @@
 		"The stash is an object standing on a bush - there is no chest sprite and there does not",
 		"need to be one: an object is an interaction POINT, and what the player sees is the",
 		"decor tile that was already on the map. It carries once:true, so the memory of having",
-		"opened it lives in GameState.seen and survives a save."
+		"opened it lives in GameState.seen and survives a save.",
+		"",
+		"And in the north-west pocket, something worse: 'the_pair' names a slink AND a gloom on",
+		"one record, which is a FORMATION - one body you walk into, two things that fight. It is",
+		"entirely optional and deliberately out of the way. Its tile was MEASURED rather than",
+		"chosen: a probe on the tile-change hook logged every tile all eighteen play sessions",
+		"walk, and (2,1) is reachable from row 3 while none of its four neighbours is ever",
+		"stepped on. The south chamber has no such tile - every free spot there is adjacent to",
+		"row 7, which the sessions walk end to end."
 	],
 	"id": "quest_hollow",
 	"style": "dusk16",
@@ -65,7 +73,9 @@
 	],
 	"enemies": [
 		{ "id": "slink_gate", "enemy": "slink", "tile": [4, 5], "facing": "up" },
-		{ "id": "slink_stash", "enemy": "slink", "tile": [3, 6], "facing": "right" }
+		{ "id": "slink_stash", "enemy": "slink", "tile": [3, 6], "facing": "right" },
+		{ "id": "the_pair", "enemy": "slink", "group": ["gloom"], "tile": [2, 1],
+			"facing": "down" }
 	],
 	"warps": [
 		{ "tile": [10, 4], "map": "quest_village", "spawn": "from_hollow" }
