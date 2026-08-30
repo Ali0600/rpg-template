@@ -33,6 +33,26 @@ while IFS=$'\t' read -r file expr suite label; do
 		fail=1
 		continue
 	fi
+	# A PAREN THE PATTERN LEAVES UNESCAPED IS A PLATFORM DIFFERENCE, and it is invisible on the
+	# machine that writes it. In an extended regex a lone `)` with no group open is undefined:
+	# BSD sed (macOS) treats it as a literal and matches, GNU sed (the CI runner) does not - so
+	# the row aims correctly here, reports STALE there, and the failure arrives twenty minutes
+	# later on somebody else's machine. Checked on the PATTERN half only; the replacement half
+	# is literal text where a bare paren is fine.
+	pattern=${expr#s|}
+	pattern=${pattern%%|*}
+	# Escaped pairs come out FIRST, and then anything left is bare. Testing "does removing \(
+	# differ from removing (" instead would flag every correctly-escaped row, because the
+	# backslash survives the second removal - which is what the first version of this check did.
+	bare=${pattern//\\(/}
+	bare=${bare//\\)/}
+	if [[ "$bare" == *"("* || "$bare" == *")"* ]]; then
+		echo "UNESCAPED (   $file  :: $label"
+		echo "              the pattern has a bare parenthesis. It matches on BSD sed and not on"
+		echo "              GNU sed, so this row would pass here and go stale in CI - escape it"
+		fail=1
+		continue
+	fi
 	# Count the lines sed actually rewrites, the same way mutate_check.sh judges it.
 	changed=$(sed -E "$expr" "$file" 2>/dev/null | diff "$file" - | grep -c '^>')
 	if [ "$changed" = "0" ]; then
