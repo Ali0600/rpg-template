@@ -175,13 +175,23 @@ is no roster to save, migrate, or hand out twice. Only each member's NUMBERS are
 EVERYTHING for the leader, which is why `_member_spells` and `_battle_spells` are two functions
 rather than one parameter carrying two opposite meanings.
 
-**The round is command-all-then-resolve, in party order.** Every standing member declares before
-anything happens (FF1's manual and Dragon Quest both), then the orders resolve in PARTY order and
-the enemy acts last. Not by a stat: FF1's own turn order is a random shuffle that ignores
-everyone's numbers, and a declared order is the only one a replayed fight can have. `cancel` on
-the menu takes back the previous member's order and hands the menu back to them - with one member
-there is never a previous order, so a solo cancel is still refused exactly as it was. Each
-member's ATTACK gets its own cue and its own first-press-only capture; a cast still has no window.
+**A member acts the moment they choose, in party order.** Choose Attack and that member SWINGS;
+the turn passes to the next standing member only once the blow has landed, and the enemy goes
+after all of them. M27 shipped FF1's command-all-then-resolve instead - every member declares,
+then the round plays out - and the first person to play it rejected it at the controls: a press
+that visibly does nothing reads as a press the game missed, however faithful to the manual it is.
+Super Mario RPG is the genre's own precedent for the shape that replaced it. Order is still PARTY
+order and not a stat, because a replayed fight has to draw the same numbers in the same places.
+
+That collapse deleted three things rather than moving them: the declaration queue, the `cancel`
+that took an order back (there is no previous choice to unwind once each one has already
+happened, so a menu `cancel` is refused for EVERYBODY, which is the pre-party rule restored), and
+the re-checks that asked whether a queued cast could still be paid for - confirming and acting are
+now the same frame, so that gap cannot open. `_commander` therefore holds the turn through
+choosing AND swinging, which is what lets the view mark one member the whole way rather than
+losing them at the press; it goes to -1 for the enemy's turn so the mark can move to the target.
+Each member's ATTACK still gets its own cue and its own first-press-only capture; a cast still has
+no window.
 
 **The ally cursor exists only at two.** `Phase.ALLY` opens for a heal or an item when more than
 one member is standing, over the STANDING only - reviving in a fight is a verb this template does
@@ -203,8 +213,10 @@ way into the next fight.
 `derive("moves")`, so the moves an existing fight draws are untouched and every solo replay is
 byte-identical. Chosen BEFORE the defend cue opens, because the cue is the thing being reacted to
 - the target's armour applies, the halving is theirs, and the screen marks them while there is
-still time to press. `BattleScreen.MAX_PARTY` is the declared capacity a game may not exceed, the
-M13.3 rule; a party of one draws exactly the layout that shipped.
+still time to press. `BattleScreen.MAX_PARTY` is the capacity the view DECLARES and the layout
+audit measures against; a party of one draws exactly the layout that shipped. It is not yet a
+gate on content - nothing refuses a manifest carrying more members than that, so the M13.3 rule
+is half-applied here and the missing half is a check that every game's party fits it.
 
 **Magic is a level curve, and knowing a spell is DERIVED from level.** `CombatDef.base_mp`/
 `mp_per_level` size the pool the way `attack_at` sizes a swing - zero is the default and means

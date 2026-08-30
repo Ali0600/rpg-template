@@ -193,7 +193,8 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M24** — music: a tune authored as notes in `data/music/`, performed by the same synthesiser the sound effects use, so each style plays the same melody in its own voice
 - [x] **M25** — magic: MP as a level curve, spells in `data/spells/` known by reaching their own level, and a Magic command between Attack and Item with an attack, a heal and a sleep behind it
 - [x] **M26** — a battle theme and a victory fanfare: a fight takes the room's music over, a win stings once and hands the room back to whatever the map states
-- [x] **M27** — a party: a second fighter who joins through a conversation, a round where everybody gives an order before anything happens, an ally cursor that only exists once there is somebody to aim at, and per-member equipment and status pages
+- [x] **M27** — a party: a second fighter who joins through a conversation, an ally cursor that only exists once there is somebody to aim at, and per-member equipment and status pages
+- [x] **M27.1** — a member acts the moment they choose: choosing Attack swings, and the turn passes to the next fighter once the blow has landed, rather than collecting everybody's orders first
 
 ## Experience Gained
 
