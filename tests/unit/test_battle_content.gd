@@ -126,53 +126,212 @@ func test_no_game_asks_for_a_bigger_party_than_the_screen_draws() -> void:
 			% [path, size, BattleScreen.MAX_PARTY]).is_less_equal(BattleScreen.MAX_PARTY)
 
 func test_the_curve_lines_up_with_what_the_quest_actually_pays() -> void:
-	# The difficulty design, pinned. Two hollow slinks must be exactly level 2, because that is
-	# what the Keeper's numbers assume; and the Keeper must carry the player to level 3. If a
-	# designer retunes an enemy's xp or the curve, this is the test that says the fight it was
-	# balanced against has moved.
-	var combat := (load("res://data/games/quest.tres") as GameManifest).combat
-	var slink := load("res://data/enemies/slink.tres") as EnemyDef
-	var keeper := load("res://data/enemies/keeper.tres") as EnemyDef
-	assert_int(combat.level_for(slink.xp)).override_failure_message(
-		"one slink is already a level - the hollow stops teaching and starts rewarding").is_equal(1)
-	assert_int(combat.level_for(slink.xp * 2)).override_failure_message(
-		"the two hollow slinks no longer reach level 2, which is what the Keeper is tuned against"
-	).is_equal(2)
-	assert_int(combat.level_for(slink.xp * 2 + keeper.xp)).override_failure_message(
+	# The difficulty design, pinned. The hollow's two required fights must be exactly level 2,
+	# because that is what the Keeper's numbers assume; and the Keeper must carry the player to
+	# level 3. If a designer retunes an enemy's xp, the curve, or the SIZE of a formation, this
+	# is the test that says the fight it was balanced against has moved.
+	#
+	# The awards are summed from the map records rather than from one enemy file, which is the
+	# whole difference: `slink.xp * 2` was a stand-in for "the hollow", and stopped being one the
+	# moment a record could name more than one body.
+	var combat := _quest().combat
+	var first := _award_of(HOLLOW_REQUIRED[0])
+	var hollow := first + _award_of(HOLLOW_REQUIRED[1])
+	assert_int(combat.level_for(first)).override_failure_message(
+		"the hollow's first fight is already a level - it stops teaching and starts rewarding"
+	).is_equal(1)
+	assert_int(combat.level_for(hollow)).override_failure_message(
+		"the hollow's required fights (%d xp) no longer reach level 2, which is what the Keeper is tuned against"
+		% hollow).is_equal(2)
+	assert_int(combat.level_for(hollow + _award_of(BOSS))).override_failure_message(
 		"beating the Keeper no longer reaches level 3").is_equal(3)
 
-func test_a_level_two_player_can_beat_the_keeper_by_timing_and_cannot_by_mashing() -> void:
-	# The whole difficulty statement, as arithmetic rather than as a comment: perfect play wins
-	# on every seed, and no play loses on every seed. A boss that is beatable by mashing has no
-	# timing mechanic; one that is unbeatable with it is a wall.
-	var combat := (load("res://data/games/quest.tres") as GameManifest).combat
-	var keeper := load("res://data/enemies/keeper.tres") as EnemyDef
-	var level := 2
-	var hp := combat.max_hp(level)
+func test_the_boss_fight_is_won_by_timing_and_lost_by_mashing() -> void:
+	# The whole difficulty statement, and it is now made of the FIGHT rather than of arithmetic
+	# about it: the real BattleLogic, the formation the map actually names, and the party the
+	# player is actually guaranteed, played to the end on twelve seeds by two drivers.
+	#
+	# What this replaced hard-coded one enemy acting once per round against one player. That was
+	# true when it was written and is the exact shape CLAUDE.md calls worse than no gate - it
+	# would have gone on reporting green about a duel the game no longer contains.
+	for seed_value in range(1, 13):
+		var won := BattleDriver.play(_fight(BOSS, BOSS_LEVEL, seed_value),
+			BattleDriver.Policy.PERFECT)
+		assert_str(won.fault).is_empty()
+		assert_bool(won.ended).override_failure_message(
+			"the Keeper fight did not finish within the frame cap on seed %d" % seed_value).is_true()
+		assert_int(won.outcome).override_failure_message(
+			"a party that times every press LOSES to the Keeper on seed %d - %d standing, %s"
+			% [seed_value, won.standing(), str(won.party_hp)]).is_equal(BattleLogic.Outcome.VICTORY)
 
-	var timed := BattleLogic.damage(combat.attack_at(level), keeper.defense) * 2
-	var rounds := ceili(float(keeper.max_hp) / float(timed))
-	var worst_blocked := 0
-	var worst_open := 0
-	for move: Dictionary in keeper.moves:
-		var raw := BattleLogic.damage(keeper.attack + int(move.get("power", 0)), combat.defense_at(level))
-		worst_blocked = maxi(worst_blocked, maxi(raw / 2, 1))
-		worst_open = maxi(worst_open, raw)
-	assert_int(rounds * worst_blocked).override_failure_message(
-		"a player who times every press can still lose to the Keeper: %d rounds x %d damage vs %d health"
-		% [rounds, worst_blocked, hp]).is_less(hp)
+		var lost := BattleDriver.play(_fight(BOSS, BOSS_LEVEL, seed_value),
+			BattleDriver.Policy.MASH)
+		assert_bool(lost.ended).is_true()
+		assert_int(lost.outcome).override_failure_message(
+			"a party that times NOTHING survives the Keeper on seed %d - the timing mechanic is decorative"
+			% seed_value).is_equal(BattleLogic.Outcome.DEFEAT)
 
-	var untimed := BattleLogic.damage(combat.attack_at(level), keeper.defense)
-	var slow := ceili(float(keeper.max_hp) / float(untimed))
-	# The Keeper acts once per round after the first player swing, and its WEAKEST move is the
-	# one to measure against: if even that kills in time, the fight is lost on every seed.
-	var weakest := 999
-	for move: Dictionary in keeper.moves:
-		weakest = mini(weakest, BattleLogic.damage(
-			keeper.attack + int(move.get("power", 0)), combat.defense_at(level)))
-	assert_int(slow * weakest).override_failure_message(
-		"a player who times nothing survives the Keeper: %d rounds x %d damage vs %d health - the timing mechanic is decorative"
-		% [slow, weakest, hp]).is_greater_equal(hp)
+func test_the_boss_fight_actually_swings_at_the_party() -> void:
+	# The other half of the driver, and the reason there are two. A party that parries everything
+	# is barely hurt, so "PERFECT wins" is equally true of a formation that never gets a turn -
+	# an optimal driver only walks the branches optimal play reaches. This counts what happened:
+	# every foe must have taken at least one turn, and the party must have been swung at.
+	var report := BattleDriver.play(_fight(BOSS, BOSS_LEVEL, 5), BattleDriver.Policy.PERFECT)
+	assert_int(report.foes.size()).override_failure_message(
+		"the boss record fields nothing").is_greater(0)
+	assert_int(report.blows).override_failure_message(
+		"the Keeper's formation (%s) took %d turns in a whole fight - a foe that never acts is a foe that is not in the fight"
+		% [str(report.foes), report.blows]).is_greater_equal(report.foes.size())
+	assert_int(report.timed_presses).override_failure_message(
+		"the perfect driver never pressed inside a window, so it was not playing perfectly"
+	).is_greater(0)
+
+func test_no_shipped_formation_is_unwinnable() -> void:
+	# The disaster this catches is a fight nobody can win: a group tuned past what the game's own
+	# curve can answer, which no unit test sees because every piece of it is individually fine.
+	# Each shipped record is played by the guaranteed party at the top of the curve, with perfect
+	# play - if it cannot be won THERE it cannot be won anywhere.
+	var combat := _quest().combat
+	var top := combat.xp_curve.size() + 1
+	for entry: Variant in _encounters():
+		var found: Dictionary = entry
+		var record_id: String = found["id"]
+		var report := BattleDriver.play(_fight(record_id, top, 3), BattleDriver.Policy.PERFECT)
+		assert_str(report.fault).is_empty()
+		assert_bool(report.ended).override_failure_message(
+			"the '%s' fight did not finish within the frame cap" % record_id).is_true()
+		assert_int(report.outcome).override_failure_message(
+			"'%s' (%s) cannot be won at level %d even with every press timed"
+			% [record_id, str(report.foes), top]).is_equal(BattleLogic.Outcome.VICTORY)
+
+func test_the_gate_balances_the_party_the_roads_guarantee() -> void:
+	# The derivation both fights above lean on, asserted rather than assumed - and TODAY THE
+	# ANSWER IS NOBODY. Rook joins on a flag, no road demands that flag, so a player can reach
+	# every fight in this game alone; the balance model therefore fights them alone too, which
+	# is the honest reading of the shipped content rather than the flattering one.
+	#
+	# Stated as an assertion rather than a comment because it is a fact about the MAP, so the day
+	# a road starts demanding her this test changes loudly instead of the gate quietly getting
+	# easier. The blocked direction of the walk arrives with that road, and with a mutant on it.
+	var manifest := _quest()
+	assert_int(manifest.party.size()).override_failure_message(
+		"the quest declares no party, so this says nothing about anything").is_greater(0)
+	assert_array(_guaranteed_party(manifest, &"quest_keep")).override_failure_message(
+		"a companion became guaranteed without this test being told - if a road now demands her, "
+		+ "say so here, because every balance claim above just got easier").is_empty()
+	assert_bool(_reachable_without(manifest, &"quest_keep", &"rook_joins")).override_failure_message(
+		"the keep is not reachable without recruiting Rook").is_true()
+	# And the walk actually walks: a map nothing warps to must come back unreachable, or
+	# "guaranteed" would be true of everyone everywhere and the derivation would be decoration.
+	assert_bool(_reachable_without(manifest, &"quest_nowhere", &"")).override_failure_message(
+		"the reachability walk reports a map that does not exist as reachable").is_false()
+
+# -- reading the shipped fights out of the data --------------------------------------------
+#
+# Everything below answers a question about the GAME rather than about a class, and answers it
+# from the files rather than from a constant here. Two record ids and one level are named,
+# because "which fights are the hollow's required pair" and "what level is the Keeper tuned
+# against" are design intent that no file states - but every NUMBER comes from the data, so
+# adding a body to a formation moves the gate rather than sliding past it.
+
+const QUEST_PATH := "res://data/games/quest.tres"
+const HOLLOW_REQUIRED := ["slink_gate", "slink_stash"]
+const BOSS := "keeper"
+const BOSS_LEVEL := 2
+
+func _quest() -> GameManifest:
+	return load(QUEST_PATH) as GameManifest
+
+## Every enemy record the shipped game places, as {"id", "map", "foes"}.
+func _encounters() -> Array:
+	var out: Array = []
+	for path in ContentScan.files_of("res://data/maps", "json"):
+		var map := MapData.load_from(path)
+		for entry: Variant in map.enemies:
+			var record: Dictionary = entry
+			var tile := JsonFile.to_int_array(record.get("tile", []))
+			if tile.size() != 2:
+				continue
+			# Through the map's OWN projection, so the gate and the world agree about what a
+			# record fields by construction rather than by both being written correctly.
+			var found := map.enemy_at(Vector2i(tile[0], tile[1]))
+			out.append({"id": str(record.get("id", "")), "map": map, "foes": found.get("foes", [])})
+	return out
+
+func _encounter(record_id: String) -> Dictionary:
+	for entry: Variant in _encounters():
+		var found: Dictionary = entry
+		if found["id"] == record_id:
+			return found
+	return {}
+
+## What a record pays, summed over everything in it. The DQ rule means every living member earns
+## this in full, so it is the party's award and not a share of one.
+func _award_of(record_id: String) -> int:
+	var out := 0
+	for def in _defs_of(record_id):
+		out += def.xp
+	return out
+
+func _defs_of(record_id: String) -> Array[EnemyDef]:
+	var out: Array[EnemyDef] = []
+	var found := _encounter(record_id)
+	for named: Variant in found.get("foes", []):
+		var def := load("res://data/enemies/%s.tres" % named) as EnemyDef
+		if def != null:
+			out.append(def)
+	return out
+
+## The fight itself: the map's formation against the party the player cannot avoid having.
+func _fight(record_id: String, level: int, seed_value: int) -> BattleLogic:
+	var manifest := _quest()
+	var found := _encounter(record_id)
+	var map: MapData = found["map"]
+	return BattleLogic.of(manifest.combat, _defs_of(record_id),
+		BattleHelpers.party_of(manifest, _guaranteed_party(manifest, map.id), level),
+		[], "%s/%s" % [map.id, record_id], seed_value)
+
+## Who the player is CERTAIN to have by the time they can stand on `map_id`.
+##
+## Derived, never assumed. A companion who joins on a flag is only guaranteed if there is no way
+## into that map without the flag - so this asks the warp graph rather than the manifest, and a
+## member the player may decline is correctly absent from the fight the gate balances. That
+## distinction is the whole of M29's finding: sizing a fight for two while letting the player
+## travel alone ships two games and balances one.
+func _guaranteed_party(manifest: GameManifest, map_id: StringName) -> Array:
+	var out: Array = []
+	for member: PartyMemberDef in manifest.party:
+		if member == null:
+			continue
+		if String(member.joins_on_flag).is_empty():
+			out.append(member)
+		elif not _reachable_without(manifest, map_id, member.joins_on_flag):
+			out.append(member)
+	return out
+
+## Whether `map_id` can still be reached from the game's first map when every warp demanding
+## `flag` is refused. Items are ignored deliberately: a locked door with a key behind it is a
+## detour, where a flag that gates a road is a decision the player may simply not take.
+func _reachable_without(manifest: GameManifest, map_id: StringName, flag: StringName) -> bool:
+	var seen := {manifest.start_map: true}
+	var queue: Array[StringName] = [manifest.start_map]
+	while not queue.is_empty():
+		var here: StringName = queue.pop_front()
+		if here == map_id:
+			return true
+		var map := MapData.load_from("res://data/maps/%s.json" % here)
+		if not map.ok:
+			continue
+		for entry: Variant in map.warps:
+			var warp: Dictionary = entry
+			if StringName(str(warp.get("requires_flag", ""))) == flag:
+				continue
+			var there := StringName(str(warp.get("map", "")))
+			if String(there).is_empty() or seen.has(there):
+				continue
+			seen[there] = true
+			queue.append(there)
+	return false
 
 func test_two_tonics_are_what_sits_between_those_two_outcomes() -> void:
 	# The tuning point named out loud: the tonics are for the player who lands some presses and
