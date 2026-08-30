@@ -176,10 +176,19 @@ func enemy_at(at: Vector2i) -> Dictionary:
 ## needs no branch anywhere downstream.
 static func _formation_of(enemy: Dictionary) -> Array[StringName]:
 	var out: Array[StringName] = []
-	_add_ref(out, enemy.get("enemy", ""))
+	_add_foe(out, enemy.get("enemy", ""))
 	for extra: Variant in enemy.get("group", []):
-		_add_ref(out, extra)
+		_add_foe(out, extra)
 	return out
+
+
+## Appends one foe, KEEPING DUPLICATES. A formation is an ordered list of bodies, not a set of
+## names: two slinks are two slinks, and "3 Slimes appear!" is the genre's commonest crowd.
+##
+## Its own function rather than `_add_ref` because that one deduplicates, which is right for
+## `enemy_refs` - a scan asking "does every enemy this map names exist" wants each name once -
+## and silently wrong here. M28 shipped this collapse and nothing caught it: the only formation
+## it authored was a slink AND a gloom, so no same-species pair ever existed to come out short.
 
 
 ## Every EnemyDef this map names, for the content gate. The item_refs precedent: a misspelt
@@ -488,6 +497,12 @@ func item_refs() -> Array[StringName]:
 static func _collect_items(out: Array[StringName], record: Dictionary) -> void:
 	for key in ["give_item", "take_item", "requires_item"]:
 		_add_ref(out, record.get(key, ""))
+
+
+static func _add_foe(out: Array[StringName], raw: Variant) -> void:
+	var id := StringName(str(raw))
+	if not String(id).is_empty():
+		out.append(id)
 
 
 static func _add_ref(out: Array[StringName], raw: Variant) -> void:

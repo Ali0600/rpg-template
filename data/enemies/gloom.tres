@@ -1,8 +1,15 @@
 [gd_resource type="Resource" script_class="EnemyDef" load_steps=2 format=3]
 
-; What haunts the cave. Genuinely dangerous at level 1 - an untimed fight costs about twenty
-; health, which is all of it - and trivial at level 3, where one timed hit ends it. It is the
-; game's one optional fight, and it is tuned so that WHEN you take it is the decision.
+; What haunts the cave, and now stands beside the Keeper as well. Genuinely dangerous early and
+; trivial at level 3, where one timed hit ends it - so WHEN you take the cave is the decision,
+; which is the whole point of it being optional.
+;
+; The cave fields a PAIR of them, and that pair is worth exactly one level: 24 xp against a
+; second curve step of 24. That relationship is not decoration, it is the same one the single
+; gloom had against the old [10, 12] curve, carried across intact. Retune either number and
+; test_battle_content says so.
+;
+; Gold halved (6 -> 3) for the reason slink.tres gives: a fight pays what that fight paid.
 
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
@@ -15,6 +22,6 @@ max_hp = 14
 attack = 6
 defense = 2
 xp = 12
-gold = 6
+gold = 3
 boss = false
 moves = [{ "name": "Chill", "power": 0 }, { "name": "Grasp", "power": 3 }]

@@ -115,7 +115,9 @@
 				5
 			],
 			"map": "quest_hollow",
-			"spawn": "from_village"
+			"spawn": "from_village",
+			"requires_flag": "rook_joins",
+			"locked_dialog": "road_alone"
 		},
 		{
 			"tile": [

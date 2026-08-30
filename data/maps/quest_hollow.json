@@ -72,8 +72,8 @@
 		}
 	],
 	"enemies": [
-		{ "id": "slink_gate", "enemy": "slink", "tile": [4, 5], "facing": "up" },
-		{ "id": "slink_stash", "enemy": "slink", "tile": [3, 6], "facing": "right" },
+		{ "id": "slink_gate", "enemy": "slink", "group": ["slink"], "tile": [4, 5], "facing": "up" },
+		{ "id": "slink_stash", "enemy": "slink", "group": ["slink"], "tile": [3, 6], "facing": "right" },
 		{ "id": "the_pair", "enemy": "slink", "group": ["gloom"], "tile": [2, 1],
 			"facing": "down" }
 	],

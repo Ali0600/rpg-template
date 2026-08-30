@@ -85,109 +85,34 @@
 			"id": "gate_key",
 			"count": 0
 		},
-		{
-			"op": "note",
-			"text": "the warden stands at [5,3]; walk north until her body stops us"
-		},
-		{
-			"op": "hold",
-			"action": "move_up",
-			"frames": 60
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "press_until_state",
-			"action": "interact",
-			"state": "dialog",
-			"limit": 12
-		},
-		{
-			"op": "press_until_state",
-			"action": "interact",
-			"state": "world",
-			"limit": 40
-		},
-		{
-			"op": "note",
-			"text": "east along row 5 into the barred gate - refused, and we do not move"
-		},
-		{
-			"op": "hold",
-			"action": "move_down",
-			"frames": 30
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "hold",
-			"action": "move_right",
-			"frames": 200
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "wait",
-			"frames": 10
-		},
-		{
-			"op": "assert_state",
-			"state": "dialog"
-		},
-		{
-			"op": "press_until_state",
-			"action": "interact",
-			"state": "world",
-			"limit": 40
-		},
-		{
-			"op": "assert_map",
-			"map": "quest_village"
-		},
-		{
-			"op": "assert_item",
-			"id": "gate_key",
-			"count": 0
-		},
-		{
-			"op": "note",
-			"text": "west through the other door - and the arriving hold carries us straight into what is standing in the gap"
-		},
-		{
-			"op": "hold",
-			"action": "move_left",
-			"frames": 400
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "wait",
-			"frames": 5
-		},
-		{
-			"op": "assert_map",
-			"map": "quest_hollow"
-		},
+		{ "op": "note", "text": "fetch Rook first: since M29 both roads out of the village refuse a player travelling alone, because everything past them is sized for two. South until the water stops us, west to the wall, south until SHE stops us." },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_left", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 60 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_flag", "key": "rook_joins", "expect": true },
+		{ "op": "assert_item", "id": "gate_key", "count": 0 },
+		{ "op": "note", "text": "north up the wall and through the west door, which opens now that she is along. The warden's conversation and the barred keep gate both moved out of this script - talk_to_npc still walks the first, and the_road_needs_two walks every locked door in the game, including the two this milestone added." },
+		{ "op": "hold", "action": "move_up", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "assert_map", "map": "quest_hollow" },
+		{ "op": "note", "text": "south down the east side until the wall, then west into the pair standing in the gap" },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_left", "frames": 300 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
 		{
 			"op": "assert_state",
 			"state": "battle"
@@ -196,7 +121,7 @@
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "world",
-			"limit": 600
+			"limit": 3000
 		},
 		{
 			"op": "note",
@@ -208,19 +133,19 @@
 		},
 		{
 			"op": "note",
-			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all"
+			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all. 18 rather than 14 because the fight is a PAIR now: two slinks each take a turn, and the enemy draws its target across the party, so the leader eats less of it than he did alone"
 		},
 		{
 			"op": "assert_hp",
-			"value": 14
+			"value": 18
 		},
 		{
 			"op": "note",
-			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3"
+			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3. The award sums the formation: 5 and 5"
 		},
 		{
 			"op": "assert_xp",
-			"value": 5
+			"value": 10
 		},
 		{
 			"op": "note",
@@ -554,11 +479,11 @@
 		},
 		{
 			"op": "note",
-			"text": "what a night is being bought WITH: four gold, and fourteen of twenty hit points. The hp is the whole point of asserting here - it was read after a fight that did not level anyone, so it is neither full at the start nor refilled by a level-up, and a rest that quietly did nothing would be invisible against a full bar"
+			"text": "what a night is being bought WITH: four gold, and eighteen of twenty hit points. The hp is the whole point of asserting here - it was read after a fight that did not level anyone, so it is neither full at the start nor refilled by a level-up, and a rest that quietly did nothing would be invisible against a full bar"
 		},
 		{
 			"op": "assert_hp",
-			"value": 14
+			"value": 18
 		},
 		{
 			"op": "assert_gold",

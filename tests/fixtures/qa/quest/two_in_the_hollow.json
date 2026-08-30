@@ -57,9 +57,12 @@
 		{ "op": "wait", "frames": 5 },
 		{ "op": "assert_state", "state": "battle" },
 
-		{ "op": "note", "text": "the leader's Attack, which swings on the press. The wait is one attack cue plus one message read from quest_combat.tres - 72 + 45 - with slack, which is exactly how long it takes for the turn to reach Rook." },
+		{ "op": "note", "text": "the leader's Attack. It is TWO presses now, not one: with a pair in front of you the foe cursor opens, and the swing starts on the press that picks which one. That extra confirm is the shape of every attack in the game now, and it is the thing to feel for at the controls." },
 		{ "op": "sound_mark" },
 		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "note", "text": "the wait is one attack cue plus one message read from quest_combat.tres - 72 + 45 - with slack, which is exactly how long it takes for the turn to reach Rook." },
 		{ "op": "wait", "frames": 130 },
 		{ "op": "assert_sound", "id": "hit", "expect": true },
 		{ "op": "assert_state", "state": "battle" },
@@ -67,17 +70,18 @@
 		{ "op": "press", "action": "interact" },
 		{ "op": "wait", "frames": 3 },
 
-		{ "op": "note", "text": "the round plays out; mash the rest of the fight through" },
-		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 400 },
+		{ "op": "note", "text": "the round plays out; mash the rest of the fight through. Two foes, each with its own defend cue, so this takes considerably longer than the solo fight it replaced" },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 3000 },
 		{ "op": "wait", "frames": 10 },
 
-		{ "op": "note", "text": "both of them earn the FULL award, which is Dragon Quest's rule - FF1 divides it and this would read 2 and 3" },
-		{ "op": "assert_xp", "value": 5 },
-		{ "op": "assert_xp", "member": "scrapper", "value": 5 },
+		{ "op": "note", "text": "both of them earn the FULL award, and the award is now the whole formation: 5 and 5 summed to 10, not one slink's 5. Dragon Quest's rule - FF1 divides it and this would read 5 and 5." },
+		{ "op": "assert_xp", "value": 10 },
+		{ "op": "assert_xp", "member": "scrapper", "value": 10 },
+		{ "op": "note", "text": "and 10 is still short of a level, exactly as one slink was against the old curve: the curve doubled with the fights, so the hollow still takes BOTH of its fights to reach level 2" },
 		{ "op": "assert_level", "value": 1 },
 		{ "op": "assert_level", "member": "scrapper", "value": 1 },
-		{ "op": "note", "text": "and the enemy swung at ROOK, not at the player: she is down three and he is untouched. That is the target draw reaching the party at all - with the enemy always aiming at whoever is first, this reads 17 and 24." },
-		{ "op": "assert_hp", "value": 20 },
-		{ "op": "assert_hp", "member": "scrapper", "value": 21 }
+		{ "op": "note", "text": "and both of them were swung at, which is what two foes taking a turn each looks like from the party's side. The split is uneven because each foe draws its own target - with the enemy always aiming at whoever is first, this would read 9 and 24." },
+		{ "op": "assert_hp", "value": 18 },
+		{ "op": "assert_hp", "member": "scrapper", "value": 15 }
 	]
 }

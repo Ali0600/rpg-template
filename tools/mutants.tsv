@@ -232,10 +232,16 @@ scripts/world/map_data.gd	s|"enemy": StringName\(str\(enemy.get\("enemy", ""\)\)
 # --- M13: the quest, reworked around the fighting ---
 scripts/world/world_scene.gd	s|if GameState.was_seen\(Interaction.seen_key\(data.id, String\(enemy_id\)\)\):|if false:|	tests/integration/test_world_battles.gd	everything the player has beaten is standing on its tile again
 games/quest/quest_hooks.gd	s|if ctx.was_seen\(SEEN_KEEPER\):|if false:|	tests/unit/test_quest_hooks.gd	the warden never acknowledges the thing she barred the gate against
-data/combat/quest_combat.tres	s|xp_curve = Array\[int\]\(\[10, 12\]\)|xp_curve = Array[int]([10, 40])|	tests/unit/test_battle_content.gd	the curve drifts off the fights it was balanced against
+data/combat/quest_combat.tres	s|xp_curve = Array\[int\]\(\[20, 24\]\)|xp_curve = Array[int]([20, 60])|	tests/unit/test_battle_content.gd	the curve drifts off the fights it was balanced against
 data/enemies/keeper.tres	s|max_hp = 30|max_hp = 12|	tests/unit/test_battle_content.gd	the boss becomes beatable by mashing, so the timing is decoration
 data/enemies/keeper.tres	s|^attack = 8$|attack = 80|	tests/unit/test_battle_content.gd	the boss becomes a wall no timing can answer, which the arithmetic model could not see
 data/items/tonic.tres	s|battle_heal = 10|battle_heal = 0|	tests/unit/test_battle_content.gd	the tonic stops healing, so the Item command has nothing behind it
+scripts/world/map_data.gd	s|_add_foe\(out, extra\)|_add_ref(out, extra)|	tests/unit/test_map_data.gd	a formation naming one enemy twice fields one of it, so no crowd can be same-species
+data/maps/quest_village.json	s|"requires_flag": "rook_joins"|"requires_flag": "never_set"|	tests/unit/test_battle_content.gd	the west road opens to a player who declined the companion its fights are sized for
+data/maps/quest_town.json	s|"requires_flag": "rook_joins"|"requires_flag": "never_set"|	tests/unit/test_battle_content.gd	the east road opens to a player who declined the companion its fights are sized for
+data/party/scrapper.tres	s|joins_on_flag = &"rook_joins"|joins_on_flag = \&"never_set"|	tests/unit/test_battle_content.gd	the roads demand a flag that is no longer the one recruiting her
+scripts/autoload/qa.gd	s|if screen.cue_on\(\) or screen.choosing\(\):|if screen.choosing():|	tests/fixtures/qa/quest/buy_a_tonic.json	fight_well stops pressing on the cue, so a played fight is mashed and the Keeper is unbeatable
+scripts/ui/battle_screen.gd	s|return _logic != null and _logic.cue_on\(\)|return false|	tests/fixtures/qa/quest/finish_the_quest.json	the view reports the timing window as never open, so nothing scripted can play well
 scripts/ui/battle_logic.gd	s|return _combat.defend_cue_frames|return _combat.attack_cue_frames|	tests/unit/test_battle_logic.gd	the enemy swing reports the player wind-up length, so the lean reads alike for both
 scripts/ui/battle_logic.gd	s|^\t\t\treturn 1$|\t\t\treturn 0|	tests/unit/test_battle_logic.gd	a phase with no wind-up reports zero, and the view divides by it
 

@@ -5,10 +5,16 @@
 ; The curve is two steps and stops: this is a quest of about twenty minutes, and a level cap
 ; the data states is better than one the player discovers by grinding into a wall.
 ;
-; [10, 12] puts level 2 exactly at the two hollow slinks (5 + 5) and level 3 exactly at the
-; Keeper (10 + 25 = 35, past the 22 threshold). That is not a coincidence to be tidied away -
-; it is the whole difficulty design, and every number below was chosen against it. See
+; [20, 24] puts level 2 exactly at the hollow's two required fights (a pair of slinks apiece,
+; 10 + 10) and level 3 exactly at the Keeper. That is not a coincidence to be tidied away - it
+; is the whole difficulty design, and every number below was chosen against it. See
 ; docs/DECISIONS.md for the arithmetic.
+;
+; It was [10, 12] until M29 made every fight a formation. The awards were left alone and the
+; CURVE doubled, which reproduces every beat exactly: the first hollow fight is still short of a
+; level, the second still lands on 2, the optional cave pair is still worth precisely one level
+; (24 xp against a 24-step), and the Keeper is still met at 2 and left at 3. Halving each
+; enemy's xp instead would have needed awards of two and a half.
 ;
 ; The cues are frames, not seconds. These are the SECOND set of values: the first shipped
 ; without anyone playing the game, and a play-test killed them in one sentence - "way too fast
@@ -48,7 +54,7 @@ base_defense = 1
 defense_per_level = 1
 base_mp = 8
 mp_per_level = 3
-xp_curve = Array[int]([10, 12])
+xp_curve = Array[int]([20, 24])
 attack_cue_frames = 72
 defend_cue_frames = 84
 timed_window_frames = 24

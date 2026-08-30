@@ -61,26 +61,36 @@
 			"op": "note",
 			"text": "west into the hollow, straight into the thing in the gap - and RUN from it"
 		},
-		{
-			"op": "hold",
-			"action": "move_left",
-			"frames": 400
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "wait",
-			"frames": 5
-		},
+		{ "op": "note", "text": "fetch Rook first - the west road refuses a player travelling alone now, because everything past it is sized for two. South to the well, west to the wall, south to her." },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_left", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 60 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_flag", "key": "rook_joins", "expect": true },
+		{ "op": "note", "text": "north up the wall and through the west door, which opens now that she is along" },
+		{ "op": "hold", "action": "move_up", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
 		{
 			"op": "assert_map",
 			"map": "quest_hollow"
 		},
+		{ "op": "note", "text": "south down the east side until the wall, then west into the pair standing in the gap" },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_left", "frames": 300 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
 		{
 			"op": "assert_state",
 			"state": "battle"
@@ -168,7 +178,7 @@
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "world",
-			"limit": 600
+			"limit": 3000
 		},
 		{
 			"op": "assert_level",
@@ -236,7 +246,7 @@
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "world",
-			"limit": 600
+			"limit": 3000
 		},
 		{
 			"op": "note",
@@ -491,7 +501,7 @@
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "game_over",
-			"limit": 900
+			"limit": 4000
 		},
 		{
 			"op": "assert_state",

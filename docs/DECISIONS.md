@@ -128,6 +128,27 @@ ships two games and balances one.
 **The cost, stated:** seven QA sessions gain a recruit leg they did not need, and the village
 now has a soft wall in it. That second one is a feel question and only playing answers it.
 
+## A scripted fight is played well by the harness, not by arithmetic — *M29*
+
+Play sessions used to land timed hits by waiting a computed number of frames between presses,
+chained off the cue and message lengths in `quest_combat.tres`. That arithmetic described a
+four-round **duel**; the moment the Keeper gained an escort every chain stopped ending the
+fight, and it failed as "the battle never ends" half a script away from what had changed.
+
+- **A `fight_well` op.** *Chosen.* Confirms through every menu and presses inside every timing
+  window, reading `BattleScreen.cue_on()`/`choosing()` — the scripted twin of the balance gate's
+  `BattleDriver.Policy.PERFECT`, so the fight the gate proves winnable is the fight the session
+  plays. Two small public reads on the view, and the harness finds the screen by TYPE, so
+  nothing in the shipped scene carries a hook that exists only for tests.
+- *Re-derive the frame offsets for the new formation.* `rejected — it buys one milestone`. The
+  next change to a cue length, a message length or a foe count breaks it again, and the failure
+  never points at the thing that moved.
+- *Let the sessions mash.* `rejected — mashing cannot win the Keeper`, by design: that is the
+  difficulty statement the balance gate proves in both directions.
+
+`press_until_state` stays, and is now the deliberate way to play BADLY — only the first press of
+a cue counts, so mashing never lands a timed hit. Both verbs are worth having.
+
 ## The Keeper's escort is mixed, and fills the screen — *M29*
 
 **The fork: what stands beside the boss?**
@@ -156,9 +177,17 @@ Twice as many bodies pay twice as much. The purse is what the smith's prices and
 tonics sit between the two outcomes" tuning are built against, so it had to be held.
 
 - **Halve each enemy's gold.** *Chosen.* `slink` 4 → 2, `gloom` 6 → 3, `keeper` 25 → 20, so
-  every fight pays exactly what that fight paid before. Two-line edit, the economy is untouched,
-  and the play sessions' `assert_gold` values are *predicted to be unchanged* — which makes
-  them an independent check on the arithmetic rather than numbers to re-record.
+  every fight that GREW pays exactly what it paid before. Two-line edit, the required economy is
+  untouched, and the play sessions' `assert_gold` values came back **unchanged through the whole
+  hollow** — which is the independent check that the arithmetic was right, rather than numbers
+  re-recorded because the suite said so.
+
+  **The exception, and it is real:** `the_pair` in the hollow's north-west pocket was ALREADY a
+  formation in M28, so its bodies did not double and its payout genuinely halved, 10 gold to 5.
+  Its xp did not move either, which means the doubled curve slid past it: it used to carry the
+  player to level 3 and now falls seven short. Optional bonus content, no required fight
+  affected, and stated here rather than quietly re-recorded — the design promises a level for
+  the optional CAVE, whose pair pays exactly one curve step and which the content gate pins.
 - *Double the prices instead.* `rejected — more edits, and it moves numbers a player reads`.
   The inn's four gold a night is a nice number and the shop is tuned; halving a reward the
   player never sees itemised is the quieter change.

@@ -165,7 +165,11 @@ fight, and that is a legal shape forever.
 **Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
 and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
 it - Super Mario RPG's shape, where one touched sprite opens a formation the ROM already knew
-about. Adjacent records never merge into one fight: EarthBound does that and its own manual says
+about. **A formation is an ordered list and DUPLICATES ARE THE POINT** - two slinks are two
+slinks, and "3 Slimes appear!" is the genre's commonest crowd. `_formation_of` therefore appends
+through `_add_foe` and not through `_add_ref`, which deduplicates because `enemy_refs` wants each
+name once. M28 shipped that collapse and no gate saw it: the only formation it authored was a
+slink AND a gloom, so no same-species pair existed to come out short until M29's hollow. Adjacent records never merge into one fight: EarthBound does that and its own manual says
 "occasionally", which would make a fight's composition a roll over where wandering bodies happen
 to stand. ONE RECORD IS ONE ENCOUNTER - one seen key, one seed, whatever the count - and a fight
 of one is a formation of one, so nothing downstream needs a branch. "Fights are solo" was never a
@@ -205,6 +209,19 @@ names in their own box, DQ2 shows names and a living count, Super Mario RPG char
 to peek. This screen has drawn a numeric bar for its single foe since M13 and been played that
 way ever since, so it extends per foe rather than being removed. `docs/DECISIONS.md` carries the
 fork and the genre's own answer as the deferred alternative.
+
+**A fight sized for two must be unreachable by one, and that is a MAP rule.** M29 made every
+ordinary encounter a pair and gave the boss an escort, which quietly turned a declinable
+companion into two games of which only one was balanced: alone, a mashing player dies to the
+first pair and a player who times every press still loses to the Keeper. So both roads out of
+the village carry `requires_flag: rook_joins` + a `locked_dialog`, the shape the barred keep gate
+has used since M12 - and the genre's own answer, since Dragon Quest II hands you the Prince
+through the story. `test_battle_content` derives the guaranteed party from the WARP GRAPH rather
+than from the manifest: a member who joins on a flag counts only if there is no route to that map
+without it, and the balance gate fights with exactly that party. Before M29 that correctly
+returned nobody. **The rule generalises past this game: whenever content assumes a capability,
+something has to make the capability unavoidable, and the assumption belongs in a gate rather
+than in a designer's head.**
 
 **A party is a LIST even when it is one, and who is in it is derived from a flag.** A game
 with no `party` on its manifest is handed one synthesized member - the manifest's own
@@ -603,6 +620,14 @@ validator that has only ever passed is decoration.
   keys and have no enum to name - write the count out with the row list in a comment above
   it, so inserting a row moves them deliberately. M20 inserted Equipment and then Status,
   and paid exactly that price, in three files, twice, on purpose.
+- **A scripted fight is won with `fight_well`, never with counted waits.** The op confirms
+  through every menu and presses inside every timing window - the scripted twin of
+  `BattleDriver.Policy.PERFECT`, reading `BattleScreen.cue_on()`/`choosing()`. Landing timed
+  hits by waiting a computed number of frames between presses is chained arithmetic over the cue
+  and message lengths, and it describes ONE fight shape: M29 changed the Keeper from a duel to a
+  trio and every such chain stopped ending the fight, half a script away from what moved.
+  `press_until_state` is the opposite and is still right for playing BADLY on purpose - only the
+  first press of a cue counts, so mashing never lands one.
 - **A QA leg is held until a WALL or a BODY stops it**, never for a computed number of tiles.
   An arriving hold carries the player onward into the next map, so a leg that follows a warp
   must re-anchor against geometry rather than assume where the last one left off. The one
@@ -638,6 +663,11 @@ validator that has only ever passed is decoration.
   (macOS) takes it as a literal and matches while GNU sed (the runner) does not - the row aims
   perfectly here and goes STALE in CI twenty minutes later. `mutants_aim.sh` now refuses a bare
   paren on either platform, which is the only reason this is a note rather than a recurring bug.
+  **A literal TAB in a pattern is the same class of hazard one layer up**: the file is
+  tab-separated, so a tab inside the sed expression silently ends the column and the rest of the
+  row becomes the suite and the label. Anchor on text rather than on leading indentation -
+  `mutants_aim.sh` reports it as STALE, which reads as a rotted pattern rather than as a
+  mis-parsed row.
 - **`LintCore.SOURCE_ROOTS` is the one list of directories this project owns.** The linter
   and `compile_all.gd` read it; `check.sh`'s parse gate keeps no list at all and excludes
   what is not ours. A new top-level source directory goes there and nowhere else, and

@@ -87,51 +87,11 @@
 		},
 		{
 			"op": "note",
-			"text": "the warden stands at [5,3]; walk north until her body stops us"
-		},
-		{
-			"op": "hold",
-			"action": "move_up",
-			"frames": 60
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "press_until_state",
-			"action": "interact",
-			"state": "dialog",
-			"limit": 12
-		},
-		{
-			"op": "press_until_state",
-			"action": "interact",
-			"state": "world",
-			"limit": 40
-		},
-		{
-			"op": "note",
-			"text": "east along row 5 into the barred gate - refused, and we do not move"
+			"text": "fetch Rook first: since M29 both roads out of the village refuse a player travelling alone, because everything past them is sized for two. South until the water stops us, west to the wall, south until SHE stops us."
 		},
 		{
 			"op": "hold",
 			"action": "move_down",
-			"frames": 30
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "hold",
-			"action": "move_right",
 			"frames": 200
 		},
 		{
@@ -142,22 +102,51 @@
 			"frames": 3
 		},
 		{
-			"op": "wait",
-			"frames": 10
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
 		},
 		{
-			"op": "assert_state",
-			"state": "dialog"
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
 		},
 		{
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "world",
-			"limit": 40
+			"limit": 60
 		},
 		{
-			"op": "assert_map",
-			"map": "quest_village"
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": true
 		},
 		{
 			"op": "assert_item",
@@ -166,19 +155,15 @@
 		},
 		{
 			"op": "note",
-			"text": "west through the other door - and the arriving hold carries us straight into what is standing in the gap"
+			"text": "north up the wall and through the west door, which opens now that she is along. The warden's conversation and the barred keep gate both moved out of this script - talk_to_npc still walks the first, and the_road_needs_two walks every locked door in the game, including the two this milestone added."
 		},
 		{
 			"op": "hold",
-			"action": "move_left",
-			"frames": 400
+			"action": "move_up",
+			"frames": 200
 		},
 		{
 			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
 		},
 		{
 			"op": "wait",
@@ -189,6 +174,34 @@
 			"map": "quest_hollow"
 		},
 		{
+			"op": "note",
+			"text": "south down the east side until the wall, then west into the pair standing in the gap"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
 			"op": "assert_state",
 			"state": "battle"
 		},
@@ -196,7 +209,7 @@
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "world",
-			"limit": 600
+			"limit": 3000
 		},
 		{
 			"op": "note",
@@ -208,19 +221,19 @@
 		},
 		{
 			"op": "note",
-			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all"
+			"text": "hp AFTER a fight that did not level anyone - the only window in this script where it is neither full at the start nor refilled by a level-up, and so the only place a change to the damage arithmetic is visible at all. 18 rather than 14 because the fight is a PAIR now: two slinks each take a turn, and the enemy draws its target across the party, so the leader eats less of it than he did alone"
 		},
 		{
 			"op": "assert_hp",
-			"value": 14
+			"value": 18
 		},
 		{
 			"op": "note",
-			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3"
+			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3. The award sums the formation: 5 and 5"
 		},
 		{
 			"op": "assert_xp",
-			"value": 5
+			"value": 10
 		},
 		{
 			"op": "note",
@@ -301,7 +314,7 @@
 			"op": "press_until_state",
 			"action": "interact",
 			"state": "world",
-			"limit": 600
+			"limit": 3000
 		},
 		{
 			"op": "note",
@@ -558,99 +571,15 @@
 		},
 		{
 			"op": "note",
-			"text": "four rounds, every press on the cue: a clean hit is worth double, and a blocked one costs half. The waits come from data/combat/quest_combat.tres - see the QA notes in this file's header for the arithmetic."
+			"text": "and now play it WELL: confirm through every menu and press inside every timing window, until it is over. This used to be eleven presses at hand-derived frame offsets, chained off the cue and message lengths in quest_combat.tres - arithmetic that described a four-round DUEL and stopped describing anything the moment the Keeper gained an escort. fight_well is the scripted twin of the balance gate's PERFECT driver, so the fight the gate proves winnable is the fight this script plays."
 		},
 		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 56
-		},
-		{
-			"op": "press",
-			"action": "interact"
+			"op": "fight_well",
+			"limit": 8000
 		},
 		{
 			"op": "wait",
-			"frames": 121
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 62
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 56
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 121
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 62
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 56
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 121
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 62
-		},
-		{
-			"op": "note",
-			"text": "and the swing that ends it - no block after, because there is no enemy turn left"
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 56
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "wait",
-			"frames": 90
+			"frames": 10
 		},
 		{
 			"op": "assert_state",
@@ -1057,7 +986,11 @@
 		},
 		{
 			"op": "note",
-			"text": "this one is optional, and we are three levels up - so play it badly on purpose: swing without timing, drink when it hurts, and swing again"
+			"text": "this one is optional and we are levels up, so play the first round BADLY on purpose - swing without timing, take both glooms' blows undefended - and then drink, which is the Item command with something real behind it and the turn it costs is the point of it"
+		},
+		{
+			"op": "press",
+			"action": "interact"
 		},
 		{
 			"op": "press",
@@ -1065,31 +998,51 @@
 		},
 		{
 			"op": "wait",
-			"frames": 247
+			"frames": 250
 		},
 		{
 			"op": "note",
-			"text": "a tonic, mid-fight, out of the bag - the Item command with something real behind it, and the turn it costs is the reason drinking is a decision Rows: Attack, Magic, Item, Flee - Item is the third, so two downs; the count moved when Magic was inserted above it"
+			"text": "Rook swings too - every attack is two presses now, the command and then which of them"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 250
+		},
+		{
+			"op": "note",
+			"text": "and both glooms answer, undefended because nothing is pressed on their cues"
+		},
+		{
+			"op": "wait",
+			"frames": 500
+		},
+		{
+			"op": "note",
+			"text": "hurt now. Rows are Attack, Magic, Item, Flee - two down to Item, confirm, take the tonic, and confirm WHO drinks it: a heal aims at an ally, so with two standing the page has to ask."
 		},
 		{
 			"op": "press",
 			"action": "move_down"
 		},
 		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
 			"op": "press",
 			"action": "move_down"
 		},
 		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
-			"op": "press",
-			"action": "interact"
-		},
-		{
 			"op": "wait",
-			"frames": 175
+			"frames": 6
 		},
 		{
 			"op": "press",
@@ -1097,11 +1050,35 @@
 		},
 		{
 			"op": "wait",
-			"frames": 247
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "interact"
 		},
 		{
 			"op": "wait",
-			"frames": 60
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 250
+		},
+		{
+			"op": "note",
+			"text": "and now finish it properly"
+		},
+		{
+			"op": "fight_well",
+			"limit": 8000
+		},
+		{
+			"op": "wait",
+			"frames": 30
 		},
 		{
 			"op": "assert_state",
