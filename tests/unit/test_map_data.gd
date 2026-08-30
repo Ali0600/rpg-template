@@ -297,6 +297,19 @@ func test_a_lone_enemy_projects_as_a_formation_of_one() -> void:
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
 	assert_array(map.enemy_at(Vector2i(3, 3)).get("foes", [])).is_equal([&"cave_lurker"])
 
+func test_a_formation_of_the_same_species_twice_fields_two_bodies() -> void:
+	# "3 Slimes appear!" is the genre's commonest crowd, and this template could not draw it: the
+	# projection ran every name through the DEDUPLICATING helper that `enemy_refs` uses, so a
+	# record naming one enemy twice quietly opened a fight against one of it.
+	#
+	# M28 shipped that and no gate saw it, because the only formation it authored was a lurker AND
+	# a gloom - two names, so nothing ever collapsed. It surfaced the first time a same-species
+	# pair existed, which was M29's hollow.
+	var map := MapData.load_from(FIXTURES + "with_enemies.json")
+	assert_array(map.enemy_at(Vector2i(1, 2)).get("foes", [])).override_failure_message(
+		"a formation naming one enemy twice came back with one body in it") \
+		.is_equal([&"cave_lurker", &"cave_lurker"])
+
 func test_every_enemy_a_map_names_is_listed() -> void:
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
 	var refs := map.enemy_refs()

@@ -1131,3 +1131,53 @@ one — invalid fails everywhere and gets fixed in a minute, undefined fails onl
 aren't looking. Where a check exists to keep such patterns honest, teach it to refuse the
 ambiguous construct outright rather than to test whether it happens to match here; that is a
 guard that travels, and a lint rule beats remembering.
+
+## A set helper reused for ordered data silently drops the duplicates
+
+Deduplicating and ordering are different jobs, and a helper written for one reads perfectly
+well at the call site of the other. The failure is not an error — it is a shorter list.
+
+**Why it came up.** `MapData._formation_of` built a fight's foes by appending each name through
+`_add_ref`, which skips names already present because `enemy_refs` wants each enemy once for its
+"does this exist" scan. So a record naming `slink` twice opened a fight against one slink. It
+shipped a whole milestone earlier and nothing caught it: the only formation authored then was a
+slink *and* a gloom, so no same-species pair ever existed to come out short.
+
+**Takeaway.** When you reuse a collection helper, name the property you are relying on — "each
+name once" or "every body in order" — and check the helper actually provides that one. And when
+a feature's fixtures only ever use *distinct* values, the duplicate case has no coverage at all;
+add it deliberately, because it is usually the commonest case in the wild.
+
+## A harness that can only play badly cannot test content that must be played well
+
+Test drivers tend to be written as "mash until something happens", which is fine while every
+outcome is reachable by mashing. The moment content requires skill, the harness has no way to
+express it — and the fixtures start encoding skill as arithmetic instead.
+
+**Why it came up.** Scripted play sessions landed timed hits by waiting a computed number of
+frames between presses, chained off the cue and message lengths in the combat data. That
+arithmetic described one fight shape. When the boss gained an escort, every chain stopped ending
+the fight, and it failed as "the battle never ends" half a script away from what had changed.
+The fix was a `fight_well` op — press inside every window, confirm through every menu — which is
+the scripted twin of the balance gate's PERFECT driver.
+
+**Takeaway.** Give the harness a verb for *competent* play, not only for mashing, and let it read
+the game's own signals rather than recompute them. Keep the mashing verb too: playing badly on
+purpose is how you prove the difficulty is real. A driver whose skill is hard-coded in frame
+offsets is pinned to the exact content it was recorded against.
+
+## Assert against the store the system actually writes, and know when it writes
+
+A pure component that collects its effects and applies them at the end will read as "did
+nothing" to any assertion that inspects the destination mid-run.
+
+**Why it came up.** A play session asserted the player's MP in the middle of a battle to check a
+spell had been cast. Battles here are pure — the spend is a collected effect the world applies
+when the fight closes — so the reading was always the pre-fight value. It looked exactly like a
+cast that silently failed, and cost an hour of tracing menu navigation and input gating before a
+`print` showed the spell resolving perfectly all along.
+
+**Takeaway.** Before asserting on state, ask *when* that state is written, not just *whether*.
+For anything that batches its writes — a transaction, a collected effect list, a deferred
+flush — the only honest assertion points are before it opens and after it commits. A mid-run
+read is not a weaker check; it is a check of something else.

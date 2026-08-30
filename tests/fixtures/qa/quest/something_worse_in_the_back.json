@@ -79,7 +79,8 @@
 		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 900 },
 		{ "op": "wait", "frames": 10 },
 		{ "op": "assert_level", "value": 2 },
-		{ "op": "assert_xp", "value": 10 },
+		{ "op": "note", "text": "20 xp where this used to read 10, because both hollow fights are pairs now - and STILL exactly level 2, because the curve doubled with them. The gold is unchanged at 8, which is the check that the halving was done right: twice the bodies at half the coin is the same purse." },
+		{ "op": "assert_xp", "value": 20 },
 		{ "op": "assert_gold", "value": 8 },
 
 		{ "op": "note", "text": "and now into the pocket, which is the long way round: the wall below is solid but for the one gap, so back to its column, north through it until the pool stops us, west along the row above the gap, and north up the west side. Arriving at [1,1] puts the pair on the right." },
@@ -125,12 +126,13 @@
 		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 1200 },
 		{ "op": "wait", "frames": 10 },
 
-		{ "op": "note", "text": "the award SUMS the formation: 5 for the slink and 12 for the gloom on top of the 10 the hollow already paid, which is level 3 for both of them. Paying for one would read 15 or 22 and stop at 2." },
-		{ "op": "assert_xp", "value": 27 },
-		{ "op": "assert_xp", "member": "scrapper", "value": 27 },
-		{ "op": "assert_level", "value": 3 },
-		{ "op": "assert_level", "member": "scrapper", "value": 3 },
-		{ "op": "note", "text": "and the purse, summed the same way: 4 and 6 on top of the hollow's 8" },
-		{ "op": "assert_gold", "value": 18 }
+		{ "op": "note", "text": "the award SUMS the formation: 5 for the slink and 12 for the gloom on top of the 20 the hollow already paid. Paying for one would read 25 or 32." },
+		{ "op": "assert_xp", "value": 37 },
+		{ "op": "assert_xp", "member": "scrapper", "value": 37 },
+		{ "op": "note", "text": "and this pocket no longer buys a level, where it used to. THIS FIGHT DID NOT CHANGE - it was already a pair in M28 - so the doubled curve moved past it while every fight that grew kept pace. That is deliberate rather than overlooked: the optional fight the design promises a level for is the CAVE, whose pair pays exactly one curve step, and test_battle_content pins that. This one is a bonus, and 37 is seven short of level 3." },
+		{ "op": "assert_level", "value": 2 },
+		{ "op": "assert_level", "member": "scrapper", "value": 2 },
+		{ "op": "note", "text": "and the purse, summed the same way: 2 and 3 on top of the hollow's 8. Halved, for the same reason the level is short - the bodies here did not double, so holding a fight's payout steady did not apply to it." },
+		{ "op": "assert_gold", "value": 13 }
 	]
 }

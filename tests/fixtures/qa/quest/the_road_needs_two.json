@@ -1,0 +1,262 @@
+{
+	"_readme": [
+		"Every locked door in the game, walked into. Two of them are M29's, and they are the",
+		"reason the milestone is not just bigger formations: every fight past the village is now",
+		"sized for two people, so a player who has not got a second sword must not be able to",
+		"reach one. The genre's own answer - Dragon Quest II hands you the Prince through the",
+		"story - and here it is a requires_flag on the two roads out.",
+		"",
+		"A refusal is the hardest thing to keep honest, because it looks identical to a door",
+		"nobody tried: the player is still standing in the village either way. So each leg asserts",
+		"the DIALOG - the refusal saying why - and only then that the map did not change.",
+		"",
+		"It also re-homes the barred keep gate, which used to be proved three times over in the",
+		"long scripts and is proved once here. Those scripts now recruit Rook where the warden",
+		"leg used to be, because the recruit walk only works from the spawn.",
+		"",
+		"THE CONTROL lives elsewhere, deliberately and not by omission: nine sessions recruit",
+		"Rook and then walk through this exact west door, and into_the_cave walks the cave road.",
+		"A refusal proved with no control is a gate you cannot tell from a wall, so where the",
+		"other half lives is written down here rather than assumed. It is not in THIS script",
+		"because the walk back from the town does not put the player where the recruit leg",
+		"starts, and a script that counted its way there would be pinned to a walk speed."
+	],
+	"steps": [
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": false
+		},
+		{
+			"op": "note",
+			"text": "west along row 5 into the hollow road. It refuses, and the warden says why - one sword was enough for the village, and the road is not the village."
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "note",
+			"text": "and the refusal REFUSED: still in the village, on the near side of a door that did not open"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "east along the same row into the keep's gate, which wants a key rather than a person"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "the barred gate sits in an alcove - wall above and below it - so back west out of the doorway before turning south. A short count, and safely one: the next door west is ten tiles away."
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 30
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "note",
+			"text": "south to the bottom wall, then east along it onto the road out of the village - which is not gated, because the town is a place rather than a danger"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "and the third door: the cave road, at the far east of the town. South wall, east wall, then north with east still held - the gate is the row that gives."
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 1
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 240
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "note",
+			"text": "refused too, and still in the town: both roads out ask the same thing"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "note",
+			"text": "and that is where this script stops. THE CONTROL - the same doors opening once she is along - is not missing, it is everywhere else: nine sessions recruit Rook and then walk through this exact west door, and into_the_cave walks the cave road. A refusal proved without a control is a gate you cannot tell from a wall, so it is worth saying out loud where the other half lives."
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_town"
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": false
+		}
+	]
+}

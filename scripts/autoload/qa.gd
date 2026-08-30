@@ -43,6 +43,10 @@ var _active := false
 ## assertion written after it observes the state it was waiting for rather than racing it.
 var _until_active := false
 var _until_holding := false
+var _fight_active := false
+var _fight_holding := false
+var _fight_limit := 0
+var _fight_frames := 0
 var _until_action: StringName = &""
 var _until_state := ""
 var _until_limit := 0
@@ -93,6 +97,9 @@ func _physics_process(_delta: float) -> void:
 	if _until_active:
 		_tick_press_until()
 		return
+	if _fight_active:
+		_tick_fight_well()
+		return
 	if _index >= _steps.size():
 		_finish()
 		return
@@ -124,6 +131,8 @@ func _run(step: Dictionary) -> void:
 			_steps.insert(_index, {"op": "release", "action": String(action)})
 		"press_until_state":
 			_press_until_state(step)
+		"fight_well":
+			_fight_well(step)
 		"assert_state":
 			var wanted := str(step.get("state", ""))
 			if Router.state_name() != wanted:
@@ -258,6 +267,56 @@ func _run(step: Dictionary) -> void:
 ## in that spot, which is why nothing noticed until a second game did not.
 ##
 ## It also awaited idle frames while everything else here counts physics frames.
+## Plays a fight WELL, to its end: confirm through every menu, and press inside every timing
+## window. The scripted twin of `BattleDriver.Policy.PERFECT`, and the reason it exists is that
+## the alternative does not survive content changes - a session that lands timed hits by waiting
+## a computed number of frames between presses is chained arithmetic over the cue and message
+## lengths, and it goes stale the moment a formation gains a body. It then fails as a fight that
+## mysteriously never ends, half a script away from the thing that changed.
+##
+## Note this is the OPPOSITE of `press_until_state`, which mashes: only the first press of a cue
+## counts, so pressing every frame lands it at the top of the wind-up and never in the window.
+## Mashing is how a session plays badly ON PURPOSE, and both are worth being able to write.
+func _fight_well(step: Dictionary) -> void:
+	_fight_limit = int(step.get("limit", 6000))
+	_fight_frames = 0
+	_fight_holding = false
+	_fight_active = true
+
+
+func _tick_fight_well() -> void:
+	if _fight_holding:
+		_release(&"interact")
+		_fight_holding = false
+		return
+	if Router.state_name() != "battle":
+		_log.append("fought it out in %d frames" % _fight_frames)
+		_fight_active = false
+		return
+	_fight_frames += 1
+	if _fight_frames >= _fight_limit:
+		_fail("fought for %d frames and the battle never ended" % _fight_limit)
+		_fight_active = false
+		return
+	var screen := _battle_screen()
+	if screen == null:
+		return
+	if screen.cue_on() or screen.choosing():
+		_press(&"interact")
+		_fight_holding = true
+
+
+## The battle view, found by TYPE rather than by a path or a group, so nothing in the shipped
+## scene has to carry a hook that exists only for the harness.
+func _battle_screen() -> BattleScreen:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	for node in scene.find_children("", "BattleScreen", true, false):
+		return node as BattleScreen
+	return null
+
+
 func _press_until_state(step: Dictionary) -> void:
 	_until_action = StringName(str(step.get("action", "interact")))
 	_until_state = str(step.get("state", "world"))

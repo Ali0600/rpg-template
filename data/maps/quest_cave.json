@@ -52,7 +52,7 @@
 		}
 	],
 	"enemies": [
-		{ "id": "gloom", "enemy": "gloom", "tile": [10, 4], "facing": "down" }
+		{ "id": "gloom", "enemy": "gloom", "group": ["gloom"], "tile": [10, 4], "facing": "down" }
 	],
 	"warps": [
 		{ "tile": [0, 6], "map": "quest_town", "spawn": "east_gate" }

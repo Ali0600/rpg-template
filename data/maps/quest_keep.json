@@ -56,7 +56,7 @@
 		}
 	],
 	"enemies": [
-		{ "id": "keeper", "enemy": "keeper", "tile": [4, 5], "facing": "left" }
+		{ "id": "keeper", "enemy": "keeper", "group": ["gloom", "slink"], "tile": [4, 5], "facing": "left" }
 	],
 	"warps": [
 		{ "tile": [1, 3], "map": "quest_village", "spawn": "from_keep" }

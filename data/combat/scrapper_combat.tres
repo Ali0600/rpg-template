@@ -2,7 +2,9 @@
 
 ; Rook's own growth. The xp curve is the SAME two steps as the player's, deliberately: she
 ; earns the same awards from the same fights, so a different curve would have her levelling on
-; a different beat for no reason a player could read.
+; a different beat for no reason a player could read. The two therefore MOVE TOGETHER - M29
+; doubled both to [20, 24] when every fight became a formation, and leaving this one behind
+; would have made that sentence a lie while every test still passed.
 ;
 ; Everything else differs, and that is the point of her being a person rather than a copy.
 ; Sturdier and slower to grow (24 +3 against 20 +4), a weaker swing (3 +1 against 5 +2),
@@ -29,7 +31,7 @@ base_defense = 2
 defense_per_level = 1
 base_mp = 4
 mp_per_level = 2
-xp_curve = Array[int]([10, 12])
+xp_curve = Array[int]([20, 24])
 attack_cue_frames = 72
 defend_cue_frames = 84
 timed_window_frames = 24

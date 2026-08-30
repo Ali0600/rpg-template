@@ -152,7 +152,9 @@
 				6
 			],
 			"map": "quest_cave",
-			"spawn": "west_gate"
+			"spawn": "west_gate",
+			"requires_flag": "rook_joins",
+			"locked_dialog": "road_alone"
 		},
 		{
 			"tile": [

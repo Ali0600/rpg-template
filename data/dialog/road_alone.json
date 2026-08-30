@@ -1,0 +1,28 @@
+{
+	"_readme": [
+		"What both roads out of the village say before Rook is along. The keep's gate wants a KEY,",
+		"which is a fetch; this one wants a PERSON, which is a decision - so the refusal names her",
+		"and where she is, and a player who walks west first leaves with a lead rather than a wall.",
+		"",
+		"It exists because M29 sized every fight for two. The genre's own answer is to put the",
+		"second sword on the critical path - Dragon Quest II hands you the Prince through the",
+		"story - and a companion the player may decline turns one design into two, of which only",
+		"one was ever balanced. Rook's own line already argued it: two of us come back from it.",
+		"",
+		"The warden speaks, because she is the one who said one sword was enough for a village this",
+		"size, and this is that line being wrong out loud."
+	],
+	"id": "road_alone",
+	"start": "refused",
+	"nodes": {
+		"refused": {
+			"speaker": "Warden",
+			"text": "Not alone you don't. I said one sword was enough for this village - the road is not this village. Rook is down by the west wall.",
+			"next": "wait"
+		},
+		"wait": {
+			"speaker": "Warden",
+			"text": "Take her, and I will open it myself."
+		}
+	}
+}

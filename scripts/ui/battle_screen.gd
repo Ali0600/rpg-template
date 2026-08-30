@@ -468,12 +468,31 @@ func _paint_fighters() -> void:
 		_foe_views[at].set_pose(&"walk" if theirs else &"idle", Dir.D.LEFT)
 
 
-func _paint_rows(text: Color, dim: Color) -> void:
-	var choosing := _logic.phase() == BattleLogic.Phase.MENU \
+## Whether the timing window is open RIGHT NOW, and whether the fight is waiting on a choice.
+##
+## Two reads the screen already makes of itself - the cue's visibility and the rows' dimming -
+## published so a scripted play session can play WELL: press on the cue, confirm through the
+## menus. Without them a session has to derive frame offsets from the combat data and chain them
+## by hand, which is arithmetic that goes stale the moment a formation changes size, and which
+## fails as a fight that mysteriously does not end rather than as a sum that no longer adds up.
+func cue_on() -> bool:
+	return _logic != null and _logic.cue_on()
+
+
+func choosing() -> bool:
+	return _logic != null and _is_choosing()
+
+
+func _is_choosing() -> bool:
+	return _logic.phase() == BattleLogic.Phase.MENU \
 		or _logic.phase() == BattleLogic.Phase.ITEMS \
 		or _logic.phase() == BattleLogic.Phase.SPELLS \
 		or _logic.phase() == BattleLogic.Phase.ALLY \
 		or _logic.phase() == BattleLogic.Phase.FOE
+
+
+func _paint_rows(text: Color, dim: Color) -> void:
+	var choosing := _is_choosing()
 	var first := _first_visible()
 	for i in _rows.size():
 		var row := _rows[i]

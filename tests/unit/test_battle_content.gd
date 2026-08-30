@@ -204,23 +204,33 @@ func test_no_shipped_formation_is_unwinnable() -> void:
 			"'%s' (%s) cannot be won at level %d even with every press timed"
 			% [record_id, str(report.foes), top]).is_equal(BattleLogic.Outcome.VICTORY)
 
-func test_the_gate_balances_the_party_the_roads_guarantee() -> void:
-	# The derivation both fights above lean on, asserted rather than assumed - and TODAY THE
-	# ANSWER IS NOBODY. Rook joins on a flag, no road demands that flag, so a player can reach
-	# every fight in this game alone; the balance model therefore fights them alone too, which
-	# is the honest reading of the shipped content rather than the flattering one.
+func test_no_fight_can_be_reached_by_a_party_it_was_not_balanced_for() -> void:
+	# THE INVARIANT M29 EXISTS FOR, and the one nothing checked. A fight sized for two must be
+	# unreachable by one: every companion the balance model counts on has to be un-declinable on
+	# every map that places enemies - either they join unconditionally, or every road there
+	# demands the flag that recruits them.
 	#
-	# Stated as an assertion rather than a comment because it is a fact about the MAP, so the day
-	# a road starts demanding her this test changes loudly instead of the gate quietly getting
-	# easier. The blocked direction of the walk arrives with that road, and with a mutant on it.
+	# Before M29 this was false, and correctly so: fights were solo, Rook was optional, the model
+	# fought alone and the game was balanced for that. Making the fights pairs is what turned "she
+	# is optional" from a player's choice into TWO games, of which only one was ever balanced -
+	# alone, a mashing player dies to the first slink pair and a perfect one still loses to the
+	# Keeper. So the roads demand her, and this is what keeps them demanding her.
 	var manifest := _quest()
-	assert_int(manifest.party.size()).override_failure_message(
+	var declared := manifest.party.size()
+	assert_int(declared).override_failure_message(
 		"the quest declares no party, so this says nothing about anything").is_greater(0)
-	assert_array(_guaranteed_party(manifest, &"quest_keep")).override_failure_message(
-		"a companion became guaranteed without this test being told - if a road now demands her, "
-		+ "say so here, because every balance claim above just got easier").is_empty()
-	assert_bool(_reachable_without(manifest, &"quest_keep", &"rook_joins")).override_failure_message(
-		"the keep is not reachable without recruiting Rook").is_true()
+	var checked := 0
+	for path in ContentScan.files_of("res://data/maps", "json"):
+		var map := MapData.load_from(path)
+		if map.enemies.is_empty():
+			continue
+		checked += 1
+		assert_int(_guaranteed_party(manifest, map.id).size()).override_failure_message(
+			"'%s' places fights, and a player can stand on it having declined a companion - so those fights are balanced against a party the player need not have"
+			% map.id).is_equal(declared)
+	# A loop over no maps validates nothing and reports success, which is this suite's own idiom.
+	assert_int(checked).override_failure_message(
+		"no shipped map places a fight, so the loop above proved nothing").is_greater(0)
 	# And the walk actually walks: a map nothing warps to must come back unreachable, or
 	# "guaranteed" would be true of everyone everywhere and the derivation would be decoration.
 	assert_bool(_reachable_without(manifest, &"quest_nowhere", &"")).override_failure_message(
@@ -310,28 +320,54 @@ func _guaranteed_party(manifest: GameManifest, map_id: StringName) -> Array:
 	return out
 
 ## Whether `map_id` can still be reached from the game's first map when every warp demanding
-## `flag` is refused. Items are ignored deliberately: a locked door with a key behind it is a
-## detour, where a flag that gates a road is a decision the player may simply not take.
+## `flag` is refused.
+##
+## A FIXPOINT rather than a plain walk, because a locked door moves with the key: the keep asks
+## for `gate_key`, the key lies in the hollow, and the hollow asks for the flag - so refusing the
+## flag closes the keep too, one room removed. A walk that ignored items would call the keep
+## reachable alone and quietly conclude the player might arrive there without a companion.
+##
+## An item NO map object grants is assumed obtainable (the smith's tonics, the hermit's oil,
+## which come out of conversations). That direction is the safe one: assuming an item is
+## available can only make more maps reachable, which makes fewer companions count as guaranteed
+## and the balance requirement HARDER. The reverse - failing to notice a source - would inflate
+## the party the gate balances, which is the mistake this whole derivation exists to prevent.
 func _reachable_without(manifest: GameManifest, map_id: StringName, flag: StringName) -> bool:
-	var seen := {manifest.start_map: true}
-	var queue: Array[StringName] = [manifest.start_map]
-	while not queue.is_empty():
-		var here: StringName = queue.pop_front()
-		if here == map_id:
-			return true
-		var map := MapData.load_from("res://data/maps/%s.json" % here)
-		if not map.ok:
-			continue
-		for entry: Variant in map.warps:
-			var warp: Dictionary = entry
-			if StringName(str(warp.get("requires_flag", ""))) == flag:
+	var granted := _items_granted_by_maps()
+	var reached := {manifest.start_map: true}
+	var changed := true
+	while changed:
+		changed = false
+		for here: Variant in reached.keys():
+			var map := MapData.load_from("res://data/maps/%s.json" % here)
+			if not map.ok:
 				continue
-			var there := StringName(str(warp.get("map", "")))
-			if String(there).is_empty() or seen.has(there):
-				continue
-			seen[there] = true
-			queue.append(there)
-	return false
+			for entry: Variant in map.warps:
+				var warp: Dictionary = entry
+				if StringName(str(warp.get("requires_flag", ""))) == flag:
+					continue
+				var need := StringName(str(warp.get("requires_item", "")))
+				if granted.has(need) and not reached.has(granted[need]):
+					continue
+				var there := StringName(str(warp.get("map", "")))
+				if String(there).is_empty() or reached.has(there):
+					continue
+				reached[there] = true
+				changed = true
+	return reached.has(map_id)
+
+## Which map hands out each item, for the walk above. Only map OBJECTS are sourced; anything a
+## conversation gives is deliberately absent, and `_reachable_without` says why.
+func _items_granted_by_maps() -> Dictionary:
+	var out := {}
+	for path in ContentScan.files_of("res://data/maps", "json"):
+		var map := MapData.load_from(path)
+		for entry: Variant in map.objects:
+			var object: Dictionary = entry
+			var gives := StringName(str(object.get("give_item", "")))
+			if not String(gives).is_empty() and not out.has(gives):
+				out[gives] = map.id
+	return out
 
 func test_two_tonics_are_what_sits_between_those_two_outcomes() -> void:
 	# The tuning point named out loud: the tonics are for the player who lands some presses and

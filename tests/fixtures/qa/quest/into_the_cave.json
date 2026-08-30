@@ -47,38 +47,34 @@
 			"op": "assert_map",
 			"map": "quest_village"
 		},
-		{
-			"op": "note",
-			"text": "north wall, east wall, then south onto the road"
-		},
-		{
-			"op": "hold",
-			"action": "move_up",
-			"frames": 60
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
-		{
-			"op": "hold",
-			"action": "move_right",
-			"frames": 120
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
-		},
+		{ "op": "note", "text": "fetch Rook first: the cave road refuses a player travelling alone, because what waits at the end of it is sized for two. South to the well, west to the wall, south to her." },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_left", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "hold", "action": "move_down", "frames": 200 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 5 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 60 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_flag", "key": "rook_joins", "expect": true },
+		{ "op": "note", "text": "step off Rook's shoulder. Talking to her leaves the player wedged between her and the west wall, where east is blocked by her body - so this is a short DIAGONAL: the up component clears her, and the right component leaves column 1 before it can reach the hollow's door two rows above. A straight hold up would have to stop within a pixel of that door, which is a count nobody should have to keep true." },
+		{ "op": "hold", "action": "move_up", "frames": 20 },
+		{ "op": "hold", "action": "move_right", "frames": 20 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
+		{ "op": "note", "text": "and now the wall-anchored legs: east to the east wall, then south onto the road out of the village" },
+		{ "op": "hold", "action": "move_right", "frames": 400 },
+		{ "op": "release_all" },
+		{ "op": "wait", "frames": 3 },
 		{
 			"op": "hold",
 			"action": "move_down",
-			"frames": 200
+			"frames": 300
 		},
 		{
 			"op": "release_all"
