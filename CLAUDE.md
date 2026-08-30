@@ -855,6 +855,13 @@ just proven green in the same job.
 polling a 17-minute run is how a session gets spent. This needs a required status check on
 `main` - without one, `--auto` merges immediately, which is the trap.
 
+**Write a commit message or a PR body to a FILE and pass `-F`, never `-m "..."`.** Every message
+here is multi-paragraph prose full of backticks, `!=` and `${}`, and a double-quoted shell string
+eats all three: backticks RUN as a command substitution and `!` history-expands under zsh. The
+failure is silent and lands in history - two clauses vanished from a commit message here before
+anyone looked, and the amend is only cheap while the branch has no PR. `gh pr create --body-file`
+is the same rule for the same reason.
+
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sounds.gd
