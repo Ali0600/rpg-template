@@ -264,8 +264,10 @@ func test_a_round_runs_player_then_enemy_then_back_to_the_menu() -> void:
 
 # -- magic ---------------------------------------------------------------------------------
 
-func _spell(kind: int, cost := 3, power := 7, turns := 0, name := "Ember") -> BattleLogic.SpellRow:
-	return BattleLogic.SpellRow.of(StringName(name.to_lower()), name, cost, kind, power, turns)
+func _spell(kind: int, cost := 3, power := 7, turns := 0, name := "Ember",
+		element := &"") -> BattleLogic.SpellRow:
+	return BattleLogic.SpellRow.of(StringName(name.to_lower()), name, cost, kind, power, turns,
+		SpellDef.Target.ONE, SpellDef.Stat.ATTACK, element)
 
 ## Opens the spell page. Named rather than counted, the whole reason Row is an enum.
 func _to_the_spells(battle: BattleLogic) -> void:
@@ -1131,9 +1133,9 @@ func _pair(first_hp := 10, second_hp := 10, spells: Array = [], seed_value := 7)
 
 
 ## A spell that reaches every living foe rather than one.
-func _sweep(cost := 3, power := 7, name := "Gale") -> BattleLogic.SpellRow:
+func _sweep(cost := 3, power := 7, name := "Gale", element := &"") -> BattleLogic.SpellRow:
 	return BattleLogic.SpellRow.of(StringName(name.to_lower()), name, cost,
-		SpellDef.Kind.ATTACK, power, 0, SpellDef.Target.ALL)
+		SpellDef.Kind.ATTACK, power, 0, SpellDef.Target.ALL, SpellDef.Stat.ATTACK, element)
 
 func test_a_swing_asks_which_foe_when_there_is_more_than_one() -> void:
 	var battle := _pair()
@@ -1484,3 +1486,116 @@ func test_an_enemy_can_sap_the_guard_a_later_blow_is_measured_against() -> void:
 	# Its next move is the same one, so the damage still cannot come from it - only the swing
 	# after the sap can, and it is measured against the lowered guard.
 	assert_int(battle.member_hp(0)).is_equal(20)
+
+
+# -- elements ---------------------------------------------------------------------------------
+
+## An enemy that answers one element, for the scaling tests below. Built here rather than given
+## a parameter on `_enemy`, so every existing caller of that helper stays character-identical.
+func _answers(element: StringName, pct: int, hp := 99, defense := 0) -> EnemyDef:
+	var out := _enemy(hp, 3, defense)
+	out.resistances = {element: pct}
+	return out
+
+func _cast_the_only_spell(battle: BattleLogic) -> void:
+	_to_the_spells(battle)
+	battle.press()
+
+func test_a_spell_lands_at_face_value_on_something_that_does_not_answer_it() -> void:
+	# The control. Every number below is a departure from this one, so a scaling bug that
+	# multiplied everything by the same wrong figure would show up here first.
+	var battle := _fight(_answers(&"ice", 200), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"a resistance to a DIFFERENT element scaled the spell").is_equal(92)
+
+func test_a_weakness_takes_the_scaled_damage() -> void:
+	var battle := _fight(_answers(&"fire", 200), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"a weakness did not scale the damage").is_equal(85)
+
+func test_a_resistance_takes_the_scaled_damage() -> void:
+	var battle := _fight(_answers(&"fire", 50), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"a resistance did not scale the damage").is_equal(96)
+
+func test_an_elementless_spell_is_not_scaled_by_anything() -> void:
+	# A spell made of nothing cannot be resisted, however weak the thing in front of it is. This
+	# is what keeps every spell that shipped before elements existed landing exactly as it did.
+	var battle := _fight(_answers(&"fire", 200), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7)])
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp()).is_equal(92)
+
+func test_something_immune_takes_nothing_at_all() -> void:
+	var battle := _fight(_answers(&"fire", 0), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"an immune enemy took damage").is_equal(99)
+	assert_int(battle.member_mp(0)).override_failure_message(
+		"the cast was free because it did nothing").is_equal(5)
+
+func test_a_cast_that_does_nothing_says_so() -> void:
+	# A caption reporting "0 damage" reads as a broken button rather than as an immunity, which
+	# is the argument problems() makes for refusing a powerless spell outright.
+	var battle := _fight(_answers(&"fire", 0), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"an immune enemy was not named as one: %s" % battle.message()).contains("nothing")
+
+func test_a_resisted_spell_still_takes_something_off() -> void:
+	# The degenerate end: 1 power halved is 0 by integer division, which would make a resistance
+	# indistinguishable from an immunity - two different things a player has to be able to tell
+	# apart. Floored at one, so only a zero percent lands nothing.
+	var battle := _fight(_answers(&"fire", 50), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_spell(SpellDef.Kind.ATTACK, 3, 1, 0, "Ember", &"fire")])
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp()).override_failure_message(
+		"a resisted spell rounded down to doing nothing").is_equal(98)
+
+func test_a_sweep_scales_against_each_foe_it_reaches() -> void:
+	# THE test for the one-place rule. Two arms of the attack branch apply a resistance, and the
+	# copy somebody forgets is not a crash - it is a weakness that works when you aim and
+	# silently not when you sweep, which reads as the spell being broken.
+	var burns := _enemy(30)
+	burns.resistances = {&"fire": 200}
+	var shrugs := _enemy(30)
+	shrugs.id = &"test_gloom"
+	shrugs.name = "Gloom"
+	shrugs.resistances = {&"fire": 50}
+	var curve := _combat()
+	var battle := BattleLogic.of(curve, [burns, shrugs],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0,
+			[_sweep(3, 6, "Gale", &"fire")])], [], "map/foe", 7)
+	_cast_the_only_spell(battle)
+	assert_int(battle.enemy_hp(0)).override_failure_message(
+		"the weak foe did not burn for more in a sweep").is_equal(18)
+	assert_int(battle.enemy_hp(1)).override_failure_message(
+		"the resistant foe was swept for full damage").is_equal(27)
+
+func test_a_sweep_names_what_each_foe_took() -> void:
+	# "6 damage to each" was true while every foe took the same number and became a false
+	# statement the moment an element could scale them apart.
+	var burns := _enemy(30)
+	burns.resistances = {&"fire": 200}
+	var shrugs := _enemy(30)
+	shrugs.id = &"test_gloom"
+	shrugs.name = "Gloom"
+	shrugs.resistances = {&"fire": 50}
+	var curve := _combat()
+	var battle := BattleLogic.of(curve, [burns, shrugs],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0,
+			[_sweep(3, 6, "Gale", &"fire")])], [], "map/foe", 7)
+	_cast_the_only_spell(battle)
+	var said := battle.message()
+	assert_str(said).override_failure_message(
+		"the sweep did not name what the weak foe took: %s" % said).contains("12")
+	assert_str(said).override_failure_message(
+		"the sweep did not name what the resistant foe took: %s" % said).contains("3")

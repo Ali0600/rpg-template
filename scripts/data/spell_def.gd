@@ -27,9 +27,10 @@ extends Resource
 ## than the smallest system the genre actually shipped. SLEEP is the cheapest way to not be
 ## thinner: one counter on the fight, checked before the enemy moves.
 ##
-## No element here, deliberately. A resistance table is a system with a matrix, an enemy field
-## and a rule per pairing; naming the attack spell "Ember" costs nothing and reads the same at
-## this scale. See docs/DECISIONS.md.
+## An element is NOT one of these. It answers "what is this made of", where a kind answers "what
+## does it do" - and an ATTACK of any element still does the one thing an ATTACK does. Folding
+## fire into the kind list would multiply this enum by every element a game invents, which is the
+## shape a matrix exists to avoid. See `element` below.
 ##
 ## BOOST and SAP arrived in M30 and are APPENDED rather than inserted, because a `.tres` stores
 ## an enum as the integer it was when the file was written: putting a new kind in the middle
@@ -79,6 +80,24 @@ enum Target { ONE, ALL }
 @export var learn_level: int = 1
 
 @export var kind: Kind = Kind.ATTACK
+
+## What this spell is MADE OF, paired against `EnemyDef.resistances` to scale its damage. Empty
+## is the default and means elementless - damage lands at face value, which is what every spell
+## did before this field existed.
+##
+## AN OPEN VOCABULARY, deliberately, where `Kind` is a closed enum. The template never branches
+## on "fire": it looks the word up in the enemy's own map and multiplies, so it needs no opinion
+## about which elements exist. A closed list here would be this template choosing the elements of
+## every game built on it, and the references do not agree on a set worth choosing - Final
+## Fantasy I's first tier is fire, ice and lightning, Dragon Quest bakes the element into the
+## spell's NAME, Pokemon runs eighteen. What the content gate checks instead is that the two
+## sides MEET: an element no shipped spell carries is a resistance nothing can trigger.
+##
+## Legal on an ATTACK only. A heal or a sleep has no damage for a resistance to scale, so an
+## element on one would be a field nothing reads - the shape `problems()` already refuses when a
+## move carries `turns` with no status, and the reason it refuses it: that is how a data file
+## comes to describe an effect the fight never applies.
+@export var element: StringName = &""
 
 ## ONE is the default and means the spell asks who. ALL is legal for an ATTACK only: a heal or a
 ## sleep that reached everybody is a real genre noun in both cases, but neither is needed to
@@ -147,4 +166,8 @@ func problems() -> Array[String]:
 		# An ATTACK or a HEAL with no power is a spell that spends MP and changes nothing,
 		# which reads in play as a broken button rather than as a weak spell.
 		out.append("spell '%s' has %d power - casting it would do nothing" % [id, power])
+	# Outside the chain above rather than repeated in three of its branches: an element is
+	# scaling for damage, so every kind that deals none refuses it by the same one line.
+	if kind != Kind.ATTACK and not String(element).is_empty():
+		out.append("spell '%s' is made of '%s' but deals no damage for that to scale" % [id, element])
 	return out

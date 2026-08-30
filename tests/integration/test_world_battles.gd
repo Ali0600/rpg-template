@@ -289,10 +289,33 @@ func test_a_spells_shape_survives_the_trip_into_the_fight() -> void:
 			.is_equal(def.target)
 		assert_int(row.stat).override_failure_message(
 			"'%s' arrived moving a different stat" % row.id).is_equal(def.stat)
+		assert_str(String(row.element)).override_failure_message(
+			"'%s' arrived made of something else" % row.id).is_equal(String(def.element))
 		checked += 1
 	# A loop over an empty page proves nothing, and this one is reached through a level.
 	assert_int(checked).override_failure_message(
 		"the level-2 spell page was empty, so nothing above was compared").is_greater(1)
+
+## The list above is hand-kept, under a comment correctly explaining that the field which gets
+## dropped is always the newest one - i.e. the one nobody thought to add a line for. That is a
+## warning, not a gate, and warnings do not fail builds.
+##
+## So the list polices itself: every property SpellRow carries is named here, derived from the
+## object rather than remembered, and a field added to the DTO without a comparison above fails
+## THIS test by name. It is the shape the music-field list needed for exactly the same reason.
+func test_every_field_a_spell_row_carries_is_one_the_trip_compares() -> void:
+	const COMPARED := ["id", "name", "cost", "kind", "power", "status_turns", "target", "stat",
+		"element"]
+	var carried: Array[String] = []
+	for property: Dictionary in BattleLogic.SpellRow.new().get_property_list():
+		# Declared fields only, minus the bookkeeping entry Object prepends for the script
+		# itself - which is not a field anybody could drop.
+		if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			carried.append(str(property["name"]))
+	assert_array(carried).override_failure_message(
+		("SpellRow carries %s; the trip above compares %s. A field the resolver forgets to pass "
+		+ "is a spell that silently arrives wrong.") % [carried, COMPARED]) \
+		.contains_exactly_in_any_order(COMPARED)
 
 func test_a_spell_arrives_when_its_level_does() -> void:
 	await _boot()

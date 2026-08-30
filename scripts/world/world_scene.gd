@@ -1351,7 +1351,7 @@ func _spells_up_to(level: int, only: Array[StringName], everything: bool) -> Arr
 		# Nothing downstream complains, because a defaulted field is a legal field. `stat` is the
 		# newest and would fail the same silent way: every boost would move attack.
 		out.append(BattleLogic.SpellRow.of(def.id, def.name, def.mp_cost, def.kind, def.power,
-			def.status_turns, def.target, def.stat))
+			def.status_turns, def.target, def.stat, def.element))
 	return out
 
 
