@@ -90,6 +90,61 @@ one-glance menu of things still worth trying.
 
 ---
 
+## The flow model is walked, and a failing walk is shrunk — *M31*
+
+**The fork:** M23's gate drives each edge once, from a world built for it. That is silent about
+every SEQUENCE of edges — and the bug the model exists for *was* a sequence. So: how do you
+check paths without checking all of them, and what do you hand back when one fails?
+
+- **Seeded random walks, replayed from an explicit SEQUENCE** — *chosen.* Six walks of
+  twenty-four steps on one world that is never rebuilt between steps. The plan is a list of edge
+  indices, not just a seed, because minimising a failure means re-running walks the planner would
+  never have drawn. A seed identifies the walk that failed; only a sequence can identify a
+  *shorter* one.
+- *Replay from the seed alone.* Smaller to store and enough to reproduce.
+  `rejected — it makes shrinking impossible`: every candidate the minimiser wants to try is a
+  walk no seed produces, so the whole search would have nowhere to send its answers.
+- *Exhaustive paths up to length N.* Complete, and no randomness to explain.
+  `rejected — the branching factor`: WORLD has six exits, so length six is already tens of
+  thousands of walks and length twenty-four is not a number. Random walks with asserted edge
+  coverage buy the same confidence for one second of gate time.
+
+**The fork within it: how is a failing walk minimised?** A 24-step walk is not a bug report.
+
+- **Cycle elision** — *chosen.* Delete the steps between two positions that sit in the SAME
+  state. It is the one edit to a graph walk that cannot break connectivity, so every candidate is
+  drivable by construction and a failed re-run means exactly one thing. It cut its first real
+  failure from 24 steps to five: `continue, open_pause, close_pause, open_pause, close_pause` —
+  the bug stated exactly, since it takes one close before the second open.
+- *General delta debugging* (drop arbitrary steps, keep what still fails). The textbook answer.
+  `rejected — most of its candidates are not walks`: dropping a step usually leaves the next one
+  departing from a state the walk is no longer in, so the search would spend its budget on
+  sequences that cannot be driven, and would have to tell "does not reproduce" apart from "is not
+  a walk" on every one.
+- *Report the seed and let a human read the walk.* `rejected — it is the thing this replaces`,
+  and it is what makes a rare failure expensive rather than cheap.
+
+**Where the walks live, and one thing that would have been tidier.** They are test functions in
+`test_flow_model.gd`, beside the per-edge gate whose adapters they compose, rather than a new
+suite with the adapters extracted into a shared driver. The extraction is the better-looking
+shape and buys nothing today: one caller, one file, and a refactor of the gate that would have to
+be proven byte-identical first. **Revisit hook:** the day a second suite wants to drive an edge,
+`_drive`/`_arrive_at`/`_invariant_holds` are what move to `tests/helpers/`.
+
+**How a walk reaches a LOSING fight**, which is the edge with two hops and therefore the one most
+worth composing. `_drive` takes the adapter that follows it and opens an unwinnable fight when
+the walk intends to lose. Rejected: giving the model a field for it (the model would then
+describe the harness, not the game), and leaving `lose_battle` out of walks (which drops the
+defeat path, the only two-hop edge that a walk can reach twice).
+
+**What the walk actually proved, stated exactly.** It found no defect in shipped code — nothing
+was broken. What it did was kill two mutations the per-edge gate SURVIVES, both the same shape: a
+screen that is closed but never freed stays in the tree and goes on consuming input, so the
+second time the player opens the menu nothing happens. Seven candidate mutations were run twice
+each, with the walk tests collected and not collected; five behaved identically both ways. The
+measured pair is the whole argument for the layer, and it is worth saying that it had to be
+measured — the first three candidates reasoned out in advance all survived both ways.
+
 ## Ordinary fights are pairs, and the second sword moved onto the road — *M29*
 
 M28 built formations and spent them on one optional encounter in a corner; a normal
@@ -1965,10 +2020,12 @@ stops the next bug of that class — a legal transition sequence nobody thought 
   states and 17 edges is the trivial part. Their engines earn their keep at hundreds of nodes.
   **Revisit hook:** `tools/flow_model.json`'s edge list; if it ever outgrows a page, its
   generators are what to borrow.
-- **[Hypothesis](https://hypothesis.readthedocs.io/en/latest/stateful.html)-style stateful
-  testing** — *deferred — worth trying* for one feature nothing else has: **shrinking**, which
-  minimizes a failing 40-step sequence to the shortest one that still fails. Revisit hook: the
-  seeded-walk layer, where a long failing walk is exactly the thing worth shrinking.
+- ~~**[Hypothesis](https://hypothesis.readthedocs.io/en/latest/stateful.html)-style stateful
+  testing**~~ — was *deferred — worth trying* for one feature nothing else has: **shrinking**,
+  which minimizes a failing 40-step sequence to the shortest one that still fails. **Taken up by
+  M31**, at the seeded-walk layer this entry named as the hook. Not by adopting Hypothesis — it
+  is Python and this gate needs only the engine — but by writing the search: cycle elision over a
+  list of edge indices, pure and unit-tested with no scene. The entry above it holds why.
 - **[godot-statecharts](https://github.com/derkork/godot-statecharts)** — *rejected.* It is a
   runtime library with a visual debugger: it would restructure how `Router` runs, generate no
   checks, and would not have caught this bug. This repo also has scar tissue from editor addons

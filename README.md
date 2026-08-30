@@ -199,6 +199,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M28** — fights that hold a crowd: a map record names a formation, a cursor picks which foe to strike, every living enemy takes its own turn, and a spell can carry a shape that reaches all of them
 - [x] **M29** — the crowd becomes the ordinary case: every encounter is a formation, the boss brings an escort, both roads out of the village stay shut until the second sword is along, and the balance gate stopped doing arithmetic about the fight and started playing it
 - [x] **M30** — statuses that run both ways: a buff and a debuff the party can cast, an affliction enemies can inflict, durations counted in turns, and a well-timed guard that shrugs one off entirely
+- [x] **M31** — the flow model is walked, not just stepped over: seeded random journeys through the state machine on one world that is never rebuilt, and a failing journey minimised to the shortest one that still fails before it is reported
 
 ## Experience Gained
 
@@ -232,6 +233,21 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - Used mutation testing against *data* rather than code to discover an entire missing validation
   gate: one content type had been scanned against its own validator since it existed, and a
   sibling type shipped four milestones later had never been scanned at all.
+- Built model-based testing over an application's state machine: seeded random traversals
+  replayed from an explicit path, asserting a declared event trace and a set of per-state
+  invariants after every transition — closing a coverage gap where each transition had been
+  verified individually and no sequence of them ever had.
+- Implemented automatic counterexample reduction (test-case shrinking) for those traversals,
+  choosing a domain-specific reduction — eliding cycles between repeated states — over generic
+  delta debugging, because it cannot generate an invalid path and therefore needs no way to
+  distinguish "did not reproduce" from "was never runnable". First real failure reduced from
+  24 steps to 5.
+- Inverted the search loop so the reduction algorithm stays a pure function over integers,
+  unit-testable in milliseconds with no runtime environment, while the expensive replay stays
+  in the integration harness that owns the world.
+- Justified a new test layer by measurement rather than argument: seven candidate faults were
+  injected and run against both the old and new gates, and the layer shipped on the two that
+  the existing gate demonstrably could not detect.
 
 - Built deterministic audio sequencing on the simulation's own frame clock rather than on the
   audio device's completion callback, after measuring that the headless driver used by every
