@@ -202,8 +202,22 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M31** — the flow model is walked, not just stepped over: seeded random journeys through the state machine on one world that is never rebuilt, and a failing journey minimised to the shortest one that still fails before it is reported
 - [x] **M32** — a death and a boss get their own music, and a save slot that cannot be read says so instead of drawing as empty
 - [x] **M33** — elemental resistances: a spell is made of something, an enemy answers it with a percent, and a weakness or a resistance is announced rather than left as a number with nothing to compare it to
+- [x] **M34** — the balance gate learned to cast: it plays every shipped fight with magic now, and asserts that every spell is used and every elemental weakness is actually told to the player somewhere
 
 ## Experience Gained
+
+- Closed a two-layer blind spot in a simulation-based quality gate: the driver never exercised
+  one input path, and the fixtures beneath it were built without the data that path consumes —
+  so an entire subsystem was absent from the scenarios the gate reported on.
+- Identified that a driver's *choice policy* bounds test coverage as strongly as its skill
+  level, and added an opposed policy on that axis; it immediately surfaced a rule that could
+  never be reached under the existing traversal order.
+- Turned a product requirement previously enforced by convention — that a shipped mechanic must
+  be discoverable by the user — into an executable assertion over simulated playthroughs, which
+  failed on two of three cases the first time it ran.
+- Eliminated a duplicated derivation between production code and test fixtures by extracting the
+  shared predicate, so a quality gate cannot validate against configuration the application
+  never produces.
 
 - Grounded a design decision in primary evidence by reading disassemblies of the shipped
   binaries when the usual secondary sources were unreachable — which contradicted the most

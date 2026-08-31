@@ -330,11 +330,35 @@ disassemblies of the shipped ROMs, because the wikis were bot-blocked.
 made of. A typo on either side is a pairing that silently never fires while both files stay
 individually valid - the fight just applies 100% and nothing anywhere complains.
 
-**The balance gate cannot see any of this, and that is stated rather than assumed.**
-`BattleDriver` only ever chooses Attack and declares a `fault` if a spell page opens, so both
-policies are structurally blind to magic. No shipped fight can be unbalanced by an element, and
-equally nothing plays one - `fire_finds_the_gloom` and the cross-content check are the whole of
-the evidence. A casting policy is in `docs/DECISIONS.md` with its hook.
+**The balance gate PLAYS all of this, as of M34, and before that it could not see any of it.**
+`BattleDriver` only ever chose Attack - and beneath that, `BattleHelpers.party_of` handed the
+balance party an EMPTY spell page, so the fights the gate played did not contain magic at all.
+Two layers, and the lower one is the worse: a gate that reports on a fight the game does not
+contain is worse than no gate. `Policy.CASTER` casts, the party resolves its page through the
+same `SpellRow.page` the world calls, and three assertions ride on it - a casting party still
+wins every shipped fight, every shipped spell is cast somewhere, and **every shipped resistance
+is TOLD to the player somewhere**. That last is `demo-must-show-the-feature` as a gate: the
+cross-content check proves the two halves NAME the same element, and this proves they MEET.
+
+**AIM IS A POLICY AXIS, exactly the way skill is.** PERFECT finishes off whatever is closest to
+falling; CASTER spends its scarce magic on whatever will take longest to kill. With both drivers
+finishing the weakest first, a boss standing behind two mooks is never the target of anything
+while resources last - so every rule that only shows up when you hit the BIG one is unobserved
+by a suite that looks exhaustive. The Keeper's answer to fire was exactly that rule.
+
+**`SpellRow.page` is the ONE place a spell page is derived**, and it takes defs rather than
+reaching for them, because `BattleLogic` may not name an autoload. The world does the Registry
+lookup and the balance gate reads the files; both then call the same filter. A second
+implementation of "which spells has this level reached" drifts silently, and the gate would be
+balancing shipped fights against a page no player is handed.
+
+**A SWEEP announces only when its numbers cannot be compared.** M33 gave a sweep no clause
+because its caption names what each foe took side by side - true, and only when the numbers
+DIFFER. Against a uniform formation every figure is identical, there is no baseline in view, and
+the player is told nothing; the only wind spell in this game is a sweep, so the slink's weakness
+had never once been announced. So: uniform and non-neutral gets one clause, mixed gets none, and
+a sweep reaching a single foe borrows the single-target wording - "they" for one body reads as a
+bug. **The balance gate found this, not a person**, which is the whole argument for it.
 
 **Five spell kinds, and a cast has no timing window.** `SpellDef.Kind` is `ATTACK | HEAL |
 SLEEP | BOOST | SAP`, closed the way `ItemDef.SLOTS` is, and APPENDED to rather than reordered -

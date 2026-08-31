@@ -46,13 +46,22 @@ one-glance menu of things still worth trying.
   disassembly). Revisit hook: `ItemDef` gains an element and `_land_player_hit` scales the way
   `_cast` does. Also **party-side resistance** — nothing shields the player, because no enemy
   move carries an element; hook is the move dict plus a map on `Fighter`.
-- **A casting policy for `BattleDriver`.** The balance gate plays every shipped fight at both
-  ends of the skill range and only ever chooses Attack — it declares a `fault` if a spell page so
-  much as opens. So magic, and therefore every element pairing, is structurally outside what the
-  gate can see: M33 could not have unbalanced a fight, and equally the gate says nothing about
-  whether its content is any good. It is the fixed-policy-bounds-coverage lesson one level up
-  from skill. Deferred because a driver that casts would re-open the balance of all six shipped
-  encounters at once. Revisit hook: `BattleDriver.Policy`, plus `_aim` learning the spell page.
+- ~~**A casting policy for `BattleDriver`.**~~ **Taken up by M34**, and the feared cost did not
+  arrive: a casting party wins every shipped fight on every seed, so nothing needed retuning.
+  What it did find was two pairings the player could never learn. Still deferred here: **a
+  driver that uses ITEMS** — the bag is the third row and no policy has ever opened it, so a
+  tonic priced or healing wrongly is invisible to the gate exactly as magic was. Revisit hook:
+  `Policy`, and `party_of` would have to carry an item list the way it now carries spells.
+- **A width gate for the battle caption.** `BattleScreen._message` is a bare `Label` with no
+  width, no wrap and no clip, so text past the window edge is simply drawn off-screen. The
+  layout audit measures overlap at declared capacity but never measures the caption, and only
+  vertical containment is asserted anywhere. Measured against a 312px budget: the worst SHIPPED
+  line is 295px, and the worst line at `MAX_PARTY`/`MAX_FOES` with the audit's own long-name
+  convention is 478px. So nothing is broken in the game as it ships, and the view declares a
+  capacity its caption cannot draw at — which is half of the M13.3 rule unenforced. Revisit
+  hook: `_assert_nothing_overlaps`'s sibling in `test_battle_layout.gd`, plus a decision about
+  what a too-long caption should DO (wrap to a second line, or split into sequential messages
+  the way Final Fantasy I does).
 - ~~**Buffs, debuffs, and status effects on the PLAYER.**~~ **Taken up by M30** — `BOOST` and
   `SAP` aim either way, enemy moves can afflict the party, and durations count in turns. What
   is still out is **persistent affliction**: a status cannot outlive the fight it was inflicted
@@ -101,6 +110,46 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## The gate casts, and aims the other way — *M34*
+
+**The fork: how do you make a simulation gate see a subsystem it has never entered?**
+
+- **Teach PERFECT to cast** — one driver, fewer moving parts, and the difficulty statement stays
+  two policies rather than three. *Status: rejected — it changes what PERFECT MEANS, and every
+  existing balance assertion was written against that meaning. A gate you retune to accept a new
+  behaviour is a gate you have quietly weakened.*
+- **A third policy (chosen)** — `CASTER`, appended so PERFECT and MASH keep the values every
+  assertion already uses. The proof it is additive is that all 22 play sessions and all 17
+  existing balance assertions are untouched, which is the same proof M33 offered for its fields
+  and M27 for the party.
+
+**The second fork: which foe does a casting driver aim at?** This looked like a detail and was
+the milestone's main finding.
+
+- **Weakest first, like PERFECT** — the sensible play, and what the driver already did. *Status:
+  rejected — it makes the aim axis a constant across all policies, and a boss standing behind
+  two mooks is then never the target of a spell while resources last. The Keeper's answer to
+  fire was unobservable for exactly that reason.*
+- **Toughest first (chosen)** — the opposite order, defensible on its own terms (magic is
+  scarce, spend it on what takes longest to kill) and, being opposite, it reaches what PERFECT
+  only arrives at once the fight is decided. **Aim is a policy axis exactly the way skill is.**
+
+**The third fork, forced by the gate rather than chosen: should a SWEEP announce effectiveness?**
+M33 said no, on the reasoning that its caption names what each foe took side by side. The gate
+proved that reasoning holds only when the numbers DIFFER.
+
+- **Never announce** — M33's answer. *Status: rejected by measurement — against a uniform
+  formation every figure on the line is identical, so there is no baseline in view. Both hollow
+  fights are uniform, and the only wind spell in the game is a sweep, so the slink's weakness had
+  never once been announced in any fight at any level or seed.*
+- **Announce per foe** — accurate and unaffordable: the caption is already 295px of a 312px
+  budget. *Status: rejected — see the caption-width entry in the backlog.*
+- **Announce only when uniform (chosen)** — one clause exactly when the numbers cannot carry the
+  comparison themselves, nothing when they can, and the single-target wording when a sweep
+  reaches one foe.
 
 ---
 

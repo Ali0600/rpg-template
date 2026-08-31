@@ -27,6 +27,22 @@ enum Policy {
 	## this driver having to model "untimed" as a special case, which would be a second opinion
 	## about a rule `BattleLogic` already owns.
 	MASH,
+	## Times every press like PERFECT, and CASTS whenever it can pay for something. Appended
+	## rather than inserted, so PERFECT and MASH keep the values every existing assertion was
+	## written against.
+	##
+	## It exists because skill was not the only axis bounding this driver's coverage. PERFECT and
+	## MASH differ in how well they press and agree completely on WHAT to choose — both take the
+	## Attack row every single turn — so magic was outside anything the balance gate could
+	## observe: every spell, every status a spell inflicts and every element pairing had never
+	## been played by a gate at all. A fixed choice bounds coverage exactly the way a fixed skill
+	## does, and this is the second half of that.
+	##
+	## It ROTATES through what it can afford rather than casting the best thing, because a driver
+	## that always picks the strongest spell exercises exactly one row of the page — which is the
+	## same blindness one level down. The rotation is a counter, not a draw: nothing here may
+	## reach for randomness the fight has not seeded.
+	CASTER,
 }
 
 ## What a played fight looks like from outside. Everything here is COUNTED rather than inferred,
@@ -48,6 +64,22 @@ class Report extends RefCounted:
 	## Set when the driver reached a page it has no business on. Empty is the healthy value; a
 	## test asserts it rather than trusting a `push_error` nobody reads.
 	var fault := ""
+	## Every spell this fight actually cast, by id and in order. COUNTED rather than inferred,
+	## for the reason `blows` is: a caster that wins having only ever cast the first row of the
+	## page has exercised one spell and reported on all of them.
+	var casts: Array[StringName] = []
+	## Every distinct line the fight SAID, in order.
+	##
+	## This is how an element pairing is observed, and it is deliberately the caption rather than
+	## the aim: a spell that reaches everything never opens the foe cursor, and neither does one
+	## aimed at the last foe standing, so a driver that recorded what it pointed at would miss
+	## exactly the casts that need no pointing. The caption is also what the PLAYER gets, which
+	## makes it the outcome rather than a proxy for it.
+	var said: Array[String] = []
+
+	## How many casts have happened, which is also the rotation's position on the spell page.
+	func cast_count() -> int:
+		return casts.size()
 
 	func standing() -> int:
 		var out := 0
@@ -70,6 +102,12 @@ static func play(logic: BattleLogic, policy: Policy, cap := 20000) -> Report:
 	while not logic.finished() and guard < cap:
 		guard += 1
 		var phase := logic.phase()
+		# Read every iteration rather than in the MESSAGE branch: a line can be set and replaced
+		# without the phase changing, and a caption nobody recorded is an outcome nobody can
+		# assert. Deduped against the last one only, so a line repeated later still registers.
+		var spoken := logic.message()
+		if not spoken.is_empty() and (out.said.is_empty() or out.said[-1] != spoken):
+			out.said.append(spoken)
 		if phase != was:
 			if phase == BattleLogic.Phase.PLAYER_ACT:
 				out.swings += 1
@@ -78,18 +116,53 @@ static func play(logic: BattleLogic, policy: Policy, cap := 20000) -> Report:
 			was = phase
 		match phase:
 			BattleLogic.Phase.MENU:
-				_aim(logic, 0)
+				# MAGIC only when something on the page can actually be paid for. The menu is the
+				# ONLY place that decision can be made: a cancel is refused for everybody since
+				# M27.1, so a driver that opened the spell page with nothing affordable would
+				# press an unaffordable row forever and hang the gate rather than fail it.
+				_aim(logic, BattleLogic.Row.MAGIC if _will_cast(logic, policy)
+					else BattleLogic.Row.ATTACK)
+				logic.press()
+				out.presses += 1
+			BattleLogic.Phase.SPELLS when policy == Policy.CASTER:
+				var row := _spell_to_cast(logic, out.cast_count())
+				# Recorded BEFORE the press, because the press is what spends the turn and the
+				# page is gone by the time it returns.
+				out.casts.append(row.id)
+				_aim(logic, _row_of_spell(logic, row))
+				logic.press()
+				out.presses += 1
+			BattleLogic.Phase.ALLY when policy == Policy.CASTER:
+				# A heal or a boost, landing on our side. The most hurt member, which is both the
+				# sensible play and the one that makes a heal observable at all.
+				_aim(logic, _neediest_row(logic))
 				logic.press()
 				out.presses += 1
 			BattleLogic.Phase.FOE:
-				if policy == Policy.PERFECT:
-					_aim(logic, _weakest_row(logic))
+				# The two aiming policies point OPPOSITE WAYS, deliberately. PERFECT finishes off
+				# whatever is closest to falling, because fewer bodies is fewer blows per round.
+				# CASTER spends its scarce magic on whatever will take longest to kill, which is
+				# at least as sensible a play - and, being the opposite order, it reaches foes
+				# PERFECT only ever arrives at once the fight is already decided.
+				#
+				# That is not a detail. Aim is a policy axis exactly the way skill is: with both
+				# drivers finishing the weakest first, a boss standing behind two mooks is never
+				# the target of anything while resources last, so every rule that only shows up
+				# when you hit the BIG one is unobserved by a suite that looks exhaustive.
+				match policy:
+					Policy.PERFECT:
+						_aim(logic, _weakest_row(logic))
+					Policy.CASTER:
+						_aim(logic, _toughest_row(logic))
+					_:
+						pass
 				logic.press()
 				out.presses += 1
 			BattleLogic.Phase.SPELLS, BattleLogic.Phase.ITEMS, BattleLogic.Phase.ALLY:
-				# This driver only ever chooses Attack, so nothing should open these. Reaching
-				# one means the command rows moved under it, and a driver that quietly pressed
-				# through would be casting or drinking while reporting on swinging.
+				# PERFECT and MASH only ever choose Attack, so nothing should open these. Reaching
+				# one means the command rows moved under them, and a driver that quietly pressed
+				# through would be casting or drinking while reporting on swinging. ITEMS is here
+				# for CASTER too: casting is the one verb it adds.
 				out.fault = "the driver reached page %d, which choosing Attack cannot open" % phase
 				break
 			_:
@@ -116,6 +189,62 @@ static func _aim(logic: BattleLogic, row: int) -> void:
 		logic.move(steps)
 
 
+## Whether this policy is going to open the spell page, asked at the MENU where it still can be.
+##
+## Both halves matter. A page with no affordable row is a trap rather than a choice - the confirm
+## says "Not enough magic" and stays put - and a page with no rows at all has one row that is a
+## statement rather than a button, which the confirm refuses in the same way.
+static func _will_cast(logic: BattleLogic, policy: Policy) -> bool:
+	if policy != Policy.CASTER:
+		return false
+	for row: BattleLogic.SpellRow in logic.spell_rows():
+		if logic.can_afford(row):
+			return true
+	return false
+
+
+## Which spell to cast, ROTATED by how many have been cast already.
+##
+## A driver that always casts the strongest row exercises exactly one spell and reports on the
+## whole page, which is the same blindness the CASTER policy exists to fix one level up. The
+## rotation walks the affordable rows in page order, so over a fight every spell the member can
+## pay for gets used - and it is a counter rather than a draw, because nothing in a replayed
+## fight may reach for randomness the fight has not seeded.
+static func _spell_to_cast(logic: BattleLogic, cast_count: int) -> BattleLogic.SpellRow:
+	var affordable: Array = []
+	for row: BattleLogic.SpellRow in logic.spell_rows():
+		if logic.can_afford(row):
+			affordable.append(row)
+	# `_will_cast` is what guarantees this is non-empty, and it is checked at the MENU one press
+	# earlier. Asserting it here rather than returning null: a null would be pressed at an
+	# unaffordable row forever, which hangs the gate instead of failing it.
+	assert(not affordable.is_empty(), "the spell page opened with nothing affordable on it")
+	return affordable[cast_count % affordable.size()]
+
+
+## Where `row` sits on the page the cursor is actually walking - which is every spell the member
+## knows, not just the affordable ones. Looked up rather than counted, because the two lists
+## differ the moment the pool runs low and an index into the wrong one casts a different spell.
+static func _row_of_spell(logic: BattleLogic, row: BattleLogic.SpellRow) -> int:
+	var rows := logic.spell_rows()
+	for i in rows.size():
+		if rows[i] == row:
+			return i
+	return 0
+
+
+## The ROW of the standing member furthest from full. A row, not a member index: the ally cursor
+## counts over the standing, so the two diverge the moment anybody falls.
+static func _neediest_row(logic: BattleLogic) -> int:
+	var rows := logic.ally_rows()
+	var best := 0
+	for i in rows.size():
+		var gap := logic.member_max_hp(rows[i]) - logic.member_hp(rows[i])
+		if gap > logic.member_max_hp(rows[best]) - logic.member_hp(rows[best]):
+			best = i
+	return best
+
+
 ## The ROW of the living foe with the least health left. A row, not a foe index: the cursor
 ## counts over the living, so the two diverge the moment anything falls.
 static func _weakest_row(logic: BattleLogic) -> int:
@@ -123,5 +252,18 @@ static func _weakest_row(logic: BattleLogic) -> int:
 	var best := 0
 	for i in rows.size():
 		if logic.enemy_hp(rows[i]) < logic.enemy_hp(rows[best]):
+			best = i
+	return best
+
+
+## The ROW of the living foe with the MOST health left - `_weakest_row`'s mirror, and the whole
+## of the aim axis. Written out rather than folded into one function with a sign, because a
+## comparison whose direction is a parameter is one every reader has to decode, which is the
+## same argument `SpellDef` makes for BOOST and SAP being two kinds rather than one signed power.
+static func _toughest_row(logic: BattleLogic) -> int:
+	var rows := logic.foe_rows()
+	var best := 0
+	for i in rows.size():
+		if logic.enemy_hp(rows[i]) > logic.enemy_hp(rows[best]):
 			best = i
 	return best

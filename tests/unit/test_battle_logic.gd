@@ -1628,3 +1628,58 @@ func test_an_ordinary_hit_is_announced_as_nothing_in_particular() -> void:
 	assert_str(battle.message()).override_failure_message(
 		"an unresisted hit was described as one: %s" % battle.message()).not_contains("weak to it")
 	assert_str(battle.message()).not_contains("shrugs")
+
+func _two_answering(first: int, second: int, element := &"wind") -> BattleLogic:
+	var one := _enemy(30)
+	one.resistances = {element: first} if first != 100 else {}
+	var two := _enemy(30)
+	two.id = &"test_gloom"
+	two.name = "Gloom"
+	two.resistances = {element: second} if second != 100 else {}
+	var curve := _combat()
+	return BattleLogic.of(curve, [one, two],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0,
+			[_sweep(3, 6, "Gale", element)])], [], "map/foe", 7)
+
+func test_a_sweep_that_every_foe_answers_the_same_way_says_so() -> void:
+	# A sweep's numbers sit side by side, which is why it needs no clause when they DIFFER - the
+	# comparison is already on the line. Against a formation that answers uniformly every figure
+	# is the same, there is no baseline in view, and the player is told nothing at all. The
+	# balance gate found this by playing the shipped slink pairs and never once seeing their
+	# weakness to wind announced.
+	var battle := _two_answering(150, 150)
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"a uniformly weak formation was swept in silence: %s" % battle.message()) \
+		.contains("They are weak to it")
+
+func test_a_sweep_that_every_foe_resists_the_same_way_says_so() -> void:
+	var battle := _two_answering(50, 50)
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"a uniformly resistant formation was swept in silence: %s" % battle.message()) \
+		.contains("They shrug most of it off")
+
+func test_a_sweep_that_foes_answer_DIFFERENTLY_adds_nothing() -> void:
+	# The control, and the rule the two above are the exception to. Here the numbers differ on
+	# the line, so they carry the comparison themselves - and a clause naming one direction would
+	# be false about the other foe.
+	var battle := _two_answering(150, 50)
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"a mixed formation was described with one verdict: %s" % battle.message()).not_contains("They ")
+
+func test_a_sweep_that_nobody_answers_adds_nothing() -> void:
+	var battle := _two_answering(100, 100)
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).not_contains("They ")
+
+func test_a_sweep_that_reaches_only_one_foe_names_it() -> void:
+	# "They" for a single body reads as a bug. At one reached foe the sweep borrows the
+	# single-target wording, which is also the route by which a formation whose others have
+	# already fallen still tells the player what it just did.
+	var battle := _fight(_answers(&"wind", 150, 30), 20, 0, 1, [], [10, 12], 0, 0, 8,
+		[_sweep(3, 6, "Gale", &"wind")])
+	_cast_the_only_spell(battle)
+	assert_str(battle.message()).override_failure_message(
+		"a sweep at one foe called it 'they': %s" % battle.message()).contains("is weak to it")
