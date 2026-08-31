@@ -56,16 +56,10 @@ one-glance menu of things still worth trying.
   here: **a driver that FLEES** — the fourth row, and the only one no policy has ever pressed.
   Revisit hook: `Policy`, plus a report field for the attempt, and note that a boss refuses every
   escape so the assertion has two halves.
-- **A width gate for the battle caption.** `BattleScreen._message` is a bare `Label` with no
-  width, no wrap and no clip, so text past the window edge is simply drawn off-screen. The
-  layout audit measures overlap at declared capacity but never measures the caption, and only
-  vertical containment is asserted anywhere. Measured against a 312px budget: the worst SHIPPED
-  line is 295px, and the worst line at `MAX_PARTY`/`MAX_FOES` with the audit's own long-name
-  convention is 478px. So nothing is broken in the game as it ships, and the view declares a
-  capacity its caption cannot draw at — which is half of the M13.3 rule unenforced. Revisit
-  hook: `_assert_nothing_overlaps`'s sibling in `test_battle_layout.gd`, plus a decision about
-  what a too-long caption should DO (wrap to a second line, or split into sequential messages
-  the way Final Fantasy I does).
+- ~~**A width gate for the battle caption.**~~ **Taken up by M36**, at the hook this entry named,
+  and the research turned "make it fit" into a correction: a ONE-LINE caption was the divergence,
+  since every reference message area holds more than one. What is still out is the multi-target
+  half — see the M36 entry below, and the FF1 persistent-frame alternative recorded there.
 - ~~**Buffs, debuffs, and status effects on the PLAYER.**~~ **Taken up by M30** — `BOOST` and
   `SAP` aim either way, enemy moves can afflict the party, and durations count in turns. What
   is still out is **persistent affliction**: a status cannot outlive the fight it was inflicted
@@ -114,6 +108,46 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## The caption wraps, and the fourth row gets pressed — *M36*
+
+**The fork: what should a caption too long for its window DO?** §7c is the research, and it is
+the rare case where the references genuinely disagree.
+
+- **Clip or truncate** — *Status: rejected outright. Not one of the four games surveyed clips,
+  and it is the worst option anyway: a caption that silently loses its tail is indistinguishable
+  from one that was never written.*
+- **Split into sequential per-target messages** — Final Fantasy I's answer, and **the genre is
+  unanimous on multi-target**: not one of these games composes a sentence naming several targets;
+  every one loops a short single-target message instead. *Status: **deferred — worth trying**. It
+  is the better answer and it is a redesign, not a field: `_say` shows one line, so a sequence
+  needs a queue in `BattleLogic` and would re-time any session that casts a sweep. The part worth
+  stealing when it happens is FF1's **persistent frame** — `UndrawAllBut2Boxes` holds the caster
+  and the spell on screen while only the per-target half cycles, which reads better than either a
+  combined line or a fully replaced one. Revisit hook: `_say`/`_leave_message`.*
+- **Wrap to a second line (chosen)** — Dragon Warrior's answer, and the one the evidence made
+  obvious once gathered: every reference message area holds more than one line (Pokémon 2,
+  EarthBound 3, DW 8), so a one-line caption was this screen's divergence rather than its design.
+  `MESSAGE_LINES = 2` is declared the way `MAX_PARTY` is, and is the number `DialogBox` already
+  draws and size-gates against, so the two surfaces agree.
+
+**Kept as a stated divergence:** the sweep caption still names every foe's damage on one line,
+which §7c says the genre does not do. The numbers side by side are what let a player compare a
+weakness against its neighbours — M33's argument for announcing at all — so it stays until the
+sequencing alternative above is built.
+
+**Not a fork, but the finding.** Containment alone is not enough, and the mutation run proved it
+rather than a reading: with no width to wrap against a Label falls back to ONE PIXEL, and the
+caption becomes a twenty-line column one word wide — absurd, technically inside the window, and
+the containment audit passes it. The line count is what says a caption is drawable.
+
+**And the flee assertion's first draft was self-fulfilling**, which is the transferable half. It
+read each record's own `boss` flag to decide what to expect of that record, so flagging a slink as
+a boss made the tutorial inescapable AND moved the expectation to match. It asserts the SET now —
+exactly one shipped encounter refuses, declared independently — which also catches the deletion
+case a per-record property check cannot see at all.
 
 ---
 

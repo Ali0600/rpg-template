@@ -490,6 +490,72 @@ rather than an oversight.
 
 ---
 
+### 7c. The battle message, and what happens when it does not fit
+
+M36 needed this before widening a caption that had outgrown its window. It answers two questions
+§7 never asked: how big the message area is, and what these games do when a line is too long.
+
+**Sources note.** All four claims below come from disassemblies and decompilations of the shipped
+games, grepped directly — the fan wikis do not carry window dimensions. That route also caught its
+own hazard worth recording: a clone into an existing directory failed while a piped `tail` reported
+success, which is the exact pipe-swallows-the-exit-code trap `CLAUDE.md` warns about; the files
+were re-fetched and checksummed before anything here was written down.
+
+**Every one of these message areas holds more than one line, and this screen held one.** Pokémon
+Gen 1 draws its box `ld c, $12` — 18 interior columns — over four interior rows of which **two**
+carry text. EarthBound's window table declares the in-battle box `$0018` wide by `$0006` tall,
+which its own newline routine halves and decrements into **3** text lines. Dragon Warrior's window
+definition is `.byte $18 ;Window Width. 24 tiles` by `.byte $05 ;Window height. 5 blocks`, giving
+**22 × 8**, and battle uses that same window. Final Fantasy I is the outlier in the other
+direction: it has no message *area* at all but **six combat boxes**, and composes an attack's
+result across several of them at once.
+
+**What happens to a line that does not fit — the games genuinely disagree.**
+
+- **Dragon Warrior WRAPS, automatically.** It is the only one here that does, and the code is
+  explicit: `CMP #$16` against a variable the source calls the position *"after current word is
+  taken into account"*, with a companion routine classifying word boundaries. Then it scrolls
+  (`CPX #$08`, *"at or beyond the last row"*) and waits on a control character.
+- **Pokémon does NOT wrap.** There is no wrapping code anywhere; every break is hand-authored as
+  a control character — `<LINE>` jumps to line 2, `<CONT>` shows the ▼, waits, and scrolls two
+  lines, `<PARA>` clears the box for a fresh page.
+- **EarthBound scrolls**, freeing the top line's tiles and copying upward, with a blinking prompt
+  in battle.
+- **Final Fantasy I never faces it**, because it never writes a sentence: its entire battle
+  vocabulary is 35 one- or two-word constants.
+- **Nobody clips.** Not one of the four truncates.
+
+**And on multi-target messages the genre is unanimous — against what this template does.** Not one
+of these games composes a sentence naming several targets. Every one resolves a multi-target
+effect as a LOOP that redraws a short, single-target message per target. Final Fantasy I says so
+in its own comments: its all-enemies path sets each foe as the defender in turn, draws the
+defender box, resolves, and then calls a routine whose header reads *"clears all drawn combat
+boxes except for 2: the attacker and the spell"* — the caster's name and the spell hold still
+while the target half cycles. Pokémon's battle text bank contains **zero** messages naming two
+battler slots. At 18 to 22 columns, a line naming every target's damage was never physically
+available to these games.
+
+**This template.** The caption wraps to `BattleScreen.MESSAGE_LINES` — **two**, the genre's own
+floor and the number `DialogBox` already draws and size-gates against — and the layout audit
+measures it at declared capacity. A one-line caption was the divergence, and it was not a chosen
+one: the label simply had no width, and text past the window edge was drawn where nobody could
+see it.
+
+**Divergence, and it is a real one:** the sweep caption still names every foe's damage on one
+line, which §7c's own evidence says the genre does not do. It is kept because the numbers side by
+side are what let a player compare an elemental weakness against its neighbours, which is the
+argument M33 made for announcing at all — and because the alternative is a redesign rather than a
+field. **Final Fantasy I's answer is recorded as the deferred alternative** in `DECISIONS.md`,
+including the part worth stealing: the persistent frame, where who is acting and what they are
+doing hold still while only the per-target half cycles.
+
+**Unverified, and named rather than guessed:** Chrono Trigger has no public decompilation, and
+Dragon Quest II — the first in its series with enemy *groups*, and so the likeliest to contradict
+the multi-target finding — has no reachable disassembly either. Settling that one needs ROM-level
+work rather than a repo clone.
+
+---
+
 ## 8. Save/load
 
 **The convention.** Early 2D RPGs save at **designated places** — DQ's kings and churches,
@@ -917,6 +983,21 @@ that is a stronger source than a description, and it contradicted the most-repea
 - [Dragon Quest wiki — Sizz](https://dragon-quest.org/w/index.php?title=Sizz) and
   [Burning Breath](https://dragon-quest.org/w/index.php?title=Burning_Breath) — DQ1's fire spell
   may fail on resistance; DQ6 tiers the CHANCE to connect rather than the damage
+
+Battle-message research (§7c, added in M36), all from disassemblies of the shipped games —
+the wikis do not carry window dimensions, and each repo below was cloned and grepped:
+
+- [pret/pokered](https://github.com/pret/pokered) — `engine/menus/display_text_id_init.asm`
+  (`ld c, $12`, an 18-column box), `home/text.asm` (the `<LINE>`/`<CONT>`/`<PARA>` control
+  characters and `ScrollTextUpOneLine`), `data/text/text_2.asm` (no message names two battlers)
+- [Entroper/FF1Disassembly](https://github.com/Entroper/FF1Disassembly) — `bank_0C.asm`: six
+  combat boxes rather than a message area; the all-enemies loop that redraws the defender box per
+  target; and `RespondDelay_UndrawAllBut2Boxes`, whose comment states the persistent-frame rule
+- [nmikstas/dragon-warrior-disassembly](https://github.com/nmikstas/dragon-warrior-disassembly) —
+  `Bank01.asm`: the window definition (24 tiles × 5 blocks), the word-wrap check `CMP #$16`, the
+  last-row check `CPX #$08` and the scroll; `Bank03.asm` shows battle using that same window
+- [Herringway/ebsrc](https://github.com/Herringway/ebsrc) — `window_configuration_table.asm`
+  (`$0018` × `$0006` for in-battle text), `print_newline.asm` and the scroll it calls
 
 Party research (§7a) is drawn from these, and each claim above names the game it came from:
 
