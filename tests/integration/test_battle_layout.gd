@@ -310,12 +310,18 @@ func _swept_field_screen() -> BattleScreen:
 			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
 			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0,
 			[BattleLogic.SpellRow.of(&"gale", "Gale", 1, SpellDef.Kind.ATTACK, 12, 0,
-				SpellDef.Target.ALL)]))
+				SpellDef.Target.ALL, SpellDef.Stat.ATTACK, &"lightning")]))
 	var foes: Array = []
 	for at in BattleScreen.MAX_FOES:
 		var foe := _enemy()
 		foe.id = StringName("foe%d" % at)
 		foe.name = "Deepdweller%d" % at
+		# An ELEMENT with a long name, and an answer to it, for the reason the names are long: a
+		# caption that only fits short words is one that breaks on the first game writing real
+		# ones. Without this the widest line lands within a pixel of the window and whether the
+		# audit can see an unwrapped caption depends on the platform's font metrics - measured,
+		# after a mutant killed on one runner and survived on another.
+		foe.resistances = {&"lightning": 50}
 		foe.max_hp = 4 if at < BattleScreen.MAX_FOES - 1 else 99
 		foes.append(foe)
 	var logic := BattleLogic.of(combat, foes, members, [], "map/foe", 7)
@@ -329,6 +335,26 @@ func _swept_field_screen() -> BattleScreen:
 	_tick_until_message(logic)
 	screen._paint()
 	return screen
+
+func test_the_caption_is_set_up_to_wrap_inside_the_window() -> void:
+	# The CONFIGURATION, asserted apart from any measurement, and that split is the whole point.
+	# The audits below measure what a particular caption comes to, so their ability to notice a
+	# missing wrap depends on font metrics — which differ between this machine and the runner that
+	# gates the merge. A mutant turning the wrap off killed here and SURVIVED there, on a line
+	# that happened to land within a pixel of the edge.
+	#
+	# So the contract the mutants are aimed at is one nothing ambient can move: the label wraps,
+	# and it wraps against a width that is most of the window rather than the one pixel a Label
+	# falls back to when nobody sets one.
+	var screen := _screen()
+	assert_int(screen._message.autowrap_mode).override_failure_message(
+		"the caption does not wrap, so a long line is drawn past the window edge") \
+		.is_not_equal(TextServer.AUTOWRAP_OFF)
+	assert_float(screen._message.size.x).override_failure_message(
+		"the caption wraps against %.0fpx, which is not a width anybody chose"
+		% screen._message.size.x).is_greater(float(VIEWPORT.x) * 0.5)
+	assert_float(screen._message.size.x).override_failure_message(
+		"the caption is wider than the window it wraps inside").is_less_equal(float(VIEWPORT.x))
 
 func test_the_widest_caption_this_screen_can_draw_stays_inside_it() -> void:
 	var screen := _swept_field_screen()

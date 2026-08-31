@@ -31,11 +31,17 @@ const ROW_SIZE := 8
 ## How many lines the caption may take, and a DECLARED capacity in `MAX_PARTY`'s sense: the
 ## layout audit measures against it, so it is a promise the view has to keep rather than a note.
 ##
-## TWO because that is the genre's own floor and this screen was under it - every reference
-## battle message area holds more than one line (Pokemon 2, EarthBound 3, Dragon Warrior 8), and
-## Dragon Warrior word-wraps into them automatically. It is also the number `DialogBox` already
-## draws and size-gates every shipped line against, so the two surfaces agree.
-const MESSAGE_LINES := 2
+## THREE, and it was two until M37 measured the caption that milestone produces. Sequencing a
+## sweep made the caption a FRAME LINE plus a target line, and the target line can wrap on its
+## own - so at the capacity this view declares, with names as long as the layout audit
+## deliberately uses, two was not enough. Three is EarthBound's own in-battle box and well inside
+## the room between here and the foe bars.
+##
+## Every reference battle message area holds more than one line (Pokemon 2, EarthBound 3, Dragon
+## Warrior 8) and Dragon Warrior word-wraps into them automatically; a one-line caption was this
+## screen's divergence, and M36 closed it. `DialogBox` still draws two, which is a different
+## surface with a different budget rather than a number these two must share.
+const MESSAGE_LINES := 3
 const HELP_SIZE := 7
 const ROW_PITCH := 11
 

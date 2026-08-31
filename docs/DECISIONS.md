@@ -113,6 +113,28 @@ one-glance menu of things still worth trying.
 
 ## A sweep tells you about one foe at a time — *M37*
 
+**A gate whose DETECTION depends on font metrics is a gate that disagrees with itself across
+machines.** M36's caption mutant killed on macOS and SURVIVED on the Ubuntu runner that gates the
+merge — and not because of the platform alone: M37 shrank the caption (per-target lines are far
+shorter than the combined one), which left the widest case landing within a PIXEL of the window
+edge, where the two platforms' metrics fall on opposite sides. Measured: 305px against a 304px
+budget.
+
+- **Widen the fixture until it is comfortably over** — *Status: done, but not sufficient on its
+  own. It moves the boundary rather than removing it, and the next content change moves it back.*
+- **Aim the mutants at the CONFIGURATION instead (chosen)** — that the label wraps, and against a
+  width somebody chose rather than the one pixel a Label falls back to. Nothing ambient can move
+  that, so the mutant means the same thing on both machines. The measured audits stay as the
+  outcome check; they are simply not what the coverage claim rests on.
+
+**And `MESSAGE_LINES` went from 2 to 3** because M37's own change made two insufficient: the
+caption is now a frame line PLUS a target line, and the target line can wrap on its own. Three is
+EarthBound's in-battle box, and there is room before the foe bars. A milestone widening the thing
+a previous milestone had just measured is the ordinary case, not a mistake — what would have been
+a mistake is leaving the declared number at a value the view no longer keeps.
+
+
+
 **Not a fork so much as a debt being paid**: M36 gathered the evidence and recorded the
 divergence rather than acting on it, and this is the acting. The one real decision inside it:
 

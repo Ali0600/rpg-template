@@ -1474,3 +1474,23 @@ test file is edited mechanically, compare the test count against what it was bef
 class of "the tests are gone" failures is invisible to a pass/fail signal and obvious to a
 denominator. This is the same instrument the build already uses to compare suites-ran against
 suites-on-disk; it belongs one level down too.
+
+## A check whose ability to DETECT depends on rendered metrics disagrees across machines
+
+A test can assert the right thing and still be unable to see a fault, if what it measures is
+produced by something the machine controls — font rasterisation, text shaping, DPI. The assertion
+is correct on both machines; only its sensitivity differs.
+
+**Why it came up.** A gate caught text drawn outside its window, proven by a mutation that turned
+wrapping off. It killed locally and SURVIVED on the CI runner. The cause was not the platform
+alone: a later change shortened the text, leaving the worst case one pixel over the limit —
+305px against 304 — so the two platforms' metrics landed on opposite sides of it. Both runs were
+"correct"; one simply could not tell.
+
+**Takeaway.** When a check's power depends on ambient measurement, split the contract in two:
+assert the CONFIGURATION that makes the outcome possible (this wraps, against a width somebody
+chose) where nothing ambient can move it, and keep the measured assertion as the outcome check —
+but aim your coverage proof at the deterministic half. Widening the fixture until it clears the
+boundary is worth doing and is not enough on its own: it moves the boundary rather than removing
+it, and the next content change moves it back. The tell is a mutant that dies in one place and
+lives in another; treat that as a statement about your instrument, not about the platform.

@@ -564,8 +564,8 @@ tests/helpers/battle_driver.gd	s|\tif _will_drink\(logic, policy\):|\tif false:|
 data/enemies/keeper.tres	s|boss = true|boss = false|	tests/unit/test_battle_content.gd	the game's one mandatory fight becomes optional, and can be walked away from
 data/enemies/slink.tres	s|boss = false|boss = true|	tests/unit/test_battle_content.gd	the tutorial fight becomes inescapable
 tests/helpers/battle_driver.gd	s|\t\treturn BattleLogic.Row.FLEE|\t\treturn BattleLogic.Row.ATTACK|	tests/unit/test_battle_content.gd	the runner never presses Run, so no escape is ever attempted
-scripts/ui/battle_screen.gd	s|\t_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART|\t_message.autowrap_mode = TextServer.AUTOWRAP_OFF|	tests/integration/test_battle_layout.gd	the caption stops wrapping and its tail is drawn off the window
-scripts/ui/battle_screen.gd	s|\t_message.size.x = float\(viewport_size.x\) - MARGIN \* 2.0|\t_message.size.x = 1.0|	tests/integration/test_battle_layout.gd	the caption is given no width, so it wraps to one word a line
+scripts/ui/battle_screen.gd	s|\t_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART|\t_message.autowrap_mode = TextServer.AUTOWRAP_OFF|	tests/integration/test_battle_layout.gd	the caption stops wrapping, so a long line is drawn past the window edge
+scripts/ui/battle_screen.gd	s|\t_message.size.x = float\(viewport_size.x\) - MARGIN \* 2.0|\t_message.size.x = 1.0|	tests/integration/test_battle_layout.gd	the caption wraps against one pixel, which is what a Label falls back to
 scripts/ui/battle_logic.gd	s|\tif not _queued.is_empty\(\):|\tif false:|	tests/unit/test_battle_logic.gd	the queue is never drained, so a sweep reports only its first foe
 scripts/ui/battle_logic.gd	s|\t_queued = lines.slice\(1\)|\t_queued = []|	tests/unit/test_battle_logic.gd	only the first line of a sequence is queued, and the rest are lost
 scripts/ui/battle_logic.gd	s|\t\t_say\(next_line, _after_message\)|\t\t_say(next_line, Phase.PLAYER_ACT)|	tests/unit/test_battle_logic.gd	a sequence forgets where it was going, so a winning sweep hands the turn back
