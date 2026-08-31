@@ -573,3 +573,9 @@ scripts/ui/battle_logic.gd	s|\t\t\t\tlines.append\(_award_victory\(" and ".join\
 scripts/ui/battle_logic.gd	s|\t\treturn " %s is weak to %s\." % \[subject, row.element\]|\t\treturn ""|	tests/unit/test_battle_logic.gd	a weakness lands silently, with nothing to compare the bigger number against
 scripts/ui/battle_logic.gd	s|\t\treturn " %s shrugs off most of the %s\." % \[subject, row.element\]|\t\treturn ""|	tests/unit/test_battle_logic.gd	a resistance lands silently, and a small number reads as a weak spell
 scripts/ui/battle_logic.gd	s|var frame := "%s casts %s\." % \[caster.name, row.name\]|var frame := ""|	tests/unit/test_battle_logic.gd	the persistent frame is dropped, so a sequence says who is acting nowhere
+scripts/util/tiled_map.gd	s|\tif count != tile_ids.size\(\):|\tif false:|	tests/unit/test_tiled_map.gd	a map painted against a different-sized bank is accepted, so every id past the change is wrong
+scripts/util/tiled_map.gd	s|\tif named != String\(style\):|\tif false:|	tests/unit/test_tiled_map.gd	a map painted for another style is accepted, and every tile on it becomes a different tile
+scripts/util/tiled_map.gd	s|\t\t\tvar at := gid - first_gid|\t\t\tvar at := gid|	tests/unit/test_tiled_map.gd	the tileset's firstgid is ignored, so every tile on an imported map is off by one
+scripts/util/tiled_map.gd	s|\t\t\t\tvalue = JSON_PREFIX \+ JSON.stringify\(value\)|\t\t\t\tvalue = str(value)|	tests/unit/test_tiled_map.gd	a patrol path or a formation is written as text and cannot come back as data
+scripts/util/tiled_map.gd	s|\tif bool\(raw.get\("infinite", false\)\):|\tif false:|	tests/unit/test_tiled_map.gd	an infinite Tiled map is accepted, and a template map has a fixed size
+scripts/util/tiled_map.gd	s|\tif sets.size\(\) != 1:|\tif false:|	tests/unit/test_tiled_map.gd	a map painted from two banks is accepted, and only one of them can be resolved
