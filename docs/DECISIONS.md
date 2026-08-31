@@ -51,10 +51,11 @@ one-glance menu of things still worth trying.
   move carries an element; hook is the move dict plus a map on `Fighter`.
 - ~~**A casting policy for `BattleDriver`.**~~ **Taken up by M34**, and the feared cost did not
   arrive: a casting party wins every shipped fight on every seed, so nothing needed retuning.
-  What it did find was two pairings the player could never learn. Still deferred here: **a
-  driver that uses ITEMS** — the bag is the third row and no policy has ever opened it, so a
-  tonic priced or healing wrongly is invisible to the gate exactly as magic was. Revisit hook:
-  `Policy`, and `party_of` would have to carry an item list the way it now carries spells.
+  What it did find was two pairings the player could never learn. **The item half was taken up by
+  M35**, which found the same two layers and a guard with no test behind them. Still deferred
+  here: **a driver that FLEES** — the fourth row, and the only one no policy has ever pressed.
+  Revisit hook: `Policy`, plus a report field for the attempt, and note that a boss refuses every
+  escape so the assertion has two halves.
 - **A width gate for the battle caption.** `BattleScreen._message` is a bare `Label` with no
   width, no wrap and no clip, so text past the window edge is simply drawn off-screen. The
   layout audit measures overlap at declared capacity but never measures the caption, and only
@@ -113,6 +114,41 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## The gate drinks, and a guard nothing had proven — *M35*
+
+**The fork: does the casting policy also use items, or is that a fourth policy?**
+
+- **Fold items into `CASTER`** — one fewer policy, and a driver that uses everything it has is
+  arguably the most realistic player. *Status: rejected — it changes what CASTER means, and M34's
+  three assertions were written against that meaning. It also makes a report ambiguous about
+  which verb produced it: a fight won while both casting and drinking says nothing about either.*
+- **A fourth policy (chosen)** — `DRINKER`, named for Final Fantasy I's own third command (Fight
+  / Magic / DRINK / Item). Each verb policy adds exactly ONE page and the other stays a fault,
+  which is what keeps each report about its own verb.
+
+**The second fork: does the balance fixture carry a bag?** It never had one, and the comment on
+`party_of` says why — the party carries nothing deliberately, so a formation it beats is one the
+real player beats.
+
+- **Give every balance fight a bag** — simpler, one fixture. *Status: rejected — it weakens every
+  difficulty assertion in the file at a stroke, trading a pessimistic guarantee for a convenience.*
+- **A defaulted argument (chosen)** — `_fight(..., items := [])`. Every difficulty assertion
+  leaves it out and stays pessimistic; only the coverage tests pass a bag.
+
+**Not a fork, but the finding.** `_battle_items` — the filter keeping a quest item off the battle
+menu — had no test anywhere. It is one comparison, and behind it is the worst failure this
+codebase can produce: using an item appends a take-effect whatever it was, so a key on that menu
+is destroyed and its door shut for the rest of the run, hours before the player notices.
+
+**Two mutants survived and neither was dead code**, which is worth recording as a pattern rather
+than an incident. Reaching always for the first row, and drinking at full health, both passed the
+content suite because the shipped bag EMPTIES — a driver that only wants the first row still
+exhausts that stack and moves on, and one that drinks regardless still stops when the bag is
+gone. The rules are real; the content masks them. They moved to `test_battle_driver.gd`, against
+a bag that outlasts the fight.
 
 ---
 

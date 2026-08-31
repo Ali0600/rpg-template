@@ -1397,3 +1397,26 @@ found it; no amount of re-reading the code would have.
 the property of the data you are relying on and then check it holds across the real corpus — not
 the example you had in mind. The general form: a UI that conveys meaning by COMPARISON needs at
 least two distinguishable values, and the degenerate case is where all the values agree.
+
+## A surviving mutant can mean the data masks the rule, not that the rule is dead
+
+The standard readings of a surviving mutant are "the test entered below the thing it tests" and
+"the assertion is a range where only an exact value distinguishes". There is a third: the
+production data happens to make the mutated code and the original *equivalent*.
+
+**Why it came up.** A test driver rotates through the items in a bag rather than always reaching
+for the first row, and only reaches for one when somebody is hurt. Both rules survived mutation
+against the shipped content — because the shipped bag EMPTIES. A driver that only ever wants the
+first row still exhausts that stack and moves to the next; one that drinks regardless still stops
+when there is nothing left. Neither rule was decoration; the content simply could not tell the
+two implementations apart.
+
+**Takeaway.** Before deleting a guard a mutant survived, ask what property of the *current data*
+makes the two versions equivalent — and if the rule is real, move it to a suite whose fixtures
+break that property. Two corollaries measured the hard way here. A "deep" fixture has to be deep
+relative to the run, not just large: 99 of an item was not enough, because the run outlasted
+them, and "both were eventually used" is satisfied by a driver with nowhere else to go — assert
+the CONSECUTIVE pair instead, which no run length can mask. And a scenario cannot always stage
+the degenerate case you want (there was no way to fight a foe that hurts nobody, because a
+zero-power move still lands the attacker's base stat), so pin such a guard on the DECISION the
+code makes rather than on how the whole run comes out.

@@ -340,6 +340,28 @@ wins every shipped fight, every shipped spell is cast somewhere, and **every shi
 is TOLD to the player somewhere**. That last is `demo-must-show-the-feature` as a gate: the
 cross-content check proves the two halves NAME the same element, and this proves they MEET.
 
+**Each verb policy adds exactly ONE page, and the other stays a fault.** `CASTER` casts and
+`DRINKER` uses items - named for Final Fantasy I's own third command, whose menu is Fight /
+Magic / DRINK / Item. `SPELLS` is still a fault for the drinker and `ITEMS` still one for the
+caster, which is what keeps a report about the verb it is named for rather than about whatever
+the menu happened to open. Each chooses its row at the MENU and falls back to Attack, because a
+cancel has been refused for everybody since M27.1: a driver that opens a page it cannot act on
+presses a dead row forever and HANGS the gate rather than failing it.
+
+**`ItemRow.bag` is the one place a battle bag is filtered**, on `SpellRow.page`'s terms and for
+its reason. `battle_heal` doubles as "does this belong in the fight menu at all", so a second
+implementation of that predicate is a second opinion about which items are safe to spend - and
+the one that drifted would put a quest item on the menu, where using it appends the same
+take-effect a tonic does. **That guard had no test at all until M35**, and the failure it
+prevents is a key destroyed and a door shut for the rest of the run, hours before the player
+finds out. `test_nothing_a_player_needs_can_be_drunk_in_a_fight` asserts both directions over
+the whole catalogue.
+
+**The balance fights keep an EMPTY bag.** `_fight` takes items as a defaulted argument and every
+difficulty assertion leaves it out: a party carrying nothing is the pessimistic one, and a
+formation it beats is one the real player beats. Only the item-driver tests pass a bag, and they
+assert COVERAGE rather than difficulty.
+
 **AIM IS A POLICY AXIS, exactly the way skill is.** PERFECT finishes off whatever is closest to
 falling; CASTER spends its scarce magic on whatever will take longest to kill. With both drivers
 finishing the weakest first, a boss standing behind two mooks is never the target of anything
@@ -768,6 +790,18 @@ validator that has only ever passed is decoration.
   keys and have no enum to name - write the count out with the row list in a comment above
   it, so inserting a row moves them deliberately. M20 inserted Equipment and then Status,
   and paid exactly that price, in three files, twice, on purpose.
+- **A rule the shipped content cannot distinguish belongs in a suite of its own.** Two driver
+  rules survived mutation against the content suite and neither was dead code: the shipped bag
+  EMPTIES, so a driver that only ever wants the first row still exhausts that stack and reaches
+  the next, and one that drinks at full health still stops when there is nothing left. Read a
+  survivor as "the content masks it" before "the guard is decoration" - `test_battle_driver.gd`
+  exists for exactly that, and pins those rules against a bag that outlasts the fight.
+- **A fight cannot stage "nobody is hurt", and a deep bag is deeper than you think.** A move with
+  zero power still lands the enemy's ATTACK stat, so there is no harmless foe to fight - pin such
+  a guard on the DECISION rather than on how a whole fight comes out. And 99 of an item was not
+  enough: the fight outlasts them, so "both were eventually used" is satisfied by a driver with
+  nowhere else to go. Assert the CONSECUTIVE pair - the second use differs from the first - which
+  no fight length can mask.
 - **`assert_foe_hp` is how a session proves HOW MUCH a blow was worth.** An element's whole
   effect is the size of a number, and every other reading is blind to it: the magic spent is the
   same whatever it hit, the fight is won either way, and no session reads a caption. So a shipped
