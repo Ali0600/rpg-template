@@ -769,6 +769,40 @@ one otherwise (pinned in `test_engine_assumptions.gd`). So never compute how far
 move something: end an operation by observing that it finished. This is also why the
 integration suites can drive `apply()` by hand from a coroutine at all.
 
+**A map can be authored in an EDITOR, and the conversion is build-time.** `TiledMap` (and LDtk
+beside it) translates between this template's legend-and-ASCII map format and an editor's, both
+ways, as pure Dictionary-to-Dictionary with no file access - which is what lets the round-trip be a
+unit test over the six maps the game already ships rather than over an invented fixture.
+
+**Nothing new ships.** The committed artifact stays the native JSON, so a map authored in Tiled
+arrives as the same file every other map is and still diffs as a picture in a pull request. That is
+the sprite generator's shape exactly: author in the tool, run the generator, commit the output, and
+a drift gate proves the committed output is what the tool now produces. Parsing an editor format at
+RUNTIME would put a second shipped format behind `MapData.load_from` and give up the readable diff
+for nothing, since the editor never reads the committed file anyway.
+
+**THE TILESET IS A COUPLING AND IT IS CHECKED.** An editor stores a tile as an INDEX into a tileset
+image, so a map painted against one bank and read against another is not a broken file - it is a
+map full of the wrong tiles, and every other gate here would pass it. `problems()` refuses a
+mismatch by NAME and by COUNT, so reordering `data/tiles/*.json` is a loud failure rather than a
+silently redecorated map. Mutants cover both, plus dropping `firstgid` (every tile off by one).
+
+**Tiled has no array property** - its types are string/int/float/bool/colour/file/object/class - so
+a record field that is an array (a patrol `path`, a formation's `group`) travels as JSON behind a
+marker. Scalars deliberately do NOT: they become real typed properties, which is the entire point,
+since editing `dialog` or `dwell` in the side panel is what the editor is for.
+
+**The round-trip is checked TWICE**, because equal-to-the-original is necessary and not sufficient -
+both directions could be wrong the same way. Once that what comes back describes the same map, and
+once by asking `MapData` itself whether it parses and puts every tile where it was.
+`MapData.from_dictionary` (split out of `load_from`) and `JsonFile.of` exist for that second check.
+
+**Compare the RESOLVED map, never the bytes.** An editor file carries no legend, so the importer
+assigns characters as it meets tiles; two legends can spell the same map differently and both be
+right. And **JSON has no integers** - a coordinate read off disk is `5.0` and the same one built in
+code is `5` - so the comparison normalises the numeric TYPE on both sides rather than the
+translator faking floats.
+
 **The sprite contract is PNG + `<name>.sheet.json`.** Nothing engine-specific is committed
 as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the
 seam that lets a procedural rig, a downloaded pack or an AI generator feed the same game.
