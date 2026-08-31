@@ -203,8 +203,15 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M32** — a death and a boss get their own music, and a save slot that cannot be read says so instead of drawing as empty
 - [x] **M33** — elemental resistances: a spell is made of something, an enemy answers it with a percent, and a weakness or a resistance is announced rather than left as a number with nothing to compare it to
 - [x] **M34** — the balance gate learned to cast: it plays every shipped fight with magic now, and asserts that every spell is used and every elemental weakness is actually told to the player somewhere
+- [x] **M35** — the balance gate learned to use items too, and closed a guard nothing had ever proven: a quest item on the battle menu would be destroyed by using it
 
 ## Experience Gained
+
+- Added a regression test for a one-line filter that had shipped untested, after tracing its
+  failure mode to permanent, unrecoverable data loss for the end user hours after the mistake.
+- Distinguished masked behaviour from dead code when mutation testing reported a surviving
+  mutant: the production data happened to make two distinct implementations equivalent, so the
+  rules were relocated to a suite whose fixtures could tell them apart.
 
 - Closed a two-layer blind spot in a simulation-based quality gate: the driver never exercised
   one input path, and the fixtures beneath it were built without the data that path consumes —
