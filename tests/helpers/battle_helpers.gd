@@ -57,17 +57,42 @@ static func against(combat: CombatDef, enemies: Array, hp := 20, xp := 0, level 
 ## live `GameState` through a node in a scene tree, and a unit test has neither. What it must
 ## not mirror is WHICH members are along: that is a question about the map, and
 ## `test_battle_content.gd` answers it from the warp graph rather than assuming.
+##
+## IT KNOWS ITS SPELLS, as of M34, and before that it knew none at all. The gate played every
+## shipped fight with a party holding an empty spell page, so the whole magic system — the
+## spells, the statuses they inflict and every element pairing — sat outside anything the
+## balance gate could observe, one layer BELOW the driver that also never chose the Magic row.
+## A gate that reports on a fight the game does not contain is worse than no gate.
+##
+## The filtering is `SpellRow.page`, the same function the world calls, so the page this party
+## holds and the page a player is handed cannot differ. Only the lookup is local: this has no
+## Registry, so it reads the shipped files the way every other content check here does.
 static func party_of(manifest: GameManifest, members: Array, level: int) -> Array:
 	var out: Array = []
 	if manifest == null or manifest.combat == null:
 		return out
 	var combat := manifest.combat
+	var defs := _spell_defs()
+	# The leader knows EVERYTHING their level has reached; a companion knows only what their own
+	# definition names. Opposite meanings for an empty list, which is why `page` takes two
+	# arguments rather than one.
 	out.append(BattleLogic.Fighter.of(&"", "You", manifest.player_character, combat,
-		combat.max_hp(level), 0, level, combat.max_mp(level), 0, 0, []))
+		combat.max_hp(level), 0, level, combat.max_mp(level), 0, 0,
+		BattleLogic.SpellRow.page(defs, level, [], true)))
 	for member: PartyMemberDef in members:
 		if member == null:
 			continue
 		var curve: CombatDef = member.combat if member.combat != null else combat
 		out.append(BattleLogic.Fighter.of(member.id, member.name, member.character, curve,
-			curve.max_hp(level), 0, level, curve.max_mp(level), 0, 0, []))
+			curve.max_hp(level), 0, level, curve.max_mp(level), 0, 0,
+			BattleLogic.SpellRow.page(defs, level, member.spells, false)))
+	return out
+
+
+## Every shipped spell, read off disk. Through `ContentScan` rather than a hand-rolled walk, for
+## the reason CLAUDE.md gives: four of those existed once and disagreed about recursion.
+static func _spell_defs() -> Array:
+	var out: Array = []
+	for path in ContentScan.files_of("res://data/spells", "tres"):
+		out.append(load(path) as SpellDef)
 	return out

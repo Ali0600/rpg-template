@@ -120,6 +120,50 @@ class SpellRow:
 		out.element = made_of
 		return out
 
+	## The whole spell page for a fighter at `level`, from the defs the caller has already
+	## loaded - filtered by what that level has reached, ordered the way the page is drawn, and
+	## converted to rows.
+	##
+	## Here rather than in the world because TWO callers need the same answer and a second
+	## implementation of "which spells does a level-2 leader know" would drift from this one
+	## silently: the world builds the page a player sees, and the balance gate builds the party
+	## it plays the shipped fights with. A gate that balanced a fight against a different spell
+	## list than the game hands out would be measuring a game nobody plays.
+	##
+	## It takes DEFS rather than reaching for them, because this file may not touch an autoload -
+	## and naming one would drop it out of two of the four build gates. Whoever has a Registry
+	## does the looking up.
+	##
+	## `everything` is the leader's rule and `only` is a companion's, which are opposite meanings
+	## for an empty list - NONE for a companion, EVERYTHING the level has reached for the leader -
+	## so they are two arguments rather than one carrying two meanings.
+	static func page(defs: Array, level: int, only: Array[StringName],
+			everything: bool) -> Array:
+		var known: Array[SpellDef] = []
+		for def: SpellDef in defs:
+			if def == null or def.learn_level > level:
+				continue
+			if not everything and not only.has(def.id):
+				continue
+			known.append(def)
+		# By the level that bought them, then by name. The page's order is part of what a play
+		# session presses its way down, so it belongs with the page rather than at a call site.
+		known.sort_custom(func(a: SpellDef, b: SpellDef) -> bool:
+			if a.learn_level != b.learn_level:
+				return a.learn_level < b.learn_level
+			return a.name < b.name)
+		var out: Array = []
+		for def in known:
+			# EVERY field travels, and this line is where they get dropped. It happened once
+			# already: M28 added `target` and did not pass it, so a sweep arrived shaped as a
+			# single target, opened the cursor and hit one thing - which looks exactly like a
+			# spell working. Nothing downstream complains, because a defaulted field is a legal
+			# field. `test_world_battles` compares every field against the file it came from, and
+			# polices its own list against this class so a new one cannot go unnoticed.
+			out.append(SpellRow.of(def.id, def.name, def.mp_cost, def.kind, def.power,
+				def.status_turns, def.target, def.stat, def.element))
+		return out
+
 
 ## What is currently true OF a fighter or a foe that is not one of their numbers.
 ##
@@ -1091,6 +1135,37 @@ func _effect_word(row: SpellRow, target: Foe) -> String:
 	return ""
 
 
+## What a SWEEP adds, which is nothing at all unless every foe it reached answered the same way.
+##
+## M33 gave a sweep no clause on the reasoning that its caption already names what each foe took
+## side by side, so the comparison a single-target hit needs words for is sitting in the numbers.
+## That is true and it has a hole: the numbers can only be compared when they DIFFER. Against a
+## formation that answers uniformly - two slinks, three of anything - every figure on the line is
+## the same, there is no baseline in view, and the player is told precisely nothing.
+##
+## The balance gate is what found it, by playing every shipped fight with a driver that casts and
+## asserting that each shipped pairing is actually SAID: the slink's weakness to wind was never
+## observed once, because the only wind spell in the game reaches everything.
+##
+## So: uniform and non-neutral gets one clause, mixed gets none (the numbers speak), and a sweep
+## that happens to reach a single foe borrows `_effect_word` so the line names it rather than
+## calling one thing "they".
+func _sweep_word(row: SpellRow, reached: Array) -> String:
+	if reached.is_empty():
+		return ""
+	if reached.size() == 1:
+		return _effect_word(row, _foe(reached[0]))
+	var first := _foe(reached[0]).def.resistance_to(row.element)
+	for at in reached:
+		if _foe(at).def.resistance_to(row.element) != first:
+			return ""
+	if first > 100:
+		return " They are weak to it."
+	if first < 100:
+		return " They shrug most of it off."
+	return ""
+
+
 func _cast(order: Order) -> void:
 	var caster := _fighter(order.member)
 	var row := order.spell
@@ -1153,7 +1228,8 @@ func _cast(order: Order) -> void:
 			if _living_foes().is_empty():
 				_win(" and ".join(felled))
 				return
-			var swept := "%s casts %s. %s." % [caster.name, row.name, ", ".join(struck)]
+			var swept := "%s casts %s. %s.%s" % [caster.name, row.name, ", ".join(struck),
+				_sweep_word(row, reached)]
 			for name in felled:
 				swept += " %s is down." % name
 			_say(swept, Phase.PLAYER_ACT)

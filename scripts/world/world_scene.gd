@@ -1327,32 +1327,19 @@ func _member_spells(level: int, only: Array[StringName]) -> Array:
 	return _spells_up_to(level, only, false)
 
 
+## The Registry half of building a spell page. The FILTERING, ordering and conversion live on
+## `BattleLogic.SpellRow.page`, because the balance gate needs the same answer and two
+## implementations of "which spells has this level reached" would drift - the gate would then be
+## balancing shipped fights against a spell list no player is ever handed.
+##
+## What stays here is the part that needs an autoload: turning the registered ids into defs.
 func _spells_up_to(level: int, only: Array[StringName], everything: bool) -> Array:
-	var out: Array = []
 	if _game == null or _game.combat == null:
-		return out
-	var at_level := level
-	var known: Array[SpellDef] = []
+		return []
+	var defs: Array = []
 	for spell_id in Registry.ids_of(&"SpellDef"):
-		var def := Registry.get_resource(&"SpellDef", spell_id) as SpellDef
-		if def == null or def.learn_level > at_level:
-			continue
-		if not everything and not only.has(def.id):
-			continue
-		known.append(def)
-	known.sort_custom(func(a: SpellDef, b: SpellDef) -> bool:
-		if a.learn_level != b.learn_level:
-			return a.learn_level < b.learn_level
-		return a.name < b.name)
-	for def in known:
-		# EVERY field travels, and this line is where they get dropped. It happened once already:
-		# M28 added `target` and did not pass it here, so a sweep arrived shaped as a single
-		# target, opened the cursor and hit one thing - which looks exactly like a spell working.
-		# Nothing downstream complains, because a defaulted field is a legal field. `stat` is the
-		# newest and would fail the same silent way: every boost would move attack.
-		out.append(BattleLogic.SpellRow.of(def.id, def.name, def.mp_cost, def.kind, def.power,
-			def.status_turns, def.target, def.stat, def.element))
-	return out
+		defs.append(Registry.get_resource(&"SpellDef", spell_id) as SpellDef)
+	return BattleLogic.SpellRow.page(defs, level, only, everything)
 
 
 ## Everyone who fights on the player's side, fully resolved.

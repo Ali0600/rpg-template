@@ -231,6 +231,124 @@ func test_the_boss_fight_actually_swings_at_the_party() -> void:
 		"the perfect driver never pressed inside a window, so it was not playing perfectly"
 	).is_greater(0)
 
+## Every caption the CASTER policy produces across the shipped encounters, per encounter id.
+##
+## Built once and shared by the coverage tests below, because playing every fight at two levels
+## on eight seeds is the expensive part and the assertions are three different questions about
+## one traversal.
+func _cast_reports() -> Dictionary:
+	var out := {}
+	var top: int = _quest().combat.xp_curve.size() + 1
+	for entry: Variant in _encounters():
+		var found: Dictionary = entry
+		var record_id: String = found["id"]
+		var seen: Array[BattleDriver.Report] = []
+		for level in range(2, top + 1):
+			for seed_value in range(1, 9):
+				seen.append(BattleDriver.play(_fight(record_id, level, seed_value),
+					BattleDriver.Policy.CASTER))
+		out[record_id] = seen
+	return out
+
+func test_a_party_that_casts_still_wins_every_shipped_fight() -> void:
+	# The balance half. Casting SPENDS a turn that could have been a swing, so a party that wins
+	# by swinging is not automatically a party that wins by casting - and a spell list tuned so
+	# badly that using it loses the fight is a trap the menu offers with no warning.
+	var reports := _cast_reports()
+	for record_id: String in reports:
+		for report: BattleDriver.Report in reports[record_id]:
+			assert_str(report.fault).is_empty()
+			assert_bool(report.ended).override_failure_message(
+				"the '%s' fight did not finish within the cap under a caster" % record_id).is_true()
+			assert_int(report.outcome).override_failure_message(
+				"'%s' (%s) is lost by a party that uses its magic - %d standing, %s"
+				% [record_id, str(report.foes), report.standing(), str(report.party_hp)]) \
+				.is_equal(BattleLogic.Outcome.VICTORY)
+
+func test_every_shipped_spell_is_actually_cast_somewhere() -> void:
+	# CONTENT coverage, not outcome coverage. A spell nobody can reach - learned past the level
+	# the curve tops out at, or priced past a pool that size - is a row the player is never
+	# offered, and every other gate here is blind to it: the file is valid, the resolver hands it
+	# over correctly, and no fight ever gets to it.
+	var cast := {}
+	var reports := _cast_reports()
+	for record_id: String in reports:
+		for report: BattleDriver.Report in reports[record_id]:
+			for id: StringName in report.casts:
+				cast[id] = true
+	# The control. A driver that cast nothing would satisfy every "was it cast correctly"
+	# assertion by vacuum, and this whole file would go green about a system it never entered.
+	assert_int(cast.size()).override_failure_message(
+		"the casting driver cast nothing at all, so the coverage below proves nothing").is_greater(0)
+	for path in ContentScan.files_of(SPELL_DIR, "tres"):
+		var spell := load(path) as SpellDef
+		assert_bool(cast.has(spell.id)).override_failure_message(
+			"'%s' is shipped and is never cast in any fight the game contains, at any level or "
+			% spell.id + "seed - so nothing here has ever played it. Cast: %s" % [cast.keys()]) \
+			.is_true()
+
+func test_every_shipped_resistance_is_told_to_the_player_somewhere() -> void:
+	# THE ASSERTION THIS MILESTONE EXISTS FOR, and it found two defects the first time it ran.
+	#
+	# A resistance that never announces itself in any fight the game contains is a system the
+	# player cannot learn: the cross-content check proves the two halves NAME the same element,
+	# and this proves they MEET. It is `demo-must-show-the-feature` as a gate rather than as a
+	# habit.
+	#
+	# What it caught: the Keeper's answer to fire was unobservable because the driver finished
+	# the weakest foe first and never spent magic on the boss while it had any; and the slink's
+	# weakness to wind was unobservable because the only wind spell is a SWEEP, and a sweep
+	# carried no clause at all - its numbers being side by side only helps when they DIFFER.
+	# SOMEWHERE, deliberately, rather than in every encounter that fields the enemy. A caster
+	# aiming at the toughest foe never spends magic on the escort standing beside a boss, so the
+	# gloom's own answer goes untold in the Keeper's fight and is told plainly in the cave's. What
+	# has to hold is that a player CAN learn each pairing, not that every fight teaches it.
+	var reports := _cast_reports()
+	var told := {}
+	for entry: Variant in _encounters():
+		var found: Dictionary = entry
+		var record_id: String = found["id"]
+		var named: Array = found.get("foes", [])
+		var lines: Array[String] = []
+		for report: BattleDriver.Report in reports[record_id]:
+			lines.append_array(report.said)
+		for def in _defs_of(record_id):
+			if _was_told(lines, def, named):
+				told[def.id] = record_id
+	var checked := 0
+	for entry: Variant in _encounters():
+		var found: Dictionary = entry
+		for def in _defs_of(str(found["id"])):
+			if def.resistances.is_empty():
+				continue
+			checked += 1
+			assert_bool(told.has(def.id)).override_failure_message(
+				("'%s' answers %s and NO fight in the game ever says so, at any level or seed - "
+				+ "so the pairing cannot be learned in play. Told: %s")
+				% [def.id, str(def.resistances.keys()), str(told)]).is_true()
+	# A game may ship no resistances at all; this one does, and a loop that checked nothing would
+	# report green about a table it never opened.
+	assert_int(checked).override_failure_message(
+		"no resistance was checked, so the loop above proved nothing").is_greater(0)
+
+## Whether any of `lines` tells the player about `def`'s answer.
+##
+## Two shapes count, because the caption has two. A single-target hit names the foe, so the name
+## carrying a clause is the enemy's own. A uniform SWEEP says "they" and names nobody - sound
+## here only when the whole formation is this enemy, which is the case it was written for.
+func _was_told(lines: Array[String], def: EnemyDef, named: Array) -> bool:
+	var uniform := true
+	for other: Variant in named:
+		if StringName(str(other)) != def.id:
+			uniform = false
+	for line in lines:
+		var tells := line.contains("weak to it") or line.contains("shrugs most of it off")
+		if tells and line.contains(def.name):
+			return true
+		if uniform and (line.contains("They are weak") or line.contains("They shrug")):
+			return true
+	return false
+
 func test_no_shipped_formation_is_unwinnable() -> void:
 	# The disaster this catches is a fight nobody can win: a group tuned past what the game's own
 	# curve can answer, which no unit test sees because every piece of it is individually fine.

@@ -444,7 +444,7 @@ scripts/ui/battle_logic.gd	s|\t\t\thit.hp = maxi\(hit.hp - dealt, 0\)|\t\t\tpass
 scripts/ui/battle_logic.gd	s|if it.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping enemy telegraphs and hits anyway
 scripts/ui/battle_logic.gd	s|it.status.asleep_turns -= 1|pass|	tests/unit/test_battle_logic.gd	a sleep never ends, so one cast finishes the fight
 scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tests/unit/test_battle_logic.gd	backing out of the spells lands the cursor on Attack instead of Magic
-scripts/world/world_scene.gd	s|if def == null or def.learn_level > at_level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
+scripts/ui/battle_logic.gd	s|if def == null or def.learn_level > level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
 scripts/ui/battle_screen.gd	s|\treturn clampi\(_logic.index\(\) - VISIBLE_ROWS \+ 1, 0, count - VISIBLE_ROWS\)|\treturn 0|	tests/integration/test_battle_layout.gd	a page longer than the window never scrolls, so its last rows cannot be reached
 scripts/ui/battle_screen.gd	s|\t\tvar at := first \+ i|\t\tvar at := i|	tests/integration/test_battle_layout.gd	the window is worked out and then ignored, so the rows drawn never move
 scripts/ui/battle_screen.gd	s|\tlabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT|\tpass|	tests/integration/test_battle_layout.gd	the player block runs left across the screen and lands on the command list again
@@ -496,7 +496,7 @@ scripts/ui/battle_logic.gd	s|^\tfor i in _living\(\):$|\tfor i in _members.size(
 scripts/ui/battle_logic.gd	s|\t_target = standing\[_target_rng.next_int\(0, standing.size\(\) - 1\)\]|\t_target = 0|	tests/unit/test_battle_logic.gd	the enemy always swings at whoever is first in the party
 scripts/ui/battle_logic.gd	s|\treturn _fighter\(_commander\).spells.duplicate\(\)|\treturn _fighter(0).spells.duplicate()|	tests/unit/test_battle_logic.gd	every member is offered the first member's spells
 scripts/world/world_scene.gd	s|if String\(member.joins_on_flag\).is_empty\(\) or GameState.has_flag\(member.joins_on_flag\):|if true:|	tests/integration/test_world_party.gd	everybody on the roster is in the party from the start
-scripts/world/world_scene.gd	s|^\t\tif not everything and not only.has\(def.id\):$|\t\tif false:|	tests/integration/test_world_party.gd	a companion knows every spell in the game
+scripts/ui/battle_logic.gd	s|^\t\t\tif not everything and not only.has\(def.id\):$|\t\t\tif false:|	tests/integration/test_world_party.gd	a companion knows every spell in the game
 scripts/world/world_scene.gd	s|GameState.set_companion\(member.id, curve.max_hp\(level\), earned, level, curve.max_mp\(level\)\)|GameState.set_companion(member.id, 1, 0, 1, 0)|	tests/integration/test_world_party.gd	a companion joins at one hit point whatever their curve says
 scripts/world/world_scene.gd	s|\t\t\t\t\t\tGameState.set_companion\(member, int\(record.get\("hp", 0\)\),|\t\t\t\t\t\tGameState.set_party(int(record.get("hp", 0)),|	tests/integration/test_world_party.gd	a companion's fight result is written over the leader
 scripts/ui/battle_screen.gd	s|\t\tvar mine := acting and player_side and swinging == i|\t\tvar mine := acting and player_side|	tests/integration/test_battle_layout.gd	every member leans when any one of them swings
@@ -520,13 +520,13 @@ scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	test
 scripts/ui/battle_screen.gd	s|\t\tvar theirs := acting and not player_side and swinging_foe == at|\t\tvar theirs := acting and not player_side|	tests/integration/test_battle_layout.gd	every foe leans when any one of them swings
 scripts/ui/battle_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
 scripts/ui/battle_screen.gd	s|^const MAX_PARTY := 3$|const MAX_PARTY := 0|	tests/unit/test_battle_content.gd	a game may declare a party bigger than the screen draws
-scripts/world/world_scene.gd	s|\t\t\tdef.status_turns, def.target, def.stat, def.element\)\)|\t\t\tdef.status_turns, def.stat, def.element))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
+scripts/ui/battle_logic.gd	s|\t\t\t\tdef.status_turns, def.target, def.stat, def.element\)\)|\t\t\t\tdef.status_turns, def.stat, def.element))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
 scripts/ui/battle_logic.gd	s|who.status.attack_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a boost never reaches the swing, so the spell announces itself and changes no number
 scripts/ui/battle_logic.gd	s|it.status.defense_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a sap never reaches the guard the blow is measured against
 scripts/ui/battle_logic.gd	s|maxi\(0, it.def.defense \+ it.status.defense_bonus\(\)\)|it.def.defense + it.status.defense_bonus()|	tests/unit/test_battle_logic.gd	an over-sapped guard goes negative and starts helping the attacker
 scripts/ui/battle_logic.gd	s|if member.status.asleep_turns > 0:|if false:|	tests/unit/test_battle_logic.gd	a sleeping party member is handed the menu anyway, which is a free turn
 scripts/ui/battle_logic.gd	s|if pressed_in_time\(\):|if false:|	tests/unit/test_battle_logic.gd	a well-timed guard stops shrugging off an affliction, so the cue goes quiet in status fights
-scripts/world/world_scene.gd	s|def.target, def.stat, def.element\)\)|def.target, def.element))|	tests/integration/test_world_battles.gd	a spell's stat is dropped between the file and the fight, so every boost moves attack
+scripts/ui/battle_logic.gd	s|def.target, def.stat, def.element\)\)|def.target, def.element))|	tests/integration/test_world_battles.gd	a spell's stat is dropped between the file and the fight, so every boost moves attack
 data/spells/ward.tres	s|status_turns = 3|status_turns = 0|	tests/unit/test_battle_content.gd	the game's one buff lasts no turns, so it announces itself and changes nothing
 data/enemies/gloom.tres	s|"turns": 3|"turns": 0|	tests/unit/test_battle_content.gd	the game's one affliction lasts no turns
 data/spells/ward.tres	s|learn_level = 2|learn_level = 9|	tests/fixtures/qa/quest/a_ward_against_the_chill.json	the buff is learned past the level cap, so no played fight can reach it
@@ -548,7 +548,13 @@ scripts/data/spell_def.gd	s|if kind != Kind.ATTACK and not String\(element\).is_
 scripts/data/enemy_def.gd	s|\tout.append_array\(_resistance_problems\(\)\)|\tpass|	tests/unit/test_enemy_def.gd	the resistance map is never validated at all
 scripts/data/enemy_def.gd	s|\t\telif int\(pct\) == 100:|\t\telif false:|	tests/unit/test_enemy_def.gd	an answer of exactly 100% ships, reading like a decision and changing nothing
 scripts/data/enemy_def.gd	s|\t\tif int\(pct\) < 0:|\t\tif false:|	tests/unit/test_enemy_def.gd	an enemy ships healed by an element instead of hurt by it
-scripts/world/world_scene.gd	s|def.status_turns, def.target, def.stat, def.element\)\)|def.status_turns, def.target, def.stat))|	tests/integration/test_world_battles.gd	a spell's element is dropped between the file and the fight, so every spell lands at face value
+scripts/ui/battle_logic.gd	s|def.status_turns, def.target, def.stat, def.element\)\)|def.status_turns, def.target, def.stat))|	tests/integration/test_world_battles.gd	a spell's element is dropped between the file and the fight, so every spell lands at face value
 data/enemies/gloom.tres	s|&"fire": 200|&"fire": 150|	tests/fixtures/qa/quest/fire_finds_the_gloom.json	the Gloom's weakness to fire is retuned and the played session does not notice
 scripts/ui/battle_logic.gd	s|\tif answer > 100:|\tif false:|	tests/unit/test_battle_logic.gd	a weakness lands silently, so a bigger number arrives with nothing to compare it against
 scripts/ui/battle_logic.gd	s|\tif answer < 100:|\tif false:|	tests/unit/test_battle_logic.gd	a resistance lands silently, and a small number reads as a weak spell
+scripts/ui/battle_logic.gd	s|\tif first > 100:|\tif false:|	tests/unit/test_battle_logic.gd	a uniformly weak sweep says nothing, so identical numbers carry no baseline
+scripts/ui/battle_logic.gd	s|\tif first < 100:|\tif false:|	tests/unit/test_battle_logic.gd	a uniformly resisted sweep says nothing
+scripts/ui/battle_logic.gd	s|\t\tif _foe\(at\).def.resistance_to\(row.element\) != first:|\t\tif false:|	tests/unit/test_battle_logic.gd	a MIXED sweep is given one verdict, which is false about half the foes
+scripts/ui/battle_logic.gd	s|\tif reached.size\(\) == 1:|\tif false:|	tests/unit/test_battle_logic.gd	a sweep reaching one foe calls it 'they'
+tests/helpers/battle_driver.gd	s|\t\t\t\t\t\t_aim\(logic, _toughest_row\(logic\)\)|\t\t\t\t\t\t_aim(logic, _weakest_row(logic))|	tests/unit/test_battle_content.gd	the caster aims like PERFECT, so a boss is never the target of a spell
+tests/helpers/battle_helpers.gd	s|\t\tBattleLogic.SpellRow.page\(defs, level, \[\], true\)\)\)|\t\t[]))|	tests/unit/test_battle_content.gd	the balance party knows no magic, which is what it knew before M34
