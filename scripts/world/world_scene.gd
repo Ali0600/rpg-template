@@ -1294,18 +1294,20 @@ func _equip_mod(stat: StringName, member: StringName = &"") -> int:
 ## What the player could drink mid-fight, resolved into rows. The Registry lookup lives here
 ## because BattleLogic may not touch an autoload - and only things that HEAL are offered: a
 ## gate key in a battle menu is a row that can only disappoint.
+## The Registry-and-inventory half of building a battle bag. WHICH items belong in one - only
+## what heals - lives on `BattleLogic.ItemRow.bag`, because the balance gate needs the same
+## answer and two implementations of "is this safe to spend mid-fight" would drift. The one that
+## drifted would put a quest item on the menu, and using it destroys it.
 func _battle_items() -> Array:
-	var out: Array = []
+	var defs: Array = []
+	var counts := {}
 	# `carried` rather than `item_id`, which _item_rows uses: the two loops would otherwise be
 	# character-identical, and a find-and-replace aimed at one of them - a mutant, a codemod,
 	# a rename - silently edits both and reports a verdict about the wrong function.
 	for carried in GameState.inventory.ids():
-		var def := Registry.get_resource(&"ItemDef", carried) as ItemDef
-		if def == null or def.battle_heal <= 0:
-			continue
-		out.append(BattleLogic.ItemRow.of(carried, def.name, GameState.item_count(carried),
-			def.battle_heal))
-	return out
+		defs.append(Registry.get_resource(&"ItemDef", carried) as ItemDef)
+		counts[carried] = GameState.item_count(carried)
+	return BattleLogic.ItemRow.bag(defs, counts)
 
 
 ## What the player could cast mid-fight, resolved into rows - and this is where KNOWING a

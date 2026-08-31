@@ -83,6 +83,27 @@ class ItemRow:
 		out.heal = item_heal
 		return out
 
+	## The battle bag, from the defs the caller has already loaded and how many of each is
+	## carried. Only what HEALS: a fight menu offering a gate key is a row that can only
+	## disappoint, and worse than disappoint - using one appends the same take-effect a tonic
+	## does, so the key would be destroyed and the door it opens shut for the rest of the run.
+	##
+	## Here rather than in the world for `SpellRow.page`'s reason, and it is the same two callers:
+	## the world builds the bag a player carries into a fight, and the balance gate builds the one
+	## it plays the shipped fights with. `battle_heal` doubles as "does this belong in the fight
+	## menu at all", so a second implementation of that predicate is a second opinion about which
+	## items are safe to spend.
+	##
+	## Takes DEFS and COUNTS rather than reaching for either, because this file may not name an
+	## autoload. Whoever has a Registry and an inventory does the looking up.
+	static func bag(defs: Array, counts: Dictionary) -> Array:
+		var out: Array = []
+		for def: ItemDef in defs:
+			if def == null or def.battle_heal <= 0:
+				continue
+			out.append(ItemRow.of(def.id, def.name, int(counts.get(def.id, 0)), def.battle_heal))
+		return out
+
 
 ## One spell the player can cast, already resolved - and "already resolved" includes WHICH
 ## SPELLS THESE ARE. The world filters the registered spells by the player's level before

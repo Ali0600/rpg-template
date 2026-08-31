@@ -558,3 +558,10 @@ scripts/ui/battle_logic.gd	s|\t\tif _foe\(at\).def.resistance_to\(row.element\) 
 scripts/ui/battle_logic.gd	s|\tif reached.size\(\) == 1:|\tif false:|	tests/unit/test_battle_logic.gd	a sweep reaching one foe calls it 'they'
 tests/helpers/battle_driver.gd	s|\t\t\t\t\t\t_aim\(logic, _toughest_row\(logic\)\)|\t\t\t\t\t\t_aim(logic, _weakest_row(logic))|	tests/unit/test_battle_content.gd	the caster aims like PERFECT, so a boss is never the target of a spell
 tests/helpers/battle_helpers.gd	s|\t\tBattleLogic.SpellRow.page\(defs, level, \[\], true\)\)\)|\t\t[]))|	tests/unit/test_battle_content.gd	the balance party knows no magic, which is what it knew before M34
+scripts/ui/battle_logic.gd	s|\t\t\tif def == null or def.battle_heal <= 0:|\t\t\tif def == null:|	tests/unit/test_battle_content.gd	a quest item reaches the battle menu, where using it destroys it
+tests/helpers/battle_driver.gd	s|\treturn rows\[used_count % rows.size\(\)\]|\treturn rows[0]|	tests/unit/test_battle_driver.gd	the drinker always reaches for the first row, exercising one item
+tests/helpers/battle_driver.gd	s|\t\tif logic.member_hp\(at\) > 0 and logic.member_hp\(at\) < logic.member_max_hp\(at\):|\t\tif true:|	tests/unit/test_battle_driver.gd	the drinker drinks at full health, so it never swings
+tests/helpers/battle_driver.gd	s|\tif logic.item_rows\(\).is_empty\(\):|\tif false:|	tests/unit/test_battle_driver.gd	an empty bag is opened anyway, and a dead row is pressed forever
+tests/helpers/battle_driver.gd	s|\tif policy != Policy.DRINKER:|\tif false:|	tests/unit/test_battle_driver.gd	every policy is offered the bag, so no report is about its own verb
+tests/helpers/battle_driver.gd	s|\t\tif logic.enemy_hp\(rows\[i\]\) > logic.enemy_hp\(rows\[best\]\):|\t\tif logic.enemy_hp(rows[i]) < logic.enemy_hp(rows[best]):|	tests/unit/test_battle_driver.gd	both aiming policies point the same way, so the aim axis does not exist
+tests/helpers/battle_driver.gd	s|\tif _will_drink\(logic, policy\):|\tif false:|	tests/unit/test_battle_content.gd	the drinker never opens the bag, so no item is ever played
