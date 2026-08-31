@@ -552,10 +552,6 @@ scripts/ui/battle_logic.gd	s|def.status_turns, def.target, def.stat, def.element
 data/enemies/gloom.tres	s|&"fire": 200|&"fire": 150|	tests/fixtures/qa/quest/fire_finds_the_gloom.json	the Gloom's weakness to fire is retuned and the played session does not notice
 scripts/ui/battle_logic.gd	s|\tif answer > 100:|\tif false:|	tests/unit/test_battle_logic.gd	a weakness lands silently, so a bigger number arrives with nothing to compare it against
 scripts/ui/battle_logic.gd	s|\tif answer < 100:|\tif false:|	tests/unit/test_battle_logic.gd	a resistance lands silently, and a small number reads as a weak spell
-scripts/ui/battle_logic.gd	s|\tif first > 100:|\tif false:|	tests/unit/test_battle_logic.gd	a uniformly weak sweep says nothing, so identical numbers carry no baseline
-scripts/ui/battle_logic.gd	s|\tif first < 100:|\tif false:|	tests/unit/test_battle_logic.gd	a uniformly resisted sweep says nothing
-scripts/ui/battle_logic.gd	s|\t\tif _foe\(at\).def.resistance_to\(row.element\) != first:|\t\tif false:|	tests/unit/test_battle_logic.gd	a MIXED sweep is given one verdict, which is false about half the foes
-scripts/ui/battle_logic.gd	s|\tif reached.size\(\) == 1:|\tif false:|	tests/unit/test_battle_logic.gd	a sweep reaching one foe calls it 'they'
 tests/helpers/battle_driver.gd	s|\t\t\t\t\t\t_aim\(logic, _toughest_row\(logic\)\)|\t\t\t\t\t\t_aim(logic, _weakest_row(logic))|	tests/unit/test_battle_content.gd	the caster aims like PERFECT, so a boss is never the target of a spell
 tests/helpers/battle_helpers.gd	s|\t\tBattleLogic.SpellRow.page\(defs, level, \[\], true\)\)\)|\t\t[]))|	tests/unit/test_battle_content.gd	the balance party knows no magic, which is what it knew before M34
 scripts/ui/battle_logic.gd	s|\t\t\tif def == null or def.battle_heal <= 0:|\t\t\tif def == null:|	tests/unit/test_battle_content.gd	a quest item reaches the battle menu, where using it destroys it
@@ -570,3 +566,10 @@ data/enemies/slink.tres	s|boss = false|boss = true|	tests/unit/test_battle_conte
 tests/helpers/battle_driver.gd	s|\t\treturn BattleLogic.Row.FLEE|\t\treturn BattleLogic.Row.ATTACK|	tests/unit/test_battle_content.gd	the runner never presses Run, so no escape is ever attempted
 scripts/ui/battle_screen.gd	s|\t_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART|\t_message.autowrap_mode = TextServer.AUTOWRAP_OFF|	tests/integration/test_battle_layout.gd	the caption stops wrapping and its tail is drawn off the window
 scripts/ui/battle_screen.gd	s|\t_message.size.x = float\(viewport_size.x\) - MARGIN \* 2.0|\t_message.size.x = 1.0|	tests/integration/test_battle_layout.gd	the caption is given no width, so it wraps to one word a line
+scripts/ui/battle_logic.gd	s|\tif not _queued.is_empty\(\):|\tif false:|	tests/unit/test_battle_logic.gd	the queue is never drained, so a sweep reports only its first foe
+scripts/ui/battle_logic.gd	s|\t_queued = lines.slice\(1\)|\t_queued = []|	tests/unit/test_battle_logic.gd	only the first line of a sequence is queued, and the rest are lost
+scripts/ui/battle_logic.gd	s|\t\t_say\(next_line, _after_message\)|\t\t_say(next_line, Phase.PLAYER_ACT)|	tests/unit/test_battle_logic.gd	a sequence forgets where it was going, so a winning sweep hands the turn back
+scripts/ui/battle_logic.gd	s|\t\t\t\tlines.append\(_award_victory\(" and ".join\(felled\)\)\)|\t\t\t\tpass|	tests/unit/test_battle_logic.gd	a sweep that wins the fight never says so
+scripts/ui/battle_logic.gd	s|\t\treturn " %s is weak to %s\." % \[subject, row.element\]|\t\treturn ""|	tests/unit/test_battle_logic.gd	a weakness lands silently, with nothing to compare the bigger number against
+scripts/ui/battle_logic.gd	s|\t\treturn " %s shrugs off most of the %s\." % \[subject, row.element\]|\t\treturn ""|	tests/unit/test_battle_logic.gd	a resistance lands silently, and a small number reads as a weak spell
+scripts/ui/battle_logic.gd	s|var frame := "%s casts %s\." % \[caster.name, row.name\]|var frame := ""|	tests/unit/test_battle_logic.gd	the persistent frame is dropped, so a sequence says who is acting nowhere

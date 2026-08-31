@@ -309,12 +309,11 @@ func test_every_shipped_resistance_is_told_to_the_player_somewhere() -> void:
 	for entry: Variant in _encounters():
 		var found: Dictionary = entry
 		var record_id: String = found["id"]
-		var named: Array = found.get("foes", [])
 		var lines: Array[String] = []
 		for report: BattleDriver.Report in reports[record_id]:
 			lines.append_array(report.said)
 		for def in _defs_of(record_id):
-			if _was_told(lines, def, named):
+			if _was_told(lines, def):
 				told[def.id] = record_id
 	var checked := 0
 	for entry: Variant in _encounters():
@@ -334,19 +333,16 @@ func test_every_shipped_resistance_is_told_to_the_player_somewhere() -> void:
 
 ## Whether any of `lines` tells the player about `def`'s answer.
 ##
-## Two shapes count, because the caption has two. A single-target hit names the foe, so the name
-## carrying a clause is the enemy's own. A uniform SWEEP says "they" and names nobody - sound
-## here only when the whole formation is this enemy, which is the case it was written for.
-func _was_told(lines: Array[String], def: EnemyDef, named: Array) -> bool:
-	var uniform := true
-	for other: Variant in named:
-		if StringName(str(other)) != def.id:
-			uniform = false
+## ONE SHAPE now, where M34 needed two. A sweep used to say one combined verdict naming nobody
+## ("They are weak to it"), so this had to special-case a formation made entirely of one enemy to
+## attribute it. Sequencing the sweep into a line per foe deleted that: every clause the game
+## says now sits in a line that names the foe it is about, so the check is the same for a spell
+## aimed at one thing and a spell that reached three.
+func _was_told(lines: Array[String], def: EnemyDef) -> bool:
 	for line in lines:
-		var tells := line.contains("weak to it") or line.contains("shrugs most of it off")
-		if tells and line.contains(def.name):
-			return true
-		if uniform and (line.contains("They are weak") or line.contains("They shrug")):
+		if not line.contains(def.name):
+			continue
+		if line.contains("weak to") or line.contains("shrugs off"):
 			return true
 	return false
 
