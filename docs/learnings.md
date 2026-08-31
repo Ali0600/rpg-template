@@ -1456,3 +1456,21 @@ looked complete.
 units the design actually declares — here a line count the view states as a capacity, matching a
 sibling surface that already gated against the same number — so a layout has to be *drawable*
 rather than merely *contained*.
+
+## Replacing a slice of a file by its anchors deletes whatever grew between them
+
+Editing a file by finding two landmarks and replacing everything in between is fast and reads as
+surgical. It is not: anything added between those landmarks since you last looked goes with it.
+
+**Why it came up.** Updating one helper in a test file, the edit cut from the helper's docstring
+to the next test function by name — and four tests that had been added between them in the two
+preceding milestones vanished. Nothing failed. The suite went green on 20 tests where it had run
+24, because deleted tests do not report anything. The COUNT was the only signal, and it was
+noticed because a previous run's number was still on screen.
+
+**Takeaway.** Prefer an exact-match replacement of the thing you mean to change over a positional
+slice, so a stale assumption fails loudly instead of taking neighbours with it. And whenever a
+test file is edited mechanically, compare the test count against what it was before — the whole
+class of "the tests are gone" failures is invisible to a pass/fail signal and obvious to a
+denominator. This is the same instrument the build already uses to compare suites-ran against
+suites-on-disk; it belongs one level down too.

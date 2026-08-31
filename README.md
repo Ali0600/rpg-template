@@ -205,8 +205,16 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M34** — the balance gate learned to cast: it plays every shipped fight with magic now, and asserts that every spell is used and every elemental weakness is actually told to the player somewhere
 - [x] **M35** — the balance gate learned to use items too, and closed a guard nothing had ever proven: a quest item on the battle menu would be destroyed by using it
 - [x] **M36** — the battle caption wraps instead of running off the screen, and a driver that presses Run asserts which fights the game will actually let you leave
+- [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
 
 ## Experience Gained
+
+- Replaced a shipped feature with the convention established by primary-source research, and
+  chose the design that REMOVED two special cases rather than the one that preserved existing
+  behaviour — the redundant branches were themselves evidence the original shape was wrong.
+- Changed the pacing of a core interaction with no regression across 22 end-to-end scripted
+  runs, because those runs had earlier been rewritten to drive on observed state rather than on
+  counted delays.
 
 - Caught a self-fulfilling assertion in review: a test derived its expected value from the same
   field it was validating, so corrupting that field moved the expectation with it and the mutant

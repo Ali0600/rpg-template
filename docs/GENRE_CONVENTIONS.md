@@ -541,13 +541,19 @@ measures it at declared capacity. A one-line caption was the divergence, and it 
 one: the label simply had no width, and text past the window edge was drawn where nobody could
 see it.
 
-**Divergence, and it is a real one:** the sweep caption still names every foe's damage on one
-line, which §7c's own evidence says the genre does not do. It is kept because the numbers side by
-side are what let a player compare an elemental weakness against its neighbours, which is the
-argument M33 made for announcing at all — and because the alternative is a redesign rather than a
-field. **Final Fantasy I's answer is recorded as the deferred alternative** in `DECISIONS.md`,
-including the part worth stealing: the persistent frame, where who is acting and what they are
-doing hold still while only the per-target half cycles.
+~~**Divergence:** the sweep caption names every foe's damage on one line.~~ **Closed by M37**,
+which took the genre's answer whole. A sweep says one line per foe, in turn — and the first half
+of each is identical, so the caster and the spell hold still while the target half cycles beneath
+them. That is Final Fantasy I's *"clears all drawn combat boxes except for 2"* adapted to a
+caption with two lines rather than six boxes, and it was only expressible once M36 gave the
+caption its second line.
+
+**It deleted a special case rather than adding one**, which is the strongest argument that the
+research was right. M34 had given a *uniform* formation a single combined verdict — "They are
+weak to it" — because a caption listing identical numbers can say nothing useful, and that needed
+a matching special case in the content gate to attribute a clause naming nobody. Sequencing
+removed both: every clause now sits in a line that names the foe it is about, so a formation that
+answers uniformly is told about exactly as clearly as a mixed one.
 
 **Unverified, and named rather than guessed:** Chrono Trigger has no public decompilation, and
 Dragon Quest II — the first in its series with enemy *groups*, and so the likeliest to contradict
