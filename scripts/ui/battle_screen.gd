@@ -27,6 +27,15 @@ const LAYER := 12
 const MARGIN := 8
 const TITLE_SIZE := 9
 const ROW_SIZE := 8
+
+## How many lines the caption may take, and a DECLARED capacity in `MAX_PARTY`'s sense: the
+## layout audit measures against it, so it is a promise the view has to keep rather than a note.
+##
+## TWO because that is the genre's own floor and this screen was under it - every reference
+## battle message area holds more than one line (Pokemon 2, EarthBound 3, Dragon Warrior 8), and
+## Dragon Warrior word-wraps into them automatically. It is also the number `DialogBox` already
+## draws and size-gates every shipped line against, so the two surfaces agree.
+const MESSAGE_LINES := 2
 const HELP_SIZE := 7
 const ROW_PITCH := 11
 
@@ -220,6 +229,18 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 
 	_message.position = Vector2(MARGIN, MARGIN + 14)
 	_message.add_theme_font_size_override("font_size", ROW_SIZE)
+	# WRAPS, and a Label does not do that on its own: with no width set it has nothing to wrap
+	# against, and with no clip it draws straight past the window edge - where the text is not
+	# truncated, it is simply somewhere the player cannot see. Measured at the capacity this view
+	# DECLARES (MAX_PARTY members, MAX_FOES foes, a sweep that fells two of them), the caption ran
+	# to 451px in a 320px window.
+	#
+	# Two lines rather than one is also the genre's own shape, and this screen was the outlier:
+	# every reference battle message area holds more than one line - Pokemon 2, EarthBound 3,
+	# Dragon Warrior 8 - and Dragon Warrior word-wraps into them automatically at 22 columns.
+	# See docs/GENRE_CONVENTIONS.md S7c.
+	_message.size.x = float(viewport_size.x) - MARGIN * 2.0
+	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_message)
 
 	# A FIXED window of slots, at fixed positions. The pool used to be sized to the longest page

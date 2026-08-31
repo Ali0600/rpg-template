@@ -422,6 +422,46 @@ func test_every_item_that_can_be_used_in_a_fight_actually_is() -> void:
 			"'%s' heals %d in a fight and no fight ever reaches for it, at any level or seed. "
 			% [def.id, def.battle_heal] + "Used: %s" % [used.keys()]).is_true()
 
+func test_a_fight_that_must_happen_is_the_only_one_that_cannot_be_run_from() -> void:
+	# "A fight that must happen is made unavoidable by GEOMETRY, never by a radius" is a rule this
+	# template states out loud, and the half of it living in the DATA - which encounter refuses
+	# every escape - was asserted by nothing whatever.
+	#
+	# THE SET, not a property of whatever is in it. A first draft read each record's own `boss`
+	# flag to decide what to expect of it, which is self-fulfilling: flagging a slink as a boss
+	# made the tutorial inescapable AND moved the expectation to match, and the mutant survived.
+	# So the expectation is declared here, independently - exactly ONE shipped encounter refuses -
+	# and the played result is compared against it. That also catches the deletion case, which a
+	# per-record property check cannot see at all: "everything flagged is refused" stays true when
+	# the flag is dropped, because the set only got smaller.
+	var refuses: Array[String] = []
+	var checked := 0
+	for entry: Variant in _encounters():
+		var record_id: String = entry["id"]
+		var report := BattleDriver.play(_fight(record_id, BOSS_LEVEL, 3),
+			BattleDriver.Policy.RUNNER)
+		assert_str(report.fault).is_empty()
+		assert_bool(report.ended).override_failure_message(
+			"the '%s' fight never ended under a runner" % record_id).is_true()
+		checked += 1
+		if report.outcome == BattleLogic.Outcome.FLED:
+			continue
+		refuses.append(record_id)
+		# The refusal has to REACH the player. "Did not end in FLED" is equally satisfied by a
+		# fight where Run silently did nothing, which is the reading a player gives a broken key.
+		var said := false
+		for line in report.said:
+			if line.contains("no way past"):
+				said = true
+		assert_bool(said).override_failure_message(
+			"'%s' refused the escape without saying so: %s" % [record_id, report.said]).is_true()
+	assert_int(checked).override_failure_message(
+		"no encounter was played, so nothing below was compared").is_greater(1)
+	assert_array(refuses).override_failure_message(
+		("the fights that cannot be run from are %s; the game declares exactly one, '%s'. A flag "
+		+ "added makes a tutorial inescapable, and one dropped makes the mandatory fight optional.")
+		% [refuses, BOSS]).contains_exactly([BOSS])
+
 func test_no_shipped_formation_is_unwinnable() -> void:
 	# The disaster this catches is a fight nobody can win: a group tuned past what the game's own
 	# curve can answer, which no unit test sees because every piece of it is individually fine.

@@ -55,6 +55,20 @@ enum Policy {
 	## It rotates the bag the way CASTER rotates the page, and for the same reason: a driver that
 	## always reaches for the strongest tonic exercises one row and reports on the whole bag.
 	DRINKER,
+	## Presses Run on every turn it is given, and nothing else. The fourth command row, and the
+	## only one no policy had ever pressed.
+	##
+	## It is not a skill or a verb so much as a QUESTION about the content: which shipped fights
+	## can be walked away from. "A fight that must happen is made unavoidable by GEOMETRY, never
+	## by a radius" is a rule this template states out loud, and the half of it living in the data
+	## - which encounter refuses every escape - was asserted by nothing at all. A `boss` flag
+	## dropped from the Keeper makes the game's one mandatory fight optional, and every gate stays
+	## green.
+	##
+	## It terminates against a boss as well as away from one, which is why it is safe to run over
+	## every shipped encounter: a refusal costs the turn, so a runner that never fights back is
+	## eventually killed and the fight ends in DEFEAT rather than looping to the cap.
+	RUNNER,
 }
 
 ## What a played fight looks like from outside. Everything here is COUNTED rather than inferred,
@@ -221,6 +235,11 @@ static func _aim(logic: BattleLogic, row: int) -> void:
 ## it does not - an empty bag and an unaffordable page are both traps rather than choices, and a
 ## fight where nobody is hurt has nothing an item can do.
 static func _row_to_choose(logic: BattleLogic, policy: Policy) -> int:
+	if policy == Policy.RUNNER:
+		# Unconditional, where the other two verbs ask first: Run is the one row that is never a
+		# trap. It is refused out loud by a boss and costs the turn either way, so there is no
+		# state in which pressing it does nothing and leaves the driver stuck on a dead row.
+		return BattleLogic.Row.FLEE
 	if _will_cast(logic, policy):
 		return BattleLogic.Row.MAGIC
 	if _will_drink(logic, policy):

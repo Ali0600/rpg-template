@@ -1420,3 +1420,39 @@ the CONSECUTIVE pair instead, which no run length can mask. And a scenario canno
 the degenerate case you want (there was no way to fight a foe that hurts nobody, because a
 zero-power move still lands the attacker's base stat), so pin such a guard on the DECISION the
 code makes rather than on how the whole run comes out.
+
+## A test that derives its expectation from the field it is checking cannot fail
+
+If a check reads a value to decide what to expect of that value, corrupting the value moves the
+expectation with it. The assertion still reads as a real rule and is satisfied by construction.
+
+**Why it came up.** A gate asserted that fights flagged as mandatory refuse an escape and the
+rest allow one — deriving "is this one mandatory?" from each encounter's own flag. Setting that
+flag on a tutorial enemy made the tutorial inescapable *and* changed what the test expected of it,
+so the mutant survived. It was rewritten to compute the SET of fights that actually refuse and
+compare it against an independently declared one. That fixed a second hole in the same move: the
+original could not see a flag being DELETED either, because "everything flagged is refused" stays
+true when the set only gets smaller.
+
+**Takeaway.** An expectation must come from somewhere the code under test cannot reach — a
+constant in the test, a spec file, a hand-written list. When the rule is about membership, assert
+the membership: compute the set and compare it whole, rather than checking a property of whatever
+happens to be in it. Both failure directions then fail.
+
+## A containment check passes degenerate layouts
+
+"Everything is inside the window" sounds like a complete statement about a layout. It is satisfied
+by arrangements that are unusable, because the pathological cases are usually *smaller* than the
+window rather than bigger.
+
+**Why it came up.** A text label that ran off-screen was fixed by giving it a width and turning on
+wrapping, gated by a new "nothing is drawn outside the window" audit. Mutation testing then showed
+the width assignment could be removed with the audit still passing: with no width to wrap against
+the label falls back to a single pixel, so the text becomes a tall column one word wide — entirely
+inside the window, and entirely unreadable. Reading the code would not have found it; the audit
+looked complete.
+
+**Takeaway.** Bounds checks catch the overflow direction only. Pair them with a constraint in the
+units the design actually declares — here a line count the view states as a capacity, matching a
+sibling surface that already gated against the same number — so a layout has to be *drawable*
+rather than merely *contained*.

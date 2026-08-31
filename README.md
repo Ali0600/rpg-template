@@ -204,8 +204,17 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M33** — elemental resistances: a spell is made of something, an enemy answers it with a percent, and a weakness or a resistance is announced rather than left as a number with nothing to compare it to
 - [x] **M34** — the balance gate learned to cast: it plays every shipped fight with magic now, and asserts that every spell is used and every elemental weakness is actually told to the player somewhere
 - [x] **M35** — the balance gate learned to use items too, and closed a guard nothing had ever proven: a quest item on the battle menu would be destroyed by using it
+- [x] **M36** — the battle caption wraps instead of running off the screen, and a driver that presses Run asserts which fights the game will actually let you leave
 
 ## Experience Gained
+
+- Caught a self-fulfilling assertion in review: a test derived its expected value from the same
+  field it was validating, so corrupting that field moved the expectation with it and the mutant
+  survived. Rewrote it to compare the computed SET against an independently declared one, which
+  also covers deletion — a per-item property check cannot see a set that merely got smaller.
+- Established that a containment check was insufficient on its own by mutation testing, not by
+  inspection: a degenerate layout satisfied the bounds while being unusable, so the gate gained a
+  second constraint expressed in the units the design actually declares.
 
 - Added a regression test for a one-line filter that had shipped untested, after tracing its
   failure mode to permanent, unrecoverable data loss for the end user hours after the mistake.
