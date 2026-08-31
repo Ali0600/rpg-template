@@ -43,6 +43,18 @@ enum Policy {
 	## same blindness one level down. The rotation is a counter, not a draw: nothing here may
 	## reach for randomness the fight has not seeded.
 	CASTER,
+	## Times every press, and reaches for the BAG whenever anybody is hurt and there is something
+	## in it. Appended for CASTER's reason, and it is CASTER's argument one menu row over: no
+	## policy had ever opened the Item page, so an item's heal, its presence on the page and the
+	## bag emptying behind it were all outside what the balance gate could observe.
+	##
+	## Named for Final Fantasy I's own third command - its menu is Fight / Magic / DRINK / Item -
+	## rather than for the row this template calls Item, because "the policy that uses things up"
+	## is what it is and the genre already had a word.
+	##
+	## It rotates the bag the way CASTER rotates the page, and for the same reason: a driver that
+	## always reaches for the strongest tonic exercises one row and reports on the whole bag.
+	DRINKER,
 }
 
 ## What a played fight looks like from outside. Everything here is COUNTED rather than inferred,
@@ -76,6 +88,11 @@ class Report extends RefCounted:
 	## exactly the casts that need no pointing. The caption is also what the PLAYER gets, which
 	## makes it the outcome rather than a proxy for it.
 	var said: Array[String] = []
+
+	## Every item this fight actually used, by id and in order. `casts`' counterpart, and it is
+	## kept for the same reason: a driver that wins having only ever reached for the first row of
+	## the bag has used one item and reported on all of them.
+	var used: Array[StringName] = []
 
 	## How many casts have happened, which is also the rotation's position on the spell page.
 	func cast_count() -> int:
@@ -116,12 +133,19 @@ static func play(logic: BattleLogic, policy: Policy, cap := 20000) -> Report:
 			was = phase
 		match phase:
 			BattleLogic.Phase.MENU:
-				# MAGIC only when something on the page can actually be paid for. The menu is the
-				# ONLY place that decision can be made: a cancel is refused for everybody since
-				# M27.1, so a driver that opened the spell page with nothing affordable would
-				# press an unaffordable row forever and hang the gate rather than fail it.
-				_aim(logic, BattleLogic.Row.MAGIC if _will_cast(logic, policy)
-					else BattleLogic.Row.ATTACK)
+				# The row is chosen HERE and nowhere else. A cancel has been refused for everybody
+				# since M27.1, so a driver that opens a page it cannot act on presses a dead row
+				# forever and hangs the gate rather than failing it - which is why both of these
+				# ask whether the page has something usable BEFORE opening it, rather than
+				# opening it and coping.
+				_aim(logic, _row_to_choose(logic, policy))
+				logic.press()
+				out.presses += 1
+			BattleLogic.Phase.ITEMS when policy == Policy.DRINKER:
+				var item := _item_to_use(logic, out.used.size())
+				# Recorded BEFORE the press, which spends the turn and takes the page away.
+				out.used.append(item.id)
+				_aim(logic, _row_of_item(logic, item))
 				logic.press()
 				out.presses += 1
 			BattleLogic.Phase.SPELLS when policy == Policy.CASTER:
@@ -132,7 +156,7 @@ static func play(logic: BattleLogic, policy: Policy, cap := 20000) -> Report:
 				_aim(logic, _row_of_spell(logic, row))
 				logic.press()
 				out.presses += 1
-			BattleLogic.Phase.ALLY when policy == Policy.CASTER:
+			BattleLogic.Phase.ALLY when policy == Policy.CASTER or policy == Policy.DRINKER:
 				# A heal or a boost, landing on our side. The most hurt member, which is both the
 				# sensible play and the one that makes a heal observable at all.
 				_aim(logic, _neediest_row(logic))
@@ -161,8 +185,10 @@ static func play(logic: BattleLogic, policy: Policy, cap := 20000) -> Report:
 			BattleLogic.Phase.SPELLS, BattleLogic.Phase.ITEMS, BattleLogic.Phase.ALLY:
 				# PERFECT and MASH only ever choose Attack, so nothing should open these. Reaching
 				# one means the command rows moved under them, and a driver that quietly pressed
-				# through would be casting or drinking while reporting on swinging. ITEMS is here
-				# for CASTER too: casting is the one verb it adds.
+				# through would be casting or drinking while reporting on swinging. Each of the
+				# two verb policies adds exactly ONE page: SPELLS is still a fault for DRINKER and
+				# ITEMS is still one for CASTER, which is what keeps each report about its own
+				# verb rather than about whatever the menu happened to open.
 				out.fault = "the driver reached page %d, which choosing Attack cannot open" % phase
 				break
 			_:
@@ -187,6 +213,55 @@ static func _aim(logic: BattleLogic, row: int) -> void:
 	var steps := row - logic.index()
 	if steps != 0:
 		logic.move(steps)
+
+
+## Which command row this policy takes, decided at the MENU because it cannot be unmade later.
+##
+## Each verb policy asks whether its OWN page has something usable and falls back to Attack when
+## it does not - an empty bag and an unaffordable page are both traps rather than choices, and a
+## fight where nobody is hurt has nothing an item can do.
+static func _row_to_choose(logic: BattleLogic, policy: Policy) -> int:
+	if _will_cast(logic, policy):
+		return BattleLogic.Row.MAGIC
+	if _will_drink(logic, policy):
+		return BattleLogic.Row.ITEM
+	return BattleLogic.Row.ATTACK
+
+
+## Whether this policy is going to open the bag. Three conditions, and the third is the one that
+## keeps a fight ending: an item used on somebody already whole spends the turn and heals nought,
+## so a driver that drank every turn regardless would never swing and the fight would run to the
+## iteration cap instead of finishing.
+static func _will_drink(logic: BattleLogic, policy: Policy) -> bool:
+	if policy != Policy.DRINKER:
+		return false
+	if logic.item_rows().is_empty():
+		return false
+	for at in logic.member_count():
+		if logic.member_hp(at) > 0 and logic.member_hp(at) < logic.member_max_hp(at):
+			return true
+	return false
+
+
+## Which item to use, ROTATED by how many have been used - `_spell_to_cast`'s shape exactly, and
+## for its reason: a driver that always reaches for the strongest tonic exercises one row of the
+## bag and reports on the whole of it.
+static func _item_to_use(logic: BattleLogic, used_count: int) -> BattleLogic.ItemRow:
+	var rows := logic.item_rows()
+	# `_will_drink` is what guarantees this is non-empty, one press earlier at the MENU. Asserted
+	# rather than returned as null, because a null would be pressed at a dead row forever.
+	assert(not rows.is_empty(), "the item page opened with an empty bag")
+	return rows[used_count % rows.size()]
+
+
+## Where `item` sits on the page, looked up rather than counted for `_row_of_spell`'s reason: the
+## bag shrinks as it is spent, and an index into a stale copy reaches for the wrong thing.
+static func _row_of_item(logic: BattleLogic, item: BattleLogic.ItemRow) -> int:
+	var rows := logic.item_rows()
+	for i in rows.size():
+		if rows[i] == item:
+			return i
+	return 0
 
 
 ## Whether this policy is going to open the spell page, asked at the MENU where it still can be.

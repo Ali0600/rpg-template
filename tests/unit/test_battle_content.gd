@@ -9,6 +9,7 @@ extends GdUnitTestSuite
 const ENEMY_DIR := "res://data/enemies"
 const COMBAT_DIR := "res://data/combat"
 const SPELL_DIR := "res://data/spells"
+const ITEM_DIR := "res://data/items"
 
 func _known_enemy_ids() -> Dictionary:
 	var out := {}
@@ -349,6 +350,78 @@ func _was_told(lines: Array[String], def: EnemyDef, named: Array) -> bool:
 			return true
 	return false
 
+## Every report the DRINKER policy produces across the shipped encounters, built once and
+## shared for `_cast_reports`' reason.
+func _drink_reports() -> Dictionary:
+	var out := {}
+	var top: int = _quest().combat.xp_curve.size() + 1
+	for entry: Variant in _encounters():
+		var record_id: String = entry["id"]
+		var seen: Array[BattleDriver.Report] = []
+		for level in range(2, top + 1):
+			for seed_value in range(1, 9):
+				seen.append(BattleDriver.play(_fight(record_id, level, seed_value, _full_bag()),
+					BattleDriver.Policy.DRINKER))
+		out[record_id] = seen
+	return out
+
+func test_nothing_a_player_needs_can_be_drunk_in_a_fight() -> void:
+	# THE GUARD WITH NO TEST, until now, and the worst failure in this file if it broke. Using an
+	# item appends the same take-effect whatever it was, so a quest item on the battle menu is not
+	# merely a row that disappoints - it is a key destroyed and a door shut for the rest of the
+	# run, hours before the player finds out. The filter is one comparison and nothing proved it.
+	var offered := {}
+	for row: BattleLogic.ItemRow in _full_bag():
+		offered[row.id] = true
+	var checked := 0
+	for def: ItemDef in _every_item():
+		checked += 1
+		if def.battle_heal > 0:
+			assert_bool(offered.has(def.id)).override_failure_message(
+				"'%s' heals %d and is not on the battle menu at all" % [def.id, def.battle_heal]) \
+				.is_true()
+			continue
+		assert_bool(offered.has(def.id)).override_failure_message(
+			("'%s' heals nothing and is offered mid-fight anyway. Using it spends it - if it "
+			+ "opens a door, that door is now shut for the rest of the run.") % def.id).is_false()
+	# Both halves of the filter have to be reachable, or this passes by testing one of them: the
+	# game ships items that heal and items that do not, and a run over an empty directory would
+	# report green about a rule it never applied.
+	assert_int(checked).override_failure_message(
+		"no item was checked, so the filter above was never applied").is_greater(1)
+
+func test_a_party_that_drinks_still_wins_every_shipped_fight() -> void:
+	var reports := _drink_reports()
+	for record_id: String in reports:
+		for report: BattleDriver.Report in reports[record_id]:
+			assert_str(report.fault).is_empty()
+			assert_bool(report.ended).override_failure_message(
+				"the '%s' fight did not finish under a drinker" % record_id).is_true()
+			assert_int(report.outcome).override_failure_message(
+				"'%s' (%s) is lost by a party that uses its bag - %d standing, %s"
+				% [record_id, str(report.foes), report.standing(), str(report.party_hp)]) \
+				.is_equal(BattleLogic.Outcome.VICTORY)
+
+func test_every_item_that_can_be_used_in_a_fight_actually_is() -> void:
+	# CONTENT coverage, `test_every_shipped_spell_is_actually_cast_somewhere`'s twin. An item
+	# whose heal is wrong, or which no fight ever reaches for, is invisible to every other gate
+	# here: the file is valid, the filter hands it over correctly, and nothing drinks it.
+	var used := {}
+	var reports := _drink_reports()
+	for record_id: String in reports:
+		for report: BattleDriver.Report in reports[record_id]:
+			for id: StringName in report.used:
+				used[id] = true
+	assert_int(used.size()).override_failure_message(
+		"the drinking driver used nothing at all, so the coverage below proves nothing") \
+		.is_greater(0)
+	for def: ItemDef in _every_item():
+		if def.battle_heal <= 0:
+			continue
+		assert_bool(used.has(def.id)).override_failure_message(
+			"'%s' heals %d in a fight and no fight ever reaches for it, at any level or seed. "
+			% [def.id, def.battle_heal] + "Used: %s" % [used.keys()]).is_true()
+
 func test_no_shipped_formation_is_unwinnable() -> void:
 	# The disaster this catches is a fight nobody can win: a group tuned past what the game's own
 	# curve can answer, which no unit test sees because every piece of it is individually fine.
@@ -456,13 +529,35 @@ func _defs_of(record_id: String) -> Array[EnemyDef]:
 	return out
 
 ## The fight itself: the map's formation against the party the player cannot avoid having.
-func _fight(record_id: String, level: int, seed_value: int) -> BattleLogic:
+##
+## The bag is EMPTY by default and every balance assertion leaves it that way, deliberately: a
+## party carrying nothing is the pessimistic one, and a formation it beats is one the real player
+## beats. Only the item-driver tests pass a bag, because a driver with nothing to reach for
+## cannot exercise the page - and they assert coverage rather than difficulty.
+func _fight(record_id: String, level: int, seed_value: int, items: Array = []) -> BattleLogic:
 	var manifest := _quest()
 	var found := _encounter(record_id)
 	var map: MapData = found["map"]
 	return BattleLogic.of(manifest.combat, _defs_of(record_id),
 		BattleHelpers.party_of(manifest, _guaranteed_party(manifest, map.id), level),
-		[], "%s/%s" % [map.id, record_id], seed_value)
+		items, "%s/%s" % [map.id, record_id], seed_value)
+
+## Every shipped item, read off disk - the whole of `data/items`, not a hand-picked healing
+## subset. Handing the WHOLE catalogue to `ItemRow.bag` is the point: what comes back is what the
+## filter let through, so a fight that offered a gate key would be offering it here too.
+func _every_item() -> Array:
+	var out: Array = []
+	for path in ContentScan.files_of(ITEM_DIR, "tres"):
+		out.append(load(path) as ItemDef)
+	return out
+
+## The battle bag a player could carry, three of everything the filter allows. Three because one
+## is spent by the first sip and a driver that empties the bag stops exercising it.
+func _full_bag() -> Array:
+	var counts := {}
+	for def: ItemDef in _every_item():
+		counts[def.id] = 3
+	return BattleLogic.ItemRow.bag(_every_item(), counts)
 
 ## Who the player is CERTAIN to have by the time they can stand on `map_id`.
 ##
