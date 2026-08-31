@@ -1362,3 +1362,38 @@ local (`answer`), never to loosen the pattern. The hazard is that the duplicatio
 always-on check that every mutation pattern matches exactly one line, and when it fires, make the
 two lines differ rather than making the pattern cleverer — a more specific pattern is one more
 thing that rots on the next refactor.
+
+## A gate's fixtures can be missing the thing its driver refuses to use
+
+A simulation gate has two independent ways of not covering a subsystem: the driver may never
+choose it, and the world the driver is handed may not contain it. Fixing the first without
+checking the second buys nothing.
+
+**Why it came up.** The balance gate plays every shipped fight to the end. Its driver only ever
+chose the Attack row, so magic was unobserved — that much was known and documented. What was not
+known is that the fixture beneath it handed the party an **empty spell page**: even a driver that
+wanted to cast would have found nothing there. The blind spot was two layers deep, and the lower
+one is the worse, because it means the gate was reporting on a fight the game does not contain.
+
+**Takeaway.** When you find a driver that never exercises a path, check what the fixture would
+have given it if it had. And when a gate builds its own version of production state, derive that
+state through the same function production uses — a second implementation of "what does this
+configuration produce" drifts silently, and the gate then certifies a system nobody runs.
+
+## An explanation of why something needs no words is a claim about the data
+
+"The numbers speak for themselves" is a design argument with a precondition hiding in it, and the
+precondition is usually about the shape of the input rather than the output.
+
+**Why it came up.** A sweep that damages several targets prints each one's number side by side,
+so it was shipped with no verbal indication of effectiveness — the comparison being right there
+on the line. That reasoning is correct exactly when the numbers DIFFER. Against a uniform group
+every figure is identical, there is no baseline in view, and the reader is told nothing at all.
+Every ordinary encounter in the game happens to be uniform, so one whole mechanic had never been
+communicated once. A gate that asserted "every shipped rule is told to the player somewhere"
+found it; no amount of re-reading the code would have.
+
+**Takeaway.** When you justify omitting an explanation because the data makes it obvious, state
+the property of the data you are relying on and then check it holds across the real corpus — not
+the example you had in mind. The general form: a UI that conveys meaning by COMPARISON needs at
+least two distinguishable values, and the degenerate case is where all the values agree.
