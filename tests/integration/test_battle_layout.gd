@@ -169,14 +169,30 @@ func _visible_rects(screen: BattleScreen) -> Array:
 			continue
 		var font := label.get_theme_font("font")
 		var size := label.get_theme_font_size("font_size")
+		# A WRAPPING label must be measured wrapped, or this audit reports the width the text
+		# would have had on one line - which is the number the wrap exists to prevent, so the gate
+		# would go on failing after the fix and reading as though nothing had changed.
 		var measured := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size)
+		var lines := 1
+		if label.autowrap_mode != TextServer.AUTOWRAP_OFF and label.size.x > 0.0:
+			var wrapped := font.get_multiline_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT,
+				label.size.x, size)
+			# How many LINES it came to, rather than the height in pixels. The rects below are
+			# measured in font SIZE and the rows are pitched tighter than the font's own line
+			# height, so taking the pixel height straight from the font inflates every box and
+			# reports the command menu as overlapping itself - which it has never done.
+			lines = maxi(1, int(round(wrapped.y / maxf(font.get_height(size), 1.0))))
+			measured.x = minf(measured.x, label.size.x)
 		# Anchored at the label's own drawn origin rather than at its control rect, which for
 		# an unsized Label is the whole viewport and would intersect everything.
 		var at := label.global_position
 		if label.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT and label.size.x > 0.0:
 			at.x += label.size.x - measured.x
+		# The HEIGHT comes from the measurement too, now that a label can be more than one line
+		# tall: a second line drawn over the foe bars is exactly the collision this audit exists
+		# to catch, and a rect fixed at one line's height cannot see it.
 		out.append([_name_of(screen, label) + " '" + label.text + "'",
-			Rect2(at, Vector2(measured.x, float(size)))])
+			Rect2(at, Vector2(measured.x, float(size * lines)))])
 	return out
 
 
@@ -189,6 +205,48 @@ func _name_of(screen: BattleScreen, node: Node) -> String:
 			return "child %d (%s)" % [index, node.get_class()]
 		index += 1
 	return node.get_class()
+
+
+## How many lines a wrapping label actually comes to. Measured from the font rather than read off
+## `get_line_count()`, which needs the label to have laid out - and these screens are painted by
+## hand in a test with no frame in between.
+func _lines_of(label: Label) -> int:
+	var font := label.get_theme_font("font")
+	var size := label.get_theme_font_size("font_size")
+	var width := label.size.x if label.autowrap_mode != TextServer.AUTOWRAP_OFF else -1.0
+	var wrapped := font.get_multiline_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, width,
+		size)
+	return maxi(1, int(round(wrapped.y / maxf(font.get_height(size), 1.0))))
+
+
+## The audit's other half: nothing visible is drawn outside the window.
+##
+## Overlap and containment are different failures and only one of them was ever checked. A Label
+## with no width, no wrap and no clip - which every label on this screen is - does not clip, wrap
+## or complain when its text outgrows the screen: it simply draws past the edge, where the player
+## cannot see it. Nothing overlaps out there, so the pairwise audit is blind to it, and only
+## vertical containment was asserted anywhere.
+##
+## Measured before it was written: the widest SHIPPED caption is 295px of a 312px budget, and the
+## widest at the capacity this view DECLARES is 478px. `MAX_PARTY` and `MAX_FOES` are the
+## capacities the layout audit measures against and the content gate refuses data for - this is
+## the third of those three, which had been stated and never enforced.
+func _assert_nothing_leaves_the_window(screen: BattleScreen, page: String) -> void:
+	var rects := _visible_rects(screen)
+	assert_int(rects.size()).override_failure_message(
+		"the %s page drew nothing measurable, so this proves nothing" % page).is_greater(3)
+	for entry: Variant in rects:
+		var named: Array = entry
+		var rect: Rect2 = named[1]
+		assert_float(rect.end.x).override_failure_message(
+			"on the %s page, %s runs to x=%.0f in a %dpx window - the tail is drawn off-screen"
+			% [page, named[0], rect.end.x, VIEWPORT.x]).is_less_equal(float(VIEWPORT.x))
+		assert_float(rect.position.x).override_failure_message(
+			"on the %s page, %s starts at x=%.0f, left of the window"
+			% [page, named[0], rect.position.x]).is_greater_equal(0.0)
+		assert_float(rect.end.y).override_failure_message(
+			"on the %s page, %s runs to y=%.0f in a %dpx window"
+			% [page, named[0], rect.end.y, VIEWPORT.y]).is_less_equal(float(VIEWPORT.y))
 
 
 ## The audit itself: no two visible things share pixels. Named separately from the tests so
@@ -224,6 +282,82 @@ func test_nothing_on_the_item_page_is_drawn_over_anything_else() -> void:
 	screen.logic().press()
 	screen._paint()
 	_assert_nothing_overlaps(screen, "item")
+
+## Runs frames until the fight is showing a line, or the bound runs out. BOUNDED and ASSERTED:
+## "tick until the thing under test says so" is a test that hangs rather than fails, and a
+## caption that never arrives has to be a red run rather than a timeout.
+func _tick_until_message(logic: BattleLogic, bound := 400) -> void:
+	for i in bound:
+		if not logic.message().is_empty():
+			return
+		logic.tick()
+	fail("the fight produced no caption within %d frames" % bound)
+
+
+## A sweep at capacity - the widest line this screen can be asked to draw.
+##
+## The caption names what EACH foe took, so it grows with the formation; the party's names grow
+## it further, and a felled foe adds a clause apiece. Long names on purpose, for the reason
+## `_full_field_screen` gives: a layout that only fits short ones breaks on the first game that
+## writes real ones.
+func _swept_field_screen() -> BattleScreen:
+	var screen := BattleScreen.new()
+	add_child(screen)
+	var combat := _combat(true)
+	var members: Array = []
+	for i in BattleScreen.MAX_PARTY:
+		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
+			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
+			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0,
+			[BattleLogic.SpellRow.of(&"gale", "Gale", 1, SpellDef.Kind.ATTACK, 12, 0,
+				SpellDef.Target.ALL)]))
+	var foes: Array = []
+	for at in BattleScreen.MAX_FOES:
+		var foe := _enemy()
+		foe.id = StringName("foe%d" % at)
+		foe.name = "Deepdweller%d" % at
+		foe.max_hp = 4 if at < BattleScreen.MAX_FOES - 1 else 99
+		foes.append(foe)
+	var logic := BattleLogic.of(combat, foes, members, [], "map/foe", 7)
+	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
+		FileSpriteSource.create(&"dusk16"))
+	_screens.append(screen)
+	# Cast the sweep: Magic, the only spell, and it reaches everything so there is nothing to aim.
+	logic.move(BattleLogic.Row.MAGIC)
+	logic.press()
+	logic.press()
+	_tick_until_message(logic)
+	screen._paint()
+	return screen
+
+func test_the_widest_caption_this_screen_can_draw_stays_inside_it() -> void:
+	var screen := _swept_field_screen()
+	assert_str(screen._message.text).override_failure_message(
+		"the sweep produced no caption, so there is nothing to measure").is_not_empty()
+	# The worst caption is the one that names every foe's damage AND every foe it felled, so the
+	# fixture has to actually fell some. Without this the test measures a shorter line than the
+	# screen can be asked to draw and passes while proving nothing.
+	assert_str(screen._message.text).override_failure_message(
+		"nothing fell, so this is not the widest caption: %s" % screen._message.text) \
+		.contains("is down")
+	_assert_nothing_leaves_the_window(screen, "a sweep at capacity")
+	# CONTAINMENT IS NOT ENOUGH ON ITS OWN, which the mutation run proved: with no width to wrap
+	# against, the label falls back to one pixel and the caption becomes a twenty-line column one
+	# word wide - absurd, and technically inside the window, so the audit above passes it. The
+	# line count is the constraint that actually says the caption is drawable, and it is a
+	# capacity this view DECLARES rather than a number invented here.
+	assert_int(_lines_of(screen._message)).override_failure_message(
+		"the widest caption came to %d lines against a declared %d: '%s'"
+		% [_lines_of(screen._message), BattleScreen.MESSAGE_LINES, screen._message.text]) \
+		.is_less_equal(BattleScreen.MESSAGE_LINES)
+
+func test_nothing_on_the_command_menu_leaves_the_window() -> void:
+	_assert_nothing_leaves_the_window(_screen(), "command menu")
+
+func test_nothing_on_a_full_field_leaves_the_window() -> void:
+	var screen := _full_field_screen()
+	screen._paint()
+	_assert_nothing_leaves_the_window(screen, "a full field")
 
 func test_nothing_mid_cue_is_drawn_over_anything_else() -> void:
 	# The cue and the message are the two things that only exist mid-swing, so a page that is

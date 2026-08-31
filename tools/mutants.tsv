@@ -565,3 +565,8 @@ tests/helpers/battle_driver.gd	s|\tif logic.item_rows\(\).is_empty\(\):|\tif fal
 tests/helpers/battle_driver.gd	s|\tif policy != Policy.DRINKER:|\tif false:|	tests/unit/test_battle_driver.gd	every policy is offered the bag, so no report is about its own verb
 tests/helpers/battle_driver.gd	s|\t\tif logic.enemy_hp\(rows\[i\]\) > logic.enemy_hp\(rows\[best\]\):|\t\tif logic.enemy_hp(rows[i]) < logic.enemy_hp(rows[best]):|	tests/unit/test_battle_driver.gd	both aiming policies point the same way, so the aim axis does not exist
 tests/helpers/battle_driver.gd	s|\tif _will_drink\(logic, policy\):|\tif false:|	tests/unit/test_battle_content.gd	the drinker never opens the bag, so no item is ever played
+data/enemies/keeper.tres	s|boss = true|boss = false|	tests/unit/test_battle_content.gd	the game's one mandatory fight becomes optional, and can be walked away from
+data/enemies/slink.tres	s|boss = false|boss = true|	tests/unit/test_battle_content.gd	the tutorial fight becomes inescapable
+tests/helpers/battle_driver.gd	s|\t\treturn BattleLogic.Row.FLEE|\t\treturn BattleLogic.Row.ATTACK|	tests/unit/test_battle_content.gd	the runner never presses Run, so no escape is ever attempted
+scripts/ui/battle_screen.gd	s|\t_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART|\t_message.autowrap_mode = TextServer.AUTOWRAP_OFF|	tests/integration/test_battle_layout.gd	the caption stops wrapping and its tail is drawn off the window
+scripts/ui/battle_screen.gd	s|\t_message.size.x = float\(viewport_size.x\) - MARGIN \* 2.0|\t_message.size.x = 1.0|	tests/integration/test_battle_layout.gd	the caption is given no width, so it wraps to one word a line
