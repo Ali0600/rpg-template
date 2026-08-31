@@ -362,6 +362,9 @@ var _foes: Array = []
 var _members: Array = []
 ## Cues asked for and not yet drained by the view.
 var _sounds: Array[StringName] = []
+## Lines still to be said before `_after_message` is honoured. Empty for every turn that has one
+## thing to report, which is all of them but a sweep.
+var _queued: Array[String] = []
 
 ## Untyped Array because a typed default for a nested class is not a constant expression -
 ## the same reason PauseMenu._items is untyped.
@@ -1141,49 +1144,25 @@ func _spell_damage(row: SpellRow, target: Foe) -> int:
 ## FF1 is the outlier that proves it rather than the precedent that excuses it - its elemental
 ## system also shipped half-broken, with the physical weakness bonus unreachable for players.
 ##
-## A SWEEP GETS NO CLAUSE, and that is this rule rather than an exception to it. Its caption
-## already names what each foe took side by side, so the comparison Pokemon supplies in words is
-## sitting in the numbers - and one clause per foe would not fit the box the dialog gate measures.
+## THE SUBJECT IS AN ARGUMENT rather than always being the foe's name, because the clause now
+## appears in two places that have named the target differently. A single-target caption has not
+## named it at all, so the clause does ("Gloom is weak to fire"); a sweep's per-target line leads
+## with the name, so the clause says "It" and does not repeat it. One function with a parameter
+## rather than two with one wording each: two would be a second opinion about the same fact, and
+## the one that got edited would be the one nobody was reading.
+##
+## It names the ELEMENT rather than saying "weak to it", which costs nothing and teaches the
+## system - the player learns the word that pairs with the enemy, not merely that a pairing
+## exists.
 ## `answer` rather than `pct`, deliberately: `_spell_damage` above opens with the same lookup, and
 ## two character-identical lines make a mutant aimed at either one report a verdict about the
 ## other. The aim gate refuses the ambiguity rather than picking, so the names differ.
-func _effect_word(row: SpellRow, target: Foe) -> String:
+func _effect_word(row: SpellRow, target: Foe, subject: String) -> String:
 	var answer := target.def.resistance_to(row.element)
 	if answer > 100:
-		return " %s is weak to it." % target.name
+		return " %s is weak to %s." % [subject, row.element]
 	if answer < 100:
-		return " %s shrugs most of it off." % target.name
-	return ""
-
-
-## What a SWEEP adds, which is nothing at all unless every foe it reached answered the same way.
-##
-## M33 gave a sweep no clause on the reasoning that its caption already names what each foe took
-## side by side, so the comparison a single-target hit needs words for is sitting in the numbers.
-## That is true and it has a hole: the numbers can only be compared when they DIFFER. Against a
-## formation that answers uniformly - two slinks, three of anything - every figure on the line is
-## the same, there is no baseline in view, and the player is told precisely nothing.
-##
-## The balance gate is what found it, by playing every shipped fight with a driver that casts and
-## asserting that each shipped pairing is actually SAID: the slink's weakness to wind was never
-## observed once, because the only wind spell in the game reaches everything.
-##
-## So: uniform and non-neutral gets one clause, mixed gets none (the numbers speak), and a sweep
-## that happens to reach a single foe borrows `_effect_word` so the line names it rather than
-## calling one thing "they".
-func _sweep_word(row: SpellRow, reached: Array) -> String:
-	if reached.is_empty():
-		return ""
-	if reached.size() == 1:
-		return _effect_word(row, _foe(reached[0]))
-	var first := _foe(reached[0]).def.resistance_to(row.element)
-	for at in reached:
-		if _foe(at).def.resistance_to(row.element) != first:
-			return ""
-	if first > 100:
-		return " They are weak to it."
-	if first < 100:
-		return " They shrug most of it off."
+		return " %s shrugs off most of the %s." % [subject, row.element]
 	return ""
 
 
@@ -1234,26 +1213,40 @@ func _cast(order: Order) -> void:
 			_want(Sfx.Cue.HIT)
 			var reached := _living_foes()
 			var felled: Array[String] = []
-			# Named PER FOE rather than as one figure "to each". They were the same number until
-			# an element could scale them apart, and "7 damage to each" against a formation where
-			# one of them burns and one shrugs is a caption that states something false - the
-			# exact failure a wrong claim in a comment already cost this project once.
-			var struck: Array[String] = []
+			# ONE LINE PER FOE, said in turn, rather than one line naming all of them. That is the
+			# genre's shape and this template had the other one: no reference game composes a
+			# sentence about several targets, they loop a short single-target message instead.
+			#
+			# The first half of each line is the SAME - who is casting and what - so it reads as a
+			# frame that holds while the target half cycles beneath it. That is Final Fantasy I's
+			# "undraw all but the attacker and the spell", adapted to a caption with two lines
+			# instead of six boxes. See docs/GENRE_CONVENTIONS.md S7c.
+			var frame := "%s casts %s." % [caster.name, row.name]
+			var lines: Array[String] = []
 			for at in reached:
 				var each := _foe(at)
 				var took := _spell_damage(row, each)
 				each.hp = maxi(each.hp - took, 0)
-				struck.append("%s %d" % [each.name, took])
+				# Named at the front, so the clause can say "It" and not repeat the name. A foe
+				# that shrugged the whole thing off is worded as nothing happening rather than as
+				# nought damage, the single-target rule exactly.
+				var told := "%s\n%s takes %d.%s" % [frame, each.name, took,
+					_effect_word(row, each, "It")]
+				if took == 0:
+					told = "%s\nIt does nothing to %s." % [frame, each.name]
 				if each.down():
 					felled.append(each.name)
+					told += " %s is down." % each.name
+				lines.append(told)
 			if _living_foes().is_empty():
-				_win(" and ".join(felled))
+				# The victory line is the LAST thing said rather than the only thing: the per-foe
+				# lines still play, which is why the award is computed here and the telling is
+				# left to the queue. Before this a sweep that killed everything reported none of
+				# what it did.
+				lines.append(_award_victory(" and ".join(felled)))
+				_say_each(lines, Phase.OVER)
 				return
-			var swept := "%s casts %s. %s.%s" % [caster.name, row.name, ", ".join(struck),
-				_sweep_word(row, reached)]
-			for name in felled:
-				swept += " %s is down." % name
-			_say(swept, Phase.PLAYER_ACT)
+			_say_each(lines, Phase.PLAYER_ACT)
 		_:
 			# Damage is FLAT - the enemy's defense does not reduce it - and that is what gives
 			# magic a job beside a stronger swing: the answer to something armoured. It is also
@@ -1263,7 +1256,7 @@ func _cast(order: Order) -> void:
 			var dealt := _spell_damage(row, hit)
 			hit.hp = maxi(hit.hp - dealt, 0)
 			var line := "%s casts %s. %d damage.%s" % [caster.name, row.name, dealt,
-				_effect_word(row, hit)]
+				_effect_word(row, hit, hit.name)]
 			if dealt == 0:
 				# It spent the magic and the turn and moved no number, so it SAYS so: a cast that
 				# changed nothing and reported a damage figure of zero reads as a broken button,
@@ -1507,6 +1500,16 @@ func _pick_move() -> Dictionary:
 ## The award SUMS the formation: Final Fantasy I's gold is "the direct sum of the gold values of
 ## all monsters killed", and a foe felled early in the fight still counts toward it.
 func _win(felled: String = "") -> void:
+	_say(_award_victory(felled), Phase.OVER)
+
+
+## Everything winning DOES - the outcome, the experience, the levels, the seal - and the line it
+## would say, handed back rather than said.
+##
+## Split from `_win` so a sweep can put the per-foe lines in front of it: the award has to happen
+## once and at the moment the last foe falls, while the telling is a queue the view drains. A
+## caller that wants both in one breath is `_win` itself, which is the other two sites.
+func _award_victory(felled: String) -> String:
 	_outcome = Outcome.VICTORY
 	var earned := 0
 	for at in _foes.size():
@@ -1534,7 +1537,7 @@ func _win(felled: String = "") -> void:
 			line += " %s: level %d!" % [who.name, who.level] if _members.size() > 1 \
 				else " Level %d!" % who.level
 	_seal()
-	_say(line, Phase.OVER)
+	return line
 
 
 ## What the fight leaves behind, appended as it ends.
@@ -1578,7 +1581,35 @@ func _say(text: String, next: Phase) -> void:
 	_count = maxi(_combat.message_frames, 1)
 
 
+## Says several lines in turn, and only then goes on to `next`.
+##
+## A MULTI-TARGET EFFECT IS A SEQUENCE, which is the genre's own shape and not a preference: not
+## one reference game composes a sentence naming several targets. Every one of them loops a short
+## single-target message instead - Final Fantasy I's all-enemies path sets each foe as the
+## defender in turn, redraws its box and resolves, and its own comment for the routine in between
+## reads "clears all drawn combat boxes except for 2: the attacker and the spell". At 18 to 22
+## columns a line naming every target's damage was never available to them. See
+## docs/GENRE_CONVENTIONS.md S7c.
+##
+## THE PERSISTENT FRAME is that comment, adapted to a caption that has two lines rather than six
+## boxes: the first line says who is acting and what they are doing and does not change, while the
+## second cycles through the targets. The caller builds both halves; this only paces them.
+func _say_each(lines: Array[String], next: Phase) -> void:
+	if lines.is_empty():
+		return
+	_queued = lines.slice(1)
+	_say(lines[0], next)
+
+
 func _leave_message() -> void:
+	if not _queued.is_empty():
+		# Still mid-sequence: show the next line and stay where we are. `_after_message` is left
+		# alone, so whatever was going to happen at the end of the sequence still happens at the
+		# end of it - the queue paces the telling and decides nothing about the turn.
+		var next_line: String = _queued[0]
+		_queued.remove_at(0)
+		_say(next_line, _after_message)
+		return
 	_message = ""
 	match _after_message:
 		Phase.PLAYER_ACT:

@@ -1580,9 +1580,26 @@ func test_a_sweep_scales_against_each_foe_it_reaches() -> void:
 	assert_int(battle.enemy_hp(1)).override_failure_message(
 		"the resistant foe was swept for full damage").is_equal(27)
 
-func test_a_sweep_names_what_each_foe_took() -> void:
-	# "6 damage to each" was true while every foe took the same number and became a false
-	# statement the moment an element could scale them apart.
+## Every line a turn says, in order. A sweep says one PER FOE now, so a test that read
+## `message()` once would see the first foe's line and call it the whole report.
+##
+## BOUNDED and asserted: "tick until it has finished talking" over a machine that can stall is a
+## test that hangs rather than fails.
+func _everything_said(battle: BattleLogic, bound := 2000) -> Array[String]:
+	var out: Array[String] = []
+	for i in bound:
+		var line := battle.message()
+		if not line.is_empty() and (out.is_empty() or out[-1] != line):
+			out.append(line)
+		if battle.phase() != BattleLogic.Phase.MESSAGE and not out.is_empty():
+			return out
+		battle.tick()
+	fail("the turn was still talking after %d frames" % bound)
+	return out
+
+func test_a_sweep_says_one_line_for_each_foe_it_reached() -> void:
+	# The genre's shape, and this template had the other one: no reference game composes a
+	# sentence naming several targets, they loop a short single-target message instead.
 	var burns := _enemy(30)
 	burns.resistances = {&"fire": 200}
 	var shrugs := _enemy(30)
@@ -1594,11 +1611,20 @@ func test_a_sweep_names_what_each_foe_took() -> void:
 		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0,
 			[_sweep(3, 6, "Gale", &"fire")])], [], "map/foe", 7)
 	_cast_the_only_spell(battle)
-	var said := battle.message()
-	assert_str(said).override_failure_message(
-		"the sweep did not name what the weak foe took: %s" % said).contains("12")
-	assert_str(said).override_failure_message(
-		"the sweep did not name what the resistant foe took: %s" % said).contains("3")
+	var said := _everything_said(battle)
+	assert_int(said.size()).override_failure_message(
+		"a sweep at two foes said %d lines: %s" % [said.size(), said]).is_equal(2)
+	assert_str(said[0]).override_failure_message(
+		"the first line did not name what the weak foe took: %s" % said[0]).contains("12")
+	assert_str(said[1]).override_failure_message(
+		"the second line did not name what the resistant foe took: %s" % said[1]).contains("3")
+	# THE PERSISTENT FRAME: the half saying who is acting and what they are doing is identical
+	# across the sequence, and only the target half beneath it changes. That is Final Fantasy I's
+	# "undraw all but the attacker and the spell", and it is the reason the line is split at all.
+	assert_str(said[0].get_slice("\n", 0)).override_failure_message(
+		"the frame changed between targets: %s then %s" % [said[0], said[1]]) \
+		.is_equal(said[1].get_slice("\n", 0))
+	assert_str(said[0].get_slice("\n", 0)).contains("Gale")
 
 func test_a_weakness_is_announced() -> void:
 	# This template MULTIPLIES, and a bare damage figure cannot tell a player whether 14 was big
@@ -1609,7 +1635,7 @@ func test_a_weakness_is_announced() -> void:
 		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
 	_cast_the_only_spell(battle)
 	assert_str(battle.message()).override_failure_message(
-		"a weakness landed silently: %s" % battle.message()).contains("weak to it")
+		"a weakness landed silently: %s" % battle.message()).contains("weak to fire")
 
 func test_a_resistance_is_announced() -> void:
 	var battle := _fight(_answers(&"fire", 50), 20, 0, 1, [], [10, 12], 0, 0, 8,
@@ -1626,7 +1652,7 @@ func test_an_ordinary_hit_is_announced_as_nothing_in_particular() -> void:
 		[_spell(SpellDef.Kind.ATTACK, 3, 7, 0, "Ember", &"fire")])
 	_cast_the_only_spell(battle)
 	assert_str(battle.message()).override_failure_message(
-		"an unresisted hit was described as one: %s" % battle.message()).not_contains("weak to it")
+		"an unresisted hit was described as one: %s" % battle.message()).not_contains("weak to")
 	assert_str(battle.message()).not_contains("shrugs")
 
 func _two_answering(first: int, second: int, element := &"wind") -> BattleLogic:
@@ -1641,45 +1667,82 @@ func _two_answering(first: int, second: int, element := &"wind") -> BattleLogic:
 		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0,
 			[_sweep(3, 6, "Gale", element)])], [], "map/foe", 7)
 
-func test_a_sweep_that_every_foe_answers_the_same_way_says_so() -> void:
-	# A sweep's numbers sit side by side, which is why it needs no clause when they DIFFER - the
-	# comparison is already on the line. Against a formation that answers uniformly every figure
-	# is the same, there is no baseline in view, and the player is told nothing at all. The
-	# balance gate found this by playing the shipped slink pairs and never once seeing their
-	# weakness to wind announced.
+func test_every_foe_in_a_sweep_is_told_about_separately() -> void:
+	# M34 gave a uniform sweep ONE clause - "They are weak to it" - because a single combined
+	# caption could say nothing useful when every number on it was identical. Sequencing deletes
+	# that special case rather than keeping it: each foe now gets its own line and its own clause,
+	# so the uniform formation is told about exactly as clearly as a mixed one.
 	var battle := _two_answering(150, 150)
 	_cast_the_only_spell(battle)
-	assert_str(battle.message()).override_failure_message(
-		"a uniformly weak formation was swept in silence: %s" % battle.message()) \
-		.contains("They are weak to it")
+	var said := _everything_said(battle)
+	assert_int(said.size()).override_failure_message(
+		"a sweep at two foes said %d lines: %s" % [said.size(), said]).is_equal(2)
+	for line in said:
+		assert_str(line).override_failure_message(
+			"a foe in a uniformly weak formation was told about in silence: %s" % line) \
+			.contains("weak to wind")
 
-func test_a_sweep_that_every_foe_resists_the_same_way_says_so() -> void:
+func test_a_uniformly_resisted_sweep_tells_each_foe_too() -> void:
 	var battle := _two_answering(50, 50)
 	_cast_the_only_spell(battle)
-	assert_str(battle.message()).override_failure_message(
-		"a uniformly resistant formation was swept in silence: %s" % battle.message()) \
-		.contains("They shrug most of it off")
+	for line in _everything_said(battle):
+		assert_str(line).override_failure_message(
+			"a resisting foe was told about in silence: %s" % line).contains("shrugs off")
 
-func test_a_sweep_that_foes_answer_DIFFERENTLY_adds_nothing() -> void:
-	# The control, and the rule the two above are the exception to. Here the numbers differ on
-	# the line, so they carry the comparison themselves - and a clause naming one direction would
-	# be false about the other foe.
+func test_a_mixed_sweep_tells_each_foe_its_own_answer() -> void:
+	# The control that the clause is per FOE rather than per cast: one line says weak and the
+	# other says the opposite, which a single verdict for the whole sweep could never express.
 	var battle := _two_answering(150, 50)
 	_cast_the_only_spell(battle)
-	assert_str(battle.message()).override_failure_message(
-		"a mixed formation was described with one verdict: %s" % battle.message()).not_contains("They ")
+	var said := _everything_said(battle)
+	assert_int(said.size()).is_equal(2)
+	assert_str(said[0]).contains("weak to wind")
+	assert_str(said[1]).override_failure_message(
+		"the resisting foe was given the weak foe's verdict: %s" % said[1]).contains("shrugs off")
 
-func test_a_sweep_that_nobody_answers_adds_nothing() -> void:
+func test_a_sweep_nobody_answers_says_nothing_extra() -> void:
 	var battle := _two_answering(100, 100)
 	_cast_the_only_spell(battle)
-	assert_str(battle.message()).not_contains("They ")
+	for line in _everything_said(battle):
+		assert_str(line).not_contains("weak to")
+		assert_str(line).not_contains("shrugs off")
 
-func test_a_sweep_that_reaches_only_one_foe_names_it() -> void:
-	# "They" for a single body reads as a bug. At one reached foe the sweep borrows the
-	# single-target wording, which is also the route by which a formation whose others have
-	# already fallen still tells the player what it just did.
+func test_a_sweep_that_reaches_only_one_foe_still_names_it() -> void:
+	# A sweep of one is a sequence of one, so nothing here needs a branch: the same per-foe line
+	# is built whether it is the only target or the first of three.
 	var battle := _fight(_answers(&"wind", 150, 30), 20, 0, 1, [], [10, 12], 0, 0, 8,
 		[_sweep(3, 6, "Gale", &"wind")])
 	_cast_the_only_spell(battle)
-	assert_str(battle.message()).override_failure_message(
-		"a sweep at one foe called it 'they': %s" % battle.message()).contains("is weak to it")
+	var said := _everything_said(battle)
+	assert_int(said.size()).is_equal(1)
+	assert_str(said[0]).override_failure_message(
+		"a sweep at one foe did not name it: %s" % said[0]).contains("Test Enemy takes")
+	assert_str(said[0]).contains("weak to wind")
+
+func test_a_sweep_that_kills_everything_still_reports_what_it_did() -> void:
+	# Before sequencing, a sweep that felled the whole formation said NONE of what it had done -
+	# the win line replaced it wholesale, so the one cast that decided the fight was also the one
+	# that explained itself least. The per-foe lines play first and the victory is the last thing
+	# said, which is also why the award is computed apart from the telling.
+	var one := _enemy(4)
+	var two := _enemy(4)
+	two.id = &"test_gloom"
+	two.name = "Gloom"
+	var curve := _combat()
+	var battle := BattleLogic.of(curve, [one, two],
+		[BattleHelpers.leader(curve, 40, 0, 1, 8, 0, 0,
+			[_sweep(3, 9, "Gale")])], [], "map/foe", 7)
+	_cast_the_only_spell(battle)
+	var said := _everything_said(battle)
+	assert_int(said.size()).override_failure_message(
+		"a sweep that felled two foes said %d lines: %s" % [said.size(), said]).is_equal(3)
+	assert_str(said[0]).contains("Test Enemy takes 9")
+	assert_str(said[1]).contains("Gloom takes 9")
+	assert_str(said[2]).override_failure_message(
+		"the last line was not the victory: %s" % said[2]).contains("xp")
+	# AND IT ACTUALLY ENDS. The queue paces the telling and decides nothing about the turn, so a
+	# sequence whose last line is the victory must still arrive at OVER rather than handing the
+	# turn back to a party with nothing left to fight.
+	assert_int(battle.phase()).override_failure_message(
+		"the fight did not end after a sweep killed everything").is_equal(BattleLogic.Phase.OVER)
+	assert_int(battle.outcome()).is_equal(BattleLogic.Outcome.VICTORY)

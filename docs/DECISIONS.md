@@ -111,6 +111,58 @@ one-glance menu of things still worth trying.
 
 ---
 
+## A sweep tells you about one foe at a time — *M37*
+
+**A gate whose DETECTION depends on font metrics is a gate that disagrees with itself across
+machines.** M36's caption mutant killed on macOS and SURVIVED on the Ubuntu runner that gates the
+merge — and not because of the platform alone: M37 shrank the caption (per-target lines are far
+shorter than the combined one), which left the widest case landing within a PIXEL of the window
+edge, where the two platforms' metrics fall on opposite sides. Measured: 305px against a 304px
+budget.
+
+- **Widen the fixture until it is comfortably over** — *Status: done, but not sufficient on its
+  own. It moves the boundary rather than removing it, and the next content change moves it back.*
+- **Aim the mutants at the CONFIGURATION instead (chosen)** — that the label wraps, and against a
+  width somebody chose rather than the one pixel a Label falls back to. Nothing ambient can move
+  that, so the mutant means the same thing on both machines. The measured audits stay as the
+  outcome check; they are simply not what the coverage claim rests on.
+
+**And `MESSAGE_LINES` went from 2 to 3** because M37's own change made two insufficient: the
+caption is now a frame line PLUS a target line, and the target line can wrap on its own. Three is
+EarthBound's in-battle box, and there is room before the foe bars. A milestone widening the thing
+a previous milestone had just measured is the ordinary case, not a mistake — what would have been
+a mistake is leaving the declared number at a value the view no longer keeps.
+
+
+
+**Not a fork so much as a debt being paid**: M36 gathered the evidence and recorded the
+divergence rather than acting on it, and this is the acting. The one real decision inside it:
+
+**How do you express a "persistent frame" on a screen with ONE caption label?** Final Fantasy I
+holds six boxes and undraws four of them between targets; this template has a label.
+
+- **A second label for the frame** — closest to FF1 structurally. *Status: rejected — a second
+  node to keep positioned, audited and themed, for a string that could simply be part of the
+  first one.*
+- **Repeat the whole sentence per target** — "You cast Gale. Gloom takes 12." then "You cast
+  Gale. Slink takes 6." *Status: rejected — it says the frame rather than holding it, and reads
+  as three separate casts.*
+- **One label, two lines, the first identical across the sequence (chosen)** — which only became
+  available when M36 gave the caption its second line. The frame does not move because it is the
+  same string each time; nothing has to persist it.
+
+**What makes it more than a faithful port:** it deleted a special case. M34's uniform-sweep
+verdict and the content gate's matching attribution branch both existed because a combined
+caption cannot say anything useful about identical numbers. Per-foe lines make the question
+disappear rather than answering it — which is the shape worth noticing when a research finding
+argues against something already shipped.
+
+**Also folded in:** the effect clause takes its SUBJECT as an argument (one function, two call
+sites that have named the target differently) and names the ELEMENT rather than saying "weak to
+it" — which teaches the pairing instead of merely reporting that one exists.
+
+---
+
 ## The caption wraps, and the fourth row gets pressed — *M36*
 
 **The fork: what should a caption too long for its window DO?** §7c is the research, and it is
@@ -119,14 +171,10 @@ the rare case where the references genuinely disagree.
 - **Clip or truncate** — *Status: rejected outright. Not one of the four games surveyed clips,
   and it is the worst option anyway: a caption that silently loses its tail is indistinguishable
   from one that was never written.*
-- **Split into sequential per-target messages** — Final Fantasy I's answer, and **the genre is
-  unanimous on multi-target**: not one of these games composes a sentence naming several targets;
-  every one loops a short single-target message instead. *Status: **deferred — worth trying**. It
-  is the better answer and it is a redesign, not a field: `_say` shows one line, so a sequence
-  needs a queue in `BattleLogic` and would re-time any session that casts a sweep. The part worth
-  stealing when it happens is FF1's **persistent frame** — `UndrawAllBut2Boxes` holds the caster
-  and the spell on screen while only the per-target half cycles, which reads better than either a
-  combined line or a fully replaced one. Revisit hook: `_say`/`_leave_message`.*
+- ~~**Split into sequential per-target messages**~~ — **Taken up by M37**, at the hook this entry
+  named, and the feared cost did not arrive: all 22 sessions passed unchanged, because every one
+  of them drives its fights with `fight_well` rather than counted waits. The persistent frame came
+  with it.
 - **Wrap to a second line (chosen)** — Dragon Warrior's answer, and the one the evidence made
   obvious once gathered: every reference message area holds more than one line (Pokémon 2,
   EarthBound 3, DW 8), so a one-line caption was this screen's divergence rather than its design.

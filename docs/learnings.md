@@ -1456,3 +1456,41 @@ looked complete.
 units the design actually declares — here a line count the view states as a capacity, matching a
 sibling surface that already gated against the same number — so a layout has to be *drawable*
 rather than merely *contained*.
+
+## Replacing a slice of a file by its anchors deletes whatever grew between them
+
+Editing a file by finding two landmarks and replacing everything in between is fast and reads as
+surgical. It is not: anything added between those landmarks since you last looked goes with it.
+
+**Why it came up.** Updating one helper in a test file, the edit cut from the helper's docstring
+to the next test function by name — and four tests that had been added between them in the two
+preceding milestones vanished. Nothing failed. The suite went green on 20 tests where it had run
+24, because deleted tests do not report anything. The COUNT was the only signal, and it was
+noticed because a previous run's number was still on screen.
+
+**Takeaway.** Prefer an exact-match replacement of the thing you mean to change over a positional
+slice, so a stale assumption fails loudly instead of taking neighbours with it. And whenever a
+test file is edited mechanically, compare the test count against what it was before — the whole
+class of "the tests are gone" failures is invisible to a pass/fail signal and obvious to a
+denominator. This is the same instrument the build already uses to compare suites-ran against
+suites-on-disk; it belongs one level down too.
+
+## A check whose ability to DETECT depends on rendered metrics disagrees across machines
+
+A test can assert the right thing and still be unable to see a fault, if what it measures is
+produced by something the machine controls — font rasterisation, text shaping, DPI. The assertion
+is correct on both machines; only its sensitivity differs.
+
+**Why it came up.** A gate caught text drawn outside its window, proven by a mutation that turned
+wrapping off. It killed locally and SURVIVED on the CI runner. The cause was not the platform
+alone: a later change shortened the text, leaving the worst case one pixel over the limit —
+305px against 304 — so the two platforms' metrics landed on opposite sides of it. Both runs were
+"correct"; one simply could not tell.
+
+**Takeaway.** When a check's power depends on ambient measurement, split the contract in two:
+assert the CONFIGURATION that makes the outcome possible (this wraps, against a width somebody
+chose) where nothing ambient can move it, and keep the measured assertion as the outcome check —
+but aim your coverage proof at the deterministic half. Widening the fixture until it clears the
+boundary is worth doing and is not enough on its own: it moves the boundary rather than removing
+it, and the next content change moves it back. The tell is a mutant that dies in one place and
+lives in another; treat that as a statement about your instrument, not about the platform.

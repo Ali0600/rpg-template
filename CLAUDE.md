@@ -374,13 +374,25 @@ lookup and the balance gate reads the files; both then call the same filter. A s
 implementation of "which spells has this level reached" drifts silently, and the gate would be
 balancing shipped fights against a page no player is handed.
 
-**A SWEEP announces only when its numbers cannot be compared.** M33 gave a sweep no clause
-because its caption names what each foe took side by side - true, and only when the numbers
-DIFFER. Against a uniform formation every figure is identical, there is no baseline in view, and
-the player is told nothing; the only wind spell in this game is a sweep, so the slink's weakness
-had never once been announced. So: uniform and non-neutral gets one clause, mixed gets none, and
-a sweep reaching a single foe borrows the single-target wording - "they" for one body reads as a
-bug. **The balance gate found this, not a person**, which is the whole argument for it.
+**A SWEEP SAYS ONE LINE PER FOE, and the first half of each is the same one.** No reference game
+composes a sentence naming several targets; every one loops a short single-target message
+instead, and Final Fantasy I's own comment for the routine between targets reads "clears all
+drawn combat boxes except for 2: the attacker and the spell". So the caster and the spell hold
+still while the target half cycles beneath them - FF1's persistent frame, expressible here only
+because the caption has two lines. `_say_each` queues them and `_leave_message` drains the queue
+BEFORE honouring `_after_message`: the queue paces the telling and decides nothing about the
+turn.
+
+That deleted a special case rather than adding one. M34 gave a uniform formation a single
+combined verdict, because a caption listing identical numbers can say nothing useful - and the
+content gate needed a matching branch to attribute a clause naming nobody. Both are gone: every
+clause now sits in a line that names its own foe. **When a research finding argues against
+something already shipped, the replacement that DELETES a case is the one to trust.**
+
+A winning sweep reports what it did, which it did not before - the victory line replaced
+everything, so the cast that decided a fight explained itself least. `_win` is split into
+`_award_victory` (the outcome, the xp, the seal) and the telling, so the per-foe lines play and
+the victory is last.
 
 **Five spell kinds, and a cast has no timing window.** `SpellDef.Kind` is `ATTACK | HEAL |
 SLEEP | BOOST | SAP`, closed the way `ItemDef.SLOTS` is, and APPENDED to rather than reordered -
