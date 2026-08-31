@@ -33,10 +33,13 @@ one-glance menu of things still worth trying.
   cleaner answer to the NPC-carry bug than the narrow opt-out that shipped. It changes how
   every body slides along every wall, so it needs playing rather than proving. Revisit hook:
   one line in `ActorBody._init`.
-- **A real title screen.** `Router.State.TITLE` has been reachable-by-design and unused since
-  M2, and M13 pointedly did not spend it on the game-over screen. Revisit hook: the day a
-  title scene exists, `GameOverScreen` becomes the thing that routes to it rather than an
-  overlay over a dead world.
+- ~~**A real title screen.**~~ **Taken up by M22**, and this entry sat here stale for twelve
+  milestones afterwards — which is worth more than the correction. A backlog line describing
+  work already done invites building it a second time, and it sits exactly where somebody looks
+  before starting. It is the same shape as the false genre claim M32 found in a code comment: a
+  gap invites work, and a wrong statement invites belief. `TitleScreen` + `TitleMenu` run over an
+  empty world in `Router.State.TITLE`, and `GameOverScreen` gained the Title row its own class
+  comment had promised since M13, exactly as this entry predicted.
 - **A field-menu Magic page.** M25 kept magic battle-only. Revisit hook: the day a spell is
   useful outside a fight — a warp, a light, a partial heal cheaper than an inn — it is a
   `PauseMenu.Row` between Items and Equipment plus a `_spell_rows()` beside `_gear_rows()`.
