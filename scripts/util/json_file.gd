@@ -15,6 +15,16 @@ var error: String = ""
 var data: Dictionary = {}
 
 
+## A reader over a dictionary that is already in hand, for the same typed accessors without a
+## file behind it. `MapData.from_dictionary` needs exactly this: a map converted out of an editor
+## has been through no file of its own.
+static func of(data: Dictionary) -> JsonFile:
+	var out := JsonFile.new()
+	out.data = data
+	out.ok = true
+	return out
+
+
 static func read(path: String) -> JsonFile:
 	var out := JsonFile.new()
 	if not FileAccess.file_exists(path):

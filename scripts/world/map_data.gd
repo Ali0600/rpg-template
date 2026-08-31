@@ -59,13 +59,24 @@ var music_id: StringName = &""
 
 
 static func load_from(path: String) -> MapData:
-	var map := MapData.new()
 	var file := JsonFile.read(path)
 	if not file.ok:
-		map.error = file.error
-		return map
+		var bad := MapData.new()
+		bad.error = file.error
+		return bad
+	return from_dictionary(file.data, path.get_file().get_basename())
 
-	map.id = StringName(file.get_string("id", path.get_file().get_basename()))
+
+## A map from an already-read dictionary.
+##
+## Split from `load_from` so that a map which did not come off disk as JSON can still be one - a
+## map converted out of Tiled or LDtk is a dictionary in this shape, and asking `MapData` itself
+## whether it parses is a stronger check on that conversion than comparing it to what went in.
+## Both could be wrong the same way; only this one asks the class the game actually loads with.
+static func from_dictionary(data: Dictionary, fallback_id: String = "") -> MapData:
+	var map := MapData.new()
+	var file := JsonFile.of(data)
+	map.id = StringName(file.get_string("id", fallback_id))
 	map.style_id = StringName(file.get_string("style", "gb16"))
 	map.music_id = StringName(file.get_string("music", ""))
 	map.legend = file.get_dict("legend")
