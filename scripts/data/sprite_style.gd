@@ -34,6 +34,24 @@ enum Outline {
 ## ground should not have to be redrawn with them.
 @export var tile_bank_id: StringName = &"gb16"
 
+## Where this style's character sheets come from. `rig` is the procedural generator: the rig
+## named above, composed per CharacterSpec. `lpc` is an IMPORT: sheets the Universal LPC
+## Spritesheet Character Generator exported, converted by LpcImport from data/imports/<style>/
+## and drift-gated exactly like the procedural output. A StringName checked against
+## SHEET_SOURCES rather than an enum, for save_policy's reason: a .tres stores an enum as the
+## bare int it was written as, and a third source later would re-label every shipped style.
+@export var sheets_from: StringName = SHEETS_FROM_RIG
+const SHEETS_FROM_RIG := &"rig"
+const SHEETS_FROM_LPC := &"lpc"
+const SHEET_SOURCES: Array[StringName] = [SHEETS_FROM_RIG, SHEETS_FROM_LPC]
+
+## The licence FAMILIES imported art may carry - "CC0", "CC-BY", "OGA-BY", "CC-BY-SA" - matched
+## against the generator's own strings with the version dropped (LpcImport.license_family). A
+## layer offering none of these fails the build naming the file. Meaningless for a rig style,
+## whose every pixel is the template's own; REQUIRED for an imported one, because an empty
+## list would mean either "anything" or "nothing" and a licence policy must not be a guess.
+@export var licenses: Array[String] = []
+
 ## name -> [shadow, base, light] as hex strings. Three tones per material is the cel
 ## shading budget; a fourth tone is where a limited palette starts to look muddy.
 @export var ramps: Dictionary = {}
@@ -77,6 +95,11 @@ enum Outline {
 
 func outline_color() -> Color:
 	return Color(outline_color_hex)
+
+
+## Whether the sheets are converted from an export rather than composed from the rig.
+func imports() -> bool:
+	return sheets_from == SHEETS_FROM_LPC
 
 
 ## The three tones of a ramp, darkest first. Returns an empty array for an unknown name so
@@ -189,6 +212,17 @@ func problems() -> Array[String]:
 		out.append("cell_size must be positive, got %s" % cell_size)
 	if tile_size <= 0:
 		out.append("tile_size must be positive, got %d" % tile_size)
+	if not SHEET_SOURCES.has(sheets_from):
+		out.append("sheets_from '%s' is not one of %s" % [sheets_from, SHEET_SOURCES])
+	elif imports():
+		# Stated as a pair rather than "an empty rig means imported": a verb spelled as the
+		# absence of its opposite is a decode every reader has to remember.
+		if not String(rig_id).is_empty():
+			out.append("an imported style names rig '%s'; imported sheets are not composed from a rig" % rig_id)
+		if licenses.is_empty():
+			out.append("an imported style must list the licence families its art may carry")
+	elif String(rig_id).is_empty():
+		out.append("style names no rig")
 	if walk_frames <= 0:
 		out.append("walk_frames must be positive, got %d" % walk_frames)
 	if bob_offsets.size() != walk_frames:

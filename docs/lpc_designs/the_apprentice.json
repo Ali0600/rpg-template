@@ -1,0 +1,34 @@
+{
+	"id": "quest_wanderer",
+	"style": "lpc32",
+	"name": "The Apprentice",
+	"body_type": "teen",
+	"notes": "The coming-of-age lead (Chrono, Ness). The small head is the only credit-only art in the four.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "light"
+		},
+		{
+			"def": "head/heads/human/heads_human_male_small",
+			"recolor": "light",
+			"eyes": "blue"
+		},
+		{
+			"def": "hair/short/hair_bangsshort",
+			"recolor": "sandy"
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"recolor": "teal"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "slate"
+		},
+		{
+			"def": "feet/shoes/feet_shoes_basic",
+			"recolor": "brown"
+		}
+	]
+}

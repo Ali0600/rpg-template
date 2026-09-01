@@ -616,3 +616,27 @@ scripts/util/ldtk_map.gd	s|"gridTiles": \[\], "entityInstances": \[\],|"gridTile
 scripts/util/tiled_map.gd	s|\treturn "tiles_%s.png" % style|\treturn "tiles.png"|	tests/unit/test_tiled_map.gd	the atlas loses its style name, so two banks collide on one file and half the maps wear the wrong art
 scripts/util/ldtk_map.gd	s|\treturn "tiles_%s.png" % style|\treturn "tiles.png"|	tests/unit/test_ldtk_map.gd	the LDtk atlas name stops matching Tiled's, so one export directory serves neither editor
 scripts/util/ldtk_map.gd	s|\tout\["__tilesetRelPath"\] = atlas_name\(style\)|\tout["__tilesetRelPath"] = null|	tests/unit/test_ldtk_map.gd	a tile layer names no sheet, and LDtk draws the map with nothing on it
+# M40 - LPC import: the converter, the style axis, and the split between rig gates and import gates.
+scripts/spritegen/lpc_import.gd	s|const LPC_ROW_ORDER: Array\[int\] = \[Dir.D.UP, Dir.D.LEFT, Dir.D.DOWN, Dir.D.RIGHT\]|const LPC_ROW_ORDER: Array[int] = [Dir.D.UP, Dir.D.RIGHT, Dir.D.DOWN, Dir.D.LEFT]|	tests/unit/test_lpc_import.gd	LPC's left and right rows are swapped, so an imported character walking west faces east
+scripts/spritegen/lpc_import.gd	s|const WALK_CYCLE: Array\[int\] = \[1, 2, 3, 4, 5, 6, 7, 8\]|const WALK_CYCLE: Array[int] = [0, 1, 2, 3, 4, 5, 6, 7]|	tests/unit/test_lpc_import.gd	the standing pose leaks into the walk cycle and the last stride is dropped
+scripts/spritegen/lpc_import.gd	s|var lpc_row := WALK_ROW \+ LPC_ROW_ORDER.find\(Dir.ALL\[row\]\)|var lpc_row := WALK_ROW + row|	tests/unit/test_lpc_import.gd	the walk block is copied in LPC's row order rather than re-cut into canonical rows
+scripts/spritegen/lpc_import.gd	s|if image.get_height\(\) < needed_tall:|if false:|	tests/unit/test_lpc_import.gd	a sheet too short for the walk rows is accepted and read past its end
+scripts/spritegen/lpc_import.gd	s|if not allowed:|if false:|	tests/unit/test_lpc_import.gd	a layer whose artist offered no accepted licence is imported anyway
+scripts/spritegen/lpc_import.gd	s|return style.licenses.has\(license_family\(raw\)\)|return style.licenses.any(func(f: String) -> bool: return raw.begins_with(f))|	tests/unit/test_lpc_import.gd	licences are prefix-matched, so a credit-only style waves share-alike through
+scripts/spritegen/lpc_import.gd	s|ground = maxi\(ground, SpriteCompositor.ground_row\(src.get_region\(from\)\)\)|ground = FRAME - 1|	tests/unit/test_lpc_import.gd	the anchor is declared at the frame's bottom instead of measured from the feet
+scripts/spritegen/lpc_import.gd	s|files.sort\(\)|pass|	tests/unit/test_lpc_import.gd	a character's credits come out in whatever order the browser walked the selection
+scripts/spritegen/lpc_import.gd	s|names.sort\(\)|pass|	tests/unit/test_lpc_import.gd	the cast's credits come out in whatever order the characters were imported
+scripts/data/sprite_style.gd	s|if not SHEET_SOURCES.has\(sheets_from\):|if false:|	tests/unit/test_rig_and_style.gd	a typo'd sheets_from reads as the rig arm rather than failing the build
+scripts/data/sprite_style.gd	s|if not String\(rig_id\).is_empty\(\):|if false:|	tests/unit/test_rig_and_style.gd	an imported style may name a rig, so two arms answer for one style
+scripts/data/sprite_style.gd	s|if licenses.is_empty\(\):|if false:|	tests/unit/test_rig_and_style.gd	an imported style with no licence list is accepted, and the gate has nothing to check against
+tests/helpers/art_fixtures.gd	s|if not style\(style_id\).imports\(\):|if true:|	tests/unit/test_gates_consistency.gd	an imported style is handed to the rig gates, which have no rig to draw it with
+scripts/ui/sprite_lab.gd	s|_refresh_imported\(\)$|pass|	tests/integration/test_sprite_lab_scene.gd	an imported style shows nothing in the lab, so the first hand-drawn character is judged blind
+# M40 A.2 - LpcCompose: a recipe against the catalogue, the way the browser composes.
+scripts/spritegen/lpc_compose.gd	s|const TOLERANCE := 1|const TOLERANCE := 2|	tests/unit/test_lpc_compose.gd	the recolour matches two units off, painting colours the artist never keyed
+scripts/spritegen/lpc_compose.gd	s|return int\(a\[\"z\"\]\) < int\(b\[\"z\"\]\)|return int(a[\"order\"]) < int(b[\"order\"])|	tests/unit/test_lpc_compose.gd	layers draw in recipe order, so hair behind the body lands in front of the shirt
+scripts/spritegen/lpc_compose.gd	s|var t: Color = to\[i\]|var t: Color = to[(i + 1) % to.size()]|	tests/unit/test_lpc_compose.gd	the remap is off by one tone, so every shadow becomes a highlight
+scripts/spritegen/lpc_compose.gd	s|Vector2i\(0, LpcImport.WALK_ROW \* FRAME\)|Vector2i(0, 0)|	tests/unit/test_lpc_compose.gd	the walk block lands at the top of the sheet, where the importer never looks
+scripts/spritegen/lpc_compose.gd	s|return matching if not matching.is_empty\(\) else all|return all|	tests/unit/test_lpc_compose.gd	every file of a definition is credited, including art the character does not wear
+scripts/spritegen/lpc_compose.gd	s|if base_path.is_empty\(\):|if false:|	tests/unit/test_lpc_compose.gd	a layer with no art for the body type is planned anyway, drawing nothing in silence
+scripts/spritegen/lpc_compose.gd	s|if not _covers_walk\(d\):|if false:|	tests/unit/test_lpc_compose.gd	a definition without a walk cycle is accepted, and the character walks headless
+scripts/spritegen/lpc_compose.gd	s|if not allowed:|if false:|	tests/unit/test_lpc_compose.gd	the composer ignores the style's licences, leaving the importer as the only gate

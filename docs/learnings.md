@@ -1671,3 +1671,84 @@ inclusive vs exclusive, UTC vs local), and the bug is in the comparison. Scatter
 means the data. Check the tool's documented output convention before changing any code — the
 instrument's units are part of the instrument, and reading them wrong nearly turned a correct
 exporter into a fix.
+
+## An open-content licence is a family plus a version, and share-alike is contagious
+
+CC0, CC-BY, OGA-BY, CC-BY-SA and GPL are the standard terms free art carries. The first three
+ask only for credit; the last two also require anything derived from the art to be released
+under the same terms — one share-alike layer in a composed sprite makes the whole sprite
+share-alike.
+
+**Why it came up:** the LPC generator's catalogue names licences as "OGA-BY 3.0+" and "CC-BY-SA
+3.0"; a style here lists FAMILIES and the importer refuses a layer offering none of them.
+Matching by prefix would have accepted "CC-BY-SA 3.0" for a style that only allows "CC-BY".
+
+**Takeaway:** enforce licensing in the build — by file, by family, version stripped, compared
+whole — and write the derived work's own notice from the same data. A licence policy in a
+README is a note nobody reads at the moment it matters.
+
+## A fixed-offset sheet is addressed, never searched
+
+The LPC "universal" sheet is always 832×3456 with every animation at a fixed row block (walk is
+rows 8–11) whatever the user enabled; a missing animation is blank rows, not absent ones.
+
+**Why it came up:** the first design searched the export for the walk block. The generator's
+`constants.ts` has absolute `ANIMATION_OFFSETS`, so the importer addresses rows 8–11 directly,
+refuses a sheet too short to hold them naming the rows, and refuses a blank block — "was it
+exported with Walk enabled?".
+
+**Takeaway:** before parsing a third-party layout, find the constant that defines it in the
+tool's own source. A fixed layout is a contract you can assert against; a searched one is a
+guess you can only hope about.
+
+## `.gdignore` keeps build inputs out of the importer and out of the pack
+
+An empty `.gdignore` file makes Godot's editor and exporter skip a directory entirely, while
+`FileAccess` still reads everything in it.
+
+**Why it came up:** `data/imports/` holds 832×3456 PNGs the game never loads. Without the marker
+the importer would turn each into a texture and the exporter would pack it; with it,
+`ImageFile.read_png` still reads the bytes at build time, and `strings index.pck` shows zero
+`data/imports` entries beside a packed `credits.json`.
+
+**Takeaway:** anything under `res://` that is an INPUT to a build step rather than an asset the
+game loads goes under a `.gdignore` — and the pack is checked for its absence, not assumed.
+
+## A typed array's `sort()` uses the element type's `<`, and StringName's is a pointer
+
+`Array[StringName].sort()` orders by the address of the interned name, not its text, so a
+"sorted" list of ids is deterministic within a run and meaningless to a human — or to a test
+that expects `gb16` before `nes16`. Once, printed straight after the sort, four real ids came
+back as `dusk16, gbnes16, lpc32, nesgb16` — so treat the call as unsafe, not merely unordered.
+
+**Why it came up:** a scene test cycled Sprite Lab's styles by key presses and landed on the
+wrong one; instrumenting the index showed it counting correctly through an order of
+`dusk16, nes16, lpc32, gb16`. The lab had cycled in that order since M2.
+
+**Takeaway:** sort identifiers as `String`s with an explicit comparator; a sort whose order
+you never asserted is a sort you never had. Instrument the state before theorising about the
+harness — the first two "fixes" were to the test.
+
+## A recolour system is a palette-by-index contract, and the tolerance is part of it
+
+The LPC generator ships one source image per layer, drawn in a material's BASE palette, and
+makes every colour variant by replacing each base tone with the tone at the same index of the
+target palette, matching source pixels within ±1 per channel. Older items ship one file per
+colour instead, named after the variant.
+
+**Why it came up:** composing a hero locally meant reproducing the browser's output pixel for
+pixel. `palettes.ts` and the recolour guide gave the exact rule, and a test pins that ±1 matches
+and ±2 does not — widening the tolerance is the mutant that paints colours the artist never keyed.
+
+**Takeaway:** when re-implementing another tool's rendering, take the matching rule from its
+source and pin it at both edges; a "close enough" tolerance is how two implementations of one
+picture drift apart.
+
+## A preview proves the pipeline ran; only looking for problems proves the output
+
+**Why it came up:** all four hero previews rendered, the importer accepted all four, and two
+were wrong for a person — a tattered cape whose fringe read as speckle at 64px, and a brown vest
+on bronze skin over brown trousers that merged into one mass. Nothing headless could see either.
+
+**Takeaway:** read a generated picture for what is WRONG with it — contrast, silhouette, noise —
+before showing it to anyone, and record the re-cut in the recipe so the next reader sees why.

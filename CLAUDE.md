@@ -17,7 +17,10 @@ regression, however good that game looks.
   authored the same way characters are** - a `TileBank` under `data/tiles/` in the rig's own
   `.`/`1`/`2`/`3`/`o` alphabet, one bank dressing every style. It was a `const TILES` in
   `TileGen` drawn by five hardcoded routines until M16, and the cost was legible: no routine
-  could draw a door, so the quest's cave was built out of grass-world tiles.
+  could draw a door, so the quest's cave was built out of grass-world tiles. **Imported art is
+  the one exception, and it has a name:** a style whose `sheets_from` is `lpc` shows pixels the
+  artists drew, converted from a Universal LPC export. What stays data is WHERE it comes from
+  and what it may be LICENSED under, and both are gated (§2).
 - **Sound is data too, and generated the same way.** A cue's SHAPE is a row in
   `data/banks/<id>.json`; its VOICE is a `SoundStyle` under `data/sounds/`. Three voices share
   one bank the way three sprite styles share one rig. Template code never names a cue as a
@@ -863,6 +866,51 @@ translator faking floats.
 as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the
 seam that lets a procedural rig, a downloaded pack or an AI generator feed the same game.
 
+**A style's sheets come from the rig or from an IMPORT, and `sheets_from` is the whole switch.**
+`SpriteStyle.sheets_from` is `rig` (the procedural generator, composed per `CharacterSpec`) or
+`lpc` (sheets the Universal LPC Spritesheet Character Generator exported, converted by
+`LpcImport`). The `save_policy` shape exactly: a StringName checked against `SHEET_SOURCES`, a
+typo fails the build, and the two arms are stated as a PAIR - an imported style must name NO rig
+and MUST list its `licenses` - because "an empty rig_id means imported" is the decode nobody
+remembers. Both arms run inside `tools/gen_sprites.gd`, so `--verify` drift-gates imported output
+with no new check.sh step, and the tiles are drawn the same way for both.
+
+**The input is the generator's own two files, and the folder is the spec.**
+`data/imports/<style>/<character_id>/sheet.png` + `character.json` - "Download PNG" and "Export
+JSON", unmodified - under a `.gdignore`, so the editor never imports an 832x3456 input and the
+exporter never packs one (`test_imported_art` pins the marker; `pack_check.sh` proves the
+outcome, and `strings index.pck` shows zero `data/imports` entries). No `CharacterSpec` for an
+imported character: the folder's name is the id, the way a `.tres`'s id is for a rig one.
+Everything known about LPC's layout is a CONSTANT in `LpcImport`, measured from the generator's
+source rather than remembered: 64px frames, 13 columns, every animation at a FIXED row whatever
+was enabled (walk is always rows 8-11, so a sheet is addressed and never searched), rows within a
+block running up, left, down, right - NOT this template's order, so the walk block is RE-CUT into
+canonical rows rather than relabelled - and frame 0 the standing pose. Idle is that standing
+frame, as the rig's is: the generator's own idle rows are drawn for only some assets, and a hat
+that vanishes when a character stops walking is worse than no breathing.
+
+**A licence is a GATE, and a family never prefix-matches.** Every layer file the export names
+carries the licences its artist chose; `LpcImport.problems()` refuses a file offering none of the
+style's `licenses` families, naming the file and the licence. Families are matched with the
+version dropped (`"CC-BY-SA 3.0"` -> `CC-BY-SA`) and compared WHOLE, because `CC-BY` is a prefix
+of `CC-BY-SA` and share-alike is exactly the term a prefix would wave through. The generator
+writes `credits.json` beside the sheets (every file, artist and URL, merged and SORTED so the
+drift gate can compare it; it is a resource, so it ships in the pack for a credits screen to
+read) and `LICENSE.txt` (repository-facing; a `.txt` is not packed). One CC-BY-SA layer makes the
+composed sheets CC-BY-SA and the notice says so. **The demo's `lpc32` accepts both buckets** -
+CC0/CC-BY/OGA-BY and CC-BY-SA, the user's call with the terms explained - so its sheets ship
+share-alike and an in-game credits surface is owed (M40 phase C).
+
+**An imported style leaves the rig gates and enters its own, and membership is asserted as a
+SET.** `ArtFixtures.rig_style_ids()` and `imported_style_ids()` together must equal every style
+on disk (`test_gates_consistency`), so a third kind of source cannot opt out of both. The
+consistency gates draw every frame through the rig and cannot draw an import; `test_imported_art`
+asks what CAN be asked of art the template did not draw - output that describes itself, one
+ground line across the cast, every layer credited under an accepted licence, the inputs kept out
+of the pack, and committed output matching what the converter produces NOW (the drift gate as a
+test, which is also what makes a mutant of the converter visible). A palette rule would be
+meaningless there: the pixels are the artists', not the style's.
+
 ## 3. Testing
 
 **Every gate ships with a proof that it fails on the input it exists to catch.** A
@@ -954,6 +1002,13 @@ validator that has only ever passed is decoration.
 - Use `Image.create_empty`, `set_pixel`, and compare colours as `to_rgba32()` ints.
   `blit_rect` overwrites alpha; `blend_rect` blends floats and produces off-palette values.
 - JSON has no integers. Cast every number you read, and `Array.assign()` into typed arrays.
+- **`Array[StringName].sort()` orders by the interned POINTER, not the text.** Four style ids
+  "sorted" that way came out `dusk16, nes16, lpc32, gb16`, and Sprite Lab cycled them in that
+  order for months with nothing to notice. Sort ids with a `String` comparator
+  (`ArtFixtures.by_text`), or keep them as the `String` paths `ContentScan` already ordered.
+- **`str()` of an array of strings ESCAPES the quotes inside them**: `["it's"]` prints as
+  `["it\'s"]`, so `assert_str(str(problems)).contains("'psd'")` can never pass and reads as the
+  rule not firing. Join the array (`"\n".join(problems)`) before asking what it contains.
 - Adding an autoload changes what the parse gate skips: `check.sh` and `compile_all.gd` both
   derive that list from `project.godot`, so add the singleton there and cover it in
   `smoke_boot.gd` — never by editing a list in a tool.
@@ -1007,6 +1062,8 @@ tools/map_io.sh --out=tiled --dir=build/maps
 tools/map_io.sh --out=ldtk  --dir=build/maps
 tools/map_io.sh --in=build/maps/quest_village.tmj
 tools/map_io.sh --verify                       # check.sh step 6d
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --preview=build/hero.png
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer
 ```
 
 **The atlas travels WITH the maps.** Both editors resolve their tileset image relative to the map
@@ -1034,6 +1091,22 @@ when the app moves. `build/` is gitignored, so an export leaves the tree clean. 
 which is the 2026-08-04 lesson made into a guard: a value written after a space lands in a
 positional slot while the option keeps its default, so the run reports on a configuration nobody
 chose.
+
+**A hero can be a text recipe.** `tools/lpc_compose.sh <recipe> --out=<dir>` fetches the layers a
+recipe names from the generator's repository into `build/lpc/` (gitignored and `.gdignore`d) and
+composes them the way the browser does. `LpcCompose` is the generator's rendering contract,
+measured from its source: per-body-type paths, zPos order, palette-by-index recolour at the
+generator's own +/-1 tolerance, file-variant items named by colour. It writes the SAME two files
+the web app downloads plus the recipe beside them, and runs `LpcImport.problems()` on what it made
+before writing anything. An authoring convenience, never a gate: the drift gate still compares
+committed inputs to committed outputs and never reaches the network. `--preview=<png>` draws the
+four directions through `LpcImport.build`, so what is looked at is what the game loads - and LOOK
+FOR PROBLEMS: two of the first four designs were re-cut after their previews, one for a fringe
+that read as speckle at 64px and one for three same-value colours that merged into a single
+mass; both previews had rendered perfectly well. A layer with no art for the body type, no walk
+cycle, or a licence outside the style is refused BY NAME, because the browser draws nothing and
+says nothing. The path logic lives ONCE, in `LpcCompose`: the wrapper fetches the definitions a
+recipe names, asks `--list` which files the plan resolves to, fetches those, and composes.
 
 **The editor file is a WORKING file and is not committed.** The map that ships is still the
 hand-readable legend-and-ASCII JSON, so it diffs as a picture in a pull request; a second
@@ -1209,6 +1282,11 @@ registered as identifiers, so a scene whose script names one will not even load.
 regenerates and fails if the committed PNGs disagree with what the generator now produces.
 Sound works identically: edit `data/banks/*.json` or `data/sounds/*.tres`, re-run
 `gen_sounds.gd`, commit the WAVs.
+
+**Imported art is regenerated the same way, from the generator's own files.** Replace
+`data/imports/<style>/<id>/sheet.png` + `character.json` (the recipe is in
+`data/imports/lpc32/README.md`), re-run `gen_sprites.gd`, and commit the folder together with
+what it produced - the sheet, its JSON, `credits.json` and `LICENSE.txt`.
 
 **Commit the `.import` sidecar with every generated file.** An imported asset ships as its
 sidecar plus the engine's cached copy; the original file is not packed, so a `.wav` or `.png`

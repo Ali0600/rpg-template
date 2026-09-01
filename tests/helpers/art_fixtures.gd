@@ -15,6 +15,8 @@ const RIG_DIR := "res://data/rigs"
 const TILE_DIR := "res://data/tiles"
 const CHARACTER_DIR := "res://data/characters"
 const GENERATED_ROOT := "res://assets/generated"
+const IMPORT_ROOT := "res://data/imports"
+const IMPORT_SHEET := "sheet.png"
 
 
 static func style_ids() -> Array[StringName]:
@@ -23,12 +25,65 @@ static func style_ids() -> Array[StringName]:
 		var style := load(path) as SpriteStyle
 		if style != null:
 			out.append(style.id)
-	out.sort()
+	by_text(out)
 	return out
+
+
+## Array[StringName].sort() orders by the interned POINTER, not the text - "sorted" ids came
+## out as dusk16, nes16, lpc32, gb16. Every list of ids here goes through this instead.
+static func by_text(ids: Array[StringName]) -> void:
+	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
 
 
 static func style(style_id: StringName) -> SpriteStyle:
 	return load("%s/%s.tres" % [STYLE_DIR, style_id]) as SpriteStyle
+
+
+## The styles whose sheets the rig composes - the only ones a consistency gate can draw a frame
+## of. An imported style has no rig and is gated by test_imported_art.gd instead. The two lists
+## are asserted to cover every style between them (test_gates_consistency), so a third kind of
+## source cannot quietly opt out of both.
+static func rig_style_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for style_id in style_ids():
+		if not style(style_id).imports():
+			out.append(style_id)
+	return out
+
+
+static func imported_style_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for style_id in style_ids():
+		if style(style_id).imports():
+			out.append(style_id)
+	return out
+
+
+## Every character an imported style has an input for: one folder per character under
+## data/imports/<style>/, named by the character id, holding the generator's sheet.png.
+static func imported_characters_of(style_id: StringName) -> Array[StringName]:
+	var out: Array[StringName] = []
+	var exts: Array[String] = ["png"]
+	for path in ContentScan.files("%s/%s" % [IMPORT_ROOT, style_id], exts):
+		if path.get_file() == IMPORT_SHEET:
+			out.append(StringName(path.get_base_dir().get_file()))
+	by_text(out)
+	return out
+
+
+static func import_dir(style_id: StringName, character_id: StringName) -> String:
+	return "%s/%s/%s" % [IMPORT_ROOT, style_id, character_id]
+
+
+## Every committed sheet a style has, whichever arm made it - what a contract test over "the
+## PNG + JSON pairs the game will load" must iterate, or imported sheets are silently outside it.
+static func sheet_ids_of(style_id: StringName) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for spec in characters_of(style_id):
+		out.append(spec.id)
+	out.append_array(imported_characters_of(style_id))
+	by_text(out)
+	return out
 
 
 static func rig_for(style_value: SpriteStyle) -> Rig:

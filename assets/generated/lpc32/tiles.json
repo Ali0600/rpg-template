@@ -1,0 +1,93 @@
+{
+	"columns": 12,
+	"rows": 1,
+	"style": "lpc32",
+	"tile_size": 32,
+	"tiles": [
+		{
+			"decor": false,
+			"id": "grass",
+			"index": 0,
+			"ramp": "terrain_grass",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "grass_alt",
+			"index": 1,
+			"ramp": "terrain_grass",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "path",
+			"index": 2,
+			"ramp": "terrain_path",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "water",
+			"index": 3,
+			"ramp": "terrain_water",
+			"solid": true
+		},
+		{
+			"decor": false,
+			"id": "wall",
+			"index": 4,
+			"ramp": "stone",
+			"solid": true
+		},
+		{
+			"decor": true,
+			"id": "bush",
+			"index": 5,
+			"ramp": "terrain_bush",
+			"solid": true
+		},
+		{
+			"decor": false,
+			"id": "floor",
+			"index": 6,
+			"ramp": "leather",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "wall_rough",
+			"index": 7,
+			"ramp": "stone",
+			"solid": true
+		},
+		{
+			"decor": false,
+			"id": "door",
+			"index": 8,
+			"ramp": "leather",
+			"solid": false
+		},
+		{
+			"decor": false,
+			"id": "stairs",
+			"index": 9,
+			"ramp": "stone",
+			"solid": false
+		},
+		{
+			"decor": true,
+			"id": "table",
+			"index": 10,
+			"ramp": "leather",
+			"solid": true
+		},
+		{
+			"decor": true,
+			"id": "rug",
+			"index": 11,
+			"ramp": "terrain_path",
+			"solid": false
+		}
+	],
+	"version": 1
+}

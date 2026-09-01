@@ -9,8 +9,10 @@ one-glance menu of things still worth trying.
   `scripts/spritegen/sprite_source.gd` — implement the interface, emit PNG + sheet.json,
   and the game does not change. Direction aliases for compass-named rows already exist in
   `scripts/util/dir.gd`.
-- **A second cell size** (32×32 characters, 32px tiles). Revisit hook: `SpriteStyle`
-  already carries `cell_size` and `tile_size`; the work is a rig authored at that size.
+- ~~**A second cell size** (32×32 characters, 32px tiles).~~ **Taken up by M40**: `lpc32` is
+  64×64 cells on 32px tiles, imported rather than rigged, standing on `plain32` (the gb16 shapes
+  doubled) until real 32px terrain lands. The world at that size — viewport, UI scale, the
+  demo's config — is M40 phase B.
 - ~~**Tiled / LDtk map import.**~~ **Finished and VERIFIED for Tiled, 2026-09-01.** Both editors,
   both directions, `tools/map_io.gd` as the command. Tiled was installed and a generated map
   opened in it: 352 cells over both layers matching the source exactly, all five object layers
@@ -1286,11 +1288,52 @@ outcome — shipping nothing — is the part most likely to be re-litigated.
   as the default because it needs an API key and credits, cannot be regenerated
   deterministically in CI, and a template that cannot build its own art offline is not a
   template. Revisit hook: `scripts/spritegen/sprite_source.gd`.
-- *Layered LPC art (Universal LPC Spritesheet)* — rejected: excellent art, but it is
-  GPL/CC-BY-SA licensed and locks the template to one visual style, which is the opposite
-  of the goal.
+- *Layered LPC art (Universal LPC Spritesheet)* — ~~rejected~~ **reversed by M40
+  (2026-09-01)**, and both objections were answered rather than waved: the licence is now a
+  per-style allow-list the importer ENFORCES by file (and 85% of the catalogue offers
+  credit-only terms — measured, 11,868 of 13,915 files in the generator's own CREDITS.csv), and
+  LPC is one value of a `sheets_from` axis beside this procedural default, which stays the
+  offline, licence-free arm every gate runs on. See "Hand-drawn art enters through an import".
 - **Expected quality tier, stated up front:** clean GB/SNES-era chibi with a strict
   palette. Not hand-painted. Higher fidelity is a source swap, not a rewrite.
+
+## Hand-drawn art enters through an import, not a compositor — *M40*
+
+The user chose the Universal LPC Spritesheet Character Generator as the demo's main sprite
+tool, which reverses the entry above. How the art gets in:
+
+- **Convert the generator's own export, at build time.** *Chosen.* `data/imports/<style>/<id>/`
+  holds the two files the web app downloads; `LpcImport` re-cuts the walk block into this
+  template's sheet; `gen_sprites.gd --verify` drift-gates the output with no new step. Nothing
+  new ships and the web app is the tool — the Tiled shape exactly.
+- *Compose from the recipe (the URL hash) against a local checkout of the generator* —
+  rejected AS THE GATE'S SOURCE: the repository is 1.5 GB and a drift gate that needs it is a
+  gate CI cannot run. **Amended the same day:** a fetch-on-demand AUTHORING tool is a different
+  thing. `tools/lpc_compose.sh` pulls the ~20 small files a recipe names into a gitignored cache,
+  `LpcCompose` reproduces the browser's rendering (the palette recolour turned out to be a
+  by-index remap at ±1, ported in forty lines), and the recipe is committed beside the two
+  exports — which stay the drift-gated input, so the gate still never reaches the network.
+- *Parse the LPC sheet at runtime* — rejected for the map importer's reason: a second shipped
+  format behind `FileSpriteSource`, and the export never reads the committed file anyway.
+- *Downscale LPC 2× to keep 16px tiles* — rejected: it deletes exactly the detail that was the
+  point. LPC is 64px cells on 32px tiles, so the demo's world doubles (phase B).
+
+Idle: **walk frame 0**, the rig's own convention. *LPC's idle rows* — rejected: they exist only
+for assets redrawn for the LPCE animations, and a hat that vanishes when a character stops is
+worse than no breathing. Revisit hook: the clip table in `LpcImport.build`, the day every layer
+the demo uses covers `idle`.
+
+Licences: **both buckets** — CC0/CC-BY/OGA-BY and CC-BY-SA — the user's call once the terms were
+explained; GPL-only stays refused. Consequence: `assets/generated/lpc32/` ships CC-BY-SA and an
+in-game credits surface is owed (phase C). *Credit-only* — `deferred — worth trying` for a game
+that must ship closed: one edit to `licenses` on the style, and the importer names every layer
+that has to go.
+
+Phase B, recorded now so it is not re-derived: the world at 32px means a `world_scale` on the
+style (viewport 320×180 × scale, UI layers drawn at scale, `battle_sprite_scale` as data).
+*Keep 320×180 with 32px tiles* (ten tiles wide) is the alternative the user can still look at;
+*`GameConfig` in TILE units rather than pixels* is `deferred — worth trying` (hook:
+`Locomotion.read_input` consumes `walk_speed`).
 
 ## Cell size is 16×24, not 16×32
 
