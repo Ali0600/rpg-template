@@ -1307,8 +1307,12 @@ tool, which reverses the entry above. How the art gets in:
   template's sheet; `gen_sprites.gd --verify` drift-gates the output with no new step. Nothing
   new ships and the web app is the tool — the Tiled shape exactly.
 - *Compose from the recipe (the URL hash) against a local checkout of the generator* —
-  rejected: the repository is 1.5 GB, colour variants are a palette-recolour shader that would
-  need porting, and a drift gate that needs a 1.5 GB dependency is a gate CI cannot run.
+  rejected AS THE GATE'S SOURCE: the repository is 1.5 GB and a drift gate that needs it is a
+  gate CI cannot run. **Amended the same day:** a fetch-on-demand AUTHORING tool is a different
+  thing. `tools/lpc_compose.sh` pulls the ~20 small files a recipe names into a gitignored cache,
+  `LpcCompose` reproduces the browser's rendering (the palette recolour turned out to be a
+  by-index remap at ±1, ported in forty lines), and the recipe is committed beside the two
+  exports — which stay the drift-gated input, so the gate still never reaches the network.
 - *Parse the LPC sheet at runtime* — rejected for the map importer's reason: a second shipped
   format behind `FileSpriteSource`, and the export never reads the committed file anyway.
 - *Downscale LPC 2× to keep 16px tiles* — rejected: it deletes exactly the detail that was the

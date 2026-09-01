@@ -1,0 +1,42 @@
+{
+	"id": "quest_wanderer",
+	"style": "lpc32",
+	"name": "The Scrapper's Match",
+	"body_type": "male",
+	"notes": "A brawler beside Rook, who mends while the player swings. White sleeves under the leather vest, charcoal trousers, black boots - the first cut in brown on bronze read as one mass.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "bronze"
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"recolor": "bronze",
+			"eyes": "brown"
+		},
+		{
+			"def": "hair/spiky/hair_spiked",
+			"recolor": "black"
+		},
+		{
+			"def": "hair/beards/beards_5oclock_shadow",
+			"recolor": "black"
+		},
+		{
+			"def": "torso/shirts/shortsleeve/torso_clothes_shortsleeve",
+			"recolor": "white"
+		},
+		{
+			"def": "torso/vest/torso_clothes_vest",
+			"variant": "leather"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "black"
+		}
+	]
+}

@@ -1728,3 +1728,27 @@ wrong one; instrumenting the index showed it counting correctly through an order
 **Takeaway:** sort identifiers as `String`s with an explicit comparator; a sort whose order
 you never asserted is a sort you never had. Instrument the state before theorising about the
 harness — the first two "fixes" were to the test.
+
+## A recolour system is a palette-by-index contract, and the tolerance is part of it
+
+The LPC generator ships one source image per layer, drawn in a material's BASE palette, and
+makes every colour variant by replacing each base tone with the tone at the same index of the
+target palette, matching source pixels within ±1 per channel. Older items ship one file per
+colour instead, named after the variant.
+
+**Why it came up:** composing a hero locally meant reproducing the browser's output pixel for
+pixel. `palettes.ts` and the recolour guide gave the exact rule, and a test pins that ±1 matches
+and ±2 does not — widening the tolerance is the mutant that paints colours the artist never keyed.
+
+**Takeaway:** when re-implementing another tool's rendering, take the matching rule from its
+source and pin it at both edges; a "close enough" tolerance is how two implementations of one
+picture drift apart.
+
+## A preview proves the pipeline ran; only looking for problems proves the output
+
+**Why it came up:** all four hero previews rendered, the importer accepted all four, and two
+were wrong for a person — a tattered cape whose fringe read as speckle at 64px, and a brown vest
+on bronze skin over brown trousers that merged into one mass. Nothing headless could see either.
+
+**Takeaway:** read a generated picture for what is WRONG with it — contrast, silhouette, noise —
+before showing it to anyone, and record the re-cut in the recipe so the next reader sees why.

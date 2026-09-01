@@ -1,0 +1,297 @@
+{
+	"bodyType": "male",
+	"credits": [
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"Benjamin K. Smith (BenCreating)",
+				"Evert",
+				"Eliza Wyatt (ElizaWy)",
+				"TheraHedwig",
+				"MuffinElZangano",
+				"Durrani",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "body/bodies/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "see details at https://opengameart.org/content/lpc-character-bases; 'Thick' Male Revised Run/Climb by JaidynReiman (based on ElizaWy's LPC Revised)",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-runcycle-and-diagonal-walkcycle",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://opengameart.org/content/lpc-be-seated",
+				"https://opengameart.org/content/lpc-runcycle-for-male-muscular-and-pregnant-character-bases-with-modular-heads",
+				"https://opengameart.org/content/lpc-jump-expanded",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		},
+		{
+			"authors": [
+				"Nila122",
+				"JaidynReiman"
+			],
+			"file": "cape/solid/bg",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+				"https://opengameart.org/content/lpc-roman-armor"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman"
+			],
+			"file": "cape/solid/fg",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+				"https://opengameart.org/content/lpc-roman-armor",
+				"http://opengameart.org/content/lpc-clothing-updates"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"bluecarrot16",
+				"Nila122"
+			],
+			"file": "feet/boots/basic",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 2.0",
+				"GPL 3.0"
+			],
+			"notes": "original by Nila122, edited for male and v3 bases by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-clothes-and-hair",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Manuel Riecke (MrBeast)",
+				"Joe White"
+			],
+			"file": "hair/plain",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/ponytail-and-plain-hairstyles",
+				"https://opengameart.org/content/lpc-expanded-hair"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"Benjamin K. Smith (BenCreating)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "head/heads/human/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original head by Redshrike, tweaks by BenCreating, modular version by bluecarrot16",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"ElizaWy",
+				"Matthew Krohn (makrohn)",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "legs/pants/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"GPL 3.0",
+				"CC-BY-SA 3.0"
+			],
+			"notes": "original male pants by wulax, recolors and edits to v3 base by bluecarrot16, climb/jump/run/sit/emotes/revised combat by JaidynReiman based on ElizaWy's LPC Revised",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-expanded-pants"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "torso/clothes/longsleeve/longsleeve/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original by wulax; tweaks and further recolors by bluecarrot16; cleanup and climb/jump/run/sit/emote/revised combat adapted from LPC Revised by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more",
+				"https://opengameart.org/content/lpc-expanded-simple-shirts"
+			]
+		}
+	],
+	"generatedBy": "tools/lpc_compose.gd",
+	"layers": [
+		{
+			"def": "body/body",
+			"path": "spritesheets/body/bodies/male/walk.png",
+			"zPos": 10
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"path": "spritesheets/head/heads/human/male/walk.png",
+			"zPos": 100
+		},
+		{
+			"def": "hair/short/hair_plain",
+			"path": "spritesheets/hair/plain/adult/walk.png",
+			"zPos": 120
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"path": "spritesheets/torso/clothes/longsleeve/longsleeve/male/walk.png",
+			"zPos": 35
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"path": "spritesheets/legs/pants/male/walk.png",
+			"zPos": 20
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"path": "spritesheets/feet/boots/basic/male/walk.png",
+			"zPos": 25
+		},
+		{
+			"def": "torso/cape/cape_solid",
+			"path": "spritesheets/cape/solid/fg/walk.png",
+			"zPos": 85
+		},
+		{
+			"def": "torso/cape/cape_solid",
+			"path": "spritesheets/cape/solid/bg/walk.png",
+			"zPos": 5
+		}
+	],
+	"recipe": {
+		"body_type": "male",
+		"id": "quest_wanderer",
+		"layers": [
+			{
+				"def": "body/body",
+				"recolor": "light"
+			},
+			{
+				"def": "head/heads/human/heads_human_male",
+				"eyes": "brown",
+				"recolor": "light"
+			},
+			{
+				"def": "hair/short/hair_plain",
+				"recolor": "dark_brown"
+			},
+			{
+				"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+				"recolor": "forest"
+			},
+			{
+				"def": "legs/pants/legs_pants",
+				"recolor": "navy"
+			},
+			{
+				"def": "feet/boots/feet_boots_basic",
+				"recolor": "leather"
+			},
+			{
+				"def": "torso/cape/cape_solid",
+				"recolor": "charcoal"
+			}
+		],
+		"name": "The Road",
+		"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone.",
+		"style": "lpc32"
+	},
+	"selections": {
+		"body": {
+			"itemId": "body",
+			"name": "Body Color",
+			"recolor": "light",
+			"variant": null
+		},
+		"cape": {
+			"itemId": "cape_solid",
+			"name": "Solid",
+			"recolor": "charcoal",
+			"variant": null
+		},
+		"clothes": {
+			"itemId": "torso_clothes_longsleeve",
+			"name": "Longsleeve",
+			"recolor": "forest",
+			"variant": null
+		},
+		"hair": {
+			"itemId": "hair_plain",
+			"name": "Plain",
+			"recolor": "dark_brown",
+			"variant": null
+		},
+		"head": {
+			"itemId": "heads_human_male",
+			"name": "Human Male",
+			"recolor": "light",
+			"variant": null
+		},
+		"legs": {
+			"itemId": "legs_pants",
+			"name": "Pants",
+			"recolor": "navy",
+			"variant": null
+		},
+		"shoes": {
+			"itemId": "feet_boots_basic",
+			"name": "Basic Boots",
+			"recolor": "leather",
+			"variant": null
+		}
+	},
+	"version": 2
+}

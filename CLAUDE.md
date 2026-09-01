@@ -1062,6 +1062,8 @@ tools/map_io.sh --out=tiled --dir=build/maps
 tools/map_io.sh --out=ldtk  --dir=build/maps
 tools/map_io.sh --in=build/maps/quest_village.tmj
 tools/map_io.sh --verify                       # check.sh step 6d
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --preview=build/hero.png
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer
 ```
 
 **The atlas travels WITH the maps.** Both editors resolve their tileset image relative to the map
@@ -1089,6 +1091,22 @@ when the app moves. `build/` is gitignored, so an export leaves the tree clean. 
 which is the 2026-08-04 lesson made into a guard: a value written after a space lands in a
 positional slot while the option keeps its default, so the run reports on a configuration nobody
 chose.
+
+**A hero can be a text recipe.** `tools/lpc_compose.sh <recipe> --out=<dir>` fetches the layers a
+recipe names from the generator's repository into `build/lpc/` (gitignored and `.gdignore`d) and
+composes them the way the browser does. `LpcCompose` is the generator's rendering contract,
+measured from its source: per-body-type paths, zPos order, palette-by-index recolour at the
+generator's own +/-1 tolerance, file-variant items named by colour. It writes the SAME two files
+the web app downloads plus the recipe beside them, and runs `LpcImport.problems()` on what it made
+before writing anything. An authoring convenience, never a gate: the drift gate still compares
+committed inputs to committed outputs and never reaches the network. `--preview=<png>` draws the
+four directions through `LpcImport.build`, so what is looked at is what the game loads - and LOOK
+FOR PROBLEMS: two of the first four designs were re-cut after their previews, one for a fringe
+that read as speckle at 64px and one for three same-value colours that merged into a single
+mass; both previews had rendered perfectly well. A layer with no art for the body type, no walk
+cycle, or a licence outside the style is refused BY NAME, because the browser draws nothing and
+says nothing. The path logic lives ONCE, in `LpcCompose`: the wrapper fetches the definitions a
+recipe names, asks `--list` which files the plan resolves to, fetches those, and composes.
 
 **The editor file is a WORKING file and is not committed.** The map that ships is still the
 hand-readable legend-and-ASCII JSON, so it diffs as a picture in a pull request; a second

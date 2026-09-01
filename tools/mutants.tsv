@@ -631,3 +631,12 @@ scripts/data/sprite_style.gd	s|if not String\(rig_id\).is_empty\(\):|if false:|	
 scripts/data/sprite_style.gd	s|if licenses.is_empty\(\):|if false:|	tests/unit/test_rig_and_style.gd	an imported style with no licence list is accepted, and the gate has nothing to check against
 tests/helpers/art_fixtures.gd	s|if not style\(style_id\).imports\(\):|if true:|	tests/unit/test_gates_consistency.gd	an imported style is handed to the rig gates, which have no rig to draw it with
 scripts/ui/sprite_lab.gd	s|_refresh_imported\(\)$|pass|	tests/integration/test_sprite_lab_scene.gd	an imported style shows nothing in the lab, so the first hand-drawn character is judged blind
+# M40 A.2 - LpcCompose: a recipe against the catalogue, the way the browser composes.
+scripts/spritegen/lpc_compose.gd	s|const TOLERANCE := 1|const TOLERANCE := 2|	tests/unit/test_lpc_compose.gd	the recolour matches two units off, painting colours the artist never keyed
+scripts/spritegen/lpc_compose.gd	s|return int\(a\[\"z\"\]\) < int\(b\[\"z\"\]\)|return int(a[\"order\"]) < int(b[\"order\"])|	tests/unit/test_lpc_compose.gd	layers draw in recipe order, so hair behind the body lands in front of the shirt
+scripts/spritegen/lpc_compose.gd	s|var t: Color = to\[i\]|var t: Color = to[(i + 1) % to.size()]|	tests/unit/test_lpc_compose.gd	the remap is off by one tone, so every shadow becomes a highlight
+scripts/spritegen/lpc_compose.gd	s|Vector2i\(0, LpcImport.WALK_ROW \* FRAME\)|Vector2i(0, 0)|	tests/unit/test_lpc_compose.gd	the walk block lands at the top of the sheet, where the importer never looks
+scripts/spritegen/lpc_compose.gd	s|return matching if not matching.is_empty\(\) else all|return all|	tests/unit/test_lpc_compose.gd	every file of a definition is credited, including art the character does not wear
+scripts/spritegen/lpc_compose.gd	s|if base_path.is_empty\(\):|if false:|	tests/unit/test_lpc_compose.gd	a layer with no art for the body type is planned anyway, drawing nothing in silence
+scripts/spritegen/lpc_compose.gd	s|if not _covers_walk\(d\):|if false:|	tests/unit/test_lpc_compose.gd	a definition without a walk cycle is accepted, and the character walks headless
+scripts/spritegen/lpc_compose.gd	s|if not allowed:|if false:|	tests/unit/test_lpc_compose.gd	the composer ignores the style's licences, leaving the importer as the only gate

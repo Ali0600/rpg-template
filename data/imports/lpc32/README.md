@@ -20,7 +20,21 @@ godot --headless --path . -s tools/gen_sprites.gd
 
 and commit the folder here together with what it produced.
 
-## Making one
+## Making one — from a recipe (no browser)
+
+A hero can be text. A recipe names the generator's layers and colours, and
+`tools/lpc_compose.sh` fetches just the files it needs (into `build/lpc/`, gitignored) and
+composes the same two files the browser would download, then checks them with the importer:
+
+```bash
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --preview=build/hero.png   # look first
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer
+```
+
+A layer with no art for the body type, no walk cycle, or a licence outside `lpc32.tres` is
+refused by name. `recipe.json` lands beside the two files, so the character can be re-made.
+
+## Making one — in the browser
 
 1. Open the generator (the link on its README:
    <https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator>).
@@ -41,6 +55,9 @@ in `LpcImport`'s table rather than a re-export.
 
 ## Recipes
 
-| character | generator URL |
-|---|---|
-| `hero` | _(paste the `#…` link here)_ |
+| character | made from | how |
+|---|---|---|
+| `quest_wanderer` | `docs/lpc_designs/the_road.json` | `tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer` |
+
+Three more designs sit beside it — `the_ember`, `the_scrappers_match`, `the_apprentice` — each
+composable the same way. A character made in the browser instead records its `#…` link here.

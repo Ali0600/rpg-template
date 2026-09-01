@@ -92,6 +92,16 @@ the generator above — `data/imports/lpc32/README.md` has the recipe. The conve
 walk rows into the template's own sheet, writes `credits.json` and a licence notice beside the
 sprites, and refuses any layer whose licence the style does not accept.
 
+Or skip the browser: a hero is a text recipe naming the generator's layers and colours, and
+`tools/lpc_compose.sh` fetches only the layers it needs and composes the same two files:
+
+```bash
+tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer
+```
+
+Four ready-made designs live in `docs/lpc_designs/`; add `--preview=build/hero.png` to look
+before anything is written.
+
 ## Making it your game
 
 | To change | Edit | Touch any code? |
@@ -255,6 +265,13 @@ judged before the world is rebuilt around it.
 - Verified the packaging outcome directly: read the exported archive for the presence of the
   shipped credits file and the absence of every build input, rather than trusting the ignore
   marker that was supposed to produce that result.
+- Re-implemented a third-party tool's rendering contract from its source — per-layer draw
+  order, palette-by-index recolouring at the tool's own ±1 tolerance, per-body-type asset paths
+  — as a pure, unit-tested function, so a character is a text recipe rebuilt by one command
+  rather than a browser session, with the tool's own importer validating the output.
+- Reviewed generated previews for problems rather than presence and re-cut two of four designs
+  before presenting them — a fringe that read as noise, and three same-value colours that merged
+  — because a rendered preview only proves the pipeline ran, not that its output is usable.
 
 - Built a bidirectional converter between an internal format and two third-party editor formats, deriving the schema from the vendor's published JSON schema, its own sample projects, and its loader source — which disagreed with each other in ways that mattered, and validating the output against the vendor schema caught what a self-round-trip never could.
 - Reduced three separate implementations of an equivalence check to one shared function before adding the third consumer, then proved that function detects differences rather than assuming it, because a permissive comparison would have made three gates pass vacuously at once.

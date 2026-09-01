@@ -1,0 +1,34 @@
+{
+	"id": "quest_wanderer",
+	"style": "lpc32",
+	"name": "The Ember",
+	"body_type": "female",
+	"notes": "The one warm thing on screen is her hair - dusk16's own rule. A ponytail reads in motion at 64px.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "amber"
+		},
+		{
+			"def": "head/heads/human/heads_human_female",
+			"recolor": "amber",
+			"eyes": "green"
+		},
+		{
+			"def": "hair/braids/hair_ponytail",
+			"recolor": "ginger"
+		},
+		{
+			"def": "torso/shirts/torso_clothes_tunic",
+			"variant": "navy"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "brown"
+		}
+	]
+}

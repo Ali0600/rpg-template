@@ -1,0 +1,187 @@
+{
+	"authors": [
+		"Benjamin K. Smith (BenCreating)",
+		"Durrani",
+		"Eliza Wyatt (ElizaWy)",
+		"ElizaWy",
+		"Evert",
+		"JaidynReiman",
+		"Joe White",
+		"Johannes Sjölund (wulax)",
+		"Manuel Riecke (MrBeast)",
+		"Matthew Krohn (makrohn)",
+		"MuffinElZangano",
+		"Nila122",
+		"Stephen Challener (Redshrike)",
+		"TheraHedwig",
+		"bluecarrot16"
+	],
+	"files": [
+		{
+			"authors": [
+				"Benjamin K. Smith (BenCreating)",
+				"Durrani",
+				"Eliza Wyatt (ElizaWy)",
+				"Evert",
+				"JaidynReiman",
+				"Johannes Sjölund (wulax)",
+				"MuffinElZangano",
+				"Stephen Challener (Redshrike)",
+				"TheraHedwig",
+				"bluecarrot16"
+			],
+			"file": "body/bodies/male",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-be-seated",
+				"https://opengameart.org/content/lpc-character-bases",
+				"https://opengameart.org/content/lpc-jump-expanded",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://opengameart.org/content/lpc-runcycle-and-diagonal-walkcycle",
+				"https://opengameart.org/content/lpc-runcycle-for-male-muscular-and-pregnant-character-bases-with-modular-heads"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Nila122"
+			],
+			"file": "cape/solid/bg",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+				"https://opengameart.org/content/lpc-roman-armor"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"bluecarrot16"
+			],
+			"file": "cape/solid/fg",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+				"https://opengameart.org/content/lpc-roman-armor"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Nila122",
+				"bluecarrot16"
+			],
+			"file": "feet/boots/basic",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 2.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/lpc-clothes-and-hair",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Joe White",
+				"Manuel Riecke (MrBeast)"
+			],
+			"file": "hair/plain",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-expanded-hair",
+				"https://opengameart.org/content/ponytail-and-plain-hairstyles"
+			]
+		},
+		{
+			"authors": [
+				"Benjamin K. Smith (BenCreating)",
+				"Stephen Challener (Redshrike)",
+				"bluecarrot16"
+			],
+			"file": "head/heads/human/male",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		},
+		{
+			"authors": [
+				"ElizaWy",
+				"JaidynReiman",
+				"Johannes Sjölund (wulax)",
+				"Matthew Krohn (makrohn)",
+				"Stephen Challener (Redshrike)",
+				"bluecarrot16"
+			],
+			"file": "legs/pants/male",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-expanded-pants",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "torso/clothes/longsleeve/longsleeve/male",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing",
+				"https://opengameart.org/content/lpc-expanded-simple-shirts",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-revised-character-basics"
+			]
+		}
+	],
+	"generator": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
+	"licenses": [
+		"CC-BY-SA",
+		"GPL",
+		"OGA-BY"
+	],
+	"source": "Liberated Pixel Cup (LPC) art, composed with the Universal LPC Spritesheet Character Generator",
+	"style": "lpc32"
+}
