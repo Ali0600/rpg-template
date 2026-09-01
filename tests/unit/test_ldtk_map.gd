@@ -14,7 +14,7 @@ extends GdUnitTestSuite
 ## runner would have to fetch on every run, and a gate that reaches an external index is a flaky
 ## gate. To repeat it:
 ##
-##     Godot --headless --path . -s tools/map_io.gd --out=ldtk --dir=user://ldtk_out
+##     tools/map_io.sh --out=ldtk --dir=build/maps
 ##     python3 -m pip install jsonschema
 ##     # then validate each file against https://ldtk.io/files/JSON_SCHEMA.json
 ##

@@ -1003,11 +1003,16 @@ and `LdtkMap` are the translators behind it, and they answer the same four funct
 table rather than branching - a third editor is a translator plus a row.
 
 ```bash
-Godot --headless --path . -s tools/map_io.gd --out=tiled --dir=build/maps
-Godot --headless --path . -s tools/map_io.gd --out=ldtk  --dir=build/maps
-Godot --headless --path . -s tools/map_io.gd --in=build/maps/quest_village.tmj
-Godot --headless --path . -s tools/map_io.gd --verify     # check.sh step 6d
+tools/map_io.sh --out=tiled --dir=build/maps
+tools/map_io.sh --out=ldtk  --dir=build/maps
+tools/map_io.sh --in=build/maps/quest_village.tmj
+tools/map_io.sh --verify                       # check.sh step 6d
 ```
+
+**Through the `.sh` wrapper, like `check.sh` and `pack_check.sh`** - it resolves the engine
+through `_engine.sh` (honouring `GODOT_BIN`), so nobody types the app's path and nothing breaks
+when the app moves. `build/` is gitignored, so an export leaves the tree clean. The underlying
+`-s tools/map_io.gd` form still works if you want to name your own engine binary.
 
 **Write every flag as `--flag=value`.** The space form is REFUSED out loud rather than ignored,
 which is the 2026-08-04 lesson made into a guard: a value written after a space lands in a
