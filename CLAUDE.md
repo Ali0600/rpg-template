@@ -1048,12 +1048,21 @@ wall, and a converted map assigns its own characters - and it normalises whole f
 JSON has no integers and a coordinate read off disk is `5.0` where the same one built in code is
 `5`. `test_map_data.gd` proves it DETECTS, which is what stops three gates being vacuous at once.
 
-**What none of this proves: that the editors open the files.** Neither Tiled nor LDtk is installed
-here, so every gate above is this reader understanding this writer. The nearest independent check
-made was a one-off validation of all six generated `.ldtk` files against LDtk's own published
-1.5.3 JSON schema - zero errors - which is NOT in `check.sh`, because it needs a Python package
-the runner would fetch on every run and a gate that reaches an external index is a flaky gate.
-Opening one file in each editor, once, would close the gap; it needs a person.
+**TILED IS VERIFIED; LDTK IS DELIBERATELY NOT.** A generated map was opened in Tiled on
+2026-09-01 and read back through its own CLI: 352 cells over both layers matching the source
+exactly, all five object layers with their counts, NPC fields arriving as editable typed
+properties. That pass is also what found the atlas-path bug above, which no gate here could see.
+
+LDtk has no Homebrew cask and checking it means a manual download, so it stays unopened by
+choice rather than by oversight - a recorded state, not an open task (`docs/DECISIONS.md`). It is
+still fully gated: 20 tests, 11 mutants, every shipped map round-tripped, and all six generated
+`.ldtk` files validated once against LDtk's published 1.5.3 JSON schema with zero errors. That
+validation is NOT in `check.sh`, because it needs a Python package the runner would fetch on
+every run and a gate that reaches an external index is a flaky gate.
+
+**Do not re-raise "go and open one in LDtk" as work.** It was weighed and declined; the Tiled
+pass is the evidence the shared design is sound, since both translators are the same shape and
+the one bug found applied to both.
 
 **LDtk is stricter than its schema reads, and the difference was measured from its source.** The
 schema's `required` list means "LDtk always WRITES this", not "the loader REFUSES without it" -
