@@ -597,3 +597,5 @@ scripts/ui/save_screen.gd	s|\tvar count := maxi\(_menu.slot_count\(\), 1\)|\tvar
 .github/workflows/ci.yml	s|github.event.pull_request.number|github.ref|	tests/unit/test_ci_paths.gd	the gate's lane goes back to the ref, so the next merge to main cancels this one's sweep and skips its deploy
 .github/workflows/ci.yml	s|github.event.pull_request.number|github.sha|	tests/unit/test_ci_paths.gd	two pushes to one branch stop superseding each other and a stale run gates the merge
 .github/workflows/ci.yml	s|cancel-in-progress: true|cancel-in-progress: false|	tests/unit/test_ci_paths.gd	nothing supersedes anything, so every fix-up commit leaves a run nobody is waiting for
+scripts/ui/dialog_runner.gd	s|if not shop.is_empty\(\):|if false:|	tests/unit/test_dialog_runner.gd	a choice carrying open_shop collects nothing, so the keeper's counter never opens
+scripts/ui/dialog_runner.gd	s|"shop": StringName\(shop\)|"shop": StringName("")|	tests/unit/test_dialog_runner.gd	the counter opens with no shop named, which reads as a broken menu rather than a typo
