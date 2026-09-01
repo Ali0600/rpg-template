@@ -11,9 +11,11 @@ one-glance menu of things still worth trying.
   `scripts/util/dir.gd`.
 - **A second cell size** (32×32 characters, 32px tiles). Revisit hook: `SpriteStyle`
   already carries `cell_size` and `tile_size`; the work is a rig authored at that size.
-- **Tiled / LDtk map import.** Tiled BOTH DIRECTIONS shipped in M38 (`scripts/util/tiled_map.gd`,
-  round-tripped over all six shipped maps); LDtk and the `tools/map_io.gd` command that makes it
-  a workflow rather than a library are still owed. Revisit hook: mirror `tiled_map.gd` exactly.
+- ~~**Tiled / LDtk map import.**~~ **Finished 2026-09-01.** Both editors, both directions, and
+  `tools/map_io.gd` is the command that makes it a workflow rather than a library. What is left
+  is not code: nobody has OPENED a generated file in either editor, because neither is installed
+  here. Revisit hook: install one, open one map, save it, and re-import — one round through the
+  real tool would retire the largest remaining unknown in the feature.
 - **A save point that does not ask which slot** — the genre's own answer, and this template's
   stated divergence since M39. Every reference either has one file (FF1, Pokémon) or picks it at
   the title (DQ1, EarthBound, Chrono Trigger); none asks at the moment of saving. Revisit hook:
@@ -122,6 +124,49 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## Maps go both ways, to two editors — *M38, finished*
+
+The Tiled half shipped in M38 and the rest was owed: LDtk, and the command. Three forks.
+
+**The fork: how a record's fields cross into LDtk.** LDtk, unlike Tiled, resolves every field
+instance through a `defUid` pointing at a definition.
+
+- **Hand-list the fields a record can carry** — *Status: rejected. A game may put anything on an
+  npc, so a fixed list silently drops whatever the template did not know about — the
+  hand-maintained-membership failure this repo has already paid for once.*
+- **Carry every field as one opaque JSON blob** — *Status: rejected. It is robust and it throws
+  away the point of the exercise: a designer editing `dialog` or `dwell` in the side panel is
+  what the editor is FOR.*
+- **Derive the definitions from the records being exported (chosen)** — scalars become real typed
+  LDtk fields, and only what has no LDtk type (an array of tile pairs, which is what a patrol
+  path is) travels as JSON behind the same marker Tiled uses. A field the records disagree about
+  becomes a String and keeps its values losslessly rather than picking a winner.
+
+**The fork: how much of LDtk's format to write.** Its schema lists 28 required root fields, and
+its own 0.9.3 test file — which current LDtk opens — is missing eleven of them.
+
+- **Trim to what the schema calls required** — *Status: rejected. `required` means "LDtk always
+  writes this", not "the loader refuses without it"; trimming to it is guessing in the direction
+  that looks rigorous.*
+- **Write what the editor itself emits (chosen)**, read off its own sample projects, and check
+  the narrower set the LOADER actually refuses by reading its source. That found three things no
+  schema reading would: `gridTiles`/`entityInstances`/`intGridCsv` are walked raw on every layer
+  with no guard, an unresolved field `defUid` crashes when it carries values, and duplicate
+  `iid`s are accepted and silently collapse entity references.
+
+**The fork: what the `--verify` gate compares.** *Status: chosen — the game's own reading, through
+`MapData.differences()`, shared with both round-trip suites.* A byte comparison was never possible
+(the legend is rebuilt, and a legend is a spelling choice), and a third private notion of "same
+map" would have been three gates that eventually disagree about what a map is.
+
+**Stated limitation rather than a hidden one:** no gate here proves either editor OPENS these
+files. All of them are this reader understanding this writer. The one independent check made was
+validating all six generated `.ldtk` files against LDtk's published 1.5.3 schema — zero errors —
+and it is deliberately NOT in `check.sh`, because it needs a package fetched from an external
+index and a gate that reaches one is a flaky gate. Backlog entry carries the hook.
 
 ---
 

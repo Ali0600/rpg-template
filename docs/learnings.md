@@ -1575,3 +1575,60 @@ and gives two commits lanes they cannot share. Then look downstream — anything
 a release, a notification. The reason this hides is that it self-heals: the next green run
 subsumes the lost one and publishes the newer commit, so the damage is only ever visible in the
 window between two merges, and only to somebody reading the run list rather than the checkmarks.
+
+## A vendor's "required" list may describe what it WRITES, not what it accepts
+
+Reading a JSON schema as if it were the loader's contract is a category error. The schema is
+generated from the code that SERIALISES; the code that PARSES is a different function with
+different opinions, and the two are not kept in step by anything.
+
+**Why it came up.** LDtk's 1.5.3 schema marks 28 root fields required. Its own 0.9.3 sample
+project — which current LDtk opens fine — is missing eleven of them. So "required" there means
+"the editor always writes this". The loader's real requirements turned out to be both narrower
+and sharper, and only readable in its source: three arrays it walks with no null guard on every
+layer (a layer missing any of them aborts the entire file), a field reference that is dropped
+silently when empty and CRASHES when it carries values, and duplicate ids that are accepted and
+then silently corrupt cross-references.
+
+**Takeaway.** When writing a file for somebody else's tool, rank your sources: the tool's own
+OUTPUT (a real sample file) is the best, its loader source next, its schema after that, and prose
+docs last. Emit what the tool itself emits rather than the minimum the schema permits — matching
+the working example cannot be wrong, while trimming to the schema is guessing in a direction that
+merely looks rigorous. And read the parser for what it does with what is MISSING: that is where
+the real contract lives, and it is never in the schema.
+
+## A round-trip test proves your reader understands your writer, and nothing else
+
+Write-then-read is a satisfying, cheap, and almost entirely self-referential test. Both halves
+share your assumptions, so any assumption that is wrong in both directions is invisible — and if
+the point of the format is that a THIRD program reads it, that is the assumption that matters.
+
+**Why it came up.** A converter to two editor formats round-tripped every shipped map perfectly.
+It would have done so just as happily with tile positions written in grid cells where the editor
+reads pixels — the file would import back correctly here and draw as a scrambled heap there.
+Neither editor is installed, so nothing in the project could catch it. Validating the output
+against the vendor's own published JSON schema was the nearest independent check available, and
+it is a genuinely different question from the round trip.
+
+**Takeaway.** For any format a third party consumes, find one check that does not run through
+your own code — the vendor's schema, their validator, their sample file diffed against yours, or
+best of all their actual application. Pin the meaning of each field with a test whose expected
+value comes from the vendor's documentation rather than from your writer. Then say plainly, in
+the suite's own docstring, what it does not prove; a green suite is persuasive, and the reader
+deserves to know where its authority ends.
+
+## An assertion whose expected value is the degenerate case cannot fail
+
+Picking the convenient fixture — the first item, the empty list, index zero — often picks the one
+value that makes a wrong implementation indistinguishable from a right one.
+
+**Why it came up.** A test asserted that a tile's atlas offset equalled `index * tile_size`, using
+the first tile in the bank. Its index is 0, so the expected value was `[0, 0]` — and a mutation
+replacing the entire offset calculation with the literal `[0, 0]` SURVIVED. The assertion was
+exactly right and could never fail. Repainting the fixture with a tile at index 4 killed the
+mutant immediately.
+
+**Takeaway.** When an assertion computes an expected value from an input, choose an input where
+the computation has somewhere to be wrong: not the first element, not zero, not the identity. Then
+assert the input itself is non-degenerate in the test, so the day somebody reorders the fixture
+the test says why it stopped meaning anything rather than quietly passing.

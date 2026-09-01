@@ -997,6 +997,54 @@ tools/mutants_scope.sh         # the mutants THIS branch's diff could have broke
 tools/pack_check.sh            # export the .pck and PLAY it - the artifact, not the source tree
 ```
 
+**Maps go out to a visual editor and come back.** `tools/map_io.gd` is the command; `TiledMap`
+and `LdtkMap` are the translators behind it, and they answer the same four function names
+(`problems`, `style_of`, `from_native`, `to_native`) so the command picks between them from a
+table rather than branching - a third editor is a translator plus a row.
+
+```bash
+Godot --headless --path . -s tools/map_io.gd --out=tiled --dir=build/maps
+Godot --headless --path . -s tools/map_io.gd --out=ldtk  --dir=build/maps
+Godot --headless --path . -s tools/map_io.gd --in=build/maps/quest_village.tmj
+Godot --headless --path . -s tools/map_io.gd --verify     # check.sh step 6d
+```
+
+**Write every flag as `--flag=value`.** The space form is REFUSED out loud rather than ignored,
+which is the 2026-08-04 lesson made into a guard: a value written after a space lands in a
+positional slot while the option keeps its default, so the run reports on a configuration nobody
+chose.
+
+**The editor file is a WORKING file and is not committed.** The map that ships is still the
+hand-readable legend-and-ASCII JSON, so it diffs as a picture in a pull request; a second
+committed description of one map is two files that eventually disagree. `--verify` is the gate,
+and it is the only one that runs the COMMAND: the suites round-trip in memory, Dictionary to
+Dictionary, which says nothing about a path, an extension, a directory or an argument.
+
+**`MapData.differences()` is the ONE place this project asks whether two maps are the same one.**
+The Tiled round-trip, the LDtk round-trip and `--verify` all ask it there. It compares the GAME's
+reading rather than the bytes, because a legend is a SPELLING choice - `#` and `w` are the same
+wall, and a converted map assigns its own characters - and it normalises whole floats, because
+JSON has no integers and a coordinate read off disk is `5.0` where the same one built in code is
+`5`. `test_map_data.gd` proves it DETECTS, which is what stops three gates being vacuous at once.
+
+**What none of this proves: that the editors open the files.** Neither Tiled nor LDtk is installed
+here, so every gate above is this reader understanding this writer. The nearest independent check
+made was a one-off validation of all six generated `.ldtk` files against LDtk's own published
+1.5.3 JSON schema - zero errors - which is NOT in `check.sh`, because it needs a Python package
+the runner would fetch on every run and a gate that reaches an external index is a flaky gate.
+Opening one file in each editor, once, would close the gap; it needs a person.
+
+**LDtk is stricter than its schema reads, and the difference was measured from its source.** The
+schema's `required` list means "LDtk always WRITES this", not "the loader REFUSES without it" -
+its own 0.9.3 test file, which current LDtk opens, is missing eleven fields the 1.5.3 schema calls
+required. What the loader actually refuses is narrower and sharper: it reads `gridTiles`,
+`entityInstances` and `intGridCsv` RAW on every layer with no null guard, so a layer missing any
+of the three aborts the whole file; a field instance whose `defUid` resolves to nothing is dropped
+silently when it carries no values and CRASHES when it does; and `iid` duplicates are accepted and
+silently collapse entity references. Hence: every field instance gets a matching definition,
+derived from the records rather than hand-listed, and every `iid` is a sha256 of its own name -
+deterministic, because a drift gate cannot survive an id drawn fresh on every export.
+
 **Every gate except one runs against `res://` in the project directory. `pack_check.sh` runs
 against the `.pck` a player downloads**, because that is where a whole class of defect lives: an
 asset that is not packed, an exclude filter that grew, an importer that did not run. M14 shipped
