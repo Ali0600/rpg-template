@@ -62,7 +62,20 @@ extends Resource
 ## How many save slots the pause menu offers. One is a perfectly good answer - it makes the
 ## menu a single "continue" - which is why this is a number a designer sets rather than a
 ## constant in the view.
+##
+## Bounded ABOVE as well, and that bound is not decoration: two screens draw one row per slot
+## down a 180px window, so a big enough number walks the last rows off the bottom of it. At 16
+## both the pause menu's slot page and the save point do exactly that, silently, with every
+## other gate green - the MAX_PARTY/MAX_FOES shape, where a view declares a capacity, the
+## layout audit measures at it, and this refuses data past it.
 @export var save_slots: int = 3
+
+## The most slots either slot-drawing screen can lay out. Twelve rather than the fifteen that
+## measurably still fits: every reference game offers one or three (Final Fantasy I and Pokemon
+## have a single file; Dragon Quest, EarthBound and Chrono Trigger have three), so the ceiling
+## is nowhere near a real game's need and the headroom means a font or padding change cannot
+## quietly push the last row off the screen.
+const MAX_SAVE_SLOTS := 12
 
 ## WHERE the player may write a save, which the genre disagrees about loudly enough that a
 ## template cannot pick for every game built on it. "anywhere" is the pause menu's Save row
@@ -112,6 +125,9 @@ func problems() -> Array[String]:
 		out.append("grid_step_seconds cannot be negative, got %f" % grid_step_seconds)
 	if save_slots < 1:
 		out.append("save_slots must be at least 1, got %d" % save_slots)
+	if save_slots > MAX_SAVE_SLOTS:
+		out.append("save_slots must be at most %d (the rows a slot list can draw), got %d"
+			% [MAX_SAVE_SLOTS, save_slots])
 	if not SAVE_POLICIES.has(save_policy):
 		out.append("save_policy must be one of %s, got '%s'" % [SAVE_POLICIES, save_policy])
 	if rest_fade_frames < 1:

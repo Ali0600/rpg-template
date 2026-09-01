@@ -590,3 +590,7 @@ scripts/world/world_scene.gd	s|\t_saving.refresh\(_slot_summaries\(\)\)|\tpass|	
 scripts/world/world_scene.gd	s|\tRouter.open_overlay\(Router.State.SAVING\)|\tRouter.open_overlay(Router.State.PAUSED)|	tests/integration/test_flow_model.gd	a save point announces itself as the pause menu and the flow model stops describing the machine
 scripts/ui/save_screen.gd	s|\t\tleft.emit\(\)|\t\tpass|	tests/integration/test_pause_and_saves.gd	a save point cannot be left, so cancel is a dead key over a screen with no other way out
 scripts/ui/dialog_runner.gd	s|if bool\(choice.get\("open_save", false\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice carrying open_save collects nothing and the priest is a conversation that does nothing
+scripts/data/game_config.gd	s|const MAX_SAVE_SLOTS := 12|const MAX_SAVE_SLOTS := 16|	tests/integration/test_slot_layout.gd	the declared slot capacity grows past what either screen can draw, and the last rows go off the bottom
+scripts/data/game_config.gd	s|if save_slots > MAX_SAVE_SLOTS:|if false:|	tests/integration/test_slot_layout.gd	a game may ship more save slots than a slot list can draw
+scripts/ui/save_screen.gd	s|const ROW_PITCH := 10|const ROW_PITCH := 0|	tests/integration/test_slot_layout.gd	every slot row is drawn on the same line, which is inside the window and unreadable
+scripts/ui/save_screen.gd	s|\tvar count := maxi\(_menu.slot_count\(\), 1\)|\tvar count := 1|	tests/integration/test_slot_layout.gd	the save point draws one row whatever the game offers, so every slot but the first is unreachable
