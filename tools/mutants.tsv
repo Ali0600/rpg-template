@@ -594,3 +594,6 @@ scripts/data/game_config.gd	s|const MAX_SAVE_SLOTS := 12|const MAX_SAVE_SLOTS :=
 scripts/data/game_config.gd	s|if save_slots > MAX_SAVE_SLOTS:|if false:|	tests/integration/test_slot_layout.gd	a game may ship more save slots than a slot list can draw
 scripts/ui/save_screen.gd	s|const ROW_PITCH := 10|const ROW_PITCH := 0|	tests/integration/test_slot_layout.gd	every slot row is drawn on the same line, which is inside the window and unreadable
 scripts/ui/save_screen.gd	s|\tvar count := maxi\(_menu.slot_count\(\), 1\)|\tvar count := 1|	tests/integration/test_slot_layout.gd	the save point draws one row whatever the game offers, so every slot but the first is unreachable
+.github/workflows/ci.yml	s|github.event.pull_request.number|github.ref|	tests/unit/test_ci_paths.gd	the gate's lane goes back to the ref, so the next merge to main cancels this one's sweep and skips its deploy
+.github/workflows/ci.yml	s|github.event.pull_request.number|github.sha|	tests/unit/test_ci_paths.gd	two pushes to one branch stop superseding each other and a stale run gates the merge
+.github/workflows/ci.yml	s|cancel-in-progress: true|cancel-in-progress: false|	tests/unit/test_ci_paths.gd	nothing supersedes anything, so every fix-up commit leaves a run nobody is waiting for

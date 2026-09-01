@@ -118,3 +118,49 @@ func test_every_drift_gated_doc_is_kept_out_of_the_docs_shortcut() -> void:
 		assert_bool(docs.has("!" + doc)).override_failure_message(
 			"%s is generated and drift-gated, but check-docs.yml still answers for it" % doc
 			).is_true()
+
+
+## The concurrency lane, which decides whether two merges can cancel each other.
+func _concurrency_group(path: String) -> String:
+	var text := FileAccess.get_file_as_string(path)
+	assert_str(text).override_failure_message("%s is missing or empty" % path).is_not_empty()
+	var at := text.find("concurrency:")
+	assert_int(at).override_failure_message(
+		"%s declares no concurrency block, so nothing supersedes anything" % path).is_greater(-1)
+	for line in text.substr(at).split("\n"):
+		var lean := line.strip_edges()
+		if lean.begins_with("group:"):
+			return lean.trim_prefix("group:").strip_edges()
+	fail("%s has a concurrency block with no group in it" % path)
+	return ""
+
+func test_two_merges_cannot_cancel_each_other() -> void:
+	# MEASURED, not reasoned about: keyed on github.ref, every push to main shared one lane -
+	# github.ref is always refs/heads/main - so merging a second pull request killed the first
+	# one's full mutant sweep mid-run, and pages.yml (which deploys only on
+	# `conclusion == 'success'`) SKIPPED that commit's deploy. Two green pull requests, a sweep
+	# that never finished, and a site still serving the commit before them.
+	#
+	# The group must therefore be keyed on something that DIFFERS between two merges. The commit
+	# does; the branch does not.
+	var group := _concurrency_group(REAL)
+	assert_str(group).override_failure_message(
+		"the gate's concurrency lane is keyed on the ref (%s), so the next merge to main "
+		% group + "cancels this one's sweep and skips its deploy").not_contains("github.ref")
+	assert_str(group).override_failure_message(
+		"the gate's concurrency lane (%s) names nothing that differs between two merges to "
+		% group + "main - keyed on anything shared, the second merge cancels the first"
+		).contains("github.sha")
+
+func test_a_branch_still_supersedes_its_own_earlier_run() -> void:
+	# The other half, and the reason this is not simply `cancel-in-progress: false`: pushing
+	# again to an open pull request SHOULD kill the run it just made stale, or every fix-up
+	# commit leaves a run nobody is waiting for burning a runner for seventeen minutes.
+	var text := FileAccess.get_file_as_string(REAL)
+	var group := _concurrency_group(REAL)
+	assert_str(group).override_failure_message(
+		"the lane (%s) does not name the pull request, so two pushes to one branch no longer "
+		% group + "supersede each other").contains("pull_request")
+	assert_str(text).override_failure_message(
+		"nothing is superseded any more, so a stale run can still gate a merge"
+		).contains("cancel-in-progress: true")

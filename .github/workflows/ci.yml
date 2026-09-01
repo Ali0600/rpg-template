@@ -62,8 +62,26 @@ on:
 permissions:
   contents: read
 
+# Keyed by the ARTIFACT a run produces, never by the ref.
+#
+# On a pull request that is the PR number, so pushing again to a branch supersedes its own
+# earlier run - which is the behaviour worth having, since nobody wants a stale run gating a
+# merge. On a push to main it falls back to the COMMIT, so two merges can never cancel each
+# other.
+#
+# Keyed on the ref they do exactly that, and it was measured here on 2026-09-01 rather than
+# reasoned about: every push to main shares one lane (github.ref is always refs/heads/main), so
+# merging a second pull request killed the first one's full mutant sweep mid-run. The sweep is
+# not the only casualty - pages.yml triggers on `workflow_run` and deploys only on
+# `conclusion == 'success'`, and a CANCELLED run is not a success, so that commit's deploy was
+# SKIPPED. Nothing failed and nothing said so: two green pull requests, a main whose sweep never
+# finished, and a site still serving the commit before them.
+#
+# It self-heals whenever a later merge goes green, because main's run is a FULL sweep that
+# subsumes the cancelled one and pages deploys the newer commit. That is what makes it worth
+# fixing rather than urgent - and also what would have kept it hidden.
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 env:
