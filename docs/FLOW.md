@@ -14,6 +14,7 @@ stateDiagram-v2
 	battle : A fight has the screen; the world is still there underneath.
 	shop : A counter is open over the live world.
 	resting : A night is passing. Nothing to press; it ends on its own.
+	saving : A save point is open: the slot list, and nothing else on it. Reached from a conversation under either save policy, which is why it is its own state rather than the pause menu jumped to a page - a priest does not hand you your equipment.
 	game_over : The run ended. The ways on are a save, a fresh start, or the title.
 	title --> world : new_game
 	title --> world : continue
@@ -25,6 +26,8 @@ stateDiagram-v2
 	shop --> world : close_shop
 	world --> resting : open_rest
 	resting --> world : close_rest
+	world --> saving : open_save
+	saving --> world : close_save
 	world --> battle : open_battle
 	battle --> world : win_battle
 	battle --> game_over : lose_battle
@@ -43,6 +46,7 @@ stateDiagram-v2
 | **battle** | `battle_screen_up`, `game_running`, `player_cannot_move` |
 | **shop** | `shop_screen_up`, `game_running`, `player_cannot_move` |
 | **resting** | `rest_screen_up`, `game_running`, `player_cannot_move` |
+| **saving** | `save_screen_up`, `game_running`, `player_cannot_move` |
 | **game_over** | `game_over_screen_up`, `player_cannot_move` |
 
 ## Every declared move
@@ -60,6 +64,8 @@ stateDiagram-v2
 | `close_shop` | shop | world | shop → world |
 | `open_rest` | world | resting | world → resting |
 | `close_rest` | resting | world | resting → world |
+| `open_save` | world | saving | world → saving |
+| `close_save` | saving | world | saving → world |
 | `open_battle` | world | battle | world → battle |
 | `win_battle` | battle | world | battle → world |
 | `lose_battle` | battle | game_over | battle → world, world → game_over |
@@ -75,6 +81,7 @@ stateDiagram-v2
 - **`open_pause`** — Driven by the real cancel key, because the guard that makes PAUSED reachable only from WORLD lives in _unhandled_input and nowhere else.
 - **`open_shop`** — Opened DEFERRED from a dialog effect, so the adapter waits a frame.
 - **`close_rest`** — The screen ends itself; nothing presses anything.
+- **`open_save`** — Opened DEFERRED from a dialog effect, the open_shop rule, so the adapter waits a frame.
 - **`lose_battle`** — TWO hops, and the middle one is real: _close_battle runs before open_game_over so two full-screen views are never stacked.
 - **`game_over_to_title`** — Two hops for the same reason. The from used to read world because to_title reset first; M23 made it say where it came from.
 - **`game_over_new_game`** — One hop: the close pops to world and start_game's reset finds it already there.

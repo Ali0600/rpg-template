@@ -32,6 +32,14 @@ const OP_SHOP := &"shop"
 const OP_SPEND_GOLD := &"spend_gold"
 ## A full night's sleep. Carries nothing: what "full" means is the running game's CombatDef.
 const OP_REST := &"rest"
+## A save point, opened. Carries nothing either: WHICH slot is the player's answer, not the
+## data's, and how many there are to choose between is the running game's GameConfig.
+##
+## Legal under BOTH save policies. A save point in a save-anywhere game is redundant, which is
+## a design choice a game is allowed to make; refusing it here would mean the effect worked or
+## did nothing depending on a field in another file, which is the hardest kind of dead content
+## to notice.
+const OP_SAVE := &"open_save"
 
 ## Where the player is, at the moment the hook was called.
 var map_id: StringName = &""

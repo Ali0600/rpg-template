@@ -147,6 +147,8 @@ func _arrive_at(state: String, adapter := "") -> void:
 			assert_bool(_world.open_shop(&"smith_shop")).is_true()
 		"resting":
 			assert_bool(_world.open_rest()).is_true()
+		"saving":
+			assert_bool(_world.open_save()).is_true()
 		"battle":
 			# A fight the player cannot win, when the edge under test is the losing one. Chosen
 			# here because win and lose leave through the same door and differ only in who is
@@ -205,6 +207,15 @@ func _drive(adapter: String, next_adapter := "") -> void:
 				if Router.state_name() != "resting":
 					break
 				await get_tree().physics_frame
+		"open_save":
+			# Through the effect rather than the function, so the DEFERRAL is what is being
+			# driven: an inline open is the bug this edge exists to pin, and calling open_save()
+			# directly here would pass either way.
+			_world._apply_effects([{"op": GameContext.OP_SAVE}])
+			await _steps(2)
+		"close_save":
+			_world._close_save()
+			await _steps(1)
 		"open_battle":
 			var ring := _foe(999, 99) if next_adapter == "lose_battle" else _foe()
 			assert_bool(_world.open_battle_with([ring], "flow/foe")).is_true()
@@ -264,6 +275,8 @@ func _invariant_holds(name: String) -> bool:
 			return shop != null
 		"rest_screen_up":
 			return _world.rest_screen() != null
+		"save_screen_up":
+			return _world.save_screen() != null
 		"game_over_screen_up":
 			var over: GameOverScreen = _world.game_over_screen()
 			return over != null
@@ -275,7 +288,7 @@ func _known_invariant(name: String) -> bool:
 		"title_screen_up", "no_game_running", "game_running", "player_exists", "map_is_named",
 		"player_can_move", "player_cannot_move", "no_overlay_up", "dialog_box_open",
 		"pause_screen_up", "battle_screen_up", "shop_screen_up", "rest_screen_up",
-		"game_over_screen_up",
+		"save_screen_up", "game_over_screen_up",
 	].has(name)
 
 

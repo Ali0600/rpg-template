@@ -186,7 +186,7 @@ scripts/world/world_scene.gd	s|^\t_apply_effects\(effects\)$|\tpass|	tests/integ
 # --- M12: the bag, on screen ---
 scripts/ui/pause_menu.gd	s|return maxi\(_items.size\(\), 1\)|return _items.size()|	tests/unit/test_pause_menu.gd	an empty bag has no row, so the page cannot be stood on or escaped from
 scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.ITEMS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the bag lands the cursor on Save instead of Items
-scripts/ui/pause_menu.gd	s|\t\tif _index == Row.ITEMS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot look in its own bag
+scripts/ui/pause_menu.gd	s|\t\tif row == Row.ITEMS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot look in its own bag
 scripts/ui/pause_menu.gd	s|return "%s%s x%d" % \[worn, row.name, row.count\]|return worn + row.name|	tests/unit/test_pause_menu.gd	the bag stops saying how many of a thing is in it
 scripts/ui/pause_menu.gd	s|return "\(nothing carried\)"|return ""|	tests/unit/test_pause_menu.gd	an empty bag draws a blank row, which reads as a menu that failed
 scripts/world/world_scene.gd	s|for item_id in GameState.inventory.ids\(\):|for item_id in []:|	tests/integration/test_pause_and_saves.gd	the pause menu never lists anything the player is carrying
@@ -298,8 +298,8 @@ scripts/autoload/settings.gd	s|\tAudioBus.set_volume\(sound_gain\(\)\)|\tpass|	t
 scripts/autoload/settings.gd	s|\tif raw < 0 or raw >= Level.size\(\):|\tif false:|	tests/unit/test_settings.gd	a settings file from the future silences the game with no way to find out why
 scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, \{"sound_level": int\(_level\)\}\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
 scripts/autoload/settings.gd	s|\t\treturn QA_PATH|\t\treturn DEFAULT_PATH|	tests/unit/test_settings.gd	a scripted play session writes the player's real settings
-scripts/ui/pause_menu.gd	s|\t\tif _index == Row.SOUND:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot turn the sound down
-scripts/ui/pause_screen.gd	s|\t\t\treturn _menu.sound_label\(\) if at == PauseMenu.Row.SOUND else TOP_LABELS\[at\]|\t\t\treturn TOP_LABELS[at]|	tests/integration/test_pause_and_saves.gd	the sound row draws as an empty line
+scripts/ui/pause_menu.gd	s|\t\tif row == Row.SOUND:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot turn the sound down
+scripts/ui/pause_screen.gd	s|\t\t\treturn _menu.sound_label\(\) if row == PauseMenu.Row.SOUND else TOP_LABELS\[row\]|\t\t\treturn TOP_LABELS[row]|	tests/integration/test_pause_and_saves.gd	the sound row draws as an empty line
 tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]\):|\t\tif true:|	tests/unit/test_compile_all.gd	a singleton whose name ends another identifier drops files out of the compile gate
 
 # --- M15: the played game, and the artifact it ships as ---
@@ -348,7 +348,7 @@ scripts/ui/pause_menu.gd	s|\t\tif row.slot == _pick_slot:|\t\tif true:|	tests/un
 scripts/ui/pause_menu.gd	s|var worn := "\(E\) " if row.equipped else ""|var worn := ""|	tests/unit/test_pause_menu.gd	nothing in the bag says which sword is the one you are holding
 scripts/world/world_scene.gd	s|if GameState\.is_equipped\(item\.id\):|if false:|	tests/integration/test_world_equipment.gd	the sword on your own back is offered for sale
 scripts/world/world_scene.gd	s|\treturn "Take off: %s  \(%s\)" % \[_delta_words\(-worn.attack, -worn.defense\), _totals_words\(\)\]|\treturn ""|	tests/integration/test_world_equipment.gd	taking gear off promises nothing, so the row is a press into silence
-scripts/ui/pause_menu.gd	s|\t\tif _index == Row.EQUIP:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot open its own wardrobe
+scripts/ui/pause_menu.gd	s|\t\tif row == Row.EQUIP:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot open its own wardrobe
 scripts/ui/pause_menu.gd	s|\t\t_pick_slot = slot_row.slot_id|\t\tpass|	tests/unit/test_pause_menu.gd	picking a slot opens a candidate list that is answering about nowhere
 scripts/ui/pause_menu.gd	s|\t\t\tvar answer := Pick.of\(Kind.UNEQUIP, -1, &"", _pick_slot\)|\t\t\tvar answer := Pick.of(Kind.NONE)|	tests/unit/test_pause_menu.gd	the take-off row is decoration, so gear once worn is worn forever
 scripts/ui/pause_menu.gd	s|\t\t\tif pick_worn_name\(\).is_empty\(\):|\t\t\tif false:|	tests/unit/test_pause_menu.gd	taking off an empty slot is asked for, and the world shrugs
@@ -362,7 +362,7 @@ scripts/world/world_scene.gd	s|\tGameState.unequip\(slot, _pause_member\)|\tpass
 scripts/world/world_scene.gd	s|\t\tattack_delta -= current.attack|\t\tpass|	tests/integration/test_world_equipment.gd	a candidate promises its own stats again instead of the swap it would be
 scripts/world/world_scene.gd	s|\t\tgrowth.attack_at\(grown\), _equip_mod\(&"attack", member\),|\t\t0, 0,|	tests/integration/test_world_equipment.gd	the equip screen stops saying what the player's numbers actually are
 scripts/ui/pause_screen.gd	s|\t_stats.visible = equipping and not _menu.stats_label\(\).is_empty\(\)|\t_stats.visible = false|	tests/integration/test_pause_and_saves.gd	the stats readout never draws, so a delta has nothing to be a delta of
-scripts/ui/pause_menu.gd	s|\t\tif _index == Row.STATUS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot ask how its player is doing
+scripts/ui/pause_menu.gd	s|\t\tif row == Row.STATUS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot ask how its player is doing
 scripts/ui/pause_menu.gd	s|\t\treturn "\(nothing to report\)"|\t\treturn ""|	tests/unit/test_pause_menu.gd	a status page with nothing to say draws blanks, which reads as a failed draw
 scripts/ui/pause_menu.gd	s|^\t\t\treturn Row.STATUS$|\t\t\treturn Row.SAVE|	tests/unit/test_pause_menu.gd	backing out of the status page lands the cursor on Save
 scripts/world/world_scene.gd	s|\t\tout.append\("Level %d" % level\)|\t\tpass|	tests/integration/test_world_equipment.gd	the status page never says what level the player is
@@ -579,3 +579,14 @@ scripts/util/tiled_map.gd	s|\t\t\tvar at := gid - first_gid|\t\t\tvar at := gid|
 scripts/util/tiled_map.gd	s|\t\t\t\tvalue = JSON_PREFIX \+ JSON.stringify\(value\)|\t\t\t\tvalue = str(value)|	tests/unit/test_tiled_map.gd	a patrol path or a formation is written as text and cannot come back as data
 scripts/util/tiled_map.gd	s|\tif bool\(raw.get\("infinite", false\)\):|\tif false:|	tests/unit/test_tiled_map.gd	an infinite Tiled map is accepted, and a template map has a fixed size
 scripts/util/tiled_map.gd	s|\tif sets.size\(\) != 1:|\tif false:|	tests/unit/test_tiled_map.gd	a map painted from two banks is accepted, and only one of them can be resolved
+scripts/data/game_config.gd	s|if not SAVE_POLICIES.has\(save_policy\):|if false:|	tests/unit/test_game_config.gd	a save policy nobody implements loads quietly, so the Save row and the save point disagree
+scripts/ui/pause_menu.gd	s|if row == Row.SAVE and not _can_save:|if false:|	tests/unit/test_pause_menu.gd	a save-at-point game still offers the Save row, and the menu writes what the design forbade
+scripts/ui/pause_menu.gd	s|\tvar row := top_row\(_index\)|\tvar row := _index|	tests/unit/test_pause_menu.gd	the cursor is read as a Row, so a hidden row makes every press below it answer for its neighbour
+scripts/ui/pause_screen.gd	s|\t\t\tvar row := _menu.top_row\(at\)|\t\t\tvar row := at|	tests/integration/test_pause_and_saves.gd	the menu labels by the raw index, drawing Save over the row that answers Load
+scripts/ui/save_menu.gd	s|\tif _slots.is_empty\(\):|\tif _slots.is_empty() or summary(_index) == null or not summary(_index).has_save():|	tests/unit/test_save_menu.gd	a save point refuses an empty slot, so a new game can never write its first save
+scripts/world/world_scene.gd	s|\treturn _config == null or _config.save_policy != GameConfig.SAVE_AT_POINT|\treturn true|	tests/integration/test_pause_and_saves.gd	the world stops reading the save policy and every game saves from the menu
+scripts/world/world_scene.gd	s|\t\t\t\topen_save.call_deferred\(\)|\t\t\t\topen_save()|	tests/integration/test_pause_and_saves.gd	a save point opens inline and the dialog's own close pops it straight back off
+scripts/world/world_scene.gd	s|\t_saving.refresh\(_slot_summaries\(\)\)|\tpass|	tests/integration/test_pause_and_saves.gd	a written slot still reads as empty, so the save looks like a press the game swallowed
+scripts/world/world_scene.gd	s|\tRouter.open_overlay\(Router.State.SAVING\)|\tRouter.open_overlay(Router.State.PAUSED)|	tests/integration/test_flow_model.gd	a save point announces itself as the pause menu and the flow model stops describing the machine
+scripts/ui/save_screen.gd	s|\t\tleft.emit\(\)|\t\tpass|	tests/integration/test_pause_and_saves.gd	a save point cannot be left, so cancel is a dead key over a screen with no other way out
+scripts/ui/dialog_runner.gd	s|if bool\(choice.get\("open_save", false\)\):|if false:|	tests/unit/test_dialog_runner.gd	a choice carrying open_save collects nothing and the priest is a conversation that does nothing

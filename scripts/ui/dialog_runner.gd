@@ -216,6 +216,12 @@ func _collect(choice: Dictionary) -> void:
 	# template does not have.
 	if bool(choice.get("rest", false)):
 		_effects.append({"op": GameContext.OP_REST})
+	# A save point. A bare true like `rest` rather than an id like `open_shop`, because there
+	# is nothing to name: every save point in a game writes to the same slots, so a second one
+	# would be a second word for the same place. It opens after the conversation ends, the
+	# counter's rule, for the counter's reason.
+	if bool(choice.get("open_save", false)):
+		_effects.append({"op": GameContext.OP_SAVE})
 
 
 ## Whether the purse covers what this choice costs. Counts what earlier choices in this same

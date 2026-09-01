@@ -416,3 +416,175 @@ func test_the_status_page_is_drawn_with_the_players_numbers_on_it() -> void:
 			hp = text
 	assert_str(hp).override_failure_message(
 		"nothing on the page says how hurt the player is; it drew %s" % [drawn]).is_not_empty()
+
+
+# --- the save point -------------------------------------------------------------------------
+
+func test_a_save_point_opens_over_the_world_after_the_conversation_ends() -> void:
+	# The DEFERRAL, which is the whole reason the effect exists rather than a direct call:
+	# _on_dialog_closed applies effects and THEN pops the dialog overlay, so a screen opened
+	# inline is the one that pop closes. Driven through _apply_effects for that reason - an
+	# open_save() call here would pass either way.
+	await _boot()
+	_world._apply_effects([{"op": GameContext.OP_SAVE}])
+	await _steps(2)
+	assert_object(_world.save_screen()).override_failure_message(
+		"the save point never opened, or opened and was closed by the dialog's own pop"
+		).is_not_null()
+	assert_str(Router.state_name()).is_equal("saving")
+	# An overlay like every other: the world is still behind it and the player cannot walk out.
+	assert_bool(Router.player_can_move()).is_false()
+
+func test_a_save_point_writes_the_slot_it_was_pointed_at() -> void:
+	# The outcome store, not the screen's own report: what makes a save a save is a file on
+	# disk that reads back, which is the one thing a signal cannot prove.
+	await _boot()
+	var player: ActorBody = _world.player()
+	var spot := player.global_position + Vector2(16.0, 0.0)
+	player.place(spot)
+	_world._apply_effects([{"op": GameContext.OP_SAVE}])
+	await _steps(2)
+	assert_bool(SaveManager.has_slot(&"quest", 1)).override_failure_message(
+		"slot 1 already held a save before this test wrote one").is_false()
+
+	var screen: SaveScreen = _world.save_screen()
+	await _press(&"move_down")
+	await _press(&"interact")
+	assert_bool(SaveManager.has_slot(&"quest", 1)).override_failure_message(
+		"the save point reported a write that reached no file").is_true()
+	var read := SaveManager.load_slot(&"quest", 1)
+	assert_object(read).is_not_null()
+	assert_vector(read.position).override_failure_message(
+		"the save point wrote a save of somewhere the player was not standing"
+		).is_equal(spot)
+	# It STAYS open and the row now says what it holds - the pause menu's rule for the same
+	# press, and what stops a save reading as a press the game swallowed.
+	assert_object(_world.save_screen()).override_failure_message(
+		"the save point closed itself on a write").is_not_null()
+	assert_bool(screen.menu().summary(1).has_save()).override_failure_message(
+		"the row the player is looking at still says the slot is empty").is_true()
+
+func test_a_save_point_writes_nothing_on_the_way_out() -> void:
+	# Cancel is a whole verb here: a save point a player walked into and thought better of must
+	# leave the disk alone, and "no file appeared" is the only assertion that says so.
+	await _boot()
+	_world._apply_effects([{"op": GameContext.OP_SAVE}])
+	await _steps(2)
+	await _press(&"cancel")
+	assert_object(_world.save_screen()).override_failure_message(
+		"the save point would not close").is_null()
+	assert_str(Router.state_name()).is_equal("world")
+	for slot in 3:
+		assert_bool(SaveManager.has_slot(&"quest", slot)).override_failure_message(
+			"leaving a save point wrote slot %d anyway" % slot).is_false()
+
+func test_a_save_point_survives_the_dialog_close_that_asked_for_it() -> void:
+	# THE deferral, staged the way production reaches it and the only way that can tell a
+	# deferred open from an inline one. _on_dialog_closed applies the effects and THEN pops the
+	# dialog's overlay: opened inline, the save screen pushes SAVING over DIALOG and that pop
+	# takes it straight back off - the state lands on `dialog`, the screen is orphaned behind a
+	# closed conversation, and nothing errors. The suite's other save-point tests all pass
+	# either way, because none of them has a dialog open to be popped.
+	await _boot()
+	assert_bool(_world._open_dialog(&"elder")).is_true()
+	await _steps(1)
+	assert_str(Router.state_name()).is_equal("dialog")
+	_world._on_dialog_closed([{"op": GameContext.OP_SAVE}])
+	await _steps(3)
+	assert_str(Router.state_name()).override_failure_message(
+		"asking for a save point from a conversation left the machine in '%s'"
+		% Router.state_name()).is_equal("saving")
+	assert_object(_world.save_screen()).is_not_null()
+	# And the conversation it came from is gone, rather than waiting underneath.
+	assert_int(Router.overlay_depth()).override_failure_message(
+		"the dialog is still on the stack under the save point").is_equal(1)
+
+## The shipped game with its save policy changed, and NOTHING else. A duplicate rather than a
+## second .tres, the flow model's `_manifest()` precedent: a fixture game that varied anything
+## more than the one field under test would make every difference a suspected defect.
+func _at_point_manifest() -> GameManifest:
+	var manifest := (load(GAME) as GameManifest).duplicate() as GameManifest
+	var config := manifest.config.duplicate() as GameConfig
+	config.save_policy = GameConfig.SAVE_AT_POINT
+	manifest.config = config
+	return manifest
+
+func _boot_at_point() -> void:
+	var scene := load("res://scenes/world/world.tscn") as PackedScene
+	_world = scene.instantiate() as Node2D
+	add_child(_world)
+	assert_bool(_world.start_game(_at_point_manifest())).is_true()
+	await _dismiss_opening()
+
+func test_a_save_at_point_game_draws_no_save_row_on_its_pause_menu() -> void:
+	# On the RENDERED text, the sound row's rule and for its reason: the menu answering
+	# correctly proves nothing about the screen, whose labels live in a table indexed by the
+	# enum - so a row hidden in one and not the other draws "Save" over the row that now
+	# answers Load, and every press below it lands one row out.
+	await _boot_at_point()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	var drawn := _drawn_rows()
+	for text in drawn:
+		# The cursor prefix comes off first. Every row is drawn as "> Label" or "  Label", so
+		# a begins_with("Save") here can never be true and the assertion would be decoration -
+		# which is exactly what the first draft of this test was, and what the fail-first run
+		# caught by surviving the sabotage it was written to kill.
+		assert_str(text.strip_edges().trim_prefix(">").strip_edges()).override_failure_message(
+			"a save-at-point game drew a Save row: %s" % [drawn]).is_not_equal("Save")
+	# The control, and the half "no Save row" cannot see: everything else is still there, so a
+	# menu that simply failed to draw would not pass this.
+	var joined := " | ".join(drawn)
+	for expected in ["Resume", "Items", "Equipment", "Status", "Load"]:
+		assert_str(joined).override_failure_message(
+			"hiding Save also took '%s' with it: %s" % [expected, drawn]).contains(expected)
+
+func test_the_shipped_game_still_draws_its_save_row() -> void:
+	# The other direction, on the same surface. Without it, a screen that drew no rows at all
+	# would pass the test above - and the shipped game is the one every recorded session plays.
+	await _boot()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	assert_str(" | ".join(_drawn_rows())).contains("Save")
+
+func test_a_save_at_point_game_can_still_save_at_a_point() -> void:
+	# The axis is about WHERE, not whether. A policy that removed the row and left no way to
+	# write a save would pass every assertion above and be unplayable.
+	await _boot_at_point()
+	_world._apply_effects([{"op": GameContext.OP_SAVE}])
+	await _steps(2)
+	assert_object(_world.save_screen()).is_not_null()
+	await _press(&"interact")
+	assert_bool(SaveManager.has_slot(&"quest", 0)).override_failure_message(
+		"a save-at-point game could not write a save at its save point").is_true()
+
+func test_a_save_at_point_game_can_still_load() -> void:
+	# The policy governs WRITING only. Loading stays a menu verb under both, so the Load row has
+	# to survive - and a hidden-row bug that took its neighbour with it would land here.
+	#
+	# Driven by real keys, through the front door, because the claim is about which row the
+	# CURSOR reaches: the menu's own answer is already pinned in test_pause_menu, and this is
+	# the layer where the screen's labels and the menu's mapping have to agree.
+	#
+	# Resume, Items, Equipment, Status, Load, Sound - FOUR down lands on Load, because this
+	# game has no Save row between Status and it. That count is written out rather than looped
+	# for the reason _to_the_third_slot's is: inserting a row moves it deliberately.
+	await _boot_at_point()
+	assert_bool(SaveManager.save(0, _good_save())).is_true()
+	assert_bool(_world.open_pause()).is_true()
+	await _steps(2)
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"move_down")
+	await _press(&"interact")
+	await _press(&"interact")
+	# The save carries no flags, so arriving in the village greets the player exactly as a
+	# first visit does - the quest's content firing correctly, not the load misbehaving.
+	await _dismiss_opening()
+	assert_str(Router.state_name()).override_failure_message(
+		"loading from a save-at-point menu left the machine in '%s'"
+		% Router.state_name()).is_equal("world")
+	assert_vector(_world.player().global_position).override_failure_message(
+		"the load did not put the player where the save said").is_equal_approx(
+		MapData.tile_to_world(Vector2i(3, 3), 16), Vector2(1.0, 1.0))

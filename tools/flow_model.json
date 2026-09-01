@@ -100,6 +100,14 @@
 				"player_cannot_move"
 			]
 		},
+		"saving": {
+			"about": "A save point is open: the slot list, and nothing else on it. Reached from a conversation under either save policy, which is why it is its own state rather than the pause menu jumped to a page - a priest does not hand you your equipment.",
+			"invariants": [
+				"save_screen_up",
+				"game_running",
+				"player_cannot_move"
+			]
+		},
 		"game_over": {
 			"about": "The run ended. The ways on are a save, a fresh start, or the title.",
 			"invariants": [
@@ -241,6 +249,31 @@
 			],
 			"adapter": "close_rest",
 			"note": "The screen ends itself; nothing presses anything."
+		},
+		{
+			"action": "open_save",
+			"from": "world",
+			"to": "saving",
+			"trace": [
+				[
+					"world",
+					"saving"
+				]
+			],
+			"adapter": "open_save",
+			"note": "Opened DEFERRED from a dialog effect, the open_shop rule, so the adapter waits a frame."
+		},
+		{
+			"action": "close_save",
+			"from": "saving",
+			"to": "world",
+			"trace": [
+				[
+					"saving",
+					"world"
+				]
+			],
+			"adapter": "close_save"
 		},
 		{
 			"action": "open_battle",
