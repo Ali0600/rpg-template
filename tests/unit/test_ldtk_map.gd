@@ -283,3 +283,41 @@ func test_a_file_naming_no_style_is_not_guessed_at() -> void:
 	# Empty, never a default: a guessed bank is the exact failure problems() exists to refuse.
 	assert_str(LdtkMap.style_of({})).is_empty()
 	assert_str(LdtkMap.style_of({"levels": []})).is_empty()
+
+func test_the_tileset_image_is_named_beside_the_map() -> void:
+	# The Tiled suite's twin, and the same bug: LDtk resolves `relPath` relative to the .ldtk, so
+	# a bare "tiles.png" is a tileset the editor cannot find and a map that opens with nothing
+	# drawn on it. Both translators answer `atlas_name()`, so one export directory serves both.
+	var native := _native_of(_maps()[0])
+	var style := str(native.get("style", "gb16"))
+	var made := LdtkMap.from_native(native, _tile_ids(style), TILE_SIZE)
+	var set_one: Dictionary = ((made["defs"] as Dictionary)["tilesets"] as Array)[0]
+	assert_str(str(set_one["relPath"])).is_equal(LdtkMap.atlas_name(style))
+	assert_str(str(set_one["relPath"])).override_failure_message(
+		"the path climbs out of the map's own directory, so an export is not portable"
+		).not_contains("/")
+
+func test_both_translators_agree_on_the_atlas_name() -> void:
+	# They write into ONE directory, so a disagreement means two copies of the same sheet under
+	# two names - or worse, one editor pointed at a file the other never wrote.
+	for style: String in ["gb16", "dusk16", "nes16"]:
+		assert_str(LdtkMap.atlas_name(style)).override_failure_message(
+			"Tiled and LDtk disagree about what the '%s' sheet is called" % style
+			).is_equal(TiledMap.atlas_name(style))
+
+func test_a_tile_layer_points_at_the_same_sheet() -> void:
+	# LDtk carries the path twice - on the tileset def and on every tile layer instance - and the
+	# editor reads the layer's copy. They have to agree.
+	var native := _native_of(_maps()[0])
+	var style := str(native.get("style", "gb16"))
+	var made := LdtkMap.from_native(native, _tile_ids(style), TILE_SIZE)
+	var found := 0
+	for entry: Variant in ((made["levels"] as Array)[0] as Dictionary)["layerInstances"]:
+		var layer: Dictionary = entry
+		if str(layer.get("__type", "")) != "Tiles":
+			continue
+		assert_str(str(layer["__tilesetRelPath"])).override_failure_message(
+			"layer '%s' points at a different sheet from the tileset definition"
+			% layer.get("__identifier", "?")).is_equal(LdtkMap.atlas_name(style))
+		found += 1
+	assert_int(found).override_failure_message("no tile layer was checked").is_greater(1)

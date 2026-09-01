@@ -48,6 +48,12 @@ const FIELD_UID := 200
 const NEXT_UID := 1000
 
 
+## What the tileset image is called beside an exported map - the same name TiledMap uses, so one
+## export directory serves both editors and holds one atlas per style.
+static func atlas_name(style: String) -> String:
+	return "tiles_%s.png" % style
+
+
 ## Everything wrong with `raw` as an LDtk project for `tile_ids`. All of them, not the first.
 ##
 ## The tileset checks are the ones that matter, for `TiledMap.problems()`'s reason: a tile is
@@ -116,7 +122,7 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 	for pair: Array in [["ground", ground], ["decor", decor]]:
 		layer_defs.append(_tile_layer_def(str(pair[0]), uid, tile_size))
 		instances.append(_tile_layer(str(pair[0]), pair[1], legend, tile_ids, wide, high,
-			tile_size, uid, map_id))
+			tile_size, uid, map_id, style))
 		uid += 1
 
 	var entity_defs: Array = []
@@ -211,7 +217,10 @@ static func _tileset_def(style: String, tile_ids: PackedStringArray, tile_size: 
 	# One row, which is the shape gen_sprites.gd writes: every tile side by side in tiles.png.
 	return {
 		"__cWid": tile_ids.size(), "__cHei": 1,
-		"identifier": style, "uid": TILESET_UID, "relPath": "tiles.png", "embedAtlas": null,
+		# Beside the project file, named for the style - LDtk resolves relPath relative to the
+		# .ldtk, so a bare "tiles.png" is a tileset the editor cannot find and a map that opens
+		# with nothing drawn on it.
+		"identifier": style, "uid": TILESET_UID, "relPath": atlas_name(style), "embedAtlas": null,
 		"pxWid": tile_ids.size() * tile_size, "pxHei": tile_size,
 		"tileGridSize": tile_size, "spacing": 0, "padding": 0,
 		"tags": [], "tagsSourceEnumUid": null, "enumTags": [], "customData": [],
@@ -329,7 +338,7 @@ static func _level_fields(native: Dictionary) -> Array:
 
 static func _tile_layer(name: String, rows: Array[String], legend: Dictionary,
 		tile_ids: PackedStringArray, wide: int, high: int, tile_size: int, uid: int,
-		map_id: String) -> Dictionary:
+		map_id: String, style: String) -> Dictionary:
 	var tiles: Array = []
 	var across := maxi(tile_ids.size(), 1)
 	for y in rows.size():
@@ -351,7 +360,7 @@ static func _tile_layer(name: String, rows: Array[String], legend: Dictionary,
 			})
 	var out := _layer_instance_base(name, "Tiles", wide, high, tile_size, uid, map_id)
 	out["__tilesetDefUid"] = TILESET_UID
-	out["__tilesetRelPath"] = "tiles.png"
+	out["__tilesetRelPath"] = atlas_name(style)
 	out["gridTiles"] = tiles
 	return out
 

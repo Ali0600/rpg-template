@@ -150,3 +150,24 @@ func test_a_file_naming_no_style_is_not_guessed_at() -> void:
 	# Empty, never a default. A guessed bank is the exact failure problems() exists to refuse, so
 	# handing it a plausible answer here would walk straight past that check.
 	assert_str(TiledMap.style_of({})).is_empty()
+
+func test_the_tileset_image_is_named_beside_the_map() -> void:
+	# FOUND BY OPENING ONE IN TILED, which is the only place it could have been found. The first
+	# export wrote a bare "tiles.png"; Tiled resolves that relative to the .tmj, the atlas is not
+	# there, and every tile opens BLANK. Nothing here could see it: the round trip never reads the
+	# image, only an editor does. `map_io.gd` copies the sheet in under this name.
+	var native := _native_of(_maps()[0])
+	var style := str(native.get("style", "gb16"))
+	var made := TiledMap.from_native(native, _tile_ids(style), TILE_SIZE)
+	var image := str((((made["tilesets"] as Array)[0]) as Dictionary)["image"])
+	assert_str(image).override_failure_message(
+		"the tileset image is '%s', which does not name the style it belongs to" % image
+		).is_equal(TiledMap.atlas_name(style))
+	assert_str(image).override_failure_message(
+		"the image path climbs out of the map's own directory, so an export is not portable"
+		).not_contains("/")
+
+func test_two_styles_do_not_collide_on_one_atlas_name() -> void:
+	# One export directory may hold maps drawn from different banks. A single shared name would
+	# mean the second copy overwrites the first and half the maps open wearing the wrong art.
+	assert_str(TiledMap.atlas_name("gb16")).is_not_equal(TiledMap.atlas_name("dusk16"))

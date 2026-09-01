@@ -1632,3 +1632,42 @@ mutant immediately.
 the computation has somewhere to be wrong: not the first element, not zero, not the identity. Then
 assert the input itself is non-degenerate in the test, so the day somebody reorders the fixture
 the test says why it stopped meaning anything rather than quietly passing.
+
+## A file is not portable until the things it POINTS at travel with it
+
+A generated file that references an asset by relative path is only correct where that asset sits
+beside it. The reference looks fine in isolation, the file validates, and every test that reads
+it back passes — because your own reader does not resolve the reference. Only the real consumer
+does.
+
+**Why it came up.** A map exporter wrote `image: "tiles.png"` into its tileset. Both editors
+resolve that relative to the map file, and the atlas lived elsewhere in the project — so every
+exported map would have opened with every tile BLANK. Nothing could catch it: the round-trip
+importer takes the tile list as an argument and never looks at the image, and the vendor's JSON
+schema is satisfied by any string. It surfaced the moment the file was opened in the real editor,
+which is also the only place it could have.
+
+**Takeaway.** When you emit a file that references another by path, ask what resolves that path
+and from where — then make the export SELF-CONTAINED: copy the referenced asset in beside the
+output and name it so two sources cannot collide. Test the NAME in the unit suite and the
+PRESENCE in whatever gate does real file I/O, because they are different failures. And treat "my
+reader round-trips it" as saying nothing whatsoever about references, since a reader that does
+not follow them cannot notice they are broken.
+
+## A uniform off-by-one across every cell is a convention, not a thousand bugs
+
+When a comparison against an external tool fails on 100% of items by exactly the same amount, the
+hypothesis "my data is wrong everywhere" is almost always worse than "we are using two different
+encodings of the same thing".
+
+**Why it came up.** Diffing a map exporter's output against the editor's own re-export reported a
+mismatch on all 176 cells — and every single one was off by exactly 1. The file stores GIDs
+(`firstgid + index`, so 1-based here); the editor's CSV export writes 0-based local tile ids. Both
+were right. Correcting the comparison gave 352 cells and zero mismatches.
+
+**Takeaway.** Before reading a mass failure as a mass defect, look at the DISTRIBUTION of the
+error: uniform and small means an encoding or origin difference (0- vs 1-based, pixels vs cells,
+inclusive vs exclusive, UTC vs local), and the bug is in the comparison. Scattered and varied
+means the data. Check the tool's documented output convention before changing any code — the
+instrument's units are part of the instrument, and reading them wrong nearly turned a correct
+exporter into a fix.
