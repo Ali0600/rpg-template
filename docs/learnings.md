@@ -1552,3 +1552,26 @@ real ordering — and prove it fails without the deferral. If you cannot constru
 the deferral has no test, and saying so in the comment is more honest than the tests implying
 otherwise. Everything else about the feature can be tested through the convenient seam; this one
 rule cannot.
+
+## A concurrency lane keyed on the branch lets two merges cancel each other
+
+Superseding a stale run is right for a branch and wrong for a trunk. If both share one lane
+key, the second merge kills the first merge's run — and everything gated on that run's success
+quietly does not happen.
+
+**Why it came up.** The gate's group was `check-${{ github.ref }}` with `cancel-in-progress`.
+On a pull request `github.ref` is the branch, so a re-push supersedes its own earlier run, which
+is what you want. On a push to the trunk it is always `refs/heads/main`, so every merge shares
+ONE lane. Merging a second pull request a few minutes after the first cancelled the first one's
+full mutation sweep mid-run; the deploy workflow triggers on that run completing and publishes
+only on `conclusion == 'success'`, and a CANCELLED run is not a success, so that commit's deploy
+was SKIPPED. Two green pull requests, a sweep that never finished, a site still serving the
+commit before them, and nothing anywhere said so.
+
+**Takeaway.** Key a concurrency group by the ARTIFACT the run produces, not by the ref:
+`${{ github.event.pull_request.number || github.sha }}` gives a branch the superseding it wants
+and gives two commits lanes they cannot share. Then look downstream — anything triggered by
+`workflow_run` treats cancelled as not-success, so a cancelled gate silently withdraws a deploy,
+a release, a notification. The reason this hides is that it self-heals: the next green run
+subsumes the lost one and publishes the newer commit, so the damage is only ever visible in the
+window between two merges, and only to somebody reading the run list rather than the checkmarks.
