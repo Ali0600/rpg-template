@@ -207,8 +207,15 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M36** — the battle caption wraps instead of running off the screen, and a driver that presses Run asserts which fights the game will actually let you leave
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
 - [ ] **M38** — maps can be authored in a visual editor: Tiled import and export shipped and round-tripped over every shipped map, LDtk still to come
+- [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
 
 ## Experience Gained
+
+- Converted a hard-coded product rule into a configurable policy with a validated vocabulary, designing the field so that a future third value costs no data migration — and made an invalid value fail the build rather than silently fall back to the default.
+- Proved a behavioural change was strictly additive by holding 22 end-to-end scripted runs byte-identical across the release, so the new axis demonstrably altered nothing for existing consumers.
+- Identified that a deferred UI callback was untestable through the obvious seam and built the one integration test that could distinguish it, after establishing that every existing test of that feature passed against both the correct and the broken implementation.
+- Found a defect in my own test during mutation testing: an assertion could never evaluate true because of a rendering prefix, so it had been passing as decoration. Caught by requiring each new test to fail against a deliberately broken build before being trusted.
+- Corrected three widely-repeated factual claims by reading shipped binaries and official documentation after the usual secondary sources proved unavailable, and recorded each finding with its verification tier so later readers can tell primary evidence from secondary.
 
 - Replaced a shipped feature with the convention established by primary-source research, and
   chose the design that REMOVED two special cases rather than the one that preserved existing

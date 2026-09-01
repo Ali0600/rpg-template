@@ -11,8 +11,22 @@ one-glance menu of things still worth trying.
   `scripts/util/dir.gd`.
 - **A second cell size** (32×32 characters, 32px tiles). Revisit hook: `SpriteStyle`
   already carries `cell_size` and `tile_size`; the work is a rig authored at that size.
-- **Tiled / LDtk map import.** Revisit hook: `scripts/world/map_data.gd` is the only thing
-  that parses a map file; a second parser producing the same struct is the whole job.
+- **Tiled / LDtk map import.** Tiled BOTH DIRECTIONS shipped in M38 (`scripts/util/tiled_map.gd`,
+  round-tripped over all six shipped maps); LDtk and the `tools/map_io.gd` command that makes it
+  a workflow rather than a library are still owed. Revisit hook: mirror `tiled_map.gd` exactly.
+- **A save point that does not ask which slot** — the genre's own answer, and this template's
+  stated divergence since M39. Every reference either has one file (FF1, Pokémon) or picks it at
+  the title (DQ1, EarthBound, Chrono Trigger); none asks at the moment of saving. Revisit hook:
+  `SaveMenu` is the whole question — a `save_slots` of 1 already makes it a one-row list, so the
+  work is deciding whether `at_point` should skip the screen entirely and write the slot the run
+  was started from. That needs a title-side "which file am I playing" concept the template does
+  not have, which is why it is deferred rather than done.
+- **A real-time combat resolution** (an arena on encounter, Ni no Kuni's shape). The largest
+  open item, and the one the save axis is the small precedent for. Revisit hook is exactly two
+  functions: `world_scene.open_battle_with(defs, seen_key)` in and `finished(outcome, effects)`
+  out — everything between is `BattleScreen` + `BattleLogic`, and a second resolver honouring
+  that contract inherits encounters, rewards, persistence and music unchanged. The open design
+  question is `Router.player_can_move()`, which is one line and answers `WORLD` only.
 - **Asymmetric side parts** (a satchel on one hip only). Blocked by
   `mirror_left_from_right`; revisit hook is the `left = flip_x(right)` branch in
   `sprite_compositor.gd`.
@@ -108,6 +122,59 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## Where a game may be saved is an axis — *M39*
+
+The first SYSTEM axis rather than a content one, and the small precedent for the real-time
+combat arc: a rule the template used to decide for everybody becomes a field a game states,
+with both sides gated. The research reversed the section that argued against it — §8 said "a
+game wanting save points ships them as an object with a `GameHooks` interaction", which was
+true and was also the template declining to have an opinion, because the pause menu's Save row
+would still have been offering the thing that design had just forbidden.
+
+**The fork: how the policy is spelled.**
+
+- **An enum on `GameConfig`** — *Status: rejected. A `.tres` stores an enum as the bare int it
+  was written as, so adding a third policy re-labels every shipped config; the same reason
+  `SpellDef.Kind` is appended to and never reordered.*
+- **A bool, `saves_anywhere`** — *Status: rejected — a two-valued field that the genre does not
+  have only two of. Chrono Trigger's split (points in maps, anywhere on the world map) is a
+  third value already, and a bool would need replacing rather than extending.*
+- **A StringName checked against a list (chosen)** — a typo FAILS THE BUILD, the npc `behavior`
+  rule; a third policy is one entry in `SAVE_POLICIES` and no migration.
+
+**The fork: what an `at_point` game does with the Save row.**
+
+- **Draw it and refuse the press** — *Status: rejected. A row that cannot be pressed is a dead
+  key, and this is a capability the game does not have rather than a price the player cannot
+  meet — the `requires_item` case, which hides, not the `spend_gold` case, which quotes and
+  refuses out loud.*
+- **Hide it (chosen)** — which costs a mapping: with a row gone, a cursor index is no longer its
+  Row. `_top_rows()` derives the list and `top_row(at)` is the one place a cursor becomes a Row
+  again, read by BOTH `confirm()` and the view's `_label_for` — two readings would draw "Save"
+  over the row that answers Load. With saving on the list IS the enum, so every counting session
+  and every `move(Row.SAVE)` test lands exactly where it did.
+
+**The fork: does the save point ask which slot?** *Status: divergence, stated rather than fixed.*
+No reference asks at the moment of saving — one file, or chosen at the title. This template's
+pause menu has picked a slot at save time since M5 and has been played that way, and a save
+point answering the question differently would be two answers to one question. Deferred entry
+at the top of this file.
+
+**The fork: does the save point heal?** *Status: no, and this one is researched rather than
+assumed.* Every free save point in the genre restores nothing — DQ's king, DQ4's church,
+EarthBound's telephone (proven structurally: no HP-recovery opcode appears in any of the five
+`{save}` scripts), Chrono Trigger's save points (the **Shelter** item heals, not the point). The
+one that heals fully is FF1's INN, a paid rest that also saves. The demo village already has an
+inn charging four gold; a free full heal standing beside it would make the innkeeper a mistake.
+
+**The demo keeps save-anywhere and gains a save point anyway** — the user's call, and it is the
+both-directions proof on the surface a player touches: the pause menu still writes slots, and
+the chronicler in the northwest corner writes them through a conversation. The `at_point`
+restriction is proven on a fixture manifest that duplicates the shipped one and varies the
+single field, which is the control-instance rule.
 
 ---
 

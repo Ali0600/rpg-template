@@ -87,6 +87,17 @@
 			"facing": "right",
 			"dialog": "scrapper",
 			"behavior": "static"
+		},
+		{
+			"id": "chronicler",
+			"character": "quest_warden",
+			"tile": [
+				1,
+				2
+			],
+			"facing": "down",
+			"dialog": "chronicler",
+			"behavior": "static"
 		}
 	],
 	"objects": [

@@ -1,0 +1,59 @@
+{
+	"_readme": [
+		"The demo's save point, and the whole of the save-at-a-point half of GameConfig.save_policy.",
+		"A choice carrying `open_save`, which is the counter's idiom (`open_shop`) and the inn's",
+		"(`rest`): the runner collects, the world acts once the conversation has closed.",
+		"",
+		"The wording is Dragon Quest's, whose King Lorik is the genre's first save point and whose",
+		"exact NES line is 'Will thou tell me now of thy deeds so they won't be forgotten?' followed",
+		"by 'Thy deeds have been recorded on the Imperial Scrolls of Honor.' The archaic register is",
+		"not borrowed - a template's demo should not read as somebody else's game - but the SHAPE is:",
+		"a person asks, the player answers, and the recording is spoken of as a thing that lasts.",
+		"",
+		"He heals NOTHING, and that is researched rather than assumed. Every free save point in the",
+		"references restores nothing at all - Dragon Quest's king, Dragon Quest IV's church, Chrono",
+		"Trigger's save points, EarthBound's telephone. The one that heals fully is Final Fantasy I's",
+		"INN, which is a paid rest that happens to also save. This village already has that inn, and",
+		"it charges four gold; a free full heal standing beside it would make the innkeeper a mistake.",
+		"",
+		"Both replies END the talk, the choice-line rule: cancel cannot escape a choice, so a",
+		"conversation that looped back through one would have no way out.",
+		"",
+		"He says nothing about HAVING saved, because he cannot: the effects of a conversation are",
+		"applied when it CLOSES, so the slot list opens after his last word. The screen does the",
+		"announcing - the row the player is pointing at changes to say what it now holds, which is",
+		"the reference games' rule too (every one of the six tells you the save happened)."
+	],
+	"id": "chronicler",
+	"start": "greet",
+	"nodes": {
+		"greet": {
+			"speaker": "Chronicler",
+			"text": "Roads eat travellers, and the village\nforgets them by spring.",
+			"next": "ask"
+		},
+		"ask": {
+			"speaker": "Chronicler",
+			"text": "Shall I set your journey down,\nso far as it has gone?",
+			"choices": [
+				{
+					"text": "Write it down.",
+					"next": "written",
+					"open_save": true
+				},
+				{
+					"text": "Not yet.",
+					"next": "later"
+				}
+			]
+		},
+		"written": {
+			"speaker": "Chronicler",
+			"text": "Then hold still. Ink is slow."
+		},
+		"later": {
+			"speaker": "Chronicler",
+			"text": "The page keeps. Come back\nbefore the road does."
+		}
+	}
+}

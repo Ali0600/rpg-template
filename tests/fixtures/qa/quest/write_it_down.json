@@ -1,0 +1,284 @@
+{
+	"_readme": [
+		"The save point, walked to and used - the other half of GameConfig.save_policy, shown on a",
+		"path a player takes rather than only asserted in a suite.",
+		"",
+		"Every leg is held until a WALL or a BODY stops it, so nothing here is a computed number of",
+		"tiles: north out of the spawn is stopped by the warden's body, west along that row by the",
+		"map's edge, and north up the edge by the chronicler himself. The last one is the point - he",
+		"is the wall this walk is aiming at, so the player arrives facing him with no count involved.",
+		"",
+		"It deliberately does NOT touch the pause menu. This game still saves anywhere, so the Save",
+		"row is right there - and a session that used it would prove the old path again rather than",
+		"the new one. save_and_load.json is the menu's session and is untouched.",
+		"",
+		"The slot is written and then LOADED BACK from the title, because a save nobody reads is a",
+		"file, not a save. The reload is what proves the bytes were real."
+	],
+	"steps": [
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "a qa run empties user://qa_saves at boot, so the cursor opens on New game. One press starts the run."
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "north until the warden's body stops it - she stands one tile up from the spawn"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 40
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "note",
+			"text": "west until the map's edge stops it"
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 90
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "note",
+			"text": "north up the edge until the chronicler's own body stops it, which leaves the player facing him"
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "mark",
+			"name": "at_the_chronicler"
+		},
+		{
+			"op": "note",
+			"text": "he asks; the first choice is the one that records"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "saving",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "the slot list, opened by a conversation. It arrives AFTER the talk has closed, which is what the deferral buys - opened inline, the dialog's own close would take it straight back off."
+		},
+		{
+			"op": "assert_state",
+			"state": "saving"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "note",
+			"text": "a write leaves the screen open, so this is still the save point"
+		},
+		{
+			"op": "assert_state",
+			"state": "saving"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "walk away, so a load has somewhere to come back from"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 40
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "increase",
+			"since": "at_the_chronicler"
+		},
+		{
+			"op": "note",
+			"text": "and the proof the file is real: load it from the pause menu and land back on the mark. Rows are Resume, Items, Equipment, Status, Save, Load - five move_downs to Load."
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "assert_state",
+			"state": "paused"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 25
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_moved",
+			"axis": "y",
+			"expect": "unchanged",
+			"since": "at_the_chronicler"
+		}
+	]
+}
