@@ -75,6 +75,15 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 	return out
 
 
+## Which tile bank this map was painted against, read from the file itself.
+##
+## The style travels IN the map rather than on the command line, for the reason a save names its
+## game: two sources for one fact is how a map ends up read against a bank it disagrees with, and
+## the disagreement is silent - every cell resolves to some tile, just the wrong one.
+static func style_of(raw: Dictionary) -> String:
+	return str(_read_properties(raw.get("properties", [])).get("style", ""))
+
+
 ## A Tiled map, from one of this template's own.
 ##
 ## `tile_ids` is the bank in index order, which is what makes a GID mean anything; the caller

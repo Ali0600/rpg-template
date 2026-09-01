@@ -7,10 +7,12 @@ extends GdUnitTestSuite
 ## the same afternoon - the input is content that existed before either direction did, with real
 ## warps, patrol paths, formations, a locked door and a legend.
 ##
-## Comparison is on the RESOLVED map rather than the raw text. A `.tmj` carries no legend, so the
-## importer assigns characters as it meets tiles; two legends can spell the same map differently
-## and be equally correct. What must survive is which tile is at which coordinate, and every
-## record intact.
+## Comparison goes through `MapData.differences()`, which is the ONE place this project asks
+## whether two maps are the same one - the LDtk round-trip and `map_io.gd --verify` ask it there
+## too. It compares the GAME's reading rather than the text, which it has to: a `.tmj` carries no
+## legend, so the importer assigns characters as it meets tiles, and two legends can spell the
+## same map differently and be equally correct. What must survive is which tile is at which
+## coordinate, and every record intact.
 
 const MAP_DIR := "res://data/maps"
 const TILE_SIZE := 16
@@ -36,50 +38,6 @@ func _native_of(path: String) -> Dictionary:
 	out.erase("_readme")
 	return out
 
-## What a map MEANS, flattened: the tile at every coordinate on both layers, plus every record.
-##
-## This is what the round-trip has to preserve, and it is deliberately not the file's bytes. The
-## legend is a spelling choice; `#` and `w` are the same wall.
-func _resolved(native: Dictionary) -> Dictionary:
-	var legend: Dictionary = native.get("legend", {})
-	var out := {}
-	for layer: String in ["ground", "decor"]:
-		var rows := JsonFile.to_string_array(native.get(layer, []))
-		var cells: Array[String] = []
-		for y in rows.size():
-			for x in rows[y].length():
-				var ch := rows[y][x]
-				if ch != " ":
-					cells.append("%d,%d=%s" % [x, y, str(legend.get(ch, "?"))])
-		out[layer] = cells
-	for key: String in ["id", "style", "music", "spawns", "npcs", "warps", "objects", "enemies"]:
-		if native.has(key):
-			out[key] = native[key]
-	return out
-
-## Whole floats as ints, recursively, on both sides of the comparison.
-##
-## JSON HAS NO INTEGERS: a coordinate read off disk is 5.0 and the same coordinate built in code
-## is 5, and every reader in this project casts one to the other - `JsonFile.to_int_array` exists
-## for exactly that. So comparing them raw would fail on a difference the game cannot see, and
-## normalising is narrower than it looks: only the numeric TYPE moves, never a value. A float that
-## is not whole is left alone, so a genuine 0.5 could still fail the comparison.
-func _plain(value: Variant) -> Variant:
-	match typeof(value):
-		TYPE_FLOAT:
-			return int(value) if is_equal_approx(value, roundf(value)) else value
-		TYPE_ARRAY:
-			var out: Array = []
-			for entry: Variant in value:
-				out.append(_plain(entry))
-			return out
-		TYPE_DICTIONARY:
-			var made := {}
-			for key: Variant in value:
-				made[str(key)] = _plain(value[key])
-			return made
-	return value
-
 func _maps() -> PackedStringArray:
 	return ContentScan.files_of(MAP_DIR, "json")
 
@@ -88,44 +46,38 @@ func test_there_is_something_to_check() -> void:
 	assert_int(_maps().size()).is_greater(3)
 
 func test_every_shipped_map_survives_a_trip_through_tiled() -> void:
+	# Compared through MapData.differences(), which is the ONE place this project asks whether two
+	# maps are the same one - the LDtk round-trip and `map_io.gd --verify` ask it there too, and
+	# three copies of "same map" is three gates that eventually disagree about what a map is. It
+	# compares the GAME's reading, so the rebuilt legend is not a difference; test_map_data proves
+	# it detects real ones, which is what stops this loop being vacuous.
 	var checked := 0
 	for path in _maps():
 		var native := _native_of(path)
 		var ids := _tile_ids(str(native.get("style", "gb16")))
 		var tiled := TiledMap.from_native(native, ids, TILE_SIZE)
 		var back := TiledMap.to_native(tiled, ids, TILE_SIZE)
-		var was := _resolved(native)
-		var now := _resolved(back)
-		for key: Variant in was:
-			assert_that(_plain(now.get(key))).override_failure_message(
-				"'%s' came back from Tiled with a different '%s':\n  went in: %s\n  came out: %s"
-				% [path.get_file(), key, str(_plain(was[key])), str(_plain(now.get(key)))]) \
-				.is_equal(_plain(was[key]))
+		var faults := MapData.differences(MapData.load_from(path), MapData.from_dictionary(back))
+		assert_array(faults).override_failure_message(
+			"'%s' came back from Tiled as a different map:\n  %s"
+			% [path.get_file(), "\n  ".join(faults)]).is_empty()
 		checked += 1
 	assert_int(checked).override_failure_message(
 		"no map was round-tripped, so the loop above proved nothing").is_greater(3)
 
 func test_a_map_that_came_back_is_still_a_map_the_game_can_read() -> void:
-	# The other half: equal to the original is necessary and not sufficient, because both could be
-	# wrong in the same way. This one asks MapData itself - the class the game loads maps with -
-	# whether what came back parses, and whether the things a fight and a walk depend on are where
-	# they were.
+	# Equal to the original is necessary and not sufficient, because both could be wrong in the
+	# same way. This one asks whether MapData - the class the game loads maps with - can still
+	# PARSE what came back and validate it, which comparing two parsed maps cannot tell you.
 	for path in _maps():
 		var native := _native_of(path)
 		var ids := _tile_ids(str(native.get("style", "gb16")))
 		var back := TiledMap.to_native(TiledMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
-		var before := MapData.load_from(path)
 		var after := MapData.from_dictionary(back)
 		assert_bool(after.ok).override_failure_message(
 			"'%s' did not parse after a trip through Tiled: %s" % [path, after.error]).is_true()
 		assert_vector(after.size()).override_failure_message(
-			"'%s' changed size" % path).is_equal(before.size())
-		for y in before.size().y:
-			for x in before.size().x:
-				var at := Vector2i(x, y)
-				assert_str(after.ground_at(at)).override_failure_message(
-					"'%s' has a different tile at %s" % [path, at]).is_equal(before.ground_at(at))
-				assert_str(after.decor_at(at)).is_equal(before.decor_at(at))
+			"'%s' changed size" % path).is_equal(MapData.load_from(path).size())
 
 func test_a_map_painted_against_another_bank_is_refused() -> void:
 	# THE COUPLING, and the reason it is checked rather than trusted. A GID is an index, so a map
@@ -178,8 +130,23 @@ func test_a_structured_field_survives_as_more_than_a_string() -> void:
 	var ids := _tile_ids("dusk16")
 	var back := TiledMap.to_native(TiledMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
 	var npc: Dictionary = (back["npcs"] as Array)[0]
-	assert_that(_plain(npc.get("path"))).override_failure_message(
+	assert_that(MapData.plain_numbers(npc.get("path"))).override_failure_message(
 		"a patrol path came back as %s" % [npc.get("path")]).is_equal([[1, 2], [3, 4]])
 	assert_bool(npc.get("loop")).is_true()
 	assert_int(npc.get("dwell")).is_equal(30)
 	assert_str(str(npc.get("behavior"))).is_equal("patrol")
+
+func test_a_map_says_which_bank_it_was_painted_against() -> void:
+	# What `map_io.gd` asks a file before importing it, and the reason it asks the FILE rather than
+	# taking a --style argument: two sources for one fact is how a map ends up read against a bank
+	# it disagrees with, and that disagreement is silent - every cell resolves to some tile, just
+	# the wrong one.
+	var native := _native_of(_maps()[0])
+	var ids := _tile_ids(str(native.get("style", "gb16")))
+	var tiled := TiledMap.from_native(native, ids, TILE_SIZE)
+	assert_str(TiledMap.style_of(tiled)).is_equal(str(native.get("style", "")))
+
+func test_a_file_naming_no_style_is_not_guessed_at() -> void:
+	# Empty, never a default. A guessed bank is the exact failure problems() exists to refuse, so
+	# handing it a plausible answer here would walk straight past that check.
+	assert_str(TiledMap.style_of({})).is_empty()

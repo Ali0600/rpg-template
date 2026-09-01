@@ -372,3 +372,84 @@ func test_a_wanderer_with_no_range_is_reported() -> void:
 		.problems(_known_tiles(), _solid_tiles()))
 	assert_str(problems).contains("frozen")
 	assert_str(problems).contains("wanders with range 0")
+
+# --- comparing two maps -----------------------------------------------------------------------
+#
+# `differences()` is what the Tiled round-trip, the LDtk one and `map_io.gd --verify` all ask
+# their question through, so a version that answered "no differences" to everything would make
+# THREE gates vacuous at once. Most of what follows is therefore about proving it DETECTS.
+
+func _a_map(overrides: Dictionary = {}) -> MapData:
+	var base := {
+		"id": "sample", "style": "gb16", "music": "",
+		"legend": {".": "grass", "#": "wall"},
+		"ground": ["##", ".#"], "decor": ["  ", "  "],
+		"spawns": {"start": [0, 1]},
+		"npcs": [{"id": "someone", "tile": [1, 1], "dialog": "hello"}],
+		"warps": [], "objects": [], "enemies": [],
+	}
+	for key: Variant in overrides:
+		base[key] = overrides[key]
+	return MapData.from_dictionary(base)
+
+func test_a_map_does_not_differ_from_itself() -> void:
+	# The control. Without it every detection test below would pass against a function that
+	# reported a difference for everything.
+	assert_array(MapData.differences(_a_map(), _a_map())).override_failure_message(
+		"a map differs from an identical one: %s" % [MapData.differences(_a_map(), _a_map())]
+		).is_empty()
+
+func test_a_legend_is_a_spelling_choice_and_not_a_difference() -> void:
+	# THE reason this compares the game's reading rather than the file. A converted map assigns
+	# its own characters, so two files that spell the same wall differently are the same map -
+	# and a comparison that called them different would fail every round-trip forever.
+	var other := _a_map({"legend": {"w": "wall", "g": "grass"}, "ground": ["ww", "gw"]})
+	assert_array(MapData.differences(_a_map(), other)).override_failure_message(
+		"the same map spelled with different characters read as a different map").is_empty()
+
+func test_a_changed_tile_is_reported() -> void:
+	var other := _a_map({"ground": ["##", "##"]})
+	assert_str(", ".join(MapData.differences(_a_map(), other))).contains("ground at (0, 1)")
+
+func test_a_changed_size_is_reported() -> void:
+	var other := _a_map({"ground": ["###", ".##"], "decor": ["   ", "   "]})
+	assert_str(", ".join(MapData.differences(_a_map(), other))).contains("size")
+
+func test_a_lost_record_is_reported() -> void:
+	# The half a per-tile comparison cannot see: every tile can match while an NPC, a warp or a
+	# whole enemy formation has quietly gone missing in translation.
+	var other := _a_map({"npcs": []})
+	assert_str(", ".join(MapData.differences(_a_map(), other))).contains("npcs")
+
+func test_a_changed_field_inside_a_record_is_reported() -> void:
+	var other := _a_map({"npcs": [{"id": "someone", "tile": [1, 1], "dialog": "goodbye"}]})
+	assert_str(", ".join(MapData.differences(_a_map(), other))).contains("npcs")
+
+func test_a_moved_spawn_is_reported() -> void:
+	var other := _a_map({"spawns": {"start": [1, 1]}})
+	assert_str(", ".join(MapData.differences(_a_map(), other))).contains("spawns")
+
+func test_a_changed_id_style_or_music_is_reported() -> void:
+	# All three ride one loop, so this is one test - but each is named, because a loop that lost
+	# an entry would still pass a test that only asked about its neighbour.
+	assert_str(", ".join(MapData.differences(_a_map(), _a_map({"id": "elsewhere"})))).contains("id")
+	assert_str(", ".join(MapData.differences(_a_map(), _a_map({"style": "dusk16"})))).contains("style")
+	assert_str(", ".join(MapData.differences(_a_map(), _a_map({"music": "theme"})))).contains("music")
+
+func test_a_whole_number_written_as_a_float_is_not_a_difference() -> void:
+	# JSON HAS NO INTEGERS: a coordinate read off disk is 5.0 and the same one built in code is
+	# 5. Without the normaliser every round-trip through a file would report every record as
+	# changed, which is a gate that cries wolf until somebody deletes it.
+	var other := _a_map({"npcs": [{"id": "someone", "tile": [1.0, 1.0], "dialog": "hello"}]})
+	assert_array(MapData.differences(_a_map(), other)).override_failure_message(
+		"1.0 and 1 read as different coordinates").is_empty()
+
+func test_a_real_fraction_still_compares_as_itself() -> void:
+	# The normaliser is narrower than it looks, and this is the assertion that keeps it narrow:
+	# only the numeric TYPE moves, never a value.
+	var other := _a_map({"npcs": [{"id": "someone", "tile": [1, 1], "dwell": 0.5}]})
+	assert_array(MapData.differences(_a_map(), other)).is_not_empty()
+
+func test_a_map_that_did_not_parse_is_reported_rather_than_compared() -> void:
+	var broken := MapData.from_dictionary({"id": "broken"})
+	assert_array(MapData.differences(_a_map(), broken)).is_not_empty()

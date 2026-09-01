@@ -162,6 +162,22 @@ else
   echo "SKIP  gen_flow_doc.gd does not exist yet (M23)"
 fi
 
+step "6d/9 maps survive a trip through an editor"
+# The only gate that runs the CONVERSION COMMAND rather than the translators behind it. The
+# suites round-trip every shipped map in memory, Dictionary to Dictionary, which says nothing
+# about a path, an extension, a directory or an argument - and map_io.gd is entirely those. So
+# this writes every map out to Tiled AND LDtk as real files, reads them back, and requires the
+# game's own reading of what returns to be the same map.
+#
+# Nothing it writes is committed: the editor file is a working file, and the map that ships is
+# still the hand-readable JSON. It sweeps its scratch directory either way.
+if [ -f tools/map_io.gd ]; then
+  "$GODOT" --headless --path . -s tools/map_io.gd --verify
+  result $? "maps survive a trip through an editor"
+else
+  echo "SKIP  map_io.gd does not exist yet (M38)"
+fi
+
 step "7/9 play the game"
 # The gate that needs the whole thing at once: the real physics server, the real input map,
 # the real map data. It boots the game, walks the player east, and checks a wall stops them.

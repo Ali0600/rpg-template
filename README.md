@@ -206,10 +206,16 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M35** — the balance gate learned to use items too, and closed a guard nothing had ever proven: a quest item on the battle menu would be destroyed by using it
 - [x] **M36** — the battle caption wraps instead of running off the screen, and a driver that presses Run asserts which fights the game will actually let you leave
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
-- [ ] **M38** — maps can be authored in a visual editor: Tiled import and export shipped and round-tripped over every shipped map, LDtk still to come
+- [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.gd`
 - [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
 
 ## Experience Gained
+
+- Built a bidirectional converter between an internal format and two third-party editor formats, deriving the schema from the vendor's published JSON schema, its own sample projects, and its loader source — which disagreed with each other in ways that mattered, and validating the output against the vendor schema caught what a self-round-trip never could.
+- Reduced three separate implementations of an equivalence check to one shared function before adding the third consumer, then proved that function detects differences rather than assuming it, because a permissive comparison would have made three gates pass vacuously at once.
+- Distinguished what a test suite proves from what it cannot: documented in the code that a round-trip verifies the reader against the writer and not against the third-party tool, and recorded the one-off external validation separately rather than presenting it as continuous coverage.
+- Declined to add a CI gate that would depend on fetching an external package on every run, documenting the reasoning and the manual command instead of introducing a flaky check.
+- Caught a fixture flaw in my own test during mutation testing: the value under assertion was the degenerate case, so a mutation replacing the entire calculation with a constant went undetected until the fixture was changed to one that could distinguish them.
 
 - Converted a hard-coded product rule into a configurable policy with a validated vocabulary, designing the field so that a future third value costs no data migration — and made an invalid value fail the build rather than silently fall back to the default.
 - Proved a behavioural change was strictly additive by holding 22 end-to-end scripted runs byte-identical across the release, so the new axis demonstrably altered nothing for existing consumers.

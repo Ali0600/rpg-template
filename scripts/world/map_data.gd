@@ -97,6 +97,76 @@ func size() -> Vector2i:
 	return Vector2i(ground[0].length(), ground.size())
 
 
+## Every way two maps differ, in the game's OWN reading of them. Empty means they describe the
+## same map, whatever their files look like.
+##
+## It exists because THREE things need to ask that question and three copies of it would drift:
+## the Tiled round-trip test, the LDtk one, and `tools/map_io.gd --verify`, which converts every
+## shipped map out to an editor's format and back THROUGH FILES and requires what returns to be
+## the same map.
+##
+## Compared on what the game reads, never on the bytes. A legend is a SPELLING choice - `#` and
+## `w` are the same wall - so two files that hand out different characters for the same tiles are
+## the same map and must compare equal, which a text diff would deny. `_readme` is prose nothing
+## reads and is not compared either.
+##
+## Numbers are normalised before comparing, because JSON HAS NO INTEGERS: a coordinate read off
+## disk is 5.0 and the same coordinate built in code is 5, and every reader in this project casts
+## one to the other. Only the numeric TYPE moves - a value that is not whole is left alone, so a
+## genuine 0.5 still compares as itself.
+static func differences(before: MapData, after: MapData) -> Array[String]:
+	var out: Array[String] = []
+	if before == null or after == null:
+		out.append("one of the two maps is missing entirely")
+		return out
+	if not after.ok:
+		out.append("the second map did not parse: %s" % after.error)
+		return out
+	if before.size() != after.size():
+		out.append("size %s became %s" % [before.size(), after.size()])
+		return out
+	for pair: Array in [["id", before.id, after.id], ["style", before.style_id, after.style_id],
+			["music", before.music_id, after.music_id]]:
+		if str(pair[1]) != str(pair[2]):
+			out.append("%s '%s' became '%s'" % [pair[0], pair[1], pair[2]])
+	for y in before.size().y:
+		for x in before.size().x:
+			var at := Vector2i(x, y)
+			if before.ground_at(at) != after.ground_at(at):
+				out.append("ground at %s was '%s' and is '%s'"
+					% [at, before.ground_at(at), after.ground_at(at)])
+			if before.decor_at(at) != after.decor_at(at):
+				out.append("decor at %s was '%s' and is '%s'"
+					% [at, before.decor_at(at), after.decor_at(at)])
+	for pair: Array in [["spawns", before.spawns, after.spawns], ["npcs", before.npcs, after.npcs],
+			["warps", before.warps, after.warps], ["objects", before.objects, after.objects],
+			["enemies", before.enemies, after.enemies]]:
+		var was: Variant = plain_numbers(pair[1])
+		var now: Variant = plain_numbers(pair[2])
+		if was != now:
+			out.append("%s went in as %s and came out as %s" % [pair[0], was, now])
+	return out
+
+
+## Whole floats as ints, recursively. See `differences()` - JSON has no integers, and comparing
+## a map built in code against one read off disk trips over that in every coordinate.
+static func plain_numbers(value: Variant) -> Variant:
+	match typeof(value):
+		TYPE_FLOAT:
+			return int(value) if is_equal_approx(value, roundf(value)) else value
+		TYPE_ARRAY:
+			var listed: Array = []
+			for entry: Variant in value:
+				listed.append(plain_numbers(entry))
+			return listed
+		TYPE_DICTIONARY:
+			var made := {}
+			for key: Variant in value:
+				made[str(key)] = plain_numbers(value[key])
+			return made
+	return value
+
+
 ## The tile id at a coordinate on a layer, or "" if there is nothing there. Out-of-bounds is
 ## "" rather than an error: callers ask about neighbours at the edges all the time.
 func tile_at(layer: Array[String], at: Vector2i) -> String:
