@@ -12,16 +12,36 @@ extends GdUnitTestSuite
 func test_there_is_something_to_check() -> void:
 	# A gate that iterates an empty list passes perfectly and proves nothing. Every other
 	# test in this file loops over these, so their emptiness is checked once, here.
-	var styles := ArtFixtures.style_ids()
+	var styles := ArtFixtures.rig_style_ids()
 	assert_int(styles.size()).is_greater_equal(2)
 	for style_id in styles:
 		assert_array(ArtFixtures.characters_of(style_id)).is_not_empty()
+
+func test_every_style_is_gated_by_exactly_one_suite() -> void:
+	# An imported style cannot be drawn through the rig, so it leaves these gates for
+	# test_imported_art.gd. Membership is asserted as a SET, both ways: the two lists together
+	# must equal every style on disk, so a third kind of source cannot opt out of both - and no
+	# style may be in both, answering to two contradictory rules.
+	var rig := ArtFixtures.rig_style_ids()
+	var imported := ArtFixtures.imported_style_ids()
+	var together: Array[StringName] = []
+	together.append_array(rig)
+	together.append_array(imported)
+	# By text, never Array[StringName].sort(): that ordered by pointer and once printed the
+	# four ids back as dusk16, gbnes16, lpc32, nesgb16 - names that do not exist.
+	ArtFixtures.by_text(together)
+	assert_str(str(together)).is_equal(str(ArtFixtures.style_ids()))
+	for style_id in rig:
+		assert_bool(imported.has(style_id)).override_failure_message(
+			"%s is in both lists" % style_id).is_false()
+	# The template ships one imported style; an empty list here means the split stopped working.
+	assert_array(imported).is_not_empty()
 
 func test_every_pixel_comes_from_the_style_palette() -> void:
 	# The core promise. A colour outside the palette means something entered the pipeline
 	# from outside the style - a hardcoded literal, a blend, an interpolation - and once one
 	# has, "change the style to change the art" is no longer true.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		var rig := ArtFixtures.rig_for(style)
 		var allowed := style.palette_rgba32()
@@ -46,7 +66,7 @@ func test_tiles_use_the_same_palette_as_the_characters() -> void:
 func test_the_whole_cast_stands_on_one_ground_line() -> void:
 	# Characters whose lowest pixel differs by even one row look like they are standing at
 	# different depths, and the effect is unmistakable in motion and invisible in a still.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		var rig := ArtFixtures.rig_for(style)
 		var rows: Array[int] = []
@@ -66,7 +86,7 @@ func test_a_walk_frame_never_lifts_both_feet() -> void:
 	# The bob is what makes a four-frame walk read as walking, and the reason parts are
 	# marked "bob": false is that a bobbed foot leaves the ground. This asserts the split
 	# actually held: every frame keeps a foot planted on the ground row.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		var rig := ArtFixtures.rig_for(style)
 		for spec in ArtFixtures.characters_of(style_id):
@@ -78,7 +98,7 @@ func test_a_walk_frame_never_lifts_both_feet() -> void:
 func test_facing_left_is_facing_right_mirrored() -> void:
 	# One authored side, two directions. If this drifts, a character walking left is drawn
 	# with the detail on the wrong side and nothing reports it.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		if not style.mirror_left_from_right:
 			continue
@@ -96,7 +116,7 @@ func test_facing_left_is_facing_right_mirrored() -> void:
 func test_the_outline_wraps_the_silhouette() -> void:
 	# Outlines are generated, not drawn, so the rule to check is structural: for a style with
 	# an outline, no coloured pixel may touch empty space without an outline pixel between.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		if style.outline_mode == SpriteStyle.Outline.NONE:
 			continue
@@ -113,7 +133,7 @@ func test_the_outline_wraps_the_silhouette() -> void:
 func test_a_frame_is_not_accidentally_blank_or_full() -> void:
 	# Two silent disasters a colour check cannot see: a part list that resolved to nothing,
 	# and a stamp that filled the cell edge to edge.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		var rig := ArtFixtures.rig_for(style)
 		var area := style.cell_size.x * style.cell_size.y

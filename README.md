@@ -42,6 +42,13 @@ The output tier is honest GB/SNES-era chibi, not hand-painted art. Higher fideli
 *source swap*, not a rewrite: `SpriteSource` is an interface, and anything that writes the
 `PNG + <name>.sheet.json` pair — a bought pack, an AI generator — feeds the game unchanged.
 
+**M40 cashes that claim with hand-drawn art.** Characters designed in the [Universal LPC
+Spritesheet Character Generator](https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator)
+come in through `data/imports/`, converted at build time by the same generator that draws the
+procedural cast, drift-gated the same way, with every layer's licence checked by name and the
+credits written beside the sprites. The procedural rig stays the default; `sheets_from` on a
+style picks the arm.
+
 ![The warden, at the gate](docs/images/dialog.png)
 
 ## Quick start
@@ -78,6 +85,13 @@ tools/map_io.sh --in=build/map/quest_village.tmj
 The maps that ship stay the readable ASCII files; the editor file is a working file, so a map
 still diffs as a picture in a pull request. LDtk is supported the same way (`--out=ldtk`).
 
+Bring in a hand-drawn character from the
+[Universal LPC Spritesheet Character Generator](https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator):
+put its **Download PNG** and **Export JSON** files in `data/imports/lpc32/<character>/` and run
+the generator above — `data/imports/lpc32/README.md` has the recipe. The converter re-cuts the
+walk rows into the template's own sheet, writes `credits.json` and a licence notice beside the
+sprites, and refuses any layer whose licence the style does not accept.
+
 ## Making it your game
 
 | To change | Edit | Touch any code? |
@@ -85,6 +99,7 @@ still diffs as a picture in a pull request. LDtk is supported the same way (`--o
 | Which game runs, and where it starts | `data/games/*.tres` | no |
 | The whole art style | a file in `data/styles/` | no |
 | Who the characters are | files in `data/characters/` | no |
+| Hand-drawn characters | the LPC generator's two files, in `data/imports/<style>/` | no |
 | The world | `data/maps/*.json` — ASCII rows plus a legend, or draw it in Tiled and import | no |
 | What people say | `data/dialog/*.json` | no |
 | How it feels to move, incl. free vs grid movement | `data/game_config.tres` | no |
@@ -147,7 +162,9 @@ the wrong directory is refused and preserved rather than loaded.
 ## Sprite Lab
 
 A live preview of the generator — all four directions and the whole cast, laid out at the
-game's own 320×180 so the art is judged at the size it will actually be seen.
+game's own 320×180 so the art is judged at the size it will actually be seen. An imported style
+(`lpc32`) is shown from its committed sheets, which is where the first hand-drawn character is
+judged before the world is rebuilt around it.
 
 ![Sprite Lab](docs/images/sprite_lab.png)
 
@@ -218,8 +235,26 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
 - [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.sh`
 - [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
+- [x] **M40a** — hand-drawn characters: a style's sheets come from the rig or from an import (`sheets_from`), Universal LPC exports are converted at build time, licence-gated by file, credited beside the sprites and drift-gated like everything else. The world at 32px, the credits screen and the cast itself are the phases that follow
 
 ## Experience Gained
+
+- Integrated a third-party art toolchain through an existing source seam without touching the
+  runtime: a build-time converter re-cuts the vendor's fixed-layout sheet into the internal
+  contract, and the existing drift gate covers the imported output with no new pipeline step.
+- Turned asset licensing into an enforced build gate rather than a README note: every imported
+  layer's licence is checked against a per-style allow-list by family — not by prefix, since
+  CC-BY is a prefix of CC-BY-SA — with credits and a licence notice generated deterministically
+  alongside the sprites, and the build refusing a non-compliant layer by name.
+- Split a quality gate by capability and proved the split with a membership assertion (the two
+  lists of styles must together equal every style on disk), so a new kind of source cannot
+  silently opt out of every gate.
+- Derived the vendor format from its source code — frame size, fixed row offsets, direction
+  order, cycle — rather than from documentation, and pinned each fact as a literal in the tests
+  so a fixture cannot move with the constant under test.
+- Verified the packaging outcome directly: read the exported archive for the presence of the
+  shipped credits file and the absence of every build input, rather than trusting the ignore
+  marker that was supposed to produce that result.
 
 - Built a bidirectional converter between an internal format and two third-party editor formats, deriving the schema from the vendor's published JSON schema, its own sample projects, and its loader source — which disagreed with each other in ways that mattered, and validating the output against the vendor schema caught what a self-round-trip never could.
 - Reduced three separate implementations of an equivalence check to one shared function before adding the third consumer, then proved that function detects differences rather than assuming it, because a permissive comparison would have made three gates pass vacuously at once.

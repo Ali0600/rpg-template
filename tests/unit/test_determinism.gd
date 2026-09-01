@@ -71,7 +71,7 @@ func test_committed_art_matches_what_the_generator_produces_now() -> void:
 	# build output that no longer matches its source is the quiet failure: someone edits a
 	# rig, forgets to regenerate, and the game ships the old sprites while the repo
 	# describes the new ones.
-	for style_id in ArtFixtures.style_ids():
+	for style_id in ArtFixtures.rig_style_ids():
 		var style := ArtFixtures.style(style_id)
 		var rig := ArtFixtures.rig_for(style)
 		for spec in ArtFixtures.characters_of(style_id):

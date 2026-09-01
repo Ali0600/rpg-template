@@ -14,20 +14,23 @@ func _meta_for(style_id: StringName, character_id: StringName) -> SheetMeta:
 	return SheetMeta.from_dict(file.data)
 
 func test_every_committed_sheet_describes_itself_correctly() -> void:
+	# sheet_ids_of, not characters_of: an imported sheet is a committed pair the game loads
+	# exactly like a generated one, and a contract over "every pair" that skipped them would be
+	# a contract over some.
 	for style_id in ArtFixtures.style_ids():
-		for spec in ArtFixtures.characters_of(style_id):
-			var meta := _meta_for(style_id, spec.id)
-			var texture := load(ArtFixtures.generated_texture_path(style_id, spec.id)) as Texture2D
+		for id in ArtFixtures.sheet_ids_of(style_id):
+			var meta := _meta_for(style_id, id)
+			var texture := load(ArtFixtures.generated_texture_path(style_id, id)) as Texture2D
 			assert_object(texture).is_not_null()
 			assert_array(meta.problems(texture.get_size())).override_failure_message(
-				"%s/%s: %s" % [style_id, spec.id, meta.problems(texture.get_size())]).is_empty()
+				"%s/%s: %s" % [style_id, id, meta.problems(texture.get_size())]).is_empty()
 
 func test_rows_are_in_canonical_direction_order() -> void:
 	# The single most damaging thing that can silently drift. Asserted against a literal
 	# list, not against Dir.ALL, so a change to the constant cannot make this agree with it.
 	for style_id in ArtFixtures.style_ids():
-		for spec in ArtFixtures.characters_of(style_id):
-			var meta := _meta_for(style_id, spec.id)
+		for id in ArtFixtures.sheet_ids_of(style_id):
+			var meta := _meta_for(style_id, id)
 			assert_int(meta.row_of(Dir.D.DOWN)).is_equal(0)
 			assert_int(meta.row_of(Dir.D.LEFT)).is_equal(1)
 			assert_int(meta.row_of(Dir.D.RIGHT)).is_equal(2)
