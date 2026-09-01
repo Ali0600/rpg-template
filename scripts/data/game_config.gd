@@ -64,6 +64,28 @@ extends Resource
 ## constant in the view.
 @export var save_slots: int = 3
 
+## WHERE the player may write a save, which the genre disagrees about loudly enough that a
+## template cannot pick for every game built on it. "anywhere" is the pause menu's Save row
+## (Pokemon's shape, and the default because it is what every session recorded before this
+## field existed was playing); "at_point" removes that row and leaves the `open_save` dialog
+## effect as the only way to write one - Dragon Quest's king, Final Fantasy's inn.
+##
+## It governs WRITING only. Loading stays a pause-and-title verb under both policies: a game
+## that makes saving a journey does not also make quitting one.
+##
+## A StringName checked against a list rather than an enum, for the reason SpellDef.Kind is an
+## enum and this is not: a .tres stores an enum as the bare int it was written as, so a third
+## policy later would re-label every shipped config. A typo'd value FAILS THE BUILD here rather
+## than falling back to a default - the npc `behavior` rule, and for its reason: a policy that
+## silently reads as "anywhere" is a save point nobody can find and a Save row nobody removed.
+@export var save_policy: StringName = SAVE_ANYWHERE
+
+## The whole vocabulary, so the check below and anything that has to offer the choice - the
+## scaffold wizard, a test - read the same list rather than three copies of it.
+const SAVE_ANYWHERE := &"anywhere"
+const SAVE_AT_POINT := &"at_point"
+const SAVE_POLICIES: Array[StringName] = [SAVE_ANYWHERE, SAVE_AT_POINT]
+
 ## How long the night takes, in FRAMES rather than seconds - the clock every timed thing here
 ## counts on, so a rest lasts the same length on a slow machine as on a fast one. Split into
 ## the fade and the pause at full black because they are tuned against different things: the
@@ -90,6 +112,8 @@ func problems() -> Array[String]:
 		out.append("grid_step_seconds cannot be negative, got %f" % grid_step_seconds)
 	if save_slots < 1:
 		out.append("save_slots must be at least 1, got %d" % save_slots)
+	if not SAVE_POLICIES.has(save_policy):
+		out.append("save_policy must be one of %s, got '%s'" % [SAVE_POLICIES, save_policy])
 	if rest_fade_frames < 1:
 		out.append("rest_fade_frames must be at least 1, got %d" % rest_fade_frames)
 	if rest_hold_frames < 1:

@@ -37,6 +37,7 @@ var _pause_member: StringName = &""
 var _shop: ShopScreen
 var _game_over: GameOverScreen
 var _night: RestScreen
+var _saving: SaveScreen
 ## The title, when it is up. NOT part of a running game - it is what a game is started FROM -
 ## so _teardown_game frees it for the opposite reason it frees the pause menu: not because it
 ## belongs to the game being torn down, but because the thing tearing one down is about to
@@ -241,6 +242,10 @@ func _teardown_game() -> void:
 	if _shop != null and is_instance_valid(_shop):
 		_shop.free()
 	_shop = null
+	# Its slot list names the game being torn down, the pause screen's argument exactly.
+	if _saving != null and is_instance_valid(_saving):
+		_saving.free()
+	_saving = null
 	if _game_over != null and is_instance_valid(_game_over):
 		_game_over.free()
 	_game_over = null
@@ -761,6 +766,13 @@ func _apply_effects(effects: Array) -> bool:
 					push_error("World: spent %d the player does not have" % effect.get("amount", 0))
 			GameContext.OP_REST:
 				did = _rest() or did
+			GameContext.OP_SAVE:
+				# DEFERRED, the OP_SHOP rule and for its reason exactly: _on_dialog_closed
+				# applies this list and THEN pops the dialog overlay, so a screen opened here
+				# is the one that pop closes - it would flash and vanish, leaving the
+				# conversation up and the save unwritten.
+				open_save.call_deferred()
+				did = true
 			GameContext.OP_GOLD:
 				# give_gold refuses a non-positive amount, so a malformed effect changes
 				# nothing rather than quietly subtracting.
@@ -838,10 +850,21 @@ func open_pause() -> bool:
 	add_child(_pause)
 	_pause_member = &""
 	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
-		_gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows()),
-		_style, get_viewport_rect().size)
+		_gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows(),
+		_saves_from_the_menu()), _style, get_viewport_rect().size)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
+
+
+## Whether the pause menu offers a Save row, which is the running game's save_policy read once,
+## here, and handed to the menu as an answer.
+##
+## The world resolves it for the reason it words the status lines: knowing what "at_point"
+## means is a config question, and PauseMenu may not ask one. A game with no config at all
+## saves from the menu - the default everywhere, and the shape every session recorded before
+## this field existed was playing.
+func _saves_from_the_menu() -> bool:
+	return _config == null or _config.save_policy != GameConfig.SAVE_AT_POINT
 
 
 ## What is in each of this game's slots, for drawing. peek() rather than load_slot(): merely
@@ -985,6 +1008,51 @@ func _close_rest() -> void:
 	Router.close_overlay()
 
 
+## A save point, over the world. Deferred by its caller the way a counter and a night are: the
+## dialog close pops an overlay, and a screen opened before that pop is the one it closes.
+##
+## Public for the reason open_shop() and open_pause() are - a game's hook may want a save point
+## without a conversation in front of it, and a test must be able to stage one without a map
+## that places one.
+##
+## It does NOT consult save_policy. That field says where the pause menu offers a Save row; a
+## save point is the other way in and is legal under both, so a game that ships one in a
+## save-anywhere world gets the redundancy it asked for rather than a screen that silently
+## never opens.
+func open_save() -> bool:
+	if _saving != null or _battle != null or _game_over != null or _shop != null or _game == null:
+		return false
+	_player.halt()
+	_saving = SaveScreen.new()
+	# Constructed and connected in one function, the open_battle_with rule.
+	_saving.sound_wanted.connect(_on_sound_wanted)
+	_saving.save_requested.connect(_on_save_point_write)
+	_saving.left.connect(_close_save)
+	add_child(_saving)
+	_saving.setup(SaveMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
+	Router.open_overlay(Router.State.SAVING)
+	return true
+
+
+## The save point wrote a slot. The same one writer the pause menu's Save row goes through, so
+## there is one answer to "what does saving actually do" no matter which door the player used.
+func _on_save_point_write(slot: int) -> void:
+	if _saving == null:
+		return
+	SaveManager.save(slot, GameState.to_save())
+	# The screen stays open and is told what the slots now hold, so the row the player is
+	# looking at shows what they just wrote - the pause menu's rule for the same press.
+	_saving.refresh(_slot_summaries())
+
+
+func _close_save() -> void:
+	if _saving == null:
+		return
+	_saving.queue_free()
+	_saving = null
+	Router.close_overlay()
+
+
 ## Opens a counter. Public for the same reason open_pause() is: a game's hook may want one
 ## without a conversation in front of it.
 func open_shop(shop_id: StringName) -> bool:
@@ -1100,7 +1168,7 @@ func _close_shop() -> void:
 func _refresh_pause() -> void:
 	_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label(),
 		_gear_rows(_pause_member), _stats_label(_pause_member),
-		_status_lines(_pause_member), _member_rows())
+		_status_lines(_pause_member), _member_rows(), _saves_from_the_menu())
 
 
 ## Who the paused screen's Equipment and Status pages are currently about. Empty is the leader.
@@ -1779,6 +1847,10 @@ func shop_screen() -> ShopScreen:
 ## exactly why the model wants it: a state nothing can look at is a state nothing can check.
 func rest_screen() -> RestScreen:
 	return _night
+
+
+func save_screen() -> SaveScreen:
+	return _saving
 
 
 ## Whether a game is built behind whatever is on screen. The title is the one state where the

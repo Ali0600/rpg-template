@@ -634,3 +634,63 @@ func test_with_one_member_backing_out_of_equipment_still_leaves_it() -> void:
 	menu.confirm()
 	menu.cancel()
 	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
+
+# --- the save policy ------------------------------------------------------------------------
+
+func test_a_game_that_saves_at_a_point_has_no_save_row() -> void:
+	# The axis, from the menu's side. The row is ABSENT rather than refused: a capability the
+	# game does not have is hidden, the requires_item rule, where a price the player cannot
+	# meet is quoted and refused.
+	var menu := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+	assert_int(menu.size()).is_equal(PauseMenu.Row.size() - 1)
+	var offered: Array = []
+	for i in menu.size():
+		offered.append(menu.top_row(i))
+	assert_bool(offered.has(PauseMenu.Row.SAVE)).override_failure_message(
+		"a save-at-point game still offered the Save row").is_false()
+	# Everything else survives, which is the half a "the row is gone" assertion cannot see:
+	# hiding one row must not hide its neighbours.
+	for row: int in [PauseMenu.Row.RESUME, PauseMenu.Row.ITEMS, PauseMenu.Row.EQUIP,
+			PauseMenu.Row.STATUS, PauseMenu.Row.LOAD, PauseMenu.Row.SOUND]:
+		assert_bool(offered.has(row)).override_failure_message(
+			"hiding Save also took row %d with it" % row).is_true()
+
+func test_a_game_that_saves_anywhere_offers_every_row_at_its_own_index() -> void:
+	# The control, and the compatibility claim in one: with saving on, a cursor index IS its
+	# Row - which is what leaves every test and session that lands on a row by naming it
+	# (move(Row.SAVE)) pressing exactly what it always pressed.
+	var menu := PauseMenu.of(_slots([0]))
+	assert_int(menu.size()).is_equal(PauseMenu.Row.size())
+	for i in menu.size():
+		assert_int(menu.top_row(i)).override_failure_message(
+			"row %d moved when nothing asked it to" % i).is_equal(i)
+
+func test_the_row_after_status_opens_LOAD_when_saving_is_off() -> void:
+	# The mapping doing its job: at that index the enum says SAVE and this game says Load, and
+	# a confirm has to answer for the row that is DRAWN there.
+	var menu := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+	menu.move(PauseMenu.Row.SAVE)
+	assert_int(menu.top_row(menu.index())).is_equal(PauseMenu.Row.LOAD)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
+	assert_int(menu.page()).override_failure_message(
+		"the row drawn as Load opened some other page").is_equal(PauseMenu.Page.LOAD)
+
+func test_saving_is_still_reachable_when_the_policy_allows_it() -> void:
+	var menu := PauseMenu.of(_slots([0]))
+	menu.move(PauseMenu.Row.SAVE)
+	menu.confirm()
+	assert_int(menu.page()).is_equal(PauseMenu.Page.SAVE)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.SAVE)
+
+func test_no_press_on_a_save_at_point_menu_can_reach_the_save_page() -> void:
+	# The whole-set assertion the per-row check cannot make: walk every row this menu offers,
+	# confirm on each, and require the save page never to open. "The row is not in the list" is
+	# one direction; "no press reaches the page" is the one that matters.
+	var menu := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+	for i in menu.size():
+		var fresh := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+		fresh.move(i)
+		fresh.confirm()
+		assert_int(fresh.page()).override_failure_message(
+			"row %d of a save-at-point menu opened the SAVE page" % i).is_not_equal(
+			PauseMenu.Page.SAVE)

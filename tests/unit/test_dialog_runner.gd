@@ -354,3 +354,35 @@ func test_a_refusal_node_is_reachable() -> void:
 	# correctly-written refusal fails the build as unreachable - a gate refusing correct data.
 	assert_array(_keeper(10).problems()).override_failure_message(
 		"a well-formed keeper failed the content gate").is_empty()
+
+func test_a_choice_carrying_open_save_asks_for_a_save_point() -> void:
+	# The key and the op live in different files, so a typo in either is a choice that silently
+	# does nothing - the failure a data-driven vocabulary makes easiest to ship and hardest to
+	# notice. A bare `true` like `rest` rather than an id like `open_shop`: every save point in
+	# a game writes the same slots, so there is nothing to name.
+	var runner := DialogRunner.from_dict({"id": "priest", "start": "here", "nodes": {
+		"here": {"text": "Record your journey?", "choices": [
+			{"text": "Yes", "open_save": true, "next": "done"},
+			{"text": "No", "next": "done"}]},
+		"done": {"text": "Rest well."}}})
+	assert_bool(runner.begin()).is_true()
+	assert_bool(runner.choose(0)).is_true()
+	var ops: Array = []
+	for effect in runner.effects():
+		ops.append(str(effect.get("op", "")))
+	assert_array(ops).override_failure_message(
+		"a choice carrying open_save collected %s" % [ops]).contains([str(GameContext.OP_SAVE)])
+
+func test_a_choice_without_open_save_asks_for_nothing() -> void:
+	# The other half of the pair: the key has to be what did it. Without this, an arm that
+	# emitted the op unconditionally would pass the test above.
+	var runner := DialogRunner.from_dict({"id": "priest", "start": "here", "nodes": {
+		"here": {"text": "Record your journey?", "choices": [
+			{"text": "Yes", "open_save": true, "next": "done"},
+			{"text": "No", "next": "done"}]},
+		"done": {"text": "Rest well."}}})
+	assert_bool(runner.begin()).is_true()
+	assert_bool(runner.choose(1)).is_true()
+	for effect in runner.effects():
+		assert_str(str(effect.get("op", ""))).override_failure_message(
+			"declining a save point still asked for one").is_not_equal(str(GameContext.OP_SAVE))

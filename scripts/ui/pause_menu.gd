@@ -156,13 +156,18 @@ var _members: Array = []
 var _member: int = 0
 ## Which page the member step is standing in front of.
 var _member_opens := Page.EQUIP
+## Whether this game writes saves from the menu at all. A bool rather than the policy word,
+## because the menu's question is "is there a Save row" and the vocabulary of save_policy is
+## the world's business - the _stats and _status shape, where the world answers and this class
+## draws. True is the default and is every game that has not said otherwise.
+var _can_save := true
 var _page := Page.TOP
 var _index := 0
 
 
 static func of(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = [], members: Array = []) -> PauseMenu:
+		status: Array[String] = [], members: Array = [], can_save := true) -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
@@ -172,7 +177,41 @@ static func of(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 	menu._stats = stats
 	menu._status = status.duplicate()
 	menu._members = members.duplicate()
+	menu._can_save = can_save
 	return menu
+
+
+## The TOP page's rows as this game actually offers them, in enum order.
+##
+## Identical to the enum whenever the game saves from the menu, which is the default and every
+## game recorded before save_policy existed - so the cursor index and the Row are still the
+## same number there, and every test and session that lands on a row by naming it
+## (move(Row.SAVE)) lands where it always did. Under a save-at-point policy the Save row is
+## absent rather than refused: a row that cannot be pressed is a dead key, and this is a
+## capability the game does not have rather than a price the player cannot meet - the
+## requires_item rule, which hides, not the spend_gold rule, which quotes and refuses.
+func _top_rows() -> Array:
+	var out: Array = []
+	for row: int in Row.values():
+		if row == Row.SAVE and not _can_save:
+			continue
+		out.append(row)
+	return out
+
+
+## Which Row the TOP cursor is on. The view asks so it can label the row, and confirm() asks so
+## it can answer for it - one mapping, so the drawing and the pressing cannot disagree about
+## what the third row is.
+func top_row(at: int) -> int:
+	var rows := _top_rows()
+	if at < 0 or at >= rows.size():
+		return Row.RESUME
+	return rows[at]
+
+
+## Whether the menu offers saving at all. The view asks so its help line can stay honest.
+func can_save() -> bool:
+	return _can_save
 
 
 ## Opens a page that is ABOUT somebody, putting the member step in front of it when there is
@@ -335,7 +374,7 @@ func pick_row(at: int) -> ItemRow:
 func size() -> int:
 	match _page:
 		Page.TOP:
-			return Row.size()
+			return _top_rows().size()
 		Page.ITEMS:
 			# An empty bag still has one row - the line that says it is empty. A page with no
 			# rows at all is one the cursor cannot stand on and the player cannot escape from.
@@ -389,27 +428,31 @@ func move(delta: int) -> bool:
 ## the world for nothing, which is the same shape as a cursor move.
 func confirm() -> Pick:
 	if _page == Page.TOP:
-		if _index == Row.RESUME:
+		# Through top_row() rather than off _index directly, because the two are only the same
+		# number while every row is offered. A game that saves at a point has no Save row, and
+		# reading the cursor as a Row there would answer with whatever now sits at that index.
+		var row := top_row(_index)
+		if row == Row.RESUME:
 			return Pick.of(Kind.RESUME)
 		# Answered BEFORE the empty-slot guard below, along with the item page. Neither has
 		# anything to do with saves, and a game configured with no slots must still be able to
 		# turn the sound down.
-		if _index == Row.SOUND:
+		if row == Row.SOUND:
 			return Pick.of(Kind.SOUND)
-		if _index == Row.ITEMS:
+		if row == Row.ITEMS:
 			_page = Page.ITEMS
 			_index = 0
 			return Pick.of(Kind.NONE)
-		if _index == Row.EQUIP:
+		if row == Row.EQUIP:
 			return _open_about(Page.EQUIP)
-		if _index == Row.STATUS:
+		if row == Row.STATUS:
 			return _open_about(Page.STATUS)
 		# A game configured with no slots has nowhere to go. The four rows above are exempt: an
 		# empty bag is a fact worth showing, a player can still dress themselves and still ask
 		# how they are, where an empty slot list is a menu with nothing in it.
 		if _slots.is_empty():
 			return Pick.of(Kind.NONE)
-		_page = Page.SAVE if _index == Row.SAVE else Page.LOAD
+		_page = Page.SAVE if row == Row.SAVE else Page.LOAD
 		_index = 0
 		return Pick.of(Kind.NONE)
 	# The bag is a list of what is carried, and nothing more. Equipment moved to a page of its
@@ -495,7 +538,7 @@ func cancel() -> Pick:
 ## a page they are still using.
 func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = [], members: Array = []) -> void:
+		status: Array[String] = [], members: Array = [], can_save := true) -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
 	_sound = sound
@@ -504,6 +547,7 @@ func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 	_stats = stats
 	_status = status.duplicate()
 	_members = members.duplicate()
+	_can_save = can_save
 	if _index >= size():
 		_index = maxi(size() - 1, 0)
 

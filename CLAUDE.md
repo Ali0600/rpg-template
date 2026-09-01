@@ -478,6 +478,46 @@ the middle of a fade. Its frames come from `GameConfig`, never seconds. Kept as 
 rather than a general fade because there is one caller; the day a second wants it is the day
 it becomes a `FadeScreen`.
 
+**WHERE a game may be saved is an axis, and `save_policy` is the whole switch.**
+`GameConfig.save_policy` is `anywhere` (the pause menu's Save row, Pokemon's shape) or
+`at_point` (that row is gone, and the `open_save` dialog effect is the only way to write one -
+Dragon Quest's king, Final Fantasy's inn). It is the `grid_step_pixels` shape one layer up: a
+StringName checked against `SAVE_POLICIES` rather than an enum, because a `.tres` stores an
+enum as the bare int it was written as and a third policy later would re-label every shipped
+config. A typo'd value FAILS THE BUILD - the npc `behavior` rule, and for its reason: a policy
+that silently reads as `anywhere` is a save point nobody can find beside a Save row nobody
+removed, and both halves look correct on their own.
+
+It governs WRITING only. Loading stays a pause-and-title verb under both, because a game that
+makes saving a journey does not also make quitting one. The row is HIDDEN rather than refused:
+a capability the game does not have is the `requires_item` case, which hides, not the
+`spend_gold` case, which quotes a price out loud and says no.
+
+**Hiding a row means the cursor index is no longer the Row.** `PauseMenu._top_rows()` is the one
+place that list is derived and `top_row(at)` the one place a cursor is turned back into a Row;
+`confirm()` and the view's `_label_for` both go through it, or the drawing and the pressing
+disagree about which row is the fifth one. With saving on, the list IS the enum - which is what
+leaves every test and session that lands on a row by naming it (`move(Row.SAVE)`) pressing
+exactly what it always pressed. The world answers `_saves_from_the_menu()` and hands the menu a
+BOOL, never the policy word: knowing what `at_point` means is a config question and `PauseMenu`
+may not ask one - the `_status_lines`/`_gear_rows` precedent.
+
+**A save point is a `Router` state of its own, and `SaveMenu.confirm()` inverts the rule every
+other slot list follows.** `PauseMenu` and `SlotMenu` both REFUSE a slot with nothing behind it,
+because both are about loading; the same guard on a save page is the bug, since a first save is
+aimed at exactly the row those two turn away. A damaged slot is writable too - `save()` parks
+whatever it overwrites either way, and refusing would strand a player whose only slot went bad.
+`SaveScreen` is a window over the live world (the counter's rule: a save point is somewhere the
+player walked to) and draws its rows through `PauseMenu.slot_label`, the one place a slot has
+ever been put into words. Its own state rather than the pause menu jumped to a page, because a
+priest does not hand you your equipment.
+
+`OP_SAVE` is opened DEFERRED, the `OP_SHOP` rule and for its exact reason: `_on_dialog_closed`
+applies effects and THEN pops the dialog overlay, so a screen opened inline is the one that pop
+closes - it lands the machine in `dialog` with an orphaned screen behind a finished
+conversation, and nothing errors. Only a test that stages a REAL dialog close can tell the two
+apart; the save-point tests that open the effect directly pass either way.
+
 **A shop is a COUNTER, not a list.** The screen is the anatomy every classic shop converges
 on, and M18 shipped without most of it: an item list with prices RIGHT-ALIGNED in their own
 column and the owned count beside them, a purse panel that becomes the running total while a

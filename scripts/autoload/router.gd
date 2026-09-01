@@ -21,6 +21,10 @@ enum State {
 	## A night is passing. An overlay with nothing to press: it ends on its own, and the
 	## point of it being a state at all is that the player cannot walk out of a fade.
 	RESTING,
+	## A save point is open, asking which slot. An overlay like the counter, and its own state
+	## rather than the pause menu at a page, because what a save point offers is one question
+	## and the pause menu offers six.
+	SAVING,
 }
 
 var _state: State = State.TITLE

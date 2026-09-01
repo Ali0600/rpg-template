@@ -92,10 +92,10 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void
 ## the player is looking at show what they just wrote.
 func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = [], members: Array = []) -> void:
+		status: Array[String] = [], members: Array = [], can_save := true) -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots, items, sound, gold, gear, stats, status, members)
+	_menu.refresh(slots, items, sound, gold, gear, stats, status, members, can_save)
 	_committed = false
 	_paint()
 
@@ -190,7 +190,11 @@ func _paint() -> void:
 func _label_for(at: int) -> String:
 	match _menu.page():
 		PauseMenu.Page.TOP:
-			return _menu.sound_label() if at == PauseMenu.Row.SOUND else TOP_LABELS[at]
+			# Through top_row() rather than indexing by the cursor, because a game that saves
+			# at a point offers fewer rows than the enum has - and labelling by the raw index
+			# there would draw "Save" over the row that now answers Load.
+			var row := _menu.top_row(at)
+			return _menu.sound_label() if row == PauseMenu.Row.SOUND else TOP_LABELS[row]
 		PauseMenu.Page.ITEMS:
 			return PauseMenu.item_label(_menu.item(at))
 		PauseMenu.Page.STATUS:
