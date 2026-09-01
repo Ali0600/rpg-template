@@ -518,6 +518,22 @@ closes - it lands the machine in `dialog` with an orphaned screen behind a finis
 conversation, and nothing errors. Only a test that stages a REAL dialog close can tell the two
 apart; the save-point tests that open the effect directly pass either way.
 
+**A save point heals NOTHING, and that is research rather than taste.** Every free save point in
+the genre restores nothing - Dragon Quest's king, Dragon Quest IV's church, EarthBound's
+telephone (structurally: no HP-recovery opcode appears in any of the ROM's five save scripts),
+Chrono Trigger's save points (the purchased Shelter heals, not the point). The one that heals
+fully is Final Fantasy I's INN, a PAID rest that also saves - which is why a game wanting that
+shape puts `open_save` on the innkeeper's yes beside `spend_gold` and `rest`, three keys on one
+choice and no new mechanism. The demo's village already charges four gold for a bed; a free full
+heal beside it would make the innkeeper a mistake. See `docs/GENRE_CONVENTIONS.md` §8, which is
+binary-derived because three of these wikis are bot-blocked and one is paywalled.
+
+**A shipped NPC is a WALL, so a new one is placed against the sessions.** The chronicler stands
+at village [1,2] and is `static`, and both facts are load-bearing: several sessions use bodies as
+stops, and `write_it_down.json` uses HIM as one - north out of the spawn is stopped by the
+warden, west by the map edge, north again by the chronicler, so the whole walk arrives facing him
+with no counted leg anywhere. A wandering save point would break sessions that look unrelated.
+
 **A shop is a COUNTER, not a list.** The screen is the anatomy every classic shop converges
 on, and M18 shipped without most of it: an item list with prices RIGHT-ALIGNED in their own
 column and the owned count beside them, a purse panel that becomes the running total while a

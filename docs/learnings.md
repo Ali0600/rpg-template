@@ -1494,3 +1494,61 @@ but aim your coverage proof at the deterministic half. Widening the fixture unti
 boundary is worth doing and is not enough on its own: it moves the boundary rather than removing
 it, and the next content change moves it back. The tell is a mutant that dies in one place and
 lives in another; treat that as a statement about your instrument, not about the platform.
+
+## An assertion that can never be true is not a test, and only a sabotage will say so
+
+A test that passes tells you nothing about whether it CAN fail. If the assertion is malformed
+in a way that makes it vacuously true, it passes on the healthy tree, passes on the broken one,
+and looks exactly like coverage in the file.
+
+**Why it came up.** A new gate had to prove a menu row was absent for one configuration, so the
+test read the rendered labels and asserted none of them `begins_with("Save")`. It passed. It
+also passed with the code deliberately broken to draw that row — because every row here is drawn
+with a `"> "` or `"  "` cursor prefix, so no label has ever begun with its own text. The
+assertion could not have been true under any circumstances. Nothing in review would have caught
+it; the mutation run caught it in one cycle, by SURVIVING.
+
+**Takeaway.** Before trusting a new assertion, make it fail once on purpose. When it is about
+rendered text, print what was actually drawn before writing the comparison — the string on
+screen usually carries decoration (a cursor, a bullet, padding, a colour code) that the
+predicate has to account for. Prefer a comparison that is exact after normalising (`strip`, then
+`is_not_equal`) over a loose one like `begins_with`/`contains`, because the loose form is the one
+that quietly becomes unfalsifiable. And read a surviving mutant as a claim about your TEST first
+and about the code second.
+
+## When two implementations of a rule exist, the second one is a view
+
+Hiding one item from an ordered list breaks an identity nobody wrote down: that a cursor's index
+IS the enum member it points at. Every reader of that list then needs the same mapping, and any
+reader that keeps using the raw index is now pointing somewhere else.
+
+**Why it came up.** Making a menu row conditional meant the index and the row stopped being the
+same number. The logic layer got a `top_row(at)` mapping — and the VIEW still labelled its rows
+by the raw index, so it drew "Save" over the row that answered "Load". Both halves were
+internally consistent; the disagreement only existed between them. A mutation aimed at the view's
+half was the thing that proved a test was needed there at all.
+
+**Takeaway.** When you make a previously-total mapping partial (hiding a row, filtering an enum,
+skipping a status), find every reader of the old identity in the same change — the logic, the
+renderer, the input handler, the tests — and route them all through one function. Then test the
+RENDERED result, not just the logic's answer: the logic being right proves nothing about the
+layer that draws it, and the drawing layer is where the player actually experiences the bug.
+
+## A deferred call and an immediate one are indistinguishable except on the real path
+
+Code that says "do this next frame instead of now" is invisible to any test that does not
+reproduce the reason for the delay. Every test that calls the thing directly passes either way,
+so the deferral looks covered while being completely unprotected.
+
+**Why it came up.** A screen opened from a conversation has to be opened DEFERRED, because the
+conversation's own teardown closes the top overlay a moment later — opened inline, the new screen
+is what gets closed, and the machine lands in a state nobody asked for with an orphaned screen
+behind it. Nothing errors. Four tests of that feature all passed against the broken version,
+because each staged the effect directly rather than through a real conversation.
+
+**Takeaway.** For any "do it later" (`call_deferred`, `setTimeout`, a queued job, a debounce),
+write the test that reproduces WHY the delay exists — the real caller, the real teardown, the
+real ordering — and prove it fails without the deferral. If you cannot construct that scenario,
+the deferral has no test, and saying so in the comment is more honest than the tests implying
+otherwise. Everything else about the feature can be tested through the convenient seam; this one
+rule cannot.

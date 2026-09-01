@@ -564,23 +564,75 @@ work rather than a repo clone.
 
 ## 8. Save/load
 
-**The convention.** Early 2D RPGs save at **designated places** — DQ's kings and churches,
-FF's save points in dungeons and anywhere on the overworld, Pokémon's menu-save-anywhere
-(which is the modern end of the trend). Inns restore HP for gold and double as the save
-prompt. Multiple slots are usual; a slot shows where you are and how long you have played.
+**The convention, re-researched for M39 and it corrected two things this section used to say.**
+The findings below are marked **(a)** where they come from a disassembly or from ROM text the
+project decoded itself, **(b-official)** for a publisher's own manual, and **(b)** for a
+reputable secondary source. The wikis for three of these games are bot-blocked (403) or paywalled
+(402), which is what forced reading the binaries — the same route M33 took for elements.
 
-**This template diverges, deliberately.** Save and Load are pause-menu rows and work anywhere.
-Slots live per game at `user://saves/<game>/slot_N.json`, each save **names its game**, and a
-file that disagrees with its directory is parked rather than loaded. The slot list is drawn
-with a *silent* read, so drawing a menu never parks a file or announces a load.
+| Game | Where you save | Heals? | Cost | Slots |
+|---|---|---|---|---|
+| Dragon Quest I | King Lorik, and nowhere else **(a)** | no | free | 3, chosen at the title |
+| Dragon Quest II / III | a king **(b-official)** | — | free | 3 |
+| Dragon Quest IV+ | a **church** **(b)** | — | free (confession) | 3 |
+| Final Fantasy I | the **inn**, or a tent/cabin/house on the overworld **(a)** | inn: full HP+MP | inn: paid | **1** |
+| Pokémon R/B | anywhere, from the START menu **(a)** | no | free | 1 |
+| EarthBound | a **telephone**, to Ness's dad **(a)** | no | the pay phone costs $1, not the save | 3 |
+| Chrono Trigger | save points, and anywhere on the world map **(b-official)** | **no** | free | 3 |
 
-**Why.** Save points are a difficulty mechanic — they exist to make a dungeon a commitment.
-That is a *game's* decision, and a template that forced it would be making it for every game
-built on it. A game wanting save points ships them as an object with a `GameHooks` interaction.
+**Three claims that are widely repeated and are wrong.** Dragon Quest's save prompt is *not*
+"Dost thou wish to record thy deeds?" — that construction belongs to the **continue** question
+that follows it; the save prompt is *"Will thou tell me now of thy deeds so they won't be
+forgotten?"*, answered by *"Thy deeds have been recorded on the Imperial Scrolls of Honor."*
+**(a)**. FF1's TENT restores **30** HP, not the 60 the guides quote **(a)**; and its HOUSE
+restores MP only *after* the save branch, which the disassembly's own comment calls bugged.
+And a Chrono Trigger save point does **not** heal — it is where a purchased **Shelter** may be
+used, which is a different claim entirely **(b-official)**.
 
-**On the inn:** M21 added one (§10), and it deliberately does NOT offer to save. The genre
-pairs the two; this template does not, because save-anywhere is a decision already recorded
-above and pairing them would relitigate it as a side effect of a healing feature.
+**A free save point heals NOTHING, in every single reference.** Kings, churches, telephones and
+Chrono Trigger's save points all restore nothing at all. The one place saving heals fully is
+FF1's **inn** — a paid rest that happens to also save. That is the whole answer to "should the
+save point top the player up": no, unless it charges.
+
+**Every one of them tells you it happened.** DQ1's scroll line, FF1's `Now saving..!` plus a
+dedicated jingle, Pokémon's `<PLAYER> saved the game!` with `SFX_SAVE`, EarthBound's *"I have
+created a record of your adventure to this point."* **(a)** Three of them also announce
+FAILURE — Pokémon's `The file data is destroyed!` is the canonical one.
+
+**The genre's verb is "record", not "save".** DQ writes deeds on scrolls; EarthBound's telephone
+menu option is literally **"Record"** and Maxwell asks *"Would you like me to keep a record of
+your journey?"* **(a)** — Dad never says the word "save". This template's chronicler is worded
+against that finding rather than around it.
+
+**None of them picks a slot AT the moment of saving.** DQ1, EarthBound and Chrono Trigger choose
+the file at the **title screen**; FF1 and Pokémon have one file and nothing to choose. Only
+Pokémon asks an overwrite question (`The older file will be erased to save. Okay?`), and only
+because it is confirming against a single file.
+
+**This template makes WHERE an axis, and diverges on the slot question.** `GameConfig.save_policy`
+is `anywhere` (Pokémon's shape, and the default) or `at_point` (the Save row is gone; the
+`open_save` dialog effect is the only way to write one). Slots live per game at
+`user://saves/<game>/slot_N.json`, each save **names its game**, and a file that disagrees with
+its directory is parked rather than loaded. The slot list is drawn with a *silent* read, so
+drawing a menu never parks a file or announces a load.
+
+The **divergence** is that a save point here shows a slot list, where every reference either has
+one file or chose it at the title. It is stated rather than fixed, for the reason the foe bars
+are: this template's pause menu has picked a slot at save time since M5 and has been played that
+way, and a save point that answered the question differently would be two answers to one
+question. `docs/DECISIONS.md` carries the fork and the genre's own answer as the deferred
+alternative.
+
+**Why an axis rather than a decision.** Save points are a difficulty mechanic — they exist to
+make a dungeon a commitment — and that is a *game's* call, not a template's. Before M39 this
+file argued that a game wanting them "ships them as an object with a `GameHooks` interaction",
+which was true and was also the template declining to have an opinion: the pause menu's Save row
+would still have been sitting there offering the thing the design had just forbidden.
+
+**On the inn:** M21 added one (§10) and it still does NOT save, even though FF1's does. Here that
+is a content choice rather than a template one — a game that wants FF1's inn puts `open_save`
+on the innkeeper's yes beside its `spend_gold` and `rest`, which is three keys on one choice and
+needs no new mechanism.
 
 **A damaged save is TOLD, not hidden — added in M32.** The canonical case is Pokémon's *"The
 file data is destroyed!"*: the save is checksummed, and a file that fails is declared unusable
@@ -1090,3 +1142,36 @@ Status research (§13a) is drawn from these:
 - The user's own [`jrpg-design-codex`](https://github.com/Ali0600/jrpg-design-codex) — design
   *patterns* (progression systems, build economies), not screen anatomy. Cite it for what a
   system should do, not for what a screen should contain.
+
+Saving research (§8, rewritten in M39). Where a wiki was bot-blocked the shipped binary was read
+instead, which is the M33 route and produced better evidence again — three widely-repeated
+claims turned out to be wrong. Bot-blocked or paywalled this pass: gamefaqs, strategywiki,
+woodus, nesworld, guides.gamercorner, wikibound, dragonquest.fandom (**402**), earthbound.fandom.
+
+- [Dragon Warrior NES disassembly](https://github.com/nmikstas/dragon-warrior-disassembly) —
+  `Bank03.asm` holds the game's ONE call to the save routine, inside `KingDialog2`; the exact
+  NES strings were decoded from the text blocks in `Bank02.asm`. The save path writes no gold
+  and no HP, and `InitDeathSequence` never reads the save file
+- [Final Fantasy NES disassembly](https://github.com/BenWenger/FinalFantasyDisassembly) — every
+  call site of `SaveGame`: the inn (`EnterShop_Inn`, which fills HP and MP first) and the
+  tent/cabin/house items, gated to the overworld map. `LDA #30` / `#60` / `#120` are the three
+  HP amounts; the house's MP restore sits after the save branch, commented *"some would say
+  this is BUGGED"*. Menu and shop strings decoded through the game's own DTE tables in bank `0F`
+- [pret/pokered](https://github.com/pret/pokered) — `DrawStartMenu` prints SAVE unconditionally
+  (the one exception being a link session, where the row becomes RESET); all four save triggers,
+  and the strings in `data/text/text_3.asm`
+- [Herringway/ebsrc](https://github.com/Herringway/ebsrc) symbol map cross-checked against a
+  CoilSnake text dump of the US ROM — the five `{save}` sites in the whole script, Dad's
+  **"Record"** menu option, Maxwell's *"keep a record of your journey"*, and the structural
+  negative that no HP-recovery opcode appears in any save script. The `$1` belongs to the pay
+  phone (`REMOVE_MONEY 1`, refunded on hang-up), never to the save
+- [Dragon Warrior](https://www.world-of-nintendo.com/manuals/nes/dragon_warrior.shtml),
+  [II](https://www.world-of-nintendo.com/manuals/nes/dragon_warrior_2.shtml),
+  [III](https://www.world-of-nintendo.com/manuals/nes/dragon_warrior_3.shtml),
+  [IV](http://www.digitpress.com/library/manuals/nes/dw4.txt),
+  [Final Fantasy](https://world-of-nintendo.com/manuals/nes/final_fantasy.shtml),
+  [EarthBound](http://world-of-nintendo.com/manuals/super_nes/earthbound.shtml) and
+  [Chrono Trigger](http://world-of-nintendo.com/manuals/super_nes/chrono_trigger.shtml) manuals
+  — slot counts, and Chrono Trigger's Shelter being the thing that heals at a save point
+- [dragon-quest.org — Dragon Quest IV](https://dragon-quest.org/wiki/Dragon_Quest_IV) — save
+  moved from castles to churches, so the developers could write the monarchs as characters
