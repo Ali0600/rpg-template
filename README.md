@@ -206,7 +206,7 @@ game's own 320×180 so the art is judged at the size it will actually be seen.
 - [x] **M35** — the balance gate learned to use items too, and closed a guard nothing had ever proven: a quest item on the battle menu would be destroyed by using it
 - [x] **M36** — the battle caption wraps instead of running off the screen, and a driver that presses Run asserts which fights the game will actually let you leave
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
-- [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.gd`
+- [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.sh`
 - [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
 
 ## Experience Gained
