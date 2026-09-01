@@ -75,6 +75,16 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 	return out
 
 
+## What the tileset image is called beside an exported map. One name per style, so a directory
+## of maps drawn from different banks does not collide on one file.
+static func atlas_name(style: String) -> String:
+	return _atlas_name(style)
+
+
+static func _atlas_name(style: String) -> String:
+	return "tiles_%s.png" % style
+
+
 ## Which tile bank this map was painted against, read from the file itself.
 ##
 ## The style travels IN the map rather than on the command line, for the reason a save names its
@@ -136,7 +146,11 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 			"tileheight": tile_size,
 			"tilecount": tile_ids.size(),
 			"columns": tile_ids.size(),
-			"image": "tiles.png",
+			# Named for the STYLE and expected BESIDE the map file. Tiled resolves this relative
+			# to the .tmj, so a bare "tiles.png" pointed at a file that is not there and every
+			# tile opened blank - found by opening one in Tiled, which is the only place it
+			# could be found. map_io.gd copies the atlas in under this name.
+			"image": _atlas_name(style),
 			"imagewidth": tile_ids.size() * tile_size,
 			"imageheight": tile_size,
 		}],

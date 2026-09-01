@@ -1009,6 +1009,22 @@ tools/map_io.sh --in=build/maps/quest_village.tmj
 tools/map_io.sh --verify                       # check.sh step 6d
 ```
 
+**The atlas travels WITH the maps.** Both editors resolve their tileset image relative to the map
+file, so an export directory has to contain it: `map_io.gd` copies each style's sheet in as
+`tiles_<style>.png`, the name both translators write. Named per style because one directory may
+hold maps from different banks. The first export wrote a bare `tiles.png` and every tile opened
+BLANK - found by opening one in Tiled, and findable nowhere else, because the round trip never
+reads the image and only an editor does.
+
+**Tiled's own CLI is the strongest check available here**, and it is a one-off rather than a gate
+(it needs Tiled installed, which CI does not have). `tiled --export-map csv <map>.tmj out.csv`
+makes Tiled PARSE the file and re-emit its tile data; comparing that against the source map is an
+independent reading. Measured 2026-09-01 on `quest_village`: 352 cells over both layers, zero
+mismatches, all five object layers present with their counts, and NPC fields arriving as real
+typed Tiled properties. Note Tiled's CSV writes 0-based LOCAL ids where the `.tmj` stores GIDs
+(`firstgid + index`), so a uniform off-by-one between the two is the format's convention and not
+a bug - it looked like 176 failures for a moment.
+
 **Through the `.sh` wrapper, like `check.sh` and `pack_check.sh`** - it resolves the engine
 through `_engine.sh` (honouring `GODOT_BIN`), so nobody types the app's path and nothing breaks
 when the app moves. `build/` is gitignored, so an export leaves the tree clean. The underlying

@@ -112,9 +112,16 @@ func _run_export() -> void:
 	for path in _maps():
 		var out_path := "%s/%s.%s" % [_dir.rstrip("/"), path.get_file().get_basename(),
 			str((FORMATS[_out] as Dictionary)["ext"])]
-		if not _write_one(path, out_path):
+		if not _write_one(path, out_path, _out):
 			return
 		written += 1
+	# The atlas goes WITH the maps. Both editors resolve their tileset image relative to the map
+	# file, so a directory of maps without it opens with every tile blank - which is what the
+	# first export did, and what no gate here could ever have seen: the round trip never reads
+	# the image, only the editor does.
+	for style: String in _styles_used():
+		if not _copy_atlas(style):
+			return
 	if written == 0:
 		# A generator that wrote nothing must not report success - lint_rules.gd's rule, and the
 		# same failure: an empty scan reads as a clean one.
@@ -124,19 +131,42 @@ func _run_export() -> void:
 	quit(0)
 
 
-func _write_one(native_path: String, out_path: String) -> bool:
+func _write_one(native_path: String, out_path: String, format: String) -> bool:
 	var native := _native_of(native_path)
 	if native.is_empty():
 		return false
 	var ids := _tile_ids(str(native.get("style", "gb16")))
 	if ids.is_empty():
 		return false
-	var made := _to_editor(_out, native, ids)
+	var made := _to_editor(format, native, ids)
 	var file := FileAccess.open(out_path, FileAccess.WRITE)
 	if file == null:
 		_fail("could not write '%s': %s" % [out_path, error_string(FileAccess.get_open_error())])
 		return false
 	file.store_string(JSON.stringify(made, "\t", false))
+	file.close()
+	return true
+
+
+## Puts a style's tile sheet beside the exported maps, under the name both translators write
+## into their tileset entry. One file per style, so a directory holding maps from two banks does
+## not collide.
+func _copy_atlas(style: String) -> bool:
+	return _copy_atlas_to(_dir, style)
+
+
+func _copy_atlas_to(into: String, style: String) -> bool:
+	var from := "res://assets/generated/%s/tiles.png" % style
+	var to := "%s/%s" % [into.rstrip("/"), TiledMap.atlas_name(style)]
+	if not FileAccess.file_exists(from):
+		_fail("no generated tile sheet for '%s' - run gen_sprites.gd first" % style)
+		return false
+	var bytes := FileAccess.get_file_as_bytes(from)
+	var file := FileAccess.open(to, FileAccess.WRITE)
+	if file == null:
+		_fail("could not write '%s'" % to)
+		return false
+	file.store_buffer(bytes)
 	file.close()
 	return true
 
@@ -191,12 +221,10 @@ func _run_verify() -> void:
 				return
 			var scratch_path := "%s/%s.%s" % [SCRATCH, path.get_file().get_basename(),
 				str((FORMATS[format] as Dictionary)["ext"])]
-			var file := FileAccess.open(scratch_path, FileAccess.WRITE)
-			if file == null:
-				_fail("could not write '%s'" % scratch_path)
+			# Through the EXPORT command's own writer, not a second copy of it: a gate that
+			# reimplements the thing it is checking can only ever prove itself.
+			if not _write_one(path, scratch_path, format):
 				return
-			file.store_string(JSON.stringify(_to_editor(format, native, ids), "\t", false))
-			file.close()
 
 			var read_back := JsonFile.read(scratch_path)
 			if not read_back.ok:
@@ -215,6 +243,16 @@ func _run_verify() -> void:
 	if checked == 0:
 		_fail("no maps were round-tripped, so this checked nothing")
 		return
+	# The sheet the maps point at. Asserted HERE because it is the difference between a
+	# directory an editor can open and one where every tile is blank - and no round trip can
+	# see it, since the translators never read the image.
+	for style: String in _styles_used():
+		if not _copy_atlas_to(SCRATCH, style):
+			return
+		var beside := "%s/%s" % [SCRATCH, TiledMap.atlas_name(style)]
+		if not FileAccess.file_exists(beside):
+			_problems.append("no tile sheet landed beside the maps for '%s'; every tile would "
+				% style + "open blank in an editor")
 	_sweep(root)
 	if not _problems.is_empty():
 		for p in _problems:
@@ -300,6 +338,15 @@ func _extensions() -> String:
 	for name: String in FORMATS.keys():
 		out.append("." + str((FORMATS[name] as Dictionary)["ext"]))
 	return ", ".join(out)
+
+
+## Every tile bank the shipped maps are painted from. Derived rather than listed, so a map added
+## on a new style needs no edit here.
+func _styles_used() -> Array:
+	var out := {}
+	for path in _maps():
+		out[str(_native_of(path).get("style", "gb16"))] = true
+	return out.keys()
 
 
 func _maps() -> PackedStringArray:

@@ -613,3 +613,6 @@ scripts/util/ldtk_map.gd	s|"px": \[x \* tile_size, y \* tile_size\],|"px": [x, y
 scripts/util/ldtk_map.gd	s|\t\t\t\tout\[name\] = "String"|\t\t\t\tpass|	tests/unit/test_ldtk_map.gd	a field the records disagree about keeps the first type seen, and every other value is rewritten
 scripts/util/ldtk_map.gd	s|var digest := label.sha256_text\(\)|var digest := "0".repeat(64)|	tests/unit/test_ldtk_map.gd	every iid in the file is the same one, which LDtk accepts and which silently collapses entity references
 scripts/util/ldtk_map.gd	s|"gridTiles": \[\], "entityInstances": \[\],|"gridTiles": [],|	tests/unit/test_ldtk_map.gd	a layer ships without the entityInstances array LDtk reads unguarded, so the file will not open at all
+scripts/util/tiled_map.gd	s|\treturn "tiles_%s.png" % style|\treturn "tiles.png"|	tests/unit/test_tiled_map.gd	the atlas loses its style name, so two banks collide on one file and half the maps wear the wrong art
+scripts/util/ldtk_map.gd	s|\treturn "tiles_%s.png" % style|\treturn "tiles.png"|	tests/unit/test_ldtk_map.gd	the LDtk atlas name stops matching Tiled's, so one export directory serves neither editor
+scripts/util/ldtk_map.gd	s|\tout\["__tilesetRelPath"\] = atlas_name\(style\)|\tout["__tilesetRelPath"] = null|	tests/unit/test_ldtk_map.gd	a tile layer names no sheet, and LDtk draws the map with nothing on it
