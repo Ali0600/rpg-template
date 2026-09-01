@@ -11,11 +11,13 @@ one-glance menu of things still worth trying.
   `scripts/util/dir.gd`.
 - **A second cell size** (32×32 characters, 32px tiles). Revisit hook: `SpriteStyle`
   already carries `cell_size` and `tile_size`; the work is a rig authored at that size.
-- ~~**Tiled / LDtk map import.**~~ **Finished 2026-09-01.** Both editors, both directions, and
-  `tools/map_io.gd` is the command that makes it a workflow rather than a library. What is left
-  is not code: nobody has OPENED a generated file in either editor, because neither is installed
-  here. Revisit hook: install one, open one map, save it, and re-import — one round through the
-  real tool would retire the largest remaining unknown in the feature.
+- ~~**Tiled / LDtk map import.**~~ **Finished and VERIFIED for Tiled, 2026-09-01.** Both editors,
+  both directions, `tools/map_io.gd` as the command. Tiled was installed and a generated map
+  opened in it: 352 cells over both layers matching the source exactly, all five object layers
+  with their counts, and NPC fields arriving as editable typed properties. That pass also found
+  the one bug no gate here could — the tileset image was named relative to the map file, so every
+  map would have opened blank. **LDtk stays deliberately unverified** — see below; it is a
+  recorded state, not an open task.
 - **A save point that does not ask which slot** — the genre's own answer, and this template's
   stated divergence since M39. Every reference either has one file (FF1, Pokémon) or picks it at
   the title (DQ1, EarthBound, Chrono Trigger); none asks at the moment of saving. Revisit hook:
@@ -124,6 +126,37 @@ one-glance menu of things still worth trying.
 - **Reviving mid-fight**, and turn order from a stat. Both `deferred`; the hooks are
   `ally_rows()` (which returns only the standing) and `_advance()`'s walk over `_living()`
   (which would take an agility order rather than index order).
+
+---
+
+## LDtk is kept, and kept unverified — *2026-09-01*
+
+Tiled was installed and a generated map opened in it, which retired the feature's largest
+unknown. LDtk has no Homebrew cask, so checking it the same way is a manual download — and the
+user's answer to whether that was worth doing was that **Tiled is enough**.
+
+So the question became what to do with 604 lines of translator and 323 of tests for a format
+nobody is going to open.
+
+- **Remove it** — *Status: rejected by the user, and it was the honest alternative: a smaller
+  surface, nothing unverified in the tree, and every future map-format change made once instead
+  of twice.*
+- **Keep it but stop gating it** — *Status: rejected. It is the option this repo's rules argue
+  hardest against: untested code in the tree is worse than either keeping it proven or deleting
+  it.*
+- **Keep it, fully gated, and stop treating the verification as an open task (chosen)** — the
+  whole map step runs in 0.86s for BOTH formats, so the marginal cost is a fraction of a second;
+  it ships nothing (build-time only); and it is the second instance that makes `map_io.gd`'s
+  FORMATS table a real abstraction rather than speculative generality. One format would make that
+  design look like a guess.
+
+**What "unverified" means precisely, so nobody re-opens this by accident:** the LDtk translator
+round-trips all six shipped maps, has 20 tests and 11 mutants, and all six generated `.ldtk`
+files validate against LDtk's published 1.5.3 schema with zero errors. What has NOT happened is a
+human opening one in the editor. Revisit hook if that ever matters: install LDtk from ldtk.io,
+`tools/map_io.sh --out=ldtk --dir=build/map`, open `build/map/quest_village.ldtk`. The Tiled pass
+is decent evidence the approach is sound, since both translators share the same design and the
+one bug found applied to both.
 
 ---
 

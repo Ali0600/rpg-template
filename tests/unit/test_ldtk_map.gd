@@ -18,7 +18,10 @@ extends GdUnitTestSuite
 ##     python3 -m pip install jsonschema
 ##     # then validate each file against https://ldtk.io/files/JSON_SCHEMA.json
 ##
-## Opening one file in LDtk once would close the gap properly, and that needs a person.
+## Opening one file in LDtk once would close the gap properly. That was weighed on 2026-09-01 and
+## DECLINED - Tiled was verified instead (a generated map opened, 352 cells matching), and LDtk
+## has no Homebrew cask. So this is a recorded state rather than a chore waiting to be done; see
+## docs/DECISIONS.md before treating it as one.
 
 const MAP_DIR := "res://data/maps"
 const TILE_SIZE := 16
