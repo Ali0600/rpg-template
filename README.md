@@ -68,6 +68,16 @@ Regenerate the art after editing a rig or a style:
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/gen_sprites.gd
 ```
 
+Draw a map in [Tiled](https://www.mapeditor.org/) instead of typing it — export, edit, import:
+
+```bash
+tools/map_io.sh --out=tiled --dir=build/map
+tools/map_io.sh --in=build/map/quest_village.tmj
+```
+
+The maps that ship stay the readable ASCII files; the editor file is a working file, so a map
+still diffs as a picture in a pull request. LDtk is supported the same way (`--out=ldtk`).
+
 ## Making it your game
 
 | To change | Edit | Touch any code? |
@@ -75,7 +85,7 @@ Regenerate the art after editing a rig or a style:
 | Which game runs, and where it starts | `data/games/*.tres` | no |
 | The whole art style | a file in `data/styles/` | no |
 | Who the characters are | files in `data/characters/` | no |
-| The world | `data/maps/*.json` — ASCII rows plus a legend | no |
+| The world | `data/maps/*.json` — ASCII rows plus a legend, or draw it in Tiled and import | no |
 | What people say | `data/dialog/*.json` | no |
 | How it feels to move, incl. free vs grid movement | `data/game_config.tres` | no |
 | How many save slots there are | `data/game_config.tres` | no |
