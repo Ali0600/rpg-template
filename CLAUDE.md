@@ -1146,3 +1146,21 @@ noise, deliberately.
 defaults to lossy QOA; `project.godot`'s `[importer_defaults]` pins it off, and
 `gen_sounds.gd --verify` compares the imported stream too, because a file that matches while
 the imported asset does not is a game whose every player hears something unchecked.
+
+**A slot list has a CAPACITY, and it is the third thing MAX_PARTY's rule asks for.**
+`GameConfig.MAX_SAVE_SLOTS` is 12: two screens draw one row per slot down a 180px window, and at
+16 BOTH the pause menu's slot page and the save point walk their last rows off the bottom of it -
+measured, silently, with every other gate green, because nothing headless looks at where a Label
+ended up. So the data DECLARES the ceiling, `GameConfig.problems()` refuses more, and
+`test_slot_layout.gd` measures both screens AT it. Any two of those three without the third is
+the hole the pattern exists to close, which is what M27.1 found for the party.
+
+Twelve rather than the fifteen that measurably still fits, because every reference game offers
+one slot or three - the ceiling is nowhere near a real game's need, and the headroom means a font
+or padding change cannot quietly push the last row off. The pause menu's half of this was
+PRE-EXISTING and untested; the save point did not introduce it, it made it visible.
+
+**Containment is never the whole assertion.** `test_slot_layout.gd` also requires every slot to
+get a row, the rows to be DISTINCT, and them to go down the screen in order - because a screen
+that drew nothing, or stacked all twelve rows on one line, is comfortably inside any window. That
+is M36's lesson applied before the bug rather than after it.

@@ -83,8 +83,12 @@ func _build(viewport_size: Vector2i, title: String) -> void:
 	# cannot read and cannot escape - the empty-bag rule every list here follows.
 	var count := maxi(_menu.slot_count(), 1)
 	_panel.position = Vector2(MARGIN, MARGIN)
-	_panel.size = Vector2(PANEL_WIDTH,
-		PADDING * 2 + ROW_PITCH * count + TITLE_SIZE + HELP_SIZE + PADDING)
+	# Sized to what is about to be laid out rather than to the viewport: a window is as big as
+	# the thing inside it. ONE assignment, computed once and reused by the help line's position
+	# below - two expressions for one height is two numbers that drift, and the one that loses
+	# is whichever runs second.
+	var height := PADDING + TITLE_SIZE + count * ROW_PITCH + HELP_SIZE + PADDING
+	_panel.size = Vector2(mini(PANEL_WIDTH, maxi(viewport_size.x - MARGIN * 2, 1)), height)
 	add_child(_panel)
 
 	_title.text = title if not title.is_empty() else "RECORD YOUR JOURNEY"
@@ -103,12 +107,6 @@ func _build(viewport_size: Vector2i, title: String) -> void:
 	_help.position = Vector2(PADDING, PADDING + TITLE_SIZE + count * ROW_PITCH)
 	_help.add_theme_font_size_override("font_size", HELP_SIZE)
 	_panel.add_child(_help)
-
-	# Sized to what was actually laid out rather than to viewport_size: a window is as big as
-	# the thing inside it. The argument is kept because every other screen here takes it and a
-	# view that cannot be told the viewport is one that cannot be laid out against a new one.
-	_panel.size.y = PADDING + TITLE_SIZE + count * ROW_PITCH + HELP_SIZE + PADDING
-	_panel.size.x = mini(PANEL_WIDTH, maxi(viewport_size.x - MARGIN * 2, 1))
 
 
 func _paint() -> void:
