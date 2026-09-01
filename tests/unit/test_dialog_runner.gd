@@ -386,3 +386,41 @@ func test_a_choice_without_open_save_asks_for_nothing() -> void:
 	for effect in runner.effects():
 		assert_str(str(effect.get("op", ""))).override_failure_message(
 			"declining a save point still asked for one").is_not_equal(str(GameContext.OP_SAVE))
+
+func test_a_choice_carrying_open_shop_asks_for_that_counter() -> void:
+	# The key and the op live in different files, the open_save pair's reason exactly - and this
+	# arm went four milestones with nothing asserting it at all. `shop_refs()` looks like cover
+	# and is not: it walks the node data and reads `open_shop` DIRECTLY, so the content gate that
+	# consumes it proves the id resolves while saying nothing about whether _collect ever emits
+	# the effect. Break the arm and that gate stays green.
+	#
+	# The SHOP ID is asserted, not just the op: an arm that emitted OP_SHOP with an empty id
+	# would satisfy an op-only check and open a counter with nothing behind it.
+	var runner := DialogRunner.from_dict({"id": "smith", "start": "here", "nodes": {
+		"here": {"text": "Anything you need?", "choices": [
+			{"text": "Let's trade", "open_shop": "smith_shop", "next": "done"},
+			{"text": "Just looking", "next": "done"}]},
+		"done": {"text": "Mind how you go."}}})
+	assert_bool(runner.begin()).is_true()
+	assert_bool(runner.choose(0)).is_true()
+	var opened := ""
+	for effect in runner.effects():
+		if str(effect.get("op", "")) == str(GameContext.OP_SHOP):
+			opened = str(effect.get("shop", ""))
+	assert_str(opened).override_failure_message(
+		"a choice carrying open_shop collected %s" % [runner.effects()]).is_equal("smith_shop")
+
+func test_a_choice_without_open_shop_asks_for_no_counter() -> void:
+	# The other half of the pair: the key has to be what did it. Without this, an arm that
+	# emitted the op unconditionally would pass the test above.
+	var runner := DialogRunner.from_dict({"id": "smith", "start": "here", "nodes": {
+		"here": {"text": "Anything you need?", "choices": [
+			{"text": "Let's trade", "open_shop": "smith_shop", "next": "done"},
+			{"text": "Just looking", "next": "done"}]},
+		"done": {"text": "Mind how you go."}}})
+	assert_bool(runner.begin()).is_true()
+	assert_bool(runner.choose(1)).is_true()
+	for effect in runner.effects():
+		assert_str(str(effect.get("op", ""))).override_failure_message(
+			"walking past a keeper still opened their counter").is_not_equal(
+			str(GameContext.OP_SHOP))
