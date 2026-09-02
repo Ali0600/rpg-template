@@ -53,15 +53,43 @@ func test_every_pixel_comes_from_the_style_palette() -> void:
 						% [style_id, spec.id, offenders]) \
 					.is_empty()
 
+func test_every_tile_bank_is_gated_by_exactly_one_suite() -> void:
+	# The style split's twin, one noun along. A bank that CUTS its pixels out of somebody's art
+	# cannot be spoken about by a palette rule, so it leaves the gate below for test_imported_art
+	# - and the two lists together must equal every bank on disk, or a third kind of pixel source
+	# opts out of both while each list still looks correct on its own.
+	var drawn := ArtFixtures.drawn_bank_ids()
+	var imported := ArtFixtures.imported_bank_ids()
+	var together: Array[StringName] = []
+	together.append_array(drawn)
+	together.append_array(imported)
+	ArtFixtures.by_text(together)
+	assert_str(str(together)).is_equal(str(ArtFixtures.bank_ids()))
+	for bank_id in drawn:
+		assert_bool(imported.has(bank_id)).override_failure_message(
+			"%s is in both lists" % bank_id).is_false()
+	assert_array(drawn).is_not_empty()
+
 func test_tiles_use_the_same_palette_as_the_characters() -> void:
 	# Terrain drawn from a different palette than the cast is the single most obvious way a
 	# game made of mixed assets betrays itself.
+	#
+	# A bank cut from imported art is out of scope BY DEFINITION - the pixels are the artist's,
+	# and demanding they sit in the style's ramps would be asking the artist to have used them.
+	# The count below is what keeps that exemption from quietly emptying the gate.
+	var checked := 0
 	for style_id in ArtFixtures.style_ids():
 		var style := ArtFixtures.style(style_id)
-		var built := TileGen.build(style, ArtFixtures.tile_bank_for(style))
+		var bank := ArtFixtures.tile_bank_for(style)
+		if bank.imports():
+			continue
+		var built := TileGen.build(style, bank)
 		var offenders := _off_palette(built["image"], style.palette_rgba32())
 		assert_array(offenders).override_failure_message(
 			"%s tiles use colours outside the style palette: %s" % [style_id, offenders]).is_empty()
+		checked += 1
+	assert_int(checked).override_failure_message(
+		"no style was measured, so this proved nothing about any palette").is_greater(0)
 
 func test_the_whole_cast_stands_on_one_ground_line() -> void:
 	# Characters whose lowest pixel differs by even one row look like they are standing at

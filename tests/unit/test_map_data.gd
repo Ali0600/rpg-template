@@ -8,31 +8,35 @@ extends GdUnitTestSuite
 
 const FIXTURES := "res://tests/fixtures/maps/"
 
-func _bank() -> TileBank:
-	return ArtFixtures.tile_bank_for(ArtFixtures.style(&"gb16"))
+## The bank the map in hand was painted from, read from the map's OWN style. A style spelled
+## into this suite goes stale as a refusal rather than as an error: the demo has changed style
+## once already, and every shipped map would then be validated against a vocabulary nobody
+## painted it with - which reads as the maps being broken.
+func _bank(map: MapData) -> TileBank:
+	return ArtFixtures.tile_bank_for(ArtFixtures.style(map.style_id))
 
-func _known_tiles() -> Array[String]:
-	return _bank().ids()
+func _known_tiles(map: MapData) -> Array[String]:
+	return _bank(map).ids()
 
-func _solid_tiles() -> Array[String]:
-	return _bank().solid_ids()
+func _solid_tiles(map: MapData) -> Array[String]:
+	return _bank(map).solid_ids()
 
 func test_the_shipped_map_is_valid() -> void:
 	var map := MapData.load_from("res://data/maps/quest_town.json")
 	assert_bool(map.ok).override_failure_message(map.error).is_true()
-	assert_array(map.problems(_known_tiles(), _solid_tiles())).override_failure_message(
-		str(map.problems(_known_tiles(), _solid_tiles()))).is_empty()
+	assert_array(map.problems(_known_tiles(map), _solid_tiles(map))).override_failure_message(
+		str(map.problems(_known_tiles(map), _solid_tiles(map)))).is_empty()
 
 func test_the_shipped_map_is_walled_in() -> void:
 	# The bug this caught for real: one row of the town map was a character short of its east
 	# wall, and the player simply walked out of the world. Nothing errored - the smoke test
 	# reported the player still moving where it should have stopped.
 	var map := MapData.load_from("res://data/maps/quest_town.json")
-	assert_array(map.open_edges(_solid_tiles())).is_empty()
+	assert_array(map.open_edges(_solid_tiles(map))).is_empty()
 
 func test_a_ragged_row_is_reported_with_its_row_number() -> void:
 	var map := MapData.load_from(FIXTURES + "ragged.json")
-	var problems := map.problems(_known_tiles())
+	var problems := map.problems(_known_tiles(map))
 	assert_int(problems.size()).is_greater(0)
 	assert_str(str(problems)).contains("wide, expected")
 
@@ -40,36 +44,36 @@ func test_a_legend_naming_an_unknown_tile_is_reported() -> void:
 	# Draws nothing at all, and an empty patch of map looks exactly like a patch nobody
 	# filled in.
 	var map := MapData.load_from(FIXTURES + "bad_legend.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("unknown tile")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("unknown tile")
 
 func test_a_character_the_legend_does_not_define_is_reported_with_coordinates() -> void:
 	var map := MapData.load_from(FIXTURES + "bad_legend.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("does not define")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("does not define")
 
 func test_a_spawn_outside_the_map_is_reported() -> void:
 	# Spawning out of bounds drops the player into empty space, which reads as a movement bug.
 	var map := MapData.load_from(FIXTURES + "bad_spawn.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("outside the")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("outside the")
 
 func test_a_map_with_no_spawns_is_reported() -> void:
 	var map := MapData.load_from(FIXTURES + "no_spawn.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("no spawns")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("no spawns")
 
 func test_an_open_edge_is_reported_when_solid_tiles_are_known() -> void:
 	var map := MapData.load_from(FIXTURES + "open_edge.json")
-	assert_array(map.open_edges(_solid_tiles())).is_not_empty()
-	assert_str(str(map.problems(_known_tiles(), _solid_tiles()))).contains("edge is open")
+	assert_array(map.open_edges(_solid_tiles(map))).is_not_empty()
+	assert_str(str(map.problems(_known_tiles(map), _solid_tiles(map)))).contains("edge is open")
 
 func test_an_open_edge_with_a_warp_on_it_is_allowed() -> void:
 	# A deliberately open edge is expressed by putting a warp there, so "you can leave here"
 	# is stated in the data rather than left as an absence.
 	var map := MapData.load_from(FIXTURES + "open_edge_with_warp.json")
-	assert_array(map.open_edges(_solid_tiles())).is_empty()
+	assert_array(map.open_edges(_solid_tiles(map))).is_empty()
 
 func test_a_missing_map_file_is_an_error_not_an_empty_map() -> void:
 	var map := MapData.load_from("res://data/maps/nope.json")
 	assert_bool(map.ok).is_false()
-	assert_str(str(map.problems(_known_tiles()))).contains("did not load")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("did not load")
 
 func test_tiles_convert_to_world_positions_at_their_centre() -> void:
 	# Actors stand on tile centres. A caller doing its own multiply is a caller that will
@@ -123,8 +127,8 @@ func test_every_shipped_map_is_valid_and_its_doors_line_up() -> void:
 	for map_path in map_files:
 		var map_id := map_path.get_file().get_basename()
 		var map := MapData.load_from(map_path)
-		assert_array(map.problems(_known_tiles(), _solid_tiles())).override_failure_message(
-			"%s: %s" % [map_id, map.problems(_known_tiles(), _solid_tiles())]).is_empty()
+		assert_array(map.problems(_known_tiles(map), _solid_tiles(map))).override_failure_message(
+			"%s: %s" % [map_id, map.problems(_known_tiles(map), _solid_tiles(map))]).is_empty()
 		for entry: Variant in map.warps:
 			var warp: Dictionary = entry
 			var destination := MapData.load_from("res://data/maps/%s.json" % warp["map"])
@@ -145,7 +149,7 @@ func test_every_object_fault_is_reported_not_just_the_first() -> void:
 	# used twice, one that does nothing at all, one off the map, and one with no id.
 	var map := MapData.load_from(FIXTURES + "bad_objects.json")
 	assert_bool(map.ok).override_failure_message(map.error).is_true()
-	var joined := "\n".join(map.problems(_known_tiles(), _solid_tiles()))
+	var joined := "\n".join(map.problems(_known_tiles(map), _solid_tiles(map)))
 	assert_str(joined).contains("'elder' is used twice")
 	assert_str(joined).contains("'twice' is used twice")
 	assert_str(joined).contains("'silent' does nothing")
@@ -174,7 +178,8 @@ func test_a_locked_warp_with_nothing_to_say_is_reported() -> void:
 	# A locked door that says nothing is a door that ignores you: the player presses into it,
 	# nothing happens, and it reads as the warp being broken rather than as the gate being shut.
 	var map := MapData.load_from(FIXTURES + "locked_warp.json")
-	assert_str("\n".join(map.problems(_known_tiles(), _solid_tiles()))).contains("says nothing when refused")
+	var faults := "\n".join(map.problems(_known_tiles(map), _solid_tiles(map)))
+	assert_str(faults).contains("says nothing when refused")
 
 
 func test_a_door_locked_behind_an_item_does_not_open_empty_handed() -> void:
@@ -211,19 +216,20 @@ func test_a_door_carries_its_item_requirement_out_of_the_map_file() -> void:
 
 func test_a_door_locked_behind_an_item_with_nothing_to_say_is_reported() -> void:
 	var map := MapData.load_from(FIXTURES + "item_warp.json")
-	assert_str(", ".join(map.problems(_known_tiles(), _solid_tiles()))).contains("says nothing when refused")
+	var faults := ", ".join(map.problems(_known_tiles(map), _solid_tiles(map)))
+	assert_str(faults).contains("says nothing when refused")
 
 
 func test_an_object_that_can_refuse_and_says_nothing_is_reported() -> void:
 	var map := MapData.load_from(FIXTURES + "bad_objects.json")
-	assert_str(", ".join(map.problems(_known_tiles(), _solid_tiles()))).contains("mute_lock")
+	assert_str(", ".join(map.problems(_known_tiles(map), _solid_tiles(map)))).contains("mute_lock")
 
 
 func test_an_object_that_only_gives_is_not_reported_as_doing_nothing() -> void:
 	# The control for the does-nothing guard: a chest with something in it says nothing and
 	# sets no flag, and is a perfectly good chest.
 	var map := MapData.load_from(FIXTURES + "item_warp.json")
-	assert_str(", ".join(map.problems(_known_tiles(), _solid_tiles()))).not_contains("giver")
+	assert_str(", ".join(map.problems(_known_tiles(map), _solid_tiles(map)))).not_contains("giver")
 
 
 func test_a_map_lists_every_item_it_names() -> void:
@@ -257,30 +263,30 @@ func test_a_tile_with_no_enemy_reports_none() -> void:
 
 func test_an_enemy_outside_the_map_is_reported() -> void:
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("nowhere")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("nowhere")
 
 func test_an_enemy_naming_no_definition_is_reported() -> void:
 	# A fight that cannot open, on a map that would merely look empty.
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("names no EnemyDef")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("names no EnemyDef")
 
 func test_an_enemy_sharing_an_id_with_an_object_is_reported() -> void:
 	# They share a `seen` namespace: beating a guard called "giver" would empty a chest of the
 	# same name, which reads as a missing item rather than as a name collision.
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("used twice")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("used twice")
 
 func test_two_enemies_on_one_tile_are_reported() -> void:
 	# enemy_at answers with the first record it finds, so the second is a body nobody can walk
 	# into and a fight nobody can open. It reads as a placement that simply does not work.
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("already is")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("already is")
 
 func test_a_formation_naming_nothing_is_reported() -> void:
 	# A group entry with no name would open the fight one foe short, and the fight would still
 	# look deliberate - so it is refused here rather than said out loud at the trigger.
 	var map := MapData.load_from(FIXTURES + "with_enemies.json")
-	assert_str(str(map.problems(_known_tiles()))).contains("fights beside something with no name")
+	assert_str(str(map.problems(_known_tiles(map)))).contains("fights beside something with no name")
 
 func test_a_record_projects_every_foe_it_names() -> void:
 	# The body on the tile first, then its group - which is the only thing the encounter check
@@ -332,44 +338,44 @@ func test_a_typod_behavior_fails_the_build_rather_than_standing_still() -> void:
 	# milestone: nothing on screen says the map meant something else.
 	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
 	assert_bool(map.ok).override_failure_message(map.error).is_true()
-	var problems := str(map.problems(_known_tiles(), _solid_tiles()))
+	var problems := str(map.problems(_known_tiles(map), _solid_tiles(map)))
 	assert_str(problems).contains("unknown behavior")
 	assert_str(problems).contains("wonder")
 
 func test_the_clean_npcs_in_that_fixture_are_not_reported() -> void:
 	# The near miss. A rule that fires on every mover would be disabled by the next person,
 	# so the two correct movers and the two static NPCs must come back clean.
-	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
-		.problems(_known_tiles(), _solid_tiles()))
+	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
+	var problems := str(map.problems(_known_tiles(map), _solid_tiles(map)))
 	for clean in ["statue", "plain", "walker", "rounder"]:
 		assert_str(problems).override_failure_message(
 			"%s is a correct npc and was reported: %s" % [clean, problems]).not_contains(clean)
 
 func test_a_patrol_of_one_point_is_reported() -> void:
-	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
-		.problems(_known_tiles(), _solid_tiles()))
+	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
+	var problems := str(map.problems(_known_tiles(map), _solid_tiles(map)))
 	assert_str(problems).contains("short")
 	assert_str(problems).contains("patrols a path of 1 point(s)")
 
 func test_a_patrol_waypoint_inside_a_wall_is_reported() -> void:
 	# A target the NPC can never reach: it walks into the wall until the stuck counter gives
 	# up, then tries again forever. Nothing errors and nothing moves.
-	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
-		.problems(_known_tiles(), _solid_tiles()))
+	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
+	var problems := str(map.problems(_known_tiles(map), _solid_tiles(map)))
 	assert_str(problems).contains("inwall")
 	assert_str(problems).contains("is a solid tile")
 
 func test_a_patrol_waypoint_on_a_warp_is_reported() -> void:
 	# A body parked on the only exit is a door that cannot be used, and it presents as a
 	# broken map rather than as a bad record.
-	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
-		.problems(_known_tiles(), _solid_tiles()))
+	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
+	var problems := str(map.problems(_known_tiles(map), _solid_tiles(map)))
 	assert_str(problems).contains("ondoor")
 	assert_str(problems).contains("stands on a warp")
 
 func test_a_wanderer_with_no_range_is_reported() -> void:
-	var problems := str(MapData.load_from(FIXTURES + "with_behaviors.json") \
-		.problems(_known_tiles(), _solid_tiles()))
+	var map := MapData.load_from(FIXTURES + "with_behaviors.json")
+	var problems := str(map.problems(_known_tiles(map), _solid_tiles(map)))
 	assert_str(problems).contains("frozen")
 	assert_str(problems).contains("wanders with range 0")
 

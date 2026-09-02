@@ -81,7 +81,8 @@ func _run_style(style: SpriteStyle, all_specs: Array) -> void:
 	var bank := TileBank.load_from("%s/%s.json" % [TILE_DIR, style.tile_bank_id])
 	for p in bank.problems():
 		_problems.append("tile bank '%s': %s" % [style.tile_bank_id, p])
-	for p in TileGen.problems(bank, style):
+	var tile_art := _tile_images(bank)
+	for p in TileGen.problems(bank, style, tile_art):
 		_problems.append(p)
 	if not _problems.is_empty():
 		return
@@ -91,18 +92,42 @@ func _run_style(style: SpriteStyle, all_specs: Array) -> void:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 
 	# Two arms, one generator: the sheets are composed from the rig or converted from an
-	# import, and the tiles below are drawn the same way for both - so a style that imports its
-	# cast still gets terrain, and --verify gates both kinds of sheet in one run.
+	# import, and the tiles below are made the same way for both - so a style that imports its
+	# cast still gets terrain, and --verify gates every kind of art in one run.
+	var recipes: Array = []
 	if style.imports():
-		_run_imported(style, dir)
+		recipes = _run_imported(style, dir)
 	else:
 		_run_rig(style, all_specs, dir)
 	if not _problems.is_empty():
 		return
 
-	var tiles := TileGen.build(style, bank)
+	var tiles := TileGen.build(style, bank, tile_art)
 	_emit_image("%s/tiles.png" % dir, tiles["image"])
 	_emit_json("%s/tiles.json" % dir, tiles["meta"])
+
+	# A bank that cuts its pixels is one more recipe, so the artists who drew the ground land in
+	# the same credits file as the ones who drew the cast. Emitted HERE rather than in the import
+	# arm, because a style can draw its own characters and still stand on somebody else's ground:
+	# the file exists exactly when something imported went into it.
+	if bank.imports():
+		recipes.append({"credits": bank.files()})
+	if not recipes.is_empty():
+		_emit_json("%s/credits.json" % dir, LpcImport.credits_summary(style, recipes))
+		_emit_text("%s/LICENSE.txt" % dir, LpcImport.license_notice(style, recipes))
+
+
+## The art an imported bank cuts from, by file name. A file that will not read is left OUT rather
+## than defaulted, so TileGen.problems() reports it against the tile that wanted it.
+func _tile_images(bank: TileBank) -> Dictionary:
+	var out := {}
+	if not bank.imports():
+		return out
+	for name in bank.file_names():
+		var img := ImageFile.read_png(bank.source_path(name))
+		if img != null:
+			out[name] = img
+	return out
 
 
 func _run_rig(style: SpriteStyle, all_specs: Array, dir: String) -> void:
@@ -143,13 +168,14 @@ func _run_rig(style: SpriteStyle, all_specs: Array, dir: String) -> void:
 ## id, exactly as a CharacterSpec's id names a rig character. The cast's credits are merged into
 ## one credits.json beside the sheets (what a credits screen reads) and LICENSE.txt states the
 ## terms the composed art is under; both are written deterministically so --verify compares them.
-func _run_imported(style: SpriteStyle, dir: String) -> void:
+## The recipes it converted, for the credits the caller writes.
+func _run_imported(style: SpriteStyle, dir: String) -> Array:
 	var root := "%s/%s" % [IMPORT_ROOT, style.id]
 	var exts: Array[String] = ["png"]
 	var sheets := ContentScan.files(root, exts)
 	if sheets.is_empty():
 		_problems.append("style '%s' imports its sheets, but there is nothing under %s" % [style.id, root])
-		return
+		return []
 	var recipes: Array = []
 	for png in sheets:
 		var folder := png.get_base_dir()
@@ -177,9 +203,7 @@ func _run_imported(style: SpriteStyle, dir: String) -> void:
 		_emit_image("%s/%s.png" % [dir, character], built["image"])
 		_emit_json("%s/%s.sheet.json" % [dir, character], meta.to_dict())
 		recipes.append(doc.data)
-	if _problems.is_empty():
-		_emit_json("%s/credits.json" % dir, LpcImport.credits_summary(style, recipes))
-		_emit_text("%s/LICENSE.txt" % dir, LpcImport.license_notice(style, recipes))
+	return recipes
 
 
 ## Writes the image, or - in verify mode - compares it with what is on disk.
