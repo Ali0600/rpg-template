@@ -38,6 +38,9 @@ const WALK_CYCLE: Array[int] = [1, 2, 3, 4, 5, 6, 7, 8]
 const LPC_ROW_ORDER: Array[int] = [Dir.D.UP, Dir.D.LEFT, Dir.D.DOWN, Dir.D.RIGHT]
 const SOURCE := "lpc"
 const GENERATOR_URL := "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator"
+## Where the terrain comes from. A second route into the same credits file, so the notice can
+## name both without a caller having to say which kind of art it handed over.
+const TILESET_URL := "https://github.com/OpenGameArt/LiberatedPixelCup"
 const SHARE_ALIKE := "CC-BY-SA"
 
 
@@ -213,8 +216,10 @@ static func credits_summary(style: SpriteStyle, recipes: Array) -> Dictionary:
 	licenses.sort()
 	return {
 		"style": String(style.id),
-		"source": "Liberated Pixel Cup (LPC) art, composed with the Universal LPC Spritesheet Character Generator",
+		"source": "Liberated Pixel Cup (LPC) art: character sheets composed with the Universal "
+			+ "LPC Spritesheet Character Generator, terrain cut from the LPC tileset",
 		"generator": GENERATOR_URL,
+		"tileset": TILESET_URL,
 		"authors": authors,
 		"licenses": licenses,
 		"files": entries,
@@ -227,11 +232,13 @@ static func credits_summary(style: SpriteStyle, recipes: Array) -> Dictionary:
 static func license_notice(style: SpriteStyle, recipes: Array) -> String:
 	var summary := credits_summary(style, recipes)
 	var lines: Array[String] = []
-	lines.append("The sprite sheets in this directory (style '%s') were composed from Liberated" % style.id)
-	lines.append("Pixel Cup (LPC) art with the Universal LPC Spritesheet Character Generator:")
+	lines.append("The art in this directory (style '%s') is Liberated Pixel Cup (LPC) work." % style.id)
+	lines.append("Character sheets were composed with the Universal LPC Spritesheet Character")
+	lines.append("Generator; terrain was cut from the LPC tileset.")
 	lines.append("  %s" % GENERATOR_URL)
+	lines.append("  %s" % TILESET_URL)
 	lines.append("")
-	lines.append("Every layer file, its artists, licences and source URLs are listed in credits.json")
+	lines.append("Every file, its artists, licences and source URLs are listed in credits.json")
 	lines.append("beside this file. Artists: %s." % ", ".join(JsonFile.to_string_array(summary["authors"])))
 	lines.append("")
 	lines.append("Licences carried by the layers: %s." % ", ".join(JsonFile.to_string_array(summary["licenses"])))

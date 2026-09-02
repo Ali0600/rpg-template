@@ -8,84 +8,84 @@
 			"decor": false,
 			"id": "grass",
 			"index": 0,
-			"ramp": "terrain_grass",
+			"ramp": "",
 			"solid": false
 		},
 		{
 			"decor": false,
 			"id": "grass_alt",
 			"index": 1,
-			"ramp": "terrain_grass",
+			"ramp": "",
 			"solid": false
 		},
 		{
 			"decor": false,
 			"id": "path",
 			"index": 2,
-			"ramp": "terrain_path",
+			"ramp": "",
 			"solid": false
 		},
 		{
 			"decor": false,
 			"id": "water",
 			"index": 3,
-			"ramp": "terrain_water",
+			"ramp": "",
 			"solid": true
 		},
 		{
 			"decor": false,
 			"id": "wall",
 			"index": 4,
-			"ramp": "stone",
+			"ramp": "",
 			"solid": true
 		},
 		{
 			"decor": true,
 			"id": "bush",
 			"index": 5,
-			"ramp": "terrain_bush",
+			"ramp": "",
 			"solid": true
 		},
 		{
 			"decor": false,
 			"id": "floor",
 			"index": 6,
-			"ramp": "leather",
+			"ramp": "",
 			"solid": false
 		},
 		{
 			"decor": false,
 			"id": "wall_rough",
 			"index": 7,
-			"ramp": "stone",
+			"ramp": "",
 			"solid": true
 		},
 		{
 			"decor": false,
 			"id": "door",
 			"index": 8,
-			"ramp": "leather",
+			"ramp": "",
 			"solid": false
 		},
 		{
 			"decor": false,
 			"id": "stairs",
 			"index": 9,
-			"ramp": "stone",
+			"ramp": "",
 			"solid": false
 		},
 		{
 			"decor": true,
 			"id": "table",
 			"index": 10,
-			"ramp": "leather",
+			"ramp": "",
 			"solid": true
 		},
 		{
 			"decor": true,
 			"id": "rug",
 			"index": 11,
-			"ramp": "terrain_path",
+			"ramp": "",
 			"solid": false
 		}
 	],

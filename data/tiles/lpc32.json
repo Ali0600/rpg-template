@@ -1,0 +1,299 @@
+{
+	"id": "lpc32",
+	"tile": 32,
+	"pixels_from": "files",
+	"_readme": [
+		"Hand-drawn Liberated Pixel Cup terrain, cut cell by cell out of the sheets under",
+		"data/imports/tiles/lpc32/. Twelve ids in gb16's order with gb16's solid and decor flags,",
+		"which is what lets every shipped map, every fixture and both editor couplings carry on",
+		"unchanged: only the pixels moved.",
+		"",
+		"A tile names its file and a CELL in it, column then row. There is no ramp: the colours",
+		"are the artists' and the style does not recolour them - that is the whole difference",
+		"between this bank and an authored one.",
+		"",
+		"Only the plain fill cells are used. LPC's ground sheets are laid out for an editor's",
+		"terrain tool - a 3x3 block of edges and corners around a centre - and this template",
+		"paints one id per cell with no transitions, so the edge cells have nothing to say here.",
+		"Transitions are a milestone of their own; see docs/DECISIONS.md.",
+		"",
+		"The files block travels in the pack, which is about two kilobytes of names and URLs. It",
+		"is left there rather than filtered out: credits.json is the file a credits screen reads,",
+		"and an exclude rule that has to keep growing is worse than the bytes."
+	],
+	"files": [
+		{
+			"file": "grass.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "dirt.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "water.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "house.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "dungeon.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "castlefloors.png",
+			"authors": [
+				"Daniel Armstrong (HughSpectrum)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/2535"
+			]
+		},
+		{
+			"file": "stairs.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "country.png",
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"file": "plants.png",
+			"authors": [
+				"bluecarrot16",
+				"Guido Bos",
+				"Ivan Voirol (Silver IV)",
+				"SpiderDave",
+				"William Thompson (William.Thompsonj)",
+				"Yar",
+				"Stephen Challener (Redshrike)",
+				"the Open Surge team",
+				"Gaurav Munjal",
+				"Johann Charlot",
+				"Casper Nilsson",
+				"Jetrel",
+				"Zabin",
+				"Hyptosis",
+				"Surt",
+				"Lanea Zimmerman (Sharm)",
+				"George Bailey",
+				"ansimuz",
+				"Buch",
+				"the Open Pixel Project contributors"
+			],
+			"licenses": [
+				"CC-BY-SA 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/lpc-flowers-plants-fungi-wood"
+			]
+		}
+	],
+	"tiles": [
+		{
+			"id": "grass",
+			"from": "grass.png",
+			"cell": [
+				1,
+				5
+			],
+			"solid": false,
+			"decor": false
+		},
+		{
+			"id": "grass_alt",
+			"from": "grass.png",
+			"cell": [
+				0,
+				5
+			],
+			"solid": false,
+			"decor": false
+		},
+		{
+			"id": "path",
+			"from": "dirt.png",
+			"cell": [
+				0,
+				5
+			],
+			"solid": false,
+			"decor": false
+		},
+		{
+			"id": "water",
+			"from": "water.png",
+			"cell": [
+				1,
+				5
+			],
+			"solid": true,
+			"decor": false
+		},
+		{
+			"id": "wall",
+			"from": "house.png",
+			"cell": [
+				4,
+				4
+			],
+			"solid": true,
+			"decor": false
+		},
+		{
+			"id": "bush",
+			"from": "plants.png",
+			"cell": [
+				6,
+				26
+			],
+			"solid": true,
+			"decor": true
+		},
+		{
+			"id": "floor",
+			"from": "stairs.png",
+			"cell": [
+				1,
+				12
+			],
+			"solid": false,
+			"decor": false
+		},
+		{
+			"id": "wall_rough",
+			"from": "dungeon.png",
+			"cell": [
+				1,
+				2
+			],
+			"solid": true,
+			"decor": false
+		},
+		{
+			"id": "door",
+			"from": "house.png",
+			"cell": [
+				3,
+				0
+			],
+			"solid": false,
+			"decor": false
+		},
+		{
+			"id": "stairs",
+			"from": "stairs.png",
+			"cell": [
+				1,
+				13
+			],
+			"solid": false,
+			"decor": false
+		},
+		{
+			"id": "table",
+			"from": "country.png",
+			"cell": [
+				2,
+				0
+			],
+			"solid": true,
+			"decor": true
+		},
+		{
+			"id": "rug",
+			"from": "castlefloors.png",
+			"cell": [
+				7,
+				2
+			],
+			"solid": false,
+			"decor": true
+		}
+	]
+}

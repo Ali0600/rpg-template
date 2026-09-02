@@ -1,14 +1,25 @@
 {
 	"authors": [
 		"Benjamin K. Smith (BenCreating)",
+		"Buch",
 		"Carlo Enrico Victoria (Nemisys)",
+		"Casper Nilsson",
+		"Daniel Armstrong (HughSpectrum)",
 		"Durrani",
 		"Eliza Wyatt (ElizaWy)",
 		"ElizaWy",
 		"Evert",
+		"Gaurav Munjal",
+		"George Bailey",
+		"Guido Bos",
+		"Hyptosis",
+		"Ivan Voirol (Silver IV)",
 		"JaidynReiman",
+		"Jetrel",
 		"Joe White",
+		"Johann Charlot",
 		"Johannes Sjölund (wulax)",
+		"Lanea Zimmerman (Sharm)",
 		"Manuel Riecke (MrBeast)",
 		"Marcel van de Steeg (MadMarcel)",
 		"Matthew Krohn (makrohn)",
@@ -17,13 +28,21 @@
 		"Page",
 		"Pierre Vigier (pvigier)",
 		"Sander Frenken (castelonia)",
+		"SpiderDave",
 		"Stephen Challener (Redshrike)",
+		"Surt",
 		"Thane Brimhall (pennomi)",
 		"TheraHedwig",
+		"William Thompson (William.Thompsonj)",
+		"Yar",
+		"Zabin",
+		"ansimuz",
 		"bluecarrot16",
 		"kcilds/Rocetti/Eredah",
 		"kheftel",
-		"laetissima"
+		"laetissima",
+		"the Open Pixel Project contributors",
+		"the Open Surge team"
 	],
 	"files": [
 		{
@@ -230,6 +249,66 @@
 		},
 		{
 			"authors": [
+				"Daniel Armstrong (HughSpectrum)"
+			],
+			"file": "castlefloors.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/2535"
+			]
+		},
+		{
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "country.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "dirt.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "dungeon.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"authors": [
 				"JaidynReiman",
 				"Nila122",
 				"bluecarrot16"
@@ -298,6 +377,21 @@
 				"http://opengameart.org/content/lpc-clothing-updates",
 				"https://opengameart.org/content/lpc-expanded-socks-shoes",
 				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
+			]
+		},
+		{
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "grass.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
 			]
 		},
 		{
@@ -490,6 +584,21 @@
 		},
 		{
 			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "house.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
+			]
+		},
+		{
+			"authors": [
 				"ElizaWy",
 				"JaidynReiman",
 				"Johannes Sjölund (wulax)",
@@ -530,6 +639,52 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://opengameart.org/content/lpc-expanded-pants",
 				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
+			]
+		},
+		{
+			"authors": [
+				"Buch",
+				"Casper Nilsson",
+				"Gaurav Munjal",
+				"George Bailey",
+				"Guido Bos",
+				"Hyptosis",
+				"Ivan Voirol (Silver IV)",
+				"Jetrel",
+				"Johann Charlot",
+				"Lanea Zimmerman (Sharm)",
+				"SpiderDave",
+				"Stephen Challener (Redshrike)",
+				"Surt",
+				"William Thompson (William.Thompsonj)",
+				"Yar",
+				"Zabin",
+				"ansimuz",
+				"bluecarrot16",
+				"the Open Pixel Project contributors",
+				"the Open Surge team"
+			],
+			"file": "plants.png",
+			"licenses": [
+				"CC-BY-SA 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/lpc-flowers-plants-fungi-wood"
+			]
+		},
+		{
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "stairs.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
 			]
 		},
 		{
@@ -651,6 +806,21 @@
 				"https://opengameart.org/content/lpc-gentleman",
 				"https://opengameart.org/content/lpc-pirates"
 			]
+		},
+		{
+			"authors": [
+				"Lanea Zimmerman (Sharm)"
+			],
+			"file": "water.png",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"urls": [
+				"https://github.com/OpenGameArt/LiberatedPixelCup",
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/user/1727"
+			]
 		}
 	],
 	"generator": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
@@ -661,6 +831,7 @@
 		"GPL",
 		"OGA-BY"
 	],
-	"source": "Liberated Pixel Cup (LPC) art, composed with the Universal LPC Spritesheet Character Generator",
-	"style": "lpc32"
+	"source": "Liberated Pixel Cup (LPC) art: character sheets composed with the Universal LPC Spritesheet Character Generator, terrain cut from the LPC tileset",
+	"style": "lpc32",
+	"tileset": "https://github.com/OpenGameArt/LiberatedPixelCup"
 }

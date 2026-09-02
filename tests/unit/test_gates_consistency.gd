@@ -68,6 +68,8 @@ func test_every_tile_bank_is_gated_by_exactly_one_suite() -> void:
 	for bank_id in drawn:
 		assert_bool(imported.has(bank_id)).override_failure_message(
 			"%s is in both lists" % bank_id).is_false()
+	assert_array(imported).override_failure_message(
+		"no bank imports its pixels, so the gate below is not skipping anything").is_not_empty()
 	assert_array(drawn).is_not_empty()
 
 func test_tiles_use_the_same_palette_as_the_characters() -> void:
