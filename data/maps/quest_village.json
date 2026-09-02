@@ -12,7 +12,7 @@
 		"three lines to say."
 	],
 	"id": "quest_village",
-	"style": "dusk16",
+	"style": "lpc32",
 	"music": "barred_gate",
 	"legend": {
 		".": "grass",

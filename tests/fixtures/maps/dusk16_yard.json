@@ -1,0 +1,42 @@
+{
+	"_readme": [
+		"The same yard at 16px, so the world-scale gates have two sizes to compare.",
+		"",
+		"It exists because the shipped game is no longer 16px: every demo map draws at lpc32 now, so",
+		"a suite that wanted a narrow world had nowhere to get one. Kept beside its wide twin and",
+		"identical in every other respect - same shape, same spawn, same tiles - because the one",
+		"thing being measured is the size, and a second difference would muddy it."
+	],
+	"id": "dusk16_yard",
+	"style": "dusk16",
+	"legend": {
+		".": "grass",
+		"#": "wall"
+	},
+	"ground": [
+		"########",
+		"#......#",
+		"#......#",
+		"#......#",
+		"#......#",
+		"########"
+	],
+	"decor": [
+		"        ",
+		"        ",
+		"        ",
+		"        ",
+		"        ",
+		"        "
+	],
+	"spawns": {
+		"start": [
+			3,
+			2
+		]
+	},
+	"npcs": [],
+	"warps": [],
+	"objects": [],
+	"enemies": []
+}

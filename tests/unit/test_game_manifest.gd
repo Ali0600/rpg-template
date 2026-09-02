@@ -113,7 +113,11 @@ func test_a_grid_step_matching_the_maps_tiles_is_accepted() -> void:
 	# The control: without it, a check that complained about every grid step would pass above.
 	var manifest := _valid()
 	var config := (manifest.config as GameConfig).duplicate() as GameConfig
-	config.grid_step_pixels = 16
+	# The START MAP's own tile size, which is what the check compares against - a number written
+	# here goes stale the day the demo changes the size it is drawn at, and then fails as though
+	# the check were the thing that was wrong.
+	config.grid_step_pixels = ArtFixtures.style(MapData.load_from(
+		MapData.path_of(manifest.start_map)).style_id).tile_size
 	manifest.config = config
 	assert_array(manifest.problems()).is_empty()
 

@@ -12,7 +12,7 @@
 		"nobody had lit it."
 	],
 	"id": "quest_keep",
-	"style": "dusk16",
+	"style": "lpc32",
 	"legend": {
 		".": "grass",
 		",": "grass_alt",

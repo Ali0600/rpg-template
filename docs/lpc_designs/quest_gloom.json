@@ -1,0 +1,29 @@
+{
+	"id": "quest_gloom",
+	"style": "lpc32",
+	"name": "Gloom",
+	"body_type": "male",
+	"notes": "Cold and dark: it casts Chill and burns to fire. The first cut used the zombie BODY and it was wrong on sight - pale, bare-chested and blood-spattered, which is neither cold nor dark and not this game's tone. So the body is an ordinary one in the palette's own zombie green, the undead head is remapped onto the same green (which needs the head's OWN base, ulpc.zombie, not the material's), and it is dressed: charcoal sleeves, black trousers, a charcoal cape. What is left of the monster is the head and the colour.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "zombie_green"
+		},
+		{
+			"def": "head/heads/undead/heads_zombie",
+			"recolor": "zombie_green"
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "black"
+		},
+		{
+			"def": "torso/cape/cape_solid",
+			"recolor": "charcoal"
+		}
+	]
+}

@@ -53,8 +53,19 @@ func _head() -> Dictionary:
 		"animations": ["walk"],
 		"credits": [{"file": "head/human", "authors": ["e"], "licenses": ["CC-BY 4.0"], "urls": []}]}
 
+## A beast head: drawn in a colour that is NOT its material's base, and saying so. Every
+## non-human head in the catalogue is one of these - the lizard is green, the zombie grey-green,
+## the fur heads brown - and they are the whole reason a definition's own base is read.
+func _beast(base := "ulpc.bronze") -> Dictionary:
+	return {"name": "Beast", "type_name": "head",
+		"recolors": {"material": "body", "base": base, "palettes": ["ulpc"]},
+		"layer_1": {"zPos": 100, "male": "head/beast/male/"},
+		"animations": ["walk"],
+		"credits": [{"file": "head/beast", "authors": ["f"], "licenses": ["CC-BY-SA 3.0"], "urls": []}]}
+
 func _defs() -> Dictionary:
-	return {"shirt": _shirt(), "tunic": _tunic(), "hair": _hair(), "head": _head()}
+	return {"shirt": _shirt(), "tunic": _tunic(), "hair": _hair(), "head": _head(),
+		"beast": _beast(), "farm": _beast("lpcr.ivory")}
 
 func _recipe(layers: Array, body := "male") -> Dictionary:
 	return {"id": "who", "body_type": body, "layers": layers}
@@ -117,6 +128,35 @@ func test_a_head_remaps_skin_and_eyes_on_their_own_palettes() -> void:
 	assert_int(((planned["layers"][0] as Dictionary)["remaps"] as Array).size()).is_equal(2)
 	var eyes_only := _plan([{"def": "head", "eyes": "brown"}])
 	assert_int(((eyes_only["layers"][0] as Dictionary)["remaps"] as Array).size()).is_equal(1)
+
+func test_a_layer_drawn_off_its_material_s_base_remaps_from_the_colour_it_was_drawn_in() -> void:
+	# The beast head is drawn in bronze and asked for light. Remapping from the material's own
+	# base - light - would look for pixels that are not there and change almost nothing: a
+	# recolour that silently does not happen, on exactly the layers a monster is made of.
+	var planned := _plan([{"def": "beast", "recolor": "light"}])
+	assert_array(planned["problems"]).is_empty()
+	var remap: Dictionary = ((planned["layers"][0] as Dictionary)["remaps"] as Array)[0]
+	assert_str((remap["from"] as Array)[1].to_html(false)).override_failure_message(
+		"the remap reads from the material's base rather than the colour this art is drawn in"
+		).is_equal("000020")
+	assert_str((remap["to"] as Array)[1].to_html(false)).is_equal("200000")
+
+
+func test_asking_a_beast_head_for_the_colour_it_already_is_remaps_nothing() -> void:
+	# The other half of reading the stated base: bronze IS this art, so there is nothing to do.
+	# Without the fix this would remap bronze onto bronze the long way round, through light.
+	var planned := _plan([{"def": "beast", "recolor": "bronze"}])
+	assert_array(planned["problems"]).is_empty()
+	assert_array((planned["layers"][0] as Dictionary)["remaps"]).is_empty()
+
+
+func test_a_layer_in_a_palette_scheme_this_composer_never_fetches_is_refused_by_name() -> void:
+	# The farm heads are drawn in lpcr, a different scheme with different files. Silently
+	# treating "lpcr.ivory" as the ulpc variant "ivory" would remap from a palette that was
+	# never loaded, so it says so instead.
+	assert_str("\n".join(_plan([{"def": "farm", "recolor": "light"}])["problems"])).contains(
+		"'lpcr' palette scheme")
+
 
 func test_an_unknown_colour_and_a_short_palette_are_refused() -> void:
 	assert_str("\n".join(_plan([{"def": "shirt", "recolor": "puce"}])["problems"])).contains("'puce' is not a cloth colour")

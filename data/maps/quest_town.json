@@ -18,7 +18,7 @@
 		"validator allows an opening in an outer edge at all."
 	],
 	"id": "quest_town",
-	"style": "dusk16",
+	"style": "lpc32",
 	"music": "barred_gate",
 	"legend": {
 		".": "grass",

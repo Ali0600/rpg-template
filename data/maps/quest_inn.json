@@ -12,7 +12,7 @@
 		"a keeper walled off behind one is a keeper nobody can talk to. They stand on the door's own column, so walking in and holding north finds them."
 	],
 	"id": "quest_inn",
-	"style": "dusk16",
+	"style": "lpc32",
 	"legend": {
 		".": "floor",
 		"#": "wall_rough",

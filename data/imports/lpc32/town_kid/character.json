@@ -1,0 +1,260 @@
+{
+	"bodyType": "teen",
+	"credits": [
+		{
+			"authors": [
+				"bluecarrot16",
+				"Evert",
+				"TheraHedwig",
+				"Benjamin K. Smith (BenCreating)",
+				"MuffinElZangano",
+				"Durrani",
+				"Pierre Vigier (pvigier)",
+				"Eliza Wyatt (ElizaWy)",
+				"Matthew Krohn (makrohn)",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "body/bodies/teen",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-ladies",
+				"https://opengameart.org/content/lpc-teen-unisex-base-clothes",
+				"https://opengameart.org/content/lpc-jump-expanded",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://opengameart.org/content/lpc-be-seated",
+				"https://gitlab.com/vagabondgame/lpc-characters",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-jump-expanded"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"bluecarrot16",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "feet/shoes",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original by wulax, edited for v3 base by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Joe White",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "feet/shoes/basic/thin",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original by wulax, edited for female base by Joe White, edited for v3 base by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Manuel Riecke (MrBeast)"
+			],
+			"file": "hair/bangsshort",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-expanded-hair"
+			]
+		},
+		{
+			"authors": [
+				"ElizaWy",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "head/heads/human/male_small",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY"
+			],
+			"notes": "original head by Redshrike, reduced size head by ElizaWy",
+			"urls": []
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"ElizaWy",
+				"Joe White",
+				"Matthew Krohn (makrohn)",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "legs/pants/thin",
+			"licenses": [
+				"OGA-BY 3.0",
+				"GPL 3.0",
+				"CC-BY-SA 3.0"
+			],
+			"notes": "original male pants by wulax, edited for female by Joe White, recolors and edits to v3 base by bluecarrot16, teen legs by ElizaWy derived from base, climb/jump/run/sit/emotes/revised combat by JaidynReiman based on ElizaWy's LPC Revised",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-expanded-pants"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"ElizaWy",
+				"JaidynReiman",
+				"Stephen Challener (Redshrike)",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "torso/clothes/longsleeve/longsleeve/teen",
+			"licenses": [
+				"OGA-BY 3.0",
+				"GPL 3.0"
+			],
+			"notes": "body by Redshrike, shirt by ElizaWy derived from base, edited by bluecarrot16 to v3 bases; cleanup and climb/jump/run/sit/emote/revised combat adapted from LPC Revised by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-teen-unisex-base-clothes",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more",
+				"https://opengameart.org/content/lpc-expanded-simple-shirts"
+			]
+		}
+	],
+	"generatedBy": "tools/lpc_compose.gd",
+	"layers": [
+		{
+			"def": "body/body",
+			"path": "spritesheets/body/bodies/teen/walk.png",
+			"zPos": 10
+		},
+		{
+			"def": "head/heads/human/heads_human_male_small",
+			"path": "spritesheets/head/heads/human/male_small/walk.png",
+			"zPos": 100
+		},
+		{
+			"def": "hair/short/hair_bangsshort",
+			"path": "spritesheets/hair/bangsshort/adult/walk.png",
+			"zPos": 120
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"path": "spritesheets/torso/clothes/longsleeve/longsleeve/teen/walk.png",
+			"zPos": 35
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"path": "spritesheets/legs/pants/thin/walk.png",
+			"zPos": 20
+		},
+		{
+			"def": "feet/shoes/feet_shoes_basic",
+			"path": "spritesheets/feet/shoes/basic/thin/walk.png",
+			"zPos": 15
+		}
+	],
+	"recipe": {
+		"body_type": "teen",
+		"id": "town_kid",
+		"layers": [
+			{
+				"def": "body/body",
+				"recolor": "light"
+			},
+			{
+				"def": "head/heads/human/heads_human_male_small",
+				"eyes": "blue",
+				"recolor": "light"
+			},
+			{
+				"def": "hair/short/hair_bangsshort",
+				"recolor": "sandy"
+			},
+			{
+				"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+				"recolor": "teal"
+			},
+			{
+				"def": "legs/pants/legs_pants",
+				"recolor": "slate"
+			},
+			{
+				"def": "feet/shoes/feet_shoes_basic",
+				"recolor": "brown"
+			}
+		],
+		"name": "The apprentice",
+		"notes": "The teen body and the small head, which is what makes a child read as a child rather than as a short adult. Sandy hair and teal: the only warm-and-bright person in a town of slate and moss.",
+		"style": "lpc32"
+	},
+	"selections": {
+		"body": {
+			"itemId": "body",
+			"name": "Body Color",
+			"recolor": "light",
+			"variant": null
+		},
+		"clothes": {
+			"itemId": "torso_clothes_longsleeve",
+			"name": "Longsleeve",
+			"recolor": "teal",
+			"variant": null
+		},
+		"hair": {
+			"itemId": "hair_bangsshort",
+			"name": "Bangsshort",
+			"recolor": "sandy",
+			"variant": null
+		},
+		"head": {
+			"itemId": "heads_human_male_small",
+			"name": "Human Male Small",
+			"recolor": "light",
+			"variant": null
+		},
+		"legs": {
+			"itemId": "legs_pants",
+			"name": "Pants",
+			"recolor": "slate",
+			"variant": null
+		},
+		"shoes": {
+			"itemId": "feet_shoes_basic",
+			"name": "Basic Shoes",
+			"recolor": "brown",
+			"variant": null
+		}
+	},
+	"version": 2
+}

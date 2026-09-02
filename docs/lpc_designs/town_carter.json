@@ -1,0 +1,34 @@
+{
+	"id": "town_carter",
+	"style": "lpc32",
+	"name": "The carter",
+	"body_type": "male",
+	"notes": "The one NPC in the game who WALKS - he patrols the town square between two tiles - so he is read in motion more than standing still. Tan and brown, no cape and no apron: nothing on him flaps, which keeps the walk cycle legible at 64px.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "taupe"
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"recolor": "taupe",
+			"eyes": "brown"
+		},
+		{
+			"def": "hair/short/hair_page",
+			"recolor": "chestnut"
+		},
+		{
+			"def": "torso/shirts/shortsleeve/torso_clothes_shortsleeve",
+			"recolor": "tan"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "brown"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "leather"
+		}
+	]
+}

@@ -1,0 +1,42 @@
+{
+	"id": "town_smith",
+	"style": "lpc32",
+	"name": "The smith",
+	"body_type": "male",
+	"notes": "A leather apron over a white shirt, which is the whole costume - a smith is recognised by the apron in every game that has one. Spiked black hair and a shadow of a beard for the brawler build; bronze skin so the town is not all one tone.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "bronze"
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"recolor": "bronze",
+			"eyes": "brown"
+		},
+		{
+			"def": "hair/spiky/hair_spiked",
+			"recolor": "black"
+		},
+		{
+			"def": "hair/beards/beards_5oclock_shadow",
+			"recolor": "black"
+		},
+		{
+			"def": "torso/shirts/shortsleeve/torso_clothes_shortsleeve",
+			"recolor": "white"
+		},
+		{
+			"def": "torso/aprons/torso_aprons_apron",
+			"variant": "leather"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "black"
+		}
+	]
+}

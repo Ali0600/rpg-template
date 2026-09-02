@@ -1,0 +1,301 @@
+{
+	"bodyType": "male",
+	"credits": [
+		{
+			"authors": [
+				"JaidynReiman",
+				"Thane Brimhall (pennomi)",
+				"laetissima"
+			],
+			"file": "beards/beard/5oclock_shadow",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "Original by Pennomi, repositioning by JaidynReiman.",
+			"urls": [
+				"https://opengameart.org/content/lpc-base-character-expressions"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"Benjamin K. Smith (BenCreating)",
+				"Evert",
+				"Eliza Wyatt (ElizaWy)",
+				"TheraHedwig",
+				"MuffinElZangano",
+				"Durrani",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "body/bodies/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "see details at https://opengameart.org/content/lpc-character-bases; 'Thick' Male Revised Run/Climb by JaidynReiman (based on ElizaWy's LPC Revised)",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-runcycle-and-diagonal-walkcycle",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://opengameart.org/content/lpc-be-seated",
+				"https://opengameart.org/content/lpc-runcycle-for-male-muscular-and-pregnant-character-bases-with-modular-heads",
+				"https://opengameart.org/content/lpc-jump-expanded",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"bluecarrot16",
+				"Nila122"
+			],
+			"file": "feet/boots/basic",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 2.0",
+				"GPL 3.0"
+			],
+			"notes": "original by Nila122, edited for male and v3 bases by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-clothes-and-hair",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"kcilds/Rocetti/Eredah"
+			],
+			"file": "hair/spiked",
+			"licenses": [
+				"CC-BY 4.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/eredah-rpg-character-base-48x64-ongoing",
+				"https://opengameart.org/content/lpc-hair"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"Benjamin K. Smith (BenCreating)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "head/heads/human/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original head by Redshrike, tweaks by BenCreating, modular version by bluecarrot16",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"ElizaWy",
+				"Matthew Krohn (makrohn)",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "legs/pants/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"GPL 3.0",
+				"CC-BY-SA 3.0"
+			],
+			"notes": "original male pants by wulax, recolors and edits to v3 base by bluecarrot16, climb/jump/run/sit/emotes/revised combat by JaidynReiman based on ElizaWy's LPC Revised",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-expanded-pants"
+			]
+		},
+		{
+			"authors": [
+				"Nila122"
+			],
+			"file": "torso/aprons/apron",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 2.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/lpc-aprons"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"ElizaWy",
+				"JaidynReiman",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "torso/clothes/shortsleeve/shortsleeve/male",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original by ElizaWy walkcycle only; extended to all animations by adapting from longsleeve, edited to v3 bases by bluecarrot16; cleanup and climb/jump/run/sit/emote/revised combat adapted from LPC Revised by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"http://opengameart.org/content/lpc-revised-character-basics",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more",
+				"https://opengameart.org/content/lpc-expanded-simple-shirts"
+			]
+		}
+	],
+	"generatedBy": "tools/lpc_compose.gd",
+	"layers": [
+		{
+			"def": "body/body",
+			"path": "spritesheets/body/bodies/male/walk.png",
+			"zPos": 10
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"path": "spritesheets/head/heads/human/male/walk.png",
+			"zPos": 100
+		},
+		{
+			"def": "hair/spiky/hair_spiked",
+			"path": "spritesheets/hair/spiked/adult/walk.png",
+			"zPos": 120
+		},
+		{
+			"def": "hair/beards/beards_5oclock_shadow",
+			"path": "spritesheets/beards/beard/5oclock_shadow/walk.png",
+			"zPos": 111
+		},
+		{
+			"def": "torso/shirts/shortsleeve/torso_clothes_shortsleeve",
+			"path": "spritesheets/torso/clothes/shortsleeve/shortsleeve/male/walk.png",
+			"zPos": 35
+		},
+		{
+			"def": "torso/aprons/torso_aprons_apron",
+			"path": "spritesheets/torso/aprons/apron/male/walk/leather.png",
+			"zPos": 40
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"path": "spritesheets/legs/pants/male/walk.png",
+			"zPos": 20
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"path": "spritesheets/feet/boots/basic/male/walk.png",
+			"zPos": 25
+		}
+	],
+	"recipe": {
+		"body_type": "male",
+		"id": "town_smith",
+		"layers": [
+			{
+				"def": "body/body",
+				"recolor": "bronze"
+			},
+			{
+				"def": "head/heads/human/heads_human_male",
+				"eyes": "brown",
+				"recolor": "bronze"
+			},
+			{
+				"def": "hair/spiky/hair_spiked",
+				"recolor": "black"
+			},
+			{
+				"def": "hair/beards/beards_5oclock_shadow",
+				"recolor": "black"
+			},
+			{
+				"def": "torso/shirts/shortsleeve/torso_clothes_shortsleeve",
+				"recolor": "white"
+			},
+			{
+				"def": "torso/aprons/torso_aprons_apron",
+				"variant": "leather"
+			},
+			{
+				"def": "legs/pants/legs_pants",
+				"recolor": "charcoal"
+			},
+			{
+				"def": "feet/boots/feet_boots_basic",
+				"recolor": "black"
+			}
+		],
+		"name": "The smith",
+		"notes": "A leather apron over a white shirt, which is the whole costume - a smith is recognised by the apron in every game that has one. Spiked black hair and a shadow of a beard for the brawler build; bronze skin so the town is not all one tone.",
+		"style": "lpc32"
+	},
+	"selections": {
+		"apron": {
+			"itemId": "torso_aprons_apron",
+			"name": "Apron",
+			"recolor": null,
+			"variant": "leather"
+		},
+		"beard": {
+			"itemId": "beards_5oclock_shadow",
+			"name": "5 O'clock Shadow",
+			"recolor": "black",
+			"variant": null
+		},
+		"body": {
+			"itemId": "body",
+			"name": "Body Color",
+			"recolor": "bronze",
+			"variant": null
+		},
+		"clothes": {
+			"itemId": "torso_clothes_shortsleeve",
+			"name": "Shortsleeve",
+			"recolor": "white",
+			"variant": null
+		},
+		"hair": {
+			"itemId": "hair_spiked",
+			"name": "Spiked",
+			"recolor": "black",
+			"variant": null
+		},
+		"head": {
+			"itemId": "heads_human_male",
+			"name": "Human Male",
+			"recolor": "bronze",
+			"variant": null
+		},
+		"legs": {
+			"itemId": "legs_pants",
+			"name": "Pants",
+			"recolor": "charcoal",
+			"variant": null
+		},
+		"shoes": {
+			"itemId": "feet_boots_basic",
+			"name": "Basic Boots",
+			"recolor": "black",
+			"variant": null
+		}
+	},
+	"version": 2
+}

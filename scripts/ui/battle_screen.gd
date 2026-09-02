@@ -103,6 +103,10 @@ const LUNGE := 10.0
 ## of THIS SCREEN's bands - the capacity MAX_PARTY and MAX_FOES are declared against - and a
 ## second copy in data is a second opinion about a layout only one gate measures.
 const SPRITE_SCALE := 2.0
+## The drawn width the file's 18/14 stagger was chosen against - a 16px cell at SPRITE_SCALE.
+## Everything about the group's shape is stated as a fraction of this, so a style with wider
+## fighters keeps the file rather than stacking them on top of one another.
+const STAGGER_WIDTH := 32.0
 const BAR_WIDTH := 64.0
 const BAR_HEIGHT := 4.0
 
@@ -183,15 +187,22 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	#
 	# A party stands in a staggered file rather than a row: back and up, so nobody is hidden
 	# behind the member in front and the one who is swinging still has room to lean.
+	#
+	# The step between them is a fraction of how wide a fighter DRAWS, not a flat number of
+	# pixels: 18 and 14 were chosen against a 16x24 cell at twice size, and a style whose
+	# fighters are twice that wide needs twice the room to keep the same file. At the width
+	# they were chosen for this is exactly 18 and 14, so every layout measured before this is
+	# untouched.
+	var step := _drawn_width() / STAGGER_WIDTH
 	for i in count:
-		var home := Vector2(float(viewport_size.x) * 0.26 - i * 18.0, mid + 8.0 - i * 14.0)
+		var home := Vector2(float(viewport_size.x) * 0.26 - i * 18.0 * step, mid + 8.0 - i * 14.0 * step)
 		_member_homes.append(home)
 		_member_views.append(_make_fighter(source, _logic.member_character(i), home,
 			Dir.D.RIGHT))
 	# The formation stands in the mirror of that file - back and up the other way, so the first
 	# foe is where the only foe always stood and the rest step behind it.
 	for at in foes:
-		var spot := Vector2(float(viewport_size.x) * 0.74 + at * 18.0, mid + 8.0 - at * 14.0)
+		var spot := Vector2(float(viewport_size.x) * 0.74 + at * 18.0 * step, mid + 8.0 - at * 14.0 * step)
 		_foe_homes.append(spot)
 		_foe_views.append(_make_fighter(source, _logic.foe_character(at), spot, Dir.D.LEFT))
 
@@ -270,6 +281,11 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	_help.position = Vector2(MARGIN, viewport_size.y - 14)
 	_help.add_theme_font_size_override("font_size", HELP_SIZE)
 	add_child(_help)
+
+
+## How wide one fighter draws, in the units this screen lays out in.
+func _drawn_width() -> float:
+	return float(_style.cell_size.x) * SPRITE_SCALE / float(UiScale.scale_of(_style))
 
 
 func _make_fighter(source: SpriteSource, character: StringName, at: Vector2, facing: int) -> SpriteView:
