@@ -55,7 +55,9 @@ func test_the_lab_opens_on_a_rig_style_showing_a_character() -> void:
 func test_an_imported_style_is_shown_from_its_committed_sheets() -> void:
 	var lab := await _lab()
 	await _reach(lab, "lpc32")
-	assert_str(String(lab._title.text)).is_equal("lpc32 / quest_wanderer")
+	# The first character by NAME, which is what the list is sorted by - with twelve of them,
+	# an unsorted list cycled in whatever order the filesystem answered in.
+	assert_str(String(lab._title.text)).is_equal("lpc32 / inn_keeper")
 	assert_str(String(lab._detail.text)).contains("imported")
 	for i in Dir.ALL.size():
 		var view: SpriteView = lab._views[i]

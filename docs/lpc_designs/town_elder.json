@@ -1,0 +1,34 @@
+{
+	"id": "town_elder",
+	"style": "lpc32",
+	"name": "The town elder",
+	"body_type": "female",
+	"notes": "dusk16: a robe, long ash hair, moss cloth, dark skin. The tunic keeps her out of the trousers-and-coat silhouette every other adult wears. Indigo rather than the moss dusk16 gave her, because Rook wears moss and the two of them side by side were a woman in a green tunic twice - the palette is the same family, the reading is not.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "brown"
+		},
+		{
+			"def": "head/heads/human/heads_human_female",
+			"recolor": "brown",
+			"eyes": "brown"
+		},
+		{
+			"def": "hair/long/hair_long",
+			"recolor": "gray"
+		},
+		{
+			"def": "torso/shirts/torso_clothes_tunic",
+			"variant": "navy"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/shoes/feet_shoes_basic",
+			"recolor": "brown"
+		}
+	]
+}

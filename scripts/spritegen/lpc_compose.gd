@@ -270,8 +270,21 @@ static func _remaps_for(key: String, d: Dictionary, want: Dictionary, palettes: 
 			problems.append("'%s' recolours by the '%s' palette, which was not loaded" % [key, material])
 			continue
 		var palette: Dictionary = palettes[material]
-		var base := str(palette.get("base", ""))
 		var variants: Dictionary = palette.get("variants", {})
+		# A definition may be DRAWN in something other than its material's base variant - the
+		# lizard head is green, the zombie's is grey-green, the fur heads are brown - and says
+		# so with its own `base`. Remapping those from the material's default would take human
+		# skin tones as the source, find almost none of them in the art, and change almost
+		# nothing: a recolour that silently does not happen rather than one that fails.
+		var base := str(palette.get("base", ""))
+		var stated := str(block.get("base", ""))
+		if not stated.is_empty():
+			var parts := stated.split(".", false)
+			var scheme := parts[0] if parts.size() > 1 else PALETTE_VERSION
+			if scheme != PALETTE_VERSION:
+				problems.append("'%s' is drawn in the '%s' palette scheme, which this composer does not fetch" % [key, scheme])
+				continue
+			base = parts[parts.size() - 1]
 		if not variants.has(wish):
 			var names: Array = variants.keys()
 			names.sort()

@@ -1815,3 +1815,47 @@ only reason it surfaced is that the suite's orphan baseline was zero.
 **Takeaway:** narrow a redirect to the window where it is needed — after the component's own
 start-up, before the call under test — and keep a zero-orphan baseline so a leak is a failure
 rather than a number nobody reads.
+
+## A fixture that names live content goes stale as a refusal, not as an error
+
+A test that spells out a value the shipped data also carries keeps agreeing with it until the
+data changes, and then disagrees in the voice of the thing under test.
+
+**Why it came up:** the demo's maps changed art style. Two editor round-trip suites had the old
+style name written into their coupling checks, so every one of them reported every shipped map
+as painted against the wrong tile bank. It reads as the translator failing. Worse was an NPC
+suite that hardcoded the same tile size in two places: the pair cancelled, so it had been
+passing against a world drawn at neither size, and correcting one half made it fail.
+
+**Takeaway:** derive fixture values from the artefact under test, and when two places must agree
+on a number, make one of them read the other rather than repeating it.
+
+## Ask what a consistency gate is a proxy FOR before demanding equality
+
+A gate that requires several things to be identical is often standing in for a weaker property
+that is what you actually need, and the difference shows up when the population widens.
+
+**Why it came up:** imported character sheets were required to share one ground row. That was
+right for a procedural cast, where every frame comes from one rig. With hand-drawn art it
+demanded that four different body types be drawn identically by a dozen artists — and they are
+not, by one pixel. Since each sheet carries its own measured anchor, exact equality bought
+nothing: the property actually needed was that nothing OTHER than a foot is being measured. The
+rule became exact within a body type, and bounded across the cast.
+
+**Takeaway:** when a gate starts failing on legitimate new inputs, restate what it protects
+before either weakening it or bending the inputs — the restatement is usually narrower in one
+direction and stronger in another.
+
+## A spacing constant is a fraction of the thing being spaced
+
+Layout numbers are chosen while looking at content of a particular size, and they silently
+encode that size.
+
+**Why it came up:** the battle screen staggered party members 18 pixels apart, which was chosen
+for characters 32 pixels wide. Fighters twice that wide stood in each other, one face showing
+over another's shoulder. Naming the width the number was chosen against and scaling by it kept
+the group's shape at both sizes, and left the original numbers exactly as they were.
+
+**Takeaway:** when a layout constant survives a change of content size unchanged, check whether
+it should have — and express it against whatever it was measured against, so the old value falls
+out arithmetically.

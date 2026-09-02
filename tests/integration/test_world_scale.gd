@@ -39,6 +39,11 @@ func _steps(count: int) -> void:
 
 
 func _instantiate() -> Node2D:
+	# The shipped maps, always, for the scene's own _ready: it boots the shipped game, and with
+	# the fixture root still in effect from a previous boot that hunt fails and leaves the
+	# half-built map it had already made behind. Six orphan nodes, no error, every assertion
+	# below still passing. Each boot below moves the root again, AFTER this.
+	MapData.root = MapData.MAP_DIR
 	var scene := load("res://scenes/world/world.tscn") as PackedScene
 	_world = scene.instantiate() as Node2D
 	add_child(_world)
@@ -56,10 +61,12 @@ func _wide_manifest() -> GameManifest:
 	return manifest
 
 
+## The same game in a 16px yard. A fixture rather than a shipped map because the demo has no
+## 16px map left - every one of them draws at lpc32 now, which is exactly the change this suite
+## exists to measure.
 func _narrow_manifest() -> GameManifest:
-	var manifest := (load(GAME) as GameManifest).duplicate() as GameManifest
-	manifest.start_map = &"quest_town"
-	manifest.start_spawn = &"start"
+	var manifest := _wide_manifest()
+	manifest.start_map = &"dusk16_yard"
 	return manifest
 
 
@@ -77,6 +84,7 @@ func _boot_wide() -> Node2D:
 
 func _boot_narrow() -> Node2D:
 	var world := _instantiate()
+	MapData.root = FIXTURE_MAPS
 	assert_bool(world.start_game(_narrow_manifest())).is_true()
 	await _steps(1)
 	return world

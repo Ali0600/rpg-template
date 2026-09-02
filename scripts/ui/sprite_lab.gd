@@ -32,8 +32,11 @@ var _gate := InputGate.new()
 var _style: SpriteStyle
 var _rig: Rig
 var _specs: Array[CharacterSpec] = []
-## The committed characters of an imported style, by id.
-var _imported: Array[StringName] = []
+## The committed characters of an imported style, by id. STRINGS, not StringNames: an array of
+## those printed two ids interleaved into a word that is neither of them the moment this style
+## had more than one character in it - the same interning hazard that made style ids sort by
+## pointer. Strings print what they say.
+var _imported: Array[String] = []
 var _source: SpriteSource
 var _views: Array[SpriteView] = []
 var _direction_labels: Array[Label] = []
@@ -234,7 +237,7 @@ func _refresh_imported() -> void:
 	var id := _imported[_character_index % _imported.size()]
 	for i in _views.size():
 		var view := _views[i]
-		view.apply_source(_source, id)
+		view.apply_source(_source, StringName(id))
 		view.set_pose(&"walk" if _walking else &"idle", Dir.ALL[i])
 	_title.text = "%s / %s" % [_style.id, id]
 	_detail.text = "imported   %s	licences %s" % [
@@ -271,12 +274,13 @@ func _characters_of(style_id: StringName) -> Array[CharacterSpec]:
 
 
 ## The committed sheets of an imported style, by the id each .sheet.json is named after.
-func _imported_ids(style_id: StringName) -> Array[StringName]:
-	var out: Array[StringName] = []
+func _imported_ids(style_id: StringName) -> Array[String]:
+	var out: Array[String] = []
 	var exts: Array[String] = ["json"]
 	for path in ContentScan.files("%s/%s" % [FileSpriteSource.DEFAULT_ROOT, style_id], exts):
 		if path.ends_with(".sheet.json"):
-			out.append(StringName(path.get_file().trim_suffix(".sheet.json")))
+			out.append(path.get_file().trim_suffix(".sheet.json"))
+	out.sort()
 	return out
 
 

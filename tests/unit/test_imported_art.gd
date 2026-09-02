@@ -36,18 +36,78 @@ func test_every_imported_character_has_output_that_describes_itself() -> void:
 	# The template ships one imported style, so an empty run here is the gate not looking.
 	assert_int(checked).override_failure_message("no imported character was measured").is_greater(0)
 
+## How far apart two body types' ground rows may be. Two, because the shipped spread is one and
+## a number equal to what ships cannot tell "as drawn" from "one worse than drawn"; a cape or a
+## shadow taken for a foot is out by ten or more.
+const MAX_GROUND_SPREAD := 2
+
+
+## Which of the generator's bodies a character is drawn on, from the export itself rather than
+## from the recipe: a character downloaded from the browser has no recipe, and both routes write
+## this field.
+func _body_type(style_id: StringName, id: StringName) -> String:
+	var file := JsonFile.read("%s/%s/%s/character.json" % [ArtFixtures.IMPORT_ROOT, style_id, id])
+	return str(file.data.get("bodyType", "")) if file.ok else ""
+
+
+## What a shared ground line actually means for art the template did not draw.
+##
+## Every sheet carries its OWN measured anchor and every character is placed by it, so their
+## feet land on their node's origin whatever row that is - the equality this used to demand
+## was a proxy, and it asked the LPC artists to draw four body types identically. They do not:
+## the female and teen bodies sit one pixel lower than the male and child ones, in art shipped
+## by a dozen people over ten years.
+##
+## So the rule is stated in the two halves that are actually load-bearing. Within one BODY
+## TYPE the ground row is exactly equal, which still catches a stray low pixel on one costume.
+## Across the whole cast it is within a couple of pixels, which is what catches the failure the
+## anchor cannot survive: a trailing cape or a shadow measured as the ground, putting a
+## character's feet in the air by the length of the thing hanging beneath them.
 func test_an_imported_cast_stands_on_one_ground_line() -> void:
 	for style_id in ArtFixtures.imported_style_ids():
+		var by_body := {}
 		var rows: Array[int] = []
+		var counted := 0
 		for id in ArtFixtures.imported_characters_of(style_id):
 			var meta := _meta(style_id, id)
 			# Inside the cell and below its middle: feet, not a hat.
 			assert_int(meta.anchor.y).is_greater(meta.cell.y / 2)
 			assert_int(meta.anchor.y).is_less(meta.cell.y)
+			var body := _body_type(style_id, id)
+			assert_bool(body.is_empty()).override_failure_message(
+				"'%s' does not say which body it is drawn on" % id).is_false()
+			if not by_body.has(body):
+				by_body[body] = {}
+			(by_body[body] as Dictionary)[meta.anchor.y] = id
 			if not rows.has(meta.anchor.y):
 				rows.append(meta.anchor.y)
-		assert_int(rows.size()).override_failure_message(
-			"%s characters stand on %d different rows: %s" % [style_id, rows.size(), rows]).is_equal(1)
+			counted += 1
+		assert_int(counted).override_failure_message(
+			"%s has no imported characters, so this proved nothing" % style_id).is_greater(0)
+		for body: Variant in by_body.keys():
+			var seen: Dictionary = by_body[body]
+			assert_int(seen.size()).override_failure_message(
+				"%s '%s' characters stand on %d different rows: %s - one of them is being"
+				% [style_id, body, seen.size(), seen] + " measured by something other than its feet"
+				).is_equal(1)
+		rows.sort()
+		assert_int(rows[rows.size() - 1] - rows[0]).override_failure_message(
+			"%s characters stand on rows %s, too far apart to be four bodies drawn by hand -"
+			% [style_id, rows] + " something is being measured that is not a foot"
+			).is_less_equal(MAX_GROUND_SPREAD)
+
+
+## The bound above is only evidence if it REFUSES something, and the shipped cast is one row
+## apart - so widening the ceiling to a whole cell changes no verdict at all and the check
+## quietly stops checking. This pins the number itself against the failure it exists for: a
+## trailing cape or a shadow taken for the ground puts a character's feet ten or more rows out.
+func test_the_ground_line_bound_refuses_a_cape_measured_as_a_foot() -> void:
+	assert_int(MAX_GROUND_SPREAD).override_failure_message(
+		"a ground-line spread of ten rows is inside the bound, which is a character standing"
+		+ " in the air by the length of whatever hangs beneath it").is_less(10)
+	# And it is not so tight that hand-drawn bodies fail it: the shipped spread is one.
+	assert_int(MAX_GROUND_SPREAD).is_greater_equal(1)
+
 
 func test_every_layer_is_credited_under_a_licence_the_style_accepts() -> void:
 	for style_id in ArtFixtures.imported_style_ids():

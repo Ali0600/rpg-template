@@ -20,8 +20,12 @@ var _root: Node2D
 
 func before_test() -> void:
 	Router.reset()
-	_config = load("res://data/game_config.tres").duplicate() as GameConfig
-	# The one line that turns the mode on. The shipped file is untouched.
+	# The template's OWN defaults rather than the demo's file: this suite builds a 16px world,
+	# and the shipped game is drawn at 32px now - its walk speed and its body are sized for
+	# that. A 20px-wide body in a 16px corridor stops a tile early, which reads as the grid
+	# walker refusing a step it should have taken.
+	_config = GameConfig.new()
+	# The one line that turns the mode on.
 	_config.grid_step_pixels = CELL
 	_style = load("res://data/styles/gb16.tres") as SpriteStyle
 	var meta := JsonFile.read("res://assets/generated/gb16/tiles.json")

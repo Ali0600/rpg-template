@@ -1,0 +1,263 @@
+{
+	"bodyType": "female",
+	"credits": [
+		{
+			"authors": [
+				"Benjamin K. Smith (BenCreating)",
+				"bluecarrot16",
+				"TheraHedwig",
+				"Evert",
+				"MuffinElZangano",
+				"Durrani",
+				"Pierre Vigier (pvigier)",
+				"ElizaWy",
+				"Matthew Krohn (makrohn)",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "body/bodies/female",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "see details at https://opengameart.org/content/lpc-character-bases",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-ladies",
+				"https://opengameart.org/content/lpc-7-womens-shirts",
+				"https://opengameart.org/content/lpc-jump-expanded",
+				"https://opengameart.org/content/lpc-be-seated",
+				"https://opengameart.org/content/lpc-revised-character-basics",
+				"https://gitlab.com/vagabondgame/lpc-characters",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-runcycle-and-diagonal-walkcycle"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"bluecarrot16",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "feet/shoes",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original by wulax, edited for v3 base by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"JaidynReiman",
+				"Joe White",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "feet/shoes/basic/thin",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original by wulax, edited for female base by Joe White, edited for v3 base by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-expanded-socks-shoes"
+			]
+		},
+		{
+			"authors": [
+				"ElizaWy",
+				"bluecarrot16"
+			],
+			"file": "hair/bob",
+			"licenses": [
+				"CC0"
+			],
+			"notes": "Original by bluecarrot16. Edited and animated by ElizaWy.",
+			"urls": [
+				"https://opengameart.org/content/lpc-hair",
+				"https://github.com/ElizaWy/LPC/blob/main/Characters/Hair",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"Benjamin K. Smith (BenCreating)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "head/heads/human/female",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original head by Redshrike, tweaks by BenCreating, modular version by bluecarrot16",
+			"urls": [
+				"https://opengameart.org/content/",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"ElizaWy",
+				"Joe White",
+				"Matthew Krohn (makrohn)",
+				"Johannes Sjölund (wulax)",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "legs/pants/thin",
+			"licenses": [
+				"OGA-BY 3.0",
+				"GPL 3.0",
+				"CC-BY-SA 3.0"
+			],
+			"notes": "original male pants by wulax, edited for female by Joe White, recolors and edits to v3 base by bluecarrot16, teen legs by ElizaWy derived from base, climb/jump/run/sit/emotes/revised combat by JaidynReiman based on ElizaWy's LPC Revised",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"http://opengameart.org/content/lpc-clothing-updates",
+				"https://opengameart.org/content/lpc-expanded-pants"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"JaidynReiman",
+				"Matthew Krohn (makrohn)",
+				"Marcel van de Steeg (MadMarcel)",
+				"Stephen Challener (Redshrike)",
+				"Johannes Sjölund (wulax)"
+			],
+			"file": "torso/clothes/tunic",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "\"pirate shirt\" by MadMarcel, edited to all poses by makrohn, edited from tube-top/tanktop to sleeveless then to tunic by JaidynReiman, edits for v3 bases and further cleanup by bluecarrot16",
+			"urls": [
+				"https://opengameart.org/content/lpc-female-orcogregoblintroll-base-walkcycle",
+				"https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+				"http://opengameart.org/content/lpc-clothing-updates"
+			]
+		}
+	],
+	"generatedBy": "tools/lpc_compose.gd",
+	"layers": [
+		{
+			"def": "body/body",
+			"path": "spritesheets/body/bodies/female/walk.png",
+			"zPos": 10
+		},
+		{
+			"def": "head/heads/human/heads_human_female",
+			"path": "spritesheets/head/heads/human/female/walk.png",
+			"zPos": 100
+		},
+		{
+			"def": "hair/bob/hair_bob",
+			"path": "spritesheets/hair/bob/adult/walk.png",
+			"zPos": 120
+		},
+		{
+			"def": "torso/shirts/torso_clothes_tunic",
+			"path": "spritesheets/torso/clothes/tunic/female/walk/maroon.png",
+			"zPos": 35
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"path": "spritesheets/legs/pants/thin/walk.png",
+			"zPos": 20
+		},
+		{
+			"def": "feet/shoes/feet_shoes_basic",
+			"path": "spritesheets/feet/shoes/basic/thin/walk.png",
+			"zPos": 15
+		}
+	],
+	"recipe": {
+		"body_type": "female",
+		"id": "inn_keeper",
+		"layers": [
+			{
+				"def": "body/body",
+				"recolor": "amber"
+			},
+			{
+				"def": "head/heads/human/heads_human_female",
+				"eyes": "brown",
+				"recolor": "amber"
+			},
+			{
+				"def": "hair/bob/hair_bob",
+				"recolor": "dark_brown"
+			},
+			{
+				"def": "torso/shirts/torso_clothes_tunic",
+				"variant": "maroon"
+			},
+			{
+				"def": "legs/pants/legs_pants",
+				"recolor": "brown"
+			},
+			{
+				"def": "feet/shoes/feet_shoes_basic",
+				"recolor": "brown"
+			}
+		],
+		"name": "The innkeeper",
+		"notes": "She stands behind the only counter in the game that is not a shop. A bob rather than long hair so she is not a second elder, and maroon so the inn's interior has one warm thing in it.",
+		"style": "lpc32"
+	},
+	"selections": {
+		"body": {
+			"itemId": "body",
+			"name": "Body Color",
+			"recolor": "amber",
+			"variant": null
+		},
+		"clothes": {
+			"itemId": "torso_clothes_tunic",
+			"name": "Tunic",
+			"recolor": null,
+			"variant": "maroon"
+		},
+		"hair": {
+			"itemId": "hair_bob",
+			"name": "Bob",
+			"recolor": "dark_brown",
+			"variant": null
+		},
+		"head": {
+			"itemId": "heads_human_female",
+			"name": "Human Female",
+			"recolor": "amber",
+			"variant": null
+		},
+		"legs": {
+			"itemId": "legs_pants",
+			"name": "Pants",
+			"recolor": "brown",
+			"variant": null
+		},
+		"shoes": {
+			"itemId": "feet_shoes_basic",
+			"name": "Basic Shoes",
+			"recolor": "brown",
+			"variant": null
+		}
+	},
+	"version": 2
+}

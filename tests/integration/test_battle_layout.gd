@@ -81,6 +81,32 @@ func _screen(level := 1, mp := 8, spells: Array = [], items: Array = [],
 	return screen
 
 
+## A full party under the 32px style, for the shape assertion. Every member is the wanderer,
+## who is the only character drawn in lpc32 that a party could be made of - this measures where
+## they STAND, not who they are.
+func _wide_party_screen() -> BattleScreen:
+	var screen := BattleScreen.new()
+	var style := load("res://data/styles/lpc32.tres") as SpriteStyle
+	UiScale.mount(screen, self, style)
+	var combat := _combat(true)
+	var members: Array = []
+	for i in BattleScreen.MAX_PARTY:
+		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
+			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
+			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, []))
+	var enemy := _enemy()
+	enemy.character = &"quest_slink"
+	var logic := BattleLogic.of(combat, [enemy], members, [], "map/foe", 7)
+	screen.setup(logic, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(&"lpc32"))
+	_screens.append(screen)
+	return screen
+
+
+## How wide one fighter draws on this screen, in its own layout units.
+func _fighter_width(screen: BattleScreen) -> float:
+	return float(screen._foe_views[0].cell_size().x) * screen._foe_views[0].scale.x
+
+
 ## The same fight, drawn under a style that wants a bigger world. Every character is the
 ## wanderer because the wanderer is the only one drawn in lpc32 yet, which is fine here: this
 ## is about how big a fighter is drawn, not about who it is.
@@ -127,6 +153,24 @@ func test_a_fighter_is_drawn_at_the_same_size_whatever_the_world_is() -> void:
 		assert_float(float(pair[1]) / float(screen._foe_views[0].cell_size().y)) \
 			.override_failure_message("a fighter is not drawn at %sx its world size on '%s'"
 			% [BattleScreen.SPRITE_SCALE, screen._style.id]).is_equal(BattleScreen.SPRITE_SCALE)
+
+
+func test_the_party_stands_in_the_same_file_however_wide_its_fighters_are() -> void:
+	# The stagger is a fraction of how wide a fighter draws, so the group has one SHAPE at every
+	# size. A flat number of pixels put two 64px LPC characters 18 apart - one standing in front
+	# of the other with a face showing over a shoulder, which reads as a drawing mistake rather
+	# than as a formation.
+	var narrow := _full_party_screen()
+	var wide := _wide_party_screen()
+	var pairs: Array = []
+	for screen: BattleScreen in [narrow, wide]:
+		var homes: Array = screen._member_homes
+		assert_int(homes.size()).is_greater(1)
+		var apart: float = absf((homes[1] as Vector2).x - (homes[0] as Vector2).x)
+		pairs.append(apart / _fighter_width(screen))
+	assert_float(pairs[1]).override_failure_message(
+		"a 64px fighter is stepped %.3f of its own width where a 32px one is stepped %.3f"
+		% [pairs[1], pairs[0]]).is_equal_approx(pairs[0], 0.001)
 
 
 func test_the_wide_screen_still_draws_nothing_over_anything() -> void:

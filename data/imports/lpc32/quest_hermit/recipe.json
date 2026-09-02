@@ -1,0 +1,38 @@
+{
+	"body_type": "male",
+	"id": "quest_hermit",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "light"
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"eyes": "gray",
+			"recolor": "light"
+		},
+		{
+			"def": "hair/long/hair_long",
+			"recolor": "white"
+		},
+		{
+			"def": "hair/beards/beards_beard",
+			"recolor": "white"
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"recolor": "slate"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/shoes/feet_shoes_basic",
+			"recolor": "brown"
+		}
+	],
+	"name": "The hermit in the cave",
+	"notes": "dusk16 gave him a robe, long ash hair and slate. White hair and a full white beard are the read at 64px: the oldest person in the game, alone in a cave, and unmistakable from behind at a glance.",
+	"style": "lpc32"
+}

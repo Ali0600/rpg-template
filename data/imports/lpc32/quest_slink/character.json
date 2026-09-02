@@ -1,0 +1,133 @@
+{
+	"bodyType": "child",
+	"credits": [
+		{
+			"authors": [
+				"bluecarrot16",
+				"Benjamin K. Smith (BenCreating)",
+				"ElizaWy",
+				"MuffinElZangano",
+				"Durrani",
+				"Nila122",
+				"kheftel",
+				"Stephen Challener (Redshrike)"
+			],
+			"file": "body/bodies/child",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+				"https://opengameart.org/content/lpc-child-standing-template",
+				"https://opengameart.org/content/lpc-children-walk-animation",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-male-jumping-animation-by-durrani",
+				"https://opengameart.org/content/lpc-jump-expanded",
+				"https://opengameart.org/content/lpc-jump-expanded"
+			]
+		},
+		{
+			"authors": [
+				"Nila122",
+				"bluecarrot16",
+				"JaidynReiman"
+			],
+			"file": "body/tail/lizard",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "edited for v3 bases and recolored by bluecarrot16, additional animations added by JaidynReiman",
+			"urls": [
+				"https://opengameart.org/content/drakes-and-lizardfolk"
+			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"Benjamin K. Smith (BenCreating)",
+				"Nila122"
+			],
+			"file": "head/heads/lizard/child",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "original lizard/drake by Nila122, reworked by BenCreating, modular head and further revisions by bluecarrot16, child version by bluecarrot16. Nila122 gave blanket permission to MedicineStorm to use Nila122's LPC assets under OGA-BY 3.0 (where original or derived only from other works under OGA-BY).",
+			"urls": [
+				"https://opengameart.org/content/drakes-and-lizardfolk",
+				"https://opengameart.org/content/lpc-character-bases"
+			]
+		}
+	],
+	"generatedBy": "tools/lpc_compose.gd",
+	"layers": [
+		{
+			"def": "body/body",
+			"path": "spritesheets/body/bodies/child/walk.png",
+			"zPos": 10
+		},
+		{
+			"def": "head/heads/reptile/heads_lizard_child",
+			"path": "spritesheets/head/heads/lizard/child/walk.png",
+			"zPos": 100
+		},
+		{
+			"def": "body/lizard/tail_lizard",
+			"path": "spritesheets/body/tail/lizard/child/fg/walk.png",
+			"zPos": 85
+		},
+		{
+			"def": "body/lizard/tail_lizard",
+			"path": "spritesheets/body/tail/lizard/child/bg/walk.png",
+			"zPos": 5
+		}
+	],
+	"recipe": {
+		"body_type": "child",
+		"id": "quest_slink",
+		"layers": [
+			{
+				"def": "body/body",
+				"recolor": "dark_green"
+			},
+			{
+				"def": "head/heads/reptile/heads_lizard_child",
+				"recolor": "dark_green"
+			},
+			{
+				"def": "body/lizard/tail_lizard",
+				"recolor": "dark_green"
+			}
+		],
+		"name": "Slink",
+		"notes": "The first thing the player fights. LPC has no four-legged body at all, so a creature is a human body wearing a beast head - the CHILD body is what makes it small and quick rather than a person in a mask, and the tail is the half that says it is not people. Dark green, and no clothes: nothing about it is dressed.",
+		"style": "lpc32"
+	},
+	"selections": {
+		"body": {
+			"itemId": "body",
+			"name": "Body Color",
+			"recolor": "dark_green",
+			"variant": null
+		},
+		"head": {
+			"itemId": "heads_lizard_child",
+			"name": "Lizard child",
+			"recolor": "dark_green",
+			"variant": null
+		},
+		"tail": {
+			"itemId": "tail_lizard",
+			"name": "Lizard tail",
+			"recolor": "dark_green",
+			"variant": null
+		}
+	},
+	"version": 2
+}

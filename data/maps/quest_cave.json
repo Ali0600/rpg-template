@@ -8,7 +8,7 @@
 		"than grass - which is what a second area looks like when the palette is shared."
 	],
 	"id": "quest_cave",
-	"style": "dusk16",
+	"style": "lpc32",
 	"legend": {
 		".": "path",
 		"#": "wall_rough",

@@ -73,7 +73,9 @@ func _add_mover(behavior: String, extra: Dictionary = {}) -> ActorBody:
 	var record := first.duplicate()
 	record["behavior"] = behavior
 	record.merge(extra, true)
-	var brain := NpcBrain.of(record, body.global_position, 16,
+	# The RUNNING map's tile size. It was 16 here and 16 where the waypoints are worked out, so
+	# the pair cancelled and the tests passed against a world drawn at neither size.
+	var brain := NpcBrain.of(record, body.global_position, GameState.tile_size,
 		SeededRng.new(SeededRng.hash_seed(0, "test:%s" % behavior)))
 	first["brain"] = brain
 	return body
@@ -125,7 +127,7 @@ func test_a_patrolling_npc_walks_toward_its_first_waypoint() -> void:
 	var npcs: Dictionary = _world._npcs
 	var first: Dictionary = npcs.values()[0]
 	var body := first.get("body") as ActorBody
-	var home := MapData.world_to_tile(body.global_position, 16)
+	var home := MapData.world_to_tile(body.global_position, GameState.tile_size)
 	var away := home + Vector2i(0, 2)
 	_add_mover("patrol", {"path": [[away.x, away.y], [home.x, home.y]],
 		"dwell_min": 0, "dwell_max": 0})
@@ -163,13 +165,18 @@ func test_an_npc_walking_into_the_player_is_not_carried_sideways() -> void:
 	var npcs: Dictionary = _world._npcs
 	var first: Dictionary = npcs.values()[0]
 	var body := first.get("body") as ActorBody
-	var home := MapData.world_to_tile(body.global_position, 16)
+	var home := MapData.world_to_tile(body.global_position, GameState.tile_size)
 	_add_mover("patrol", {"path": [[home.x, home.y + 3], [home.x, home.y]],
 		"dwell_min": 0, "dwell_max": 0})
 
 	# Directly in her way, one body-height below, so she walks down into him and stays there.
+	# Derived from the body rather than written out: the demo's actors are twice the size they
+	# were when this said 10px, and at that number the two of them now OVERLAP - the physics
+	# server shoves her aside, and the reading becomes about collision separation rather than
+	# about a moving floor carrying anybody.
 	var player := _world._player as ActorBody
-	player.place(body.global_position + Vector2(0.0, 10.0), Dir.D.UP)
+	var gap := player.config.body_size.y * 5.0 / 3.0
+	player.place(body.global_position + Vector2(0.0, gap), Dir.D.UP)
 	await _steps(30)
 
 	var her_x := body.global_position.x

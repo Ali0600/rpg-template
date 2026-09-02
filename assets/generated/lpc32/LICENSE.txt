@@ -3,9 +3,9 @@ Pixel Cup (LPC) art with the Universal LPC Spritesheet Character Generator:
   https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator
 
 Every layer file, its artists, licences and source URLs are listed in credits.json
-beside this file. Artists: Benjamin K. Smith (BenCreating), Durrani, Eliza Wyatt (ElizaWy), ElizaWy, Evert, JaidynReiman, Joe White, Johannes Sjölund (wulax), Manuel Riecke (MrBeast), Matthew Krohn (makrohn), MuffinElZangano, Nila122, Stephen Challener (Redshrike), TheraHedwig, bluecarrot16.
+beside this file. Artists: Benjamin K. Smith (BenCreating), Carlo Enrico Victoria (Nemisys), Durrani, Eliza Wyatt (ElizaWy), ElizaWy, Evert, JaidynReiman, Joe White, Johannes Sjölund (wulax), Manuel Riecke (MrBeast), Marcel van de Steeg (MadMarcel), Matthew Krohn (makrohn), MuffinElZangano, Nila122, Page, Pierre Vigier (pvigier), Sander Frenken (castelonia), Stephen Challener (Redshrike), Thane Brimhall (pennomi), TheraHedwig, bluecarrot16, kcilds/Rocetti/Eredah, kheftel, laetissima.
 
-Licences carried by the layers: CC-BY-SA, GPL, OGA-BY.
+Licences carried by the layers: CC-BY, CC-BY-SA, CC0, GPL, OGA-BY.
 Because some layers are CC-BY-SA, the composed sheets here are distributed under
 CC-BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
 

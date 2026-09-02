@@ -199,6 +199,45 @@ with the root already moved that boot hunts for the quest's start map in the fix
 fails, and leaves the half-built map it had already made behind. Six orphan nodes, no error, and
 every assertion still passing - caught only because the suite's orphan baseline is zero.
 
+**The demo is drawn in imported LPC art, and its config numbers are DOUBLE the template's.**
+`data/game_config.tres` says 96 px/s, 24px of reach, a 20x12 body and a footfall every 28px -
+each of which is the same distance in TILES as the template's default on a 16px map. That is
+why all 23 scripted sessions, whose legs are counted in frames, play out unchanged. A
+`GameConfig` stated in tile units would remove even that, and is recorded as deferred.
+
+The cast is eleven recipes under `docs/lpc_designs/` plus the wanderer. **A creature is a human
+body wearing a beast head**, because LPC has no non-human body at all: the Slink is the CHILD
+body with a lizard head and tail, the Gloom an ordinary body in the palette's own zombie green
+under a charcoal cape. The first Gloom used the zombie BODY and was wrong on sight - pale, bare
+chested and blood spattered. **Look at a composed character before it ships**; three of the
+twelve were re-cut after their previews and none of the three was visible to any gate.
+
+**A definition may be DRAWN off its material's base**, and says so with its own `base`
+(`ulpc.green` for the lizard, `ulpc.zombie` for the undead, `lpcr.ivory` for the farm heads).
+`LpcCompose` reads it: remapping those from the material's default takes human skin as the
+source, finds almost none of it in the art, and changes almost nothing - a recolour that
+silently does not happen, on exactly the layers a monster is made of. A scheme this composer
+does not fetch is refused BY NAME rather than treated as a variant of the one it did.
+
+**An imported cast shares a ground line PER BODY TYPE, not across the cast.** Every sheet
+carries its own measured anchor and every character is placed by it, so their feet land on the
+origin whatever row that is; demanding one row across the cast asks the LPC artists to draw four
+bodies identically, and they do not - the female and teen bodies sit one pixel lower. So the
+rule is the two halves that bite: exact within a body type, and within `MAX_GROUND_SPREAD`
+across all of them, which is what catches a trailing cape measured as the ground.
+
+**The battle file's stagger is a fraction of how wide a fighter DRAWS.** 18 and 14 were chosen
+against a 16x24 cell at twice size; at a 64px cell they put one character in front of another
+with a face over its shoulder. `STAGGER_WIDTH` is the width they were chosen for, so at that
+width the numbers are exactly 18 and 14 and every layout measured before this is untouched.
+
+**A suite that names the demo's style or tile size goes stale as a REFUSAL.** The editor
+round-trip suites spelled `dusk16` into their coupling checks, so the day the maps changed style
+every one of them reported every map as painted against the wrong bank - a true-looking failure
+of the translator. They read the map's own style now. Same for `test_world_npcs`, which built a
+test brain at 16 and worked out its waypoints at 16: the pair cancelled, and the suite was
+passing against a world drawn at neither size.
+
 **Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step_pixels` at
 zero is free pixel movement; set to the map's tile size it is one press = one tile. Both go
 through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so nothing

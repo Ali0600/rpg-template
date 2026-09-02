@@ -1,0 +1,34 @@
+{
+	"id": "quest_scrapper",
+	"style": "lpc32",
+	"name": "Rook, the scrapper",
+	"body_type": "female",
+	"notes": "Rook mends what the player breaks. dusk16 drew her in moss with copper hair and dark skin; the tunic is the female-only cut, so she reads as a working woman rather than as an adventurer in the same coat as everyone else.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "brown"
+		},
+		{
+			"def": "head/heads/human/heads_human_female",
+			"recolor": "brown",
+			"eyes": "green"
+		},
+		{
+			"def": "hair/braids/hair_ponytail",
+			"recolor": "ginger"
+		},
+		{
+			"def": "torso/shirts/torso_clothes_tunic",
+			"variant": "forest"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "leather"
+		}
+	]
+}

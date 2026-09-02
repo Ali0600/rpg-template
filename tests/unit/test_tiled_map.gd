@@ -41,6 +41,14 @@ func _native_of(path: String) -> Dictionary:
 func _maps() -> PackedStringArray:
 	return ContentScan.files_of(MAP_DIR, "json")
 
+## The style the shipped maps are actually drawn in, read from the first of them. Named here
+## rather than written out, because the demo has changed style once already and a style spelled
+## into this suite goes stale as a REFUSAL: every coupling check would report every map as
+## painted against the wrong bank, which looks like the translator failing rather than the
+## fixture being out of date.
+func _shipped_style() -> String:
+	return str(_native_of(_maps()[0]).get("style", ""))
+
 func test_there_is_something_to_check() -> void:
 	# A loop over an empty directory validates nothing and reports success.
 	assert_int(_maps().size()).is_greater(3)
@@ -83,18 +91,18 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 	# THE COUPLING, and the reason it is checked rather than trusted. A GID is an index, so a map
 	# painted against one bank and read against another is not a broken file - it is a map full of
 	# the wrong tiles, and nothing else in this project would notice.
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
-	assert_array(TiledMap.problems(tiled, &"dusk16", ids)).override_failure_message(
+	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), ids)).override_failure_message(
 		"a map painted against the bank it is being read with was refused").is_empty()
 	var shorter := ids.duplicate()
 	shorter.remove_at(shorter.size() - 1)
-	assert_array(TiledMap.problems(tiled, &"dusk16", shorter)).override_failure_message(
+	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), shorter)).override_failure_message(
 		"the bank lost a tile and the map was accepted anyway - every id past the change is now "
 		+ "a different tile").is_not_empty()
 
 func test_a_map_painted_against_another_style_is_refused() -> void:
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	assert_array(TiledMap.problems(tiled, &"gb16", ids)).override_failure_message(
 		"a map painted for one style was read as another without complaint").is_not_empty()
@@ -102,17 +110,17 @@ func test_a_map_painted_against_another_style_is_refused() -> void:
 func test_an_infinite_map_is_refused() -> void:
 	# Tiled will happily make one, and a template map has a fixed size - `MapData.size()` is the
 	# width of row zero. An infinite map has no rows at all in the same sense.
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	tiled["infinite"] = true
-	assert_array(TiledMap.problems(tiled, &"dusk16", ids)).is_not_empty()
+	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), ids)).is_not_empty()
 
 func test_a_map_with_two_tilesets_is_refused() -> void:
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	var sets: Array = tiled["tilesets"]
 	sets.append({"firstgid": 100, "name": "other", "tilecount": 4})
-	assert_array(TiledMap.problems(tiled, &"dusk16", ids)).override_failure_message(
+	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), ids)).override_failure_message(
 		"a map painted from two banks was accepted, and only one of them can be resolved") \
 		.is_not_empty()
 

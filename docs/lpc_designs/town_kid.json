@@ -1,0 +1,34 @@
+{
+	"id": "town_kid",
+	"style": "lpc32",
+	"name": "The apprentice",
+	"body_type": "teen",
+	"notes": "The teen body and the small head, which is what makes a child read as a child rather than as a short adult. Sandy hair and teal: the only warm-and-bright person in a town of slate and moss.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "light"
+		},
+		{
+			"def": "head/heads/human/heads_human_male_small",
+			"recolor": "light",
+			"eyes": "blue"
+		},
+		{
+			"def": "hair/short/hair_bangsshort",
+			"recolor": "sandy"
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"recolor": "teal"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "slate"
+		},
+		{
+			"def": "feet/shoes/feet_shoes_basic",
+			"recolor": "brown"
+		}
+	]
+}

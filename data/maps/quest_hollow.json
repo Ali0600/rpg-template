@@ -27,7 +27,7 @@
 		"row 7, which the sessions walk end to end."
 	],
 	"id": "quest_hollow",
-	"style": "dusk16",
+	"style": "lpc32",
 	"legend": {
 		".": "grass",
 		",": "grass_alt",

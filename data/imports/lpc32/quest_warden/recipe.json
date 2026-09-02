@@ -1,0 +1,42 @@
+{
+	"body_type": "male",
+	"id": "quest_warden",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "light"
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"eyes": "brown",
+			"recolor": "light"
+		},
+		{
+			"def": "hair/long/hair_long",
+			"recolor": "gray"
+		},
+		{
+			"def": "hair/beards/beards_beard",
+			"recolor": "gray"
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"recolor": "slate"
+		},
+		{
+			"def": "torso/vest/torso_clothes_vest",
+			"variant": "leather"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "charcoal"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "black"
+		}
+	],
+	"name": "The warden at the gate",
+	"notes": "He stands in the road north of the spawn and is a WALL - several play sessions use his body as a stop. Grey hair and a beard for age - the palette's `ash` is a pinkish mauve, not grey, and read as dyed, a leather vest over slate so he is not another traveller in a forest coat. Worn by the chronicler too, who stands two tiles west.",
+	"style": "lpc32"
+}

@@ -58,6 +58,22 @@ in `LpcImport`'s table rather than a re-export.
 | character | made from | how |
 |---|---|---|
 | `quest_wanderer` | `docs/lpc_designs/the_road.json` | `tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer` |
+| `quest_scrapper` | `docs/lpc_designs/quest_scrapper.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_scrapper.json --out=data/imports/lpc32/quest_scrapper` |
+| `quest_warden` | `docs/lpc_designs/quest_warden.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_warden.json --out=data/imports/lpc32/quest_warden` |
+| `quest_hermit` | `docs/lpc_designs/quest_hermit.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_hermit.json --out=data/imports/lpc32/quest_hermit` |
+| `town_elder` | `docs/lpc_designs/town_elder.json` | `tools/lpc_compose.sh docs/lpc_designs/town_elder.json --out=data/imports/lpc32/town_elder` |
+| `town_kid` | `docs/lpc_designs/town_kid.json` | `tools/lpc_compose.sh docs/lpc_designs/town_kid.json --out=data/imports/lpc32/town_kid` |
+| `town_smith` | `docs/lpc_designs/town_smith.json` | `tools/lpc_compose.sh docs/lpc_designs/town_smith.json --out=data/imports/lpc32/town_smith` |
+| `town_carter` | `docs/lpc_designs/town_carter.json` | `tools/lpc_compose.sh docs/lpc_designs/town_carter.json --out=data/imports/lpc32/town_carter` |
+| `inn_keeper` | `docs/lpc_designs/inn_keeper.json` | `tools/lpc_compose.sh docs/lpc_designs/inn_keeper.json --out=data/imports/lpc32/inn_keeper` |
+| `quest_slink` | `docs/lpc_designs/quest_slink.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_slink.json --out=data/imports/lpc32/quest_slink` |
+| `quest_gloom` | `docs/lpc_designs/quest_gloom.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_gloom.json --out=data/imports/lpc32/quest_gloom` |
+| `quest_keeper` | `docs/lpc_designs/quest_keeper.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_keeper.json --out=data/imports/lpc32/quest_keeper` |
 
 Three more designs sit beside it — `the_ember`, `the_scrappers_match`, `the_apprentice` — each
 composable the same way. A character made in the browser instead records its `#…` link here.
+
+Three of the twelve were re-cut after their previews and none of the three was visible to any
+gate: the Gloom was a bare-chested, blood-spattered zombie body; the warden's `ash` hair is a
+pinkish mauve rather than grey; and the town elder wore the same green tunic as Rook. Look at
+what you compose - `--preview=` draws it through the importer, which is what the game loads.

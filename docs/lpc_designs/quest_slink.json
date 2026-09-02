@@ -1,0 +1,21 @@
+{
+	"id": "quest_slink",
+	"style": "lpc32",
+	"name": "Slink",
+	"body_type": "child",
+	"notes": "The first thing the player fights. LPC has no four-legged body at all, so a creature is a human body wearing a beast head - the CHILD body is what makes it small and quick rather than a person in a mask, and the tail is the half that says it is not people. Dark green, and no clothes: nothing about it is dressed.",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "dark_green"
+		},
+		{
+			"def": "head/heads/reptile/heads_lizard_child",
+			"recolor": "dark_green"
+		},
+		{
+			"def": "body/lizard/tail_lizard",
+			"recolor": "dark_green"
+		}
+	]
+}

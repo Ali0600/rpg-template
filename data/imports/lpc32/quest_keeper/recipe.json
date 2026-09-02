@@ -1,0 +1,42 @@
+{
+	"body_type": "male",
+	"id": "quest_keeper",
+	"layers": [
+		{
+			"def": "body/body",
+			"recolor": "light"
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"eyes": "gray",
+			"recolor": "light"
+		},
+		{
+			"def": "hair/long/hair_long",
+			"recolor": "raven"
+		},
+		{
+			"def": "hair/beards/beards_beard",
+			"recolor": "raven"
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"recolor": "maroon"
+		},
+		{
+			"def": "legs/pants/legs_pants",
+			"recolor": "black"
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"recolor": "black"
+		},
+		{
+			"def": "torso/cape/cape_solid",
+			"recolor": "black"
+		}
+	],
+	"name": "The Keeper",
+	"notes": "The boss behind the barred gate, and the only figure in the game with a black cape. Raven hair and beard, maroon under the cape - dusk16 drew him in rust and copper, and this keeps the warm note while the cape does the work of saying which one he is from across the room.",
+	"style": "lpc32"
+}

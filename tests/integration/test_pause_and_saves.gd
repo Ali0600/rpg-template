@@ -587,4 +587,4 @@ func test_a_save_at_point_game_can_still_load() -> void:
 		% Router.state_name()).is_equal("world")
 	assert_vector(_world.player().global_position).override_failure_message(
 		"the load did not put the player where the save said").is_equal_approx(
-		MapData.tile_to_world(Vector2i(3, 3), 16), Vector2(1.0, 1.0))
+		Vector2(3.5, 3.5) * float(GameState.tile_size), Vector2(1.0, 1.0))

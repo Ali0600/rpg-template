@@ -53,6 +53,14 @@ func _exported(path: String) -> Dictionary:
 	var native := _native_of(path)
 	return LdtkMap.from_native(native, _tile_ids(str(native.get("style", "gb16"))), TILE_SIZE)
 
+## The style the shipped maps are actually drawn in, read from the first of them. Named here
+## rather than written out, because the demo has changed style once already and a style spelled
+## into this suite goes stale as a REFUSAL: every coupling check would report every map as
+## painted against the wrong bank, which looks like the translator failing rather than the
+## fixture being out of date.
+func _shipped_style() -> String:
+	return str(_native_of(_maps()[0]).get("style", ""))
+
 func test_there_is_something_to_check() -> void:
 	# A loop over an empty directory validates nothing and reports success.
 	assert_int(_maps().size()).is_greater(3)
@@ -200,17 +208,17 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 	# THE COUPLING. A tile is stored as an INDEX, so a map painted against one bank and read
 	# against another is not a broken file - it is a map full of the wrong tiles, and nothing
 	# else in this project would notice.
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
-	assert_array(LdtkMap.problems(made, &"dusk16", ids)).override_failure_message(
+	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).override_failure_message(
 		"a map painted against the bank it is being read with was refused").is_empty()
 	var shorter := ids.duplicate()
 	shorter.remove_at(shorter.size() - 1)
-	assert_array(LdtkMap.problems(made, &"dusk16", shorter)).override_failure_message(
+	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), shorter)).override_failure_message(
 		"the bank lost a tile and the map was accepted anyway").is_not_empty()
 
 func test_a_map_painted_against_another_style_is_refused() -> void:
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	assert_array(LdtkMap.problems(made, &"gb16", ids)).override_failure_message(
 		"a map painted for one style was read as another without complaint").is_not_empty()
@@ -218,26 +226,26 @@ func test_a_map_painted_against_another_style_is_refused() -> void:
 func test_a_project_keeping_its_levels_elsewhere_is_refused() -> void:
 	# LDtk can split levels into `.ldtkl` files beside the project. This reads them inline, so a
 	# split project would present as a map with no layers rather than as an unsupported file.
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	made["externalLevels"] = true
-	assert_array(LdtkMap.problems(made, &"dusk16", ids)).is_not_empty()
+	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).is_not_empty()
 
 func test_a_project_with_two_tilesets_is_refused() -> void:
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	var sets: Array = (made["defs"] as Dictionary)["tilesets"]
 	sets.append({"identifier": "other", "uid": 99, "__cWid": 4, "__cHei": 1, "tileGridSize": 16})
-	assert_array(LdtkMap.problems(made, &"dusk16", ids)).override_failure_message(
+	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).override_failure_message(
 		"a map painted from two banks was accepted, and only one of them can be resolved") \
 		.is_not_empty()
 
 func test_a_project_holding_more_than_one_level_is_refused() -> void:
-	var ids := _tile_ids("dusk16")
+	var ids := _tile_ids(_shipped_style())
 	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
 	var levels: Array = made["levels"]
 	levels.append(levels[0])
-	assert_array(LdtkMap.problems(made, &"dusk16", ids)).is_not_empty()
+	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).is_not_empty()
 
 func test_a_structured_field_survives_as_more_than_a_string() -> void:
 	# LDtk has no type describing an array of tile PAIRS, which is what a patrol path is, so those
