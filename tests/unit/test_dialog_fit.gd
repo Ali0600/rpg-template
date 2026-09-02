@@ -21,8 +21,10 @@ func _font() -> Font:
 	return ThemeDB.fallback_font
 
 
+## The width the box is BUILT with, which is the design size at every world scale - not the
+## live viewport, which doubles for a 32px style while the box's own constants do not.
 func _viewport_width() -> int:
-	return int(ProjectSettings.get_setting("display/window/size/viewport_width", 320))
+	return UiScale.DESIGN_SIZE.x
 
 
 func _lines_used(text: String, width: float) -> int:

@@ -127,7 +127,7 @@ func _good_save() -> SaveData:
 	var data := SaveData.new()
 	data.game = &"quest"
 	data.map = &"quest_town"
-	data.position = MapData.tile_to_world(Vector2i(4, 6), 16)
+	data.tile = Vector2(4.5, 6.5)
 	data.facing = Dir.D.DOWN
 	data.party = {"hp": 7, "xp": 30, "level": 2}
 	return data

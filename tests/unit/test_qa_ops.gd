@@ -29,6 +29,20 @@ func _complains(step: Dictionary) -> bool:
 	return not Qa._failures.is_empty()
 
 
+func test_a_position_is_read_in_the_tiles_of_the_map_that_is_running() -> void:
+	# The harness used to divide by a literal 16. On a 32px map that reads every position as
+	# twice the tile it is - and a session asserting the tile a door is on would keep passing
+	# while pointing somewhere else entirely.
+	GameState.reset()
+	GameState.tile_size = 32
+	GameState.set_player(Vector2(80.0, 112.0), Dir.D.DOWN)
+	assert_bool(_complains({"op": "assert_position", "tile": [2, 3]})).override_failure_message(
+		"a player 80px into a 32px map is not being read as standing on tile 2").is_false()
+	assert_bool(_complains({"op": "assert_position", "tile": [5, 7]})).override_failure_message(
+		"the position assertion is still dividing by sixteen").is_true()
+	GameState.reset()
+
+
 func test_asserting_what_is_playing_right_now_can_fail() -> void:
 	# The "now" mode reads the live track rather than the request log, and it is the only way a
 	# session can say SILENCE - so a session's silence gate is worth exactly what this pair is.

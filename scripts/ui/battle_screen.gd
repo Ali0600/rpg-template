@@ -96,6 +96,12 @@ const FOE_PITCH := 13.0
 
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
+## How many times its world size a fighter is drawn at. DIVIDED by the style's world_scale
+## where it is used, because this screen is a CanvasLayer already drawn at that scale: a
+## 64x64 cell under a 2x layer at a bare 2.0 would fill 128 of the 180 design pixels this
+## layout was measured for. Derived rather than a field on the style, because it is a property
+## of THIS SCREEN's bands - the capacity MAX_PARTY and MAX_FOES are declared against - and a
+## second copy in data is a second opinion about a layout only one gate measures.
 const SPRITE_SCALE := 2.0
 const BAR_WIDTH := 64.0
 const BAR_HEIGHT := 4.0
@@ -270,7 +276,8 @@ func _make_fighter(source: SpriteSource, character: StringName, at: Vector2, fac
 	var view := SpriteView.new()
 	add_child(view)
 	view.position = at
-	view.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+	var drawn := SPRITE_SCALE / float(UiScale.scale_of(_style))
+	view.scale = Vector2(drawn, drawn)
 	# A fighter whose art is missing still gets a view: the fight is playable without it, and a
 	# battle that refused to open would turn a missing PNG into an unreachable quest.
 	if view.apply_source(source, character):

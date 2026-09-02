@@ -62,9 +62,17 @@ func test_an_imported_style_is_shown_from_its_committed_sheets() -> void:
 		assert_str(String(view.current_animation())).is_equal(String(Dir.anim_name(&"walk", Dir.ALL[i])))
 		# Eight strides, not nine: the standing pose stayed out of the cycle on the way in.
 		assert_int(view._sprite.sprite_frames.get_frame_count(view.current_animation())).is_equal(8)
-	# Four 64px cells fit the strip at 1x; at the rig styles' 2x they would run off the screen.
+	# The strip is world space, so it has the style's own world to fit into: 64px cells at 2x
+	# inside 560 world pixels, which is the same 280 DESIGN pixels the rig styles get. That is
+	# the whole point of the scale - the lab shows an imported cast at the size it is played at
+	# rather than shrinking it to fit a window built for 16px art.
 	var last: SpriteView = lab._views[Dir.ALL.size() - 1]
-	assert_float(last.position.x + 64.0 * last.scale.x).is_less_equal(float(lab.STRIP_WIDTH))
+	assert_float(last.scale.x).override_failure_message(
+		"the imported cast is being previewed at 1x, which is not how it is played").is_equal(2.0)
+	assert_float(last.position.x + 64.0 * last.scale.x).is_less_equal(
+		float(lab.STRIP_WIDTH * UiScale.scale_of(lab._style)))
+	assert_vector(lab.get_viewport_rect().size).override_failure_message(
+		"the lab is showing a 64px cast in a 320x180 window").is_equal(Vector2(640.0, 360.0))
 	# And the idle toggle still answers.
 	await _press(&"interact", lab._detail)
 	assert_str(String(lab._views[0].current_animation())).is_equal("idle_down")

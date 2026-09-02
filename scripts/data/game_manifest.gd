@@ -135,7 +135,7 @@ func problems() -> Array[String]:
 		out.append("manifest '%s' names no start_map" % id)
 		return out
 
-	var map_path := "res://data/maps/%s.json" % start_map
+	var map_path := MapData.path_of(start_map)
 	var map := MapData.load_from(map_path)
 	if not map.ok:
 		out.append("start_map '%s' does not load: %s" % [start_map, map.error])

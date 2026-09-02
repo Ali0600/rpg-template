@@ -1,0 +1,42 @@
+{
+	"_readme": [
+		"A yard at 32px, for the world-scale gates and nothing else.",
+		"",
+		"It is here rather than in data/maps because a shipped map is CONTENT: it would enter",
+		"the map validity gates, both editor round trips and map_io --verify, be exported to",
+		"Tiled and back, and be one more room nobody plays. MapData.root points here for the",
+		"suites that need a 32px world and is put back afterwards.",
+		"",
+		"Walled all the way round, so a test that holds a direction stops rather than walking",
+		"out of the map, and one door-less room means no warp can fire mid-assertion."
+	],
+	"id": "lpc32_yard",
+	"style": "lpc32",
+	"legend": {
+		".": "grass",
+		"#": "wall"
+	},
+	"ground": [
+		"########",
+		"#......#",
+		"#......#",
+		"#......#",
+		"#......#",
+		"########"
+	],
+	"decor": [
+		"        ",
+		"        ",
+		"        ",
+		"        ",
+		"        ",
+		"        "
+	],
+	"spawns": {
+		"start": [3, 2]
+	},
+	"npcs": [],
+	"warps": [],
+	"objects": [],
+	"enemies": []
+}

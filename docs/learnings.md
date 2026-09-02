@@ -1752,3 +1752,66 @@ on bronze skin over brown trousers that merged into one mass. Nothing headless c
 
 **Takeaway:** read a generated picture for what is WRONG with it — contrast, silhouette, noise —
 before showing it to anyone, and record the re-cut in the recipe so the next reader sees why.
+
+## Scale the container, not the contents
+
+Two things can be made bigger: the numbers inside a layout, or the surface the layout is drawn
+on. Scaling the surface leaves every constant, font size and measurement inside it true.
+
+**Why it came up:** running the demo's art at 32px tiles meant the world had to double. Every UI
+screen here lays out in raw pixels against 320x180 — margins of 6, fonts of 7 to 9, twelve save
+rows down a 180px window — and three layout gates measure exactly those numbers. Doubling the
+layout would have re-tuned all of it and left every gate measuring a window nobody is shown.
+Doubling the WINDOW and drawing each `CanvasLayer` at 2x changed one property per layer, and not
+one screen constant or layout assertion moved.
+
+**Takeaway:** when a display has to change size, look for the one transform above the layout
+before touching anything inside it — and keep the design size a constant the layout reads, never
+a measurement of the live surface.
+
+## A unit belongs in the field's NAME, not in a comment
+
+A number is only a place if you know what it is measured in, and the thing that decides the unit
+is usually somewhere else entirely.
+
+**Why it came up:** saves recorded `position` in pixels, and how many pixels a tile is turns out
+to be a property of the art style. Changing the demo from 16px to 32px tiles would have put every
+existing save half way to where it was written — on a map that still parses, with every gate
+green. The field became `tile` in tile units, and renaming it (rather than quietly re-meaning
+`position`) made the compile gate enumerate all fourteen readers instead of leaving them to be
+found by hand.
+
+**Takeaway:** when a stored number's meaning depends on something outside the file, store it in
+units that thing cannot move — and when you change what a field means, change its name in the
+same commit so the compiler finds the readers for you.
+
+## A conversion guard is invisible unless the test crosses the boundary
+
+A line that reconciles two representations does nothing at all when both sides happen to agree,
+and a fixture where they agree makes the line unfalsifiable.
+
+**Why it came up:** loading a save re-derives the player's position with the destination map's
+tile size, and a guard afterwards makes the game state agree with the body. The first test loaded
+a 32px save into the 32px map it was already standing in — both conversions gave the same answer,
+so deleting the guard changed nothing and the mutant survived. Starting the run in a 16px town
+and loading into a 32px yard made the two answers differ and killed it. A second trap sat beside
+it: waiting one physics frame after the load repaired the state anyway, because the tick writes
+it every frame.
+
+**Takeaway:** to test a line that reconciles two values, stage inputs where the two DISAGREE, and
+check what else writes the same value before allowing a frame to pass.
+
+## Redirect a fixture root after the thing under test has booted, not before
+
+A test that repoints a directory constant is telling every reader of it a new story, including
+the ones that ran before the test meant to start.
+
+**Why it came up:** an integration suite pointed the map directory at `tests/fixtures/maps` and
+then instantiated the world scene. The scene's `_ready` boots the shipped game, which went looking
+for its own start map in the fixture directory, failed, and left the half-built map it had already
+constructed behind. Six orphan nodes per test, no error, and every assertion still passing — the
+only reason it surfaced is that the suite's orphan baseline was zero.
+
+**Takeaway:** narrow a redirect to the window where it is needed — after the component's own
+start-up, before the call under test — and keep a zero-orphan baseline so a leak is a failure
+rather than a number nobody reads.

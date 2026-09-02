@@ -134,6 +134,71 @@ sessions are calibrated against the current sliding - switching it diverged
 `finish_the_quest` at the hermit into 16 cascading failures. That is a movement-feel decision
 for a person who has played the game, not a side effect of a bug fix. See `docs/DECISIONS.md`.
 
+**The WORLD grows and the INTERFACE does not.** `SpriteStyle.world_scale` says how many world
+pixels one interface pixel is; the window becomes `UiScale.DESIGN_SIZE` (320x180, pinned against
+`project.godot` by `smoke_boot.gd`) times that, and every `CanvasLayer` is drawn at it. So a 32px
+style shows the same twenty tiles across as a 16px one while every screen, font size, `DialogBox`
+constant and layout audit keeps measuring against 320x180 - untouched, and still true. The
+alternative was scaling the LAYOUTS, which would have re-tuned every constant in `scripts/ui/`
+and left every gate measuring a window nobody is shown.
+
+`UiScale` is pure and names no autoload, because the world scene and Sprite Lab both call it.
+`world_scene._bind_style` is the ONE place a style is bound - `enter_map` and `open_title` both
+go through it - and it does three things that must not come apart: the style, the letterbox
+colour, and the window. M40's own cautionary tale is a partial bind (the title asked for music
+through a bus with no voice for four milestones). `_mount_ui` is the one way an interface layer
+joins the tree, and `UiScale.rescale` is its pair: the dialog box and the controls hint are built
+in `_build_game`, BEFORE any map has said which style is running, so mounting alone cannot reach
+them. A screen mounted around the helper is a quarter-size menu in the corner, which reads as a
+broken screen rather than as a missed line - `test_world_scale` asserts membership over whatever
+CanvasLayers it finds, so a new screen fails there without anybody remembering to add it.
+
+`_ui_size()` returns the DESIGN size and never the live viewport. A screen that measured the
+viewport would space its rows twice as far apart in a 640x360 world and put its help line off the
+bottom - and every layout gate, which measures at 320x180, would still pass.
+
+**A save records TILES, and that is a v10 migration.** `SaveData.tile` replaced `position`, and
+the RENAME is the point: a style decides how many pixels a tile is, so a file recording pixels
+describes a place only while nothing about the art changes - the demo's move to 32px tiles would
+have put every existing save half way to where it was written, silently, on a map that still
+parses. `Migrations.PRE_V10_TILE_PIXELS` is FROZEN at 16 (a historical fact about files on disk,
+never a reading of the live style). `GameState.tile_size` is written by the world on entering a
+map and by nothing else. `enter_map`'s third argument is therefore in TILES: only `restore()`
+passes it, and `restore` cannot know the destination's tile size before the map is loaded. It
+ends with `set_player`, because `from_save` converted with the size bound BEFORE the load - a
+different number at a change of style - and that is the one line making state and body agree on
+the frame the load lands. **A test of that guard must CROSS sizes and await no frame**: a load
+that begins and ends at 32px gets the right answer by luck, and the physics tick would repair it
+one frame later. Both traps were measured; the second showed up as a surviving mutant.
+
+**`NpcBrain`'s arrival margin is per TILE**, because what "close enough" means is set by how far
+a body travels in a frame. `1.5 / 16.0` is exact in binary, so a 16px map still gets precisely
+the 1.5 every shipped session was recorded against. `Qa._assert_position` reads
+`GameState.tile_size` rather than a literal, and the `tile_size` step key is GONE: a session
+stating its own would keep passing after a map changed style, reporting on a tile that has moved.
+
+**A fighter is drawn at `SPRITE_SCALE / world_scale`.** `BattleScreen` is a CanvasLayer already
+drawn at the world's scale, so a bare 2.0 would put a 64px cell 128 pixels into the 180 the
+layout was measured for. Derived rather than a field on the style, because it is a property of
+THIS SCREEN's bands - the capacity `MAX_PARTY` and `MAX_FOES` are declared against. Do NOT assert
+that two styles put a fighter on the same FRACTION of the screen: the cells are different shapes
+(24 rows on a 16px tile, 64 on a 32px one), and that would be the template deciding a proportion
+that belongs to whoever draws the characters.
+
+**A game's maps must agree about `world_scale`, and `test_map_content` refuses it.** Two scales in
+one game is a window that resizes under the player as they walk through a door, and every screen
+would be correct on both sides of it. The same suite carries the NPC half of the per-placement art
+check - enemies have had one since M13 and the people standing still never did. A character with
+no sheet under the map's style is not an error a player sees as one: the body is still there,
+still solid, still stops them walking north, and invisible.
+
+**`MapData.path_of` is the one place a map id becomes a path**, and `MapData.root` is a var so a
+suite can point the world at `tests/fixtures/maps` without a 32px room shipping as content nobody
+plays. Move it AFTER instantiating the scene, never before: `_ready` boots the shipped game, and
+with the root already moved that boot hunts for the quest's start map in the fixture directory,
+fails, and leaves the half-built map it had already made behind. Six orphan nodes, no error, and
+every assertion still passing - caught only because the suite's orphan baseline is zero.
+
 **Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step_pixels` at
 zero is free pixel movement; set to the map's tile size it is one press = one tile. Both go
 through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so nothing

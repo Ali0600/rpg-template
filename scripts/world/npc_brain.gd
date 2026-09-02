@@ -27,10 +27,16 @@ const NAMES: Dictionary = {
 	"patrol": Kind.PATROL,
 }
 
-## How close to a target counts as arrived. Generous on purpose: free movement approaches a
-## point asymptotically and a tight epsilon would leave an NPC shuffling forever a third of a
-## pixel away. Grid movement snaps, so it never gets near this.
-const ARRIVE_EPSILON := 1.5
+## How close to a target counts as arrived, as a fraction of a tile. Generous on purpose: free
+## movement approaches a point asymptotically and a tight epsilon would leave an NPC shuffling
+## forever a third of a pixel away. Grid movement snaps, so it never gets near this.
+##
+## Per TILE rather than in pixels, because what "close" means is set by how far a body travels
+## in a frame, and that doubles with the world: at 32px tiles a flat 1.5px is under two frames
+## of walking, which is exactly the shuffle this margin exists to prevent. Both numbers are
+## exact in binary, so at a 16px tile this is still precisely the 1.5 every shipped session was
+## recorded against.
+const ARRIVE_EPSILON_PER_TILE := 1.5 / 16.0
 
 ## A frame that moved less than this, while walking, means something is in the way - the
 ## player, another NPC, a wall the map author did not expect. Read the same way GridWalker
@@ -40,6 +46,11 @@ const PROGRESS_EPSILON := 0.05
 ## Frames of not-getting-anywhere before the target is abandoned. Not one frame: a body
 ## squeezing past another legitimately makes no progress for a moment.
 const STUCK_FRAMES := 12
+
+
+## How close counts as arrived, in this map's pixels.
+func _arrive_epsilon() -> float:
+	return ARRIVE_EPSILON_PER_TILE * float(_tile_size)
 
 
 static func kind_from_name(raw: String) -> int:
@@ -123,7 +134,7 @@ func intent(at: Vector2) -> Vector2:
 			return Vector2.ZERO
 
 	var to_target := _target - at
-	if to_target.length() <= ARRIVE_EPSILON:
+	if to_target.length() <= _arrive_epsilon():
 		_arrive(at)
 		return Vector2.ZERO
 

@@ -145,7 +145,7 @@ scripts/ui/pause_menu.gd	s|_index = posmod\(_index \+ delta, size\(\)\)|_index +
 scripts/ui/pause_menu.gd	s|if _page == Page.LOAD and slot\(_index\) == null:|if false:|	tests/unit/test_pause_menu.gd	an empty slot offers to load, so confirming it loads nothing
 scripts/ui/pause_menu.gd	s|if _page != Page.TOP:|if true:|	tests/unit/test_pause_menu.gd	backing out of the top page no longer resumes
 scripts/world/world_scene.gd	s|Router.open_overlay\(Router.State.PAUSED\)|pass|	tests/integration/test_pause_and_saves.gd	pausing never takes control away from the player
-scripts/world/world_scene.gd	s|if not at.is_finite\(\):|if true:|	tests/integration/test_pause_and_saves.gd	a load drops the player on the spawn instead of where they saved
+scripts/world/world_scene.gd	s|if not at_tile.is_finite\(\):|if true:|	tests/integration/test_pause_and_saves.gd	a load drops the player on the spawn instead of where they saved
 scripts/world/world_scene.gd	s|^\t_close_pause\(\)$|\tpass|	tests/integration/test_pause_and_saves.gd	the pause menu survives the load it asked for
 scripts/world/world_scene.gd	s|_pause.free\(\)|pass|	tests/integration/test_pause_and_saves.gd	the pause menu outlives the game it was opened over
 scripts/ui/pause_screen.gd	s|_committed = false|pass|	tests/integration/test_pause_and_saves.gd	a refused load leaves the menu on screen and deaf to every key
@@ -387,7 +387,7 @@ scripts/ui/game_over_menu.gd	s|\treturn ROW_TITLE \+ 1|\treturn Row.size()|	test
 scripts/ui/title_screen.gd	s|\t\t\tload_requested.emit\(pick.slot\)|\t\t\tpass|	tests/integration/test_title.gd	Continue is pressed at the title and no save is ever loaded
 scripts/ui/title_screen.gd	s|\t\t\tnew_game_requested.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/the_title_screen.json	New game is pressed and the title just sits there
 scripts/world/world_scene.gd	s|\tif not open_title\(\):|\tif true:|	tests/integration/test_title.gd	the game boots straight into a map and the title is never seen
-scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), style, get_viewport_rect\(\).size,|\t_title.setup(TitleMenu.of([] as Array[SaveData]), style, get_viewport_rect().size,|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
+scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), style, _ui_size\(\),|\t_title.setup(TitleMenu.of([] as Array[SaveData]), style, _ui_size(),|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
 scripts/world/world_scene.gd	s|^\topen_title\(\)$|\tpass|	tests/integration/test_title.gd	the game-over screen's Title row leads nowhere
 scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game.start_map, _game.start_spawn)|	tests/integration/test_title.gd	Continue starts a new game wearing the save's name
 scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/test_router.gd	a run starts and the state machine tells nobody, the way it did before M23
@@ -640,3 +640,21 @@ scripts/spritegen/lpc_compose.gd	s|return matching if not matching.is_empty\(\) 
 scripts/spritegen/lpc_compose.gd	s|if base_path.is_empty\(\):|if false:|	tests/unit/test_lpc_compose.gd	a layer with no art for the body type is planned anyway, drawing nothing in silence
 scripts/spritegen/lpc_compose.gd	s|if not _covers_walk\(d\):|if false:|	tests/unit/test_lpc_compose.gd	a definition without a walk cycle is accepted, and the character walks headless
 scripts/spritegen/lpc_compose.gd	s|if not allowed:|if false:|	tests/unit/test_lpc_compose.gd	the composer ignores the style's licences, leaving the importer as the only gate
+scripts/data/sprite_style.gd	s|if world_scale < 1:|if false:|	tests/unit/test_rig_and_style.gd	a style drawn at no scale at all is accepted, and the world it opens has no size
+scripts/util/ui_scale.gd	s|const DESIGN_SIZE := Vector2i\(320, 180\)|const DESIGN_SIZE := Vector2i(320, 176)|	tests/unit/test_ui_scale.gd	the size every screen is laid out for drifts from the one the game boots at
+scripts/util/ui_scale.gd	s|window.content_scale_size = window_size\(style\)|pass|	tests/unit/test_ui_scale.gd	binding a 32px style leaves the world ten tiles wide
+scripts/util/ui_scale.gd	s|layer.scale = layer_scale\(style\)|pass|	tests/integration/test_world_scale.gd	a screen is mounted at 1x over a 2x world, a quarter-size menu in the corner
+scripts/util/ui_scale.gd	s|layer.scale = wanted|layer.scale = Vector2.ONE|	tests/integration/test_world_scale.gd	the dialog box and the hint, built before a style was known, are never brought up to it
+scripts/world/world_scene.gd	s|UiScale.apply\(get_window\(\), _style\)|pass|	tests/integration/test_world_scale.gd	a style is bound and the window never follows it
+scripts/world/world_scene.gd	s|_mount_ui\(_pause\)|add_child(_pause)|	tests/integration/test_world_scale.gd	one screen joins the tree around the mounting helper and draws at the wrong size
+scripts/world/world_scene.gd	s|GameState.tile_size = _built.tile_size|pass|	tests/integration/test_world_scale.gd	the state never learns the map's tile size, so a save at 32px is written at 16
+scripts/world/world_scene.gd	s|GameState.set_player\(_player.global_position, data.facing\)|pass|	tests/integration/test_world_scale.gd	after a load the state says the player stands somewhere the body does not
+scripts/world/world_scene.gd	s|var at := at_tile \* float\(_built.tile_size\)|var at := at_tile|	tests/integration/test_world_scale.gd	a restored place is read as pixels, dropping the player in the corner of the map
+scripts/data/migrations.gd	s|d = _v9_to_v10\(d\)|break|	tests/unit/test_saves.gd	a v9 save is handed on unmigrated, still speaking in pixels
+scripts/data/migrations.gd	s|const PRE_V10_TILE_PIXELS := 16.0|const PRE_V10_TILE_PIXELS := 32.0|	tests/unit/test_saves.gd	every save written before v10 lands the player half way to where they stood
+scripts/autoload/game_state.gd	s|out.tile = player_position / float\(maxi\(tile_size, 1\)\)|out.tile = player_position|	tests/unit/test_saves.gd	a save is written in pixels wearing a tile's name
+scripts/ui/battle_screen.gd	s|var drawn := SPRITE_SCALE / float\(UiScale.scale_of\(_style\)\)|var drawn := SPRITE_SCALE|	tests/integration/test_battle_layout.gd	a fighter under a 32px style is drawn at four times its world size
+scripts/world/npc_brain.gd	s|return ARRIVE_EPSILON_PER_TILE \* float\(_tile_size\)|return ARRIVE_EPSILON_PER_TILE * 16.0|	tests/unit/test_npc_brain.gd	at 32px tiles an NPC shuffles forever a pixel short of its waypoint
+scripts/autoload/qa.gd	s|var tile_size := GameState.tile_size|var tile_size := 16|	tests/unit/test_qa_ops.gd	a play session reads a 32px world in 16px tiles and asserts the wrong door
+tests/helpers/warp_graph.gd	s|changed = true|pass|	tests/unit/test_map_content.gd	the reach walk stops one door in, so the rooms beyond it are never compared with the rest
+scripts/ui/sprite_lab.gd	s|UiScale.apply\(get_window\(\), _style\)|pass|	tests/integration/test_sprite_lab_scene.gd	the lab shows a 64px cast in a window built for 16px art
