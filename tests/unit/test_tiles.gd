@@ -24,19 +24,24 @@ func test_the_generator_draws_every_tile_it_declares() -> void:
 
 func test_no_tile_is_a_flat_block_of_one_colour() -> void:
 	# A tile that came out as a single fill means its texturing pass did nothing - it still
-	# renders, and the world just looks like coloured paper.
-	var style := ArtFixtures.style(&"gb16")
-	var built := TileGen.build(style, _bank(&"gb16"))
-	var image: Image = built["image"]
-	for i in _bank(&"gb16").ids().size():
-		var seen: Array[int] = []
-		for y in style.tile_size:
-			for x in style.tile_size:
-				var v := image.get_pixel(i * style.tile_size + x, y).to_rgba32()
-				if not seen.has(v):
-					seen.append(v)
-		assert_int(seen.size()).override_failure_message(
-			"tile '%s' uses only %d colour(s)" % [_bank(&"gb16").ids()[i], seen.size()]).is_greater(1)
+	# renders, and the world just looks like coloured paper. True of a CUT tile too, where the
+	# usual cause is picking the middle of a transition block: LPC's ground sheets have a plain
+	# fill cell in them, and it is one colour.
+	for style_id in ArtFixtures.style_ids():
+		var style := ArtFixtures.style(style_id)
+		var bank := ArtFixtures.tile_bank_for(style)
+		var built := TileGen.build(style, bank, ArtFixtures.tile_images_for(bank))
+		var image: Image = built["image"]
+		for i in bank.ids().size():
+			var seen: Array[int] = []
+			for y in style.tile_size:
+				for x in style.tile_size:
+					var v := image.get_pixel(i * style.tile_size + x, y).to_rgba32()
+					if not seen.has(v):
+						seen.append(v)
+			assert_int(seen.size()).override_failure_message(
+				"%s tile '%s' uses only %d colour(s)"
+				% [style_id, bank.ids()[i], seen.size()]).is_greater(1)
 
 func test_ground_tiles_are_fully_opaque_and_decor_tiles_are_not() -> void:
 	# A transparent hole in the FLOOR shows the background colour through the world. A decor
@@ -107,13 +112,22 @@ func test_a_tileset_without_a_tile_size_is_refused() -> void:
 	var texture := load("res://assets/generated/gb16/tiles.png") as Texture2D
 	assert_object(TileSetFactory.build(texture, {"tiles": []})).is_null()
 
-func test_both_styles_produce_the_same_tile_set() -> void:
-	# Different palettes, same world vocabulary - otherwise a map written for one style
-	# would not load under another, and the style swap would stop at the characters.
-	var a := TileSetFactory.coords_by_id(_tiles_meta(&"gb16"))
-	var b := TileSetFactory.coords_by_id(_tiles_meta(&"nes16"))
-	var ka := a.keys()
-	var kb := b.keys()
-	ka.sort()
-	kb.sort()
-	assert_array(ka).is_equal(kb)
+func test_every_style_produces_the_same_tile_vocabulary() -> void:
+	# Different palettes, different pixel SOURCES, same world vocabulary - otherwise a map
+	# written for one style would not load under another, and the style swap would stop at the
+	# characters. Over every style on disk rather than a named pair, because the pair goes stale
+	# the moment a third one arrives, silently and while still passing.
+	var first := PackedStringArray()
+	var named := ""
+	for style_id in ArtFixtures.style_ids():
+		var ids := PackedStringArray(TileSetFactory.coords_by_id(_tiles_meta(style_id)).keys())
+		ids.sort()
+		assert_int(ids.size()).override_failure_message(
+			"%s has no tiles at all" % style_id).is_greater(0)
+		if named.is_empty():
+			first = ids
+			named = String(style_id)
+			continue
+		assert_array(ids).override_failure_message(
+			"%s and %s do not paint from the same vocabulary" % [named, style_id]).is_equal(first)
+	assert_int(ArtFixtures.style_ids().size()).is_greater(1)

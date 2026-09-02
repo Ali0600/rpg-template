@@ -1,9 +1,11 @@
-The sprite sheets in this directory (style 'lpc32') were composed from Liberated
-Pixel Cup (LPC) art with the Universal LPC Spritesheet Character Generator:
+The art in this directory (style 'lpc32') is Liberated Pixel Cup (LPC) work.
+Character sheets were composed with the Universal LPC Spritesheet Character
+Generator; terrain was cut from the LPC tileset.
   https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator
+  https://github.com/OpenGameArt/LiberatedPixelCup
 
-Every layer file, its artists, licences and source URLs are listed in credits.json
-beside this file. Artists: Benjamin K. Smith (BenCreating), Carlo Enrico Victoria (Nemisys), Durrani, Eliza Wyatt (ElizaWy), ElizaWy, Evert, JaidynReiman, Joe White, Johannes Sjölund (wulax), Manuel Riecke (MrBeast), Marcel van de Steeg (MadMarcel), Matthew Krohn (makrohn), MuffinElZangano, Nila122, Page, Pierre Vigier (pvigier), Sander Frenken (castelonia), Stephen Challener (Redshrike), Thane Brimhall (pennomi), TheraHedwig, bluecarrot16, kcilds/Rocetti/Eredah, kheftel, laetissima.
+Every file, its artists, licences and source URLs are listed in credits.json
+beside this file. Artists: Benjamin K. Smith (BenCreating), Buch, Carlo Enrico Victoria (Nemisys), Casper Nilsson, Daniel Armstrong (HughSpectrum), Durrani, Eliza Wyatt (ElizaWy), ElizaWy, Evert, Gaurav Munjal, George Bailey, Guido Bos, Hyptosis, Ivan Voirol (Silver IV), JaidynReiman, Jetrel, Joe White, Johann Charlot, Johannes Sjölund (wulax), Lanea Zimmerman (Sharm), Manuel Riecke (MrBeast), Marcel van de Steeg (MadMarcel), Matthew Krohn (makrohn), MuffinElZangano, Nila122, Page, Pierre Vigier (pvigier), Sander Frenken (castelonia), SpiderDave, Stephen Challener (Redshrike), Surt, Thane Brimhall (pennomi), TheraHedwig, William Thompson (William.Thompsonj), Yar, Zabin, ansimuz, bluecarrot16, kcilds/Rocetti/Eredah, kheftel, laetissima, the Open Pixel Project contributors, the Open Surge team.
 
 Licences carried by the layers: CC-BY, CC-BY-SA, CC0, GPL, OGA-BY.
 Because some layers are CC-BY-SA, the composed sheets here are distributed under

@@ -10,9 +10,15 @@ one-glance menu of things still worth trying.
   and the game does not change. Direction aliases for compass-named rows already exist in
   `scripts/util/dir.gd`.
 - ~~**A second cell size** (32×32 characters, 32px tiles).~~ **Taken up by M40**: `lpc32` is
-  64×64 cells on 32px tiles, imported rather than rigged, standing on `plain32` (the gb16 shapes
-  doubled) until real 32px terrain lands. The world at that size — viewport, UI scale, the
-  demo's config — is M40 phase B.
+  64×64 cells on 32px tiles, imported rather than rigged, and since M40d its ground is imported
+  too — `plain32`, the gb16 shapes doubled, was the stand-in and is gone. The world at that size
+  — viewport, UI scale, the demo's config — was M40 phase B.
+- **Terrain transitions** (an edge tile where grass meets water, placed by a rule). The art
+  already holds the pieces and Godot's TileSet already has terrain sets; what stops it being a
+  small change is that a cell would stop being one tile id, which is what every map file, both
+  editor translators and `MapData.problems` are built on. `deferred — worth trying`; revisit hook:
+  `TileSetFactory.build` plus a `terrain` key on a bank, with `MapData` untouched for as long as
+  that can hold.
 - ~~**Tiled / LDtk map import.**~~ **Finished and VERIFIED for Tiled, 2026-09-01.** Both editors,
   both directions, `tools/map_io.gd` as the command. Tiled was installed and a generated map
   opened in it: 352 cells over both layers matching the source exactly, all five object layers
@@ -1308,6 +1314,43 @@ outcome — shipping nothing — is the part most likely to be re-litigated.
   offline, licence-free arm every gate runs on. See "Hand-drawn art enters through an import".
 - **Expected quality tier, stated up front:** clean GB/SNES-era chibi with a strict
   palette. Not hand-painted. Higher fidelity is a source swap, not a rewrite.
+
+## Terrain pixels are named by the BANK, not by the style — *M40d*
+
+The style already said where its SHEETS come from (`sheets_from`). The ground needed the same
+axis, and the question was where to put it.
+
+- **Chosen: `pixels_from` on the tile bank.** A bank already IS the recipe — the ordered list of
+  ids with `solid` and `decor` on each — so `rows` (authored in the rig's alphabet, drawn in the
+  style's ramps) and `files` (each tile a cell cut from art somebody drew, listed with its artists
+  and their licences) are two ways of filling in the same list. A style stays "which bank", and
+  one game can paint hand-drawn ground while another paints the rig's own with no third concept.
+- *A `tiles_from` axis on the style, beside `sheets_from`* — rejected. The style would then name
+  a bank AND say something about that bank's contents, which is two places to disagree; and a
+  bank moved between styles would carry a claim that no longer matched it.
+- *A separate `TileImport` class, with `TileGen` dispatching* — rejected. It would have to
+  re-answer `ids`, `solid_ids`, `decor_ids`, `at` and `size` for a contract that does not differ
+  by arm; only the PIXELS differ, and that is one function. The `TiledMap`/`LdtkMap` pattern this
+  looked like is two FILE FORMATS answering four names, which is not this shape.
+- **Flat tiles now, transitions later.** *Chosen, by the user, 2026-09-02.* Only the plain fill
+  cell of each LPC ground sheet is used. Every reference draws the edge between two materials as
+  its own tile and LPC ships the ring for it; this template paints one id per cell, so a shoreline
+  is a hard edge. `deferred — worth trying` with the hook in the backlog above. See
+  `docs/GENRE_CONVENTIONS.md` §15, which is measured from the artwork rather than recalled.
+- **Both downloads.** *Chosen, by the user.* Lanea Zimmerman's LPC base tileset and Daniel
+  Armstrong's castle floors from the OpenGameArt repository, plus bluecarrot16's plants pack for a
+  bush — the base set has none, and the demo's own dialogue names one. All CC-BY-SA, which the
+  style already accepts and the composed sheets already are.
+- *Take the bush from a treetop corner or a boulder in the base set* — rejected: it reads as a
+  shrub or a rock, and the warden's directions say "under the roots of the one bush".
+- **The credits file exists exactly when something imported went into it**, emitted after both
+  arms rather than inside the import one — so a style that draws its own characters and stands on
+  somebody else's ground still gets one.
+- **Animated water and multi-tile objects** (a whole tree) are named as gaps rather than
+  deferred forks: the first needs a clock the tile runtime does not have, the second needs a map
+  record rather than a cell.
+
+---
 
 ## Hand-drawn art enters through an import, not a compositor — *M40*
 

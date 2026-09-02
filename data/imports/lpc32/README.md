@@ -1,5 +1,9 @@
 # Imported LPC characters
 
+Characters only. The GROUND is imported too, and its recipe is one directory along in
+`data/imports/tiles/README.md` — a tile bank names a cell of a sheet the way a character names a
+folder of two files.
+
 One folder per character, named by the character id the game uses (`hero`, `npc_elder`,
 `quest_slink`…), holding exactly the two files the **Universal LPC Spritesheet Character
 Generator** downloads:

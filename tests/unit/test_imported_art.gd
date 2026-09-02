@@ -167,3 +167,50 @@ func test_the_inputs_are_kept_out_of_the_editor_and_the_pack() -> void:
 	# A .gdignore is what stops the importer turning every 832x3456 input into a texture and
 	# the exporter packing it. pack_check.sh proves the outcome; this pins the mechanism.
 	assert_bool(FileAccess.file_exists(ArtFixtures.IMPORT_ROOT + "/.gdignore")).is_true()
+
+func test_every_imported_bank_cuts_cleanly_from_art_that_is_on_disk() -> void:
+	# The bank's own problems() checks what it says about itself; this checks it against the art,
+	# which is the half that needs files. A missing sheet, a cell past the edge of one, a hole in
+	# a ground tile and a licence outside the style all land here.
+	var checked := 0
+	for bank_id in ArtFixtures.imported_bank_ids():
+		var bank := ArtFixtures.bank(bank_id)
+		assert_array(bank.problems()).override_failure_message(
+			"bank '%s': %s" % [bank_id, bank.problems()]).is_empty()
+		var images := ArtFixtures.tile_images_for(bank)
+		for name in bank.file_names():
+			assert_bool(images.has(name)).override_failure_message(
+				"'%s' is credited by the %s bank and is not at %s"
+				% [name, bank_id, bank.source_path(name)]).is_true()
+		var styles := ArtFixtures.styles_using(bank_id)
+		assert_array(styles).override_failure_message(
+			"the %s bank is painted by no style, so nothing here is checked against one"
+			% bank_id).is_not_empty()
+		for style_id in styles:
+			var faults := TileGen.problems(bank, ArtFixtures.style(style_id), images)
+			assert_array(faults).override_failure_message(
+				"%s against the %s bank: %s" % [style_id, bank_id, faults]).is_empty()
+			checked += 1
+	assert_int(checked).override_failure_message(
+		"no imported bank was measured against a style").is_greater(0)
+
+func test_every_piece_of_terrain_is_credited_where_its_style_ships() -> void:
+	# The cast's rule, for the ground. An artist named in a bank and missing from the credits
+	# file beside the sprites is art shipping with nobody credited - and the bank is a build
+	# input, so it is not what a credits screen can read.
+	var checked := 0
+	for bank_id in ArtFixtures.imported_bank_ids():
+		var bank := ArtFixtures.bank(bank_id)
+		for style_id in ArtFixtures.styles_using(bank_id):
+			var credits := JsonFile.read("%s/%s/credits.json" % [ArtFixtures.GENERATED_ROOT, style_id])
+			assert_bool(credits.ok).override_failure_message(
+				"%s paints from imported art and has no credits.json" % style_id).is_true()
+			var named: Array[String] = []
+			for entry: Variant in credits.data.get("files", []):
+				named.append(str((entry as Dictionary).get("file", "")))
+			for name in bank.file_names():
+				assert_bool(named.has(name)).override_failure_message(
+					"'%s' is cut into %s's ground and is not in its credits.json" % [name, style_id]
+					).is_true()
+				checked += 1
+	assert_int(checked).override_failure_message("no terrain file was checked").is_greater(0)

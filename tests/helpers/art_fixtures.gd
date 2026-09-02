@@ -94,6 +94,60 @@ static func tile_bank_for(style_value: SpriteStyle) -> TileBank:
 	return TileBank.load_from("%s/%s.json" % [TILE_DIR, style_value.tile_bank_id])
 
 
+## Every tile bank on disk, by id, sorted by TEXT.
+static func bank_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for path in _files(TILE_DIR, "json"):
+		out.append(StringName(path.get_file().get_basename()))
+	by_text(out)
+	return out
+
+
+static func bank(bank_id: StringName) -> TileBank:
+	return TileBank.load_from("%s/%s.json" % [TILE_DIR, bank_id])
+
+
+## The banks whose pixels the style's own ramps draw - the palette gate's population.
+static func drawn_bank_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for bank_id in bank_ids():
+		if not bank(bank_id).imports():
+			out.append(bank_id)
+	return out
+
+
+## The banks cut from somebody's art, which no palette rule can speak about.
+static func imported_bank_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for bank_id in bank_ids():
+		if bank(bank_id).imports():
+			out.append(bank_id)
+	return out
+
+
+## The art an imported bank cuts from, by file name. Empty for a bank that draws its own rows,
+## which is what lets every caller pass it without asking which kind it has.
+static func tile_images_for(bank_value: TileBank) -> Dictionary:
+	var out := {}
+	if not bank_value.imports():
+		return out
+	for name in bank_value.file_names():
+		var img := ImageFile.read_png(bank_value.source_path(name))
+		if img != null:
+			out[name] = img
+	return out
+
+
+## The styles painting from a given bank. One place, so a gate over banks can say which styles a
+## fault reaches.
+static func styles_using(bank_id: StringName) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for style_id in style_ids():
+		if style(style_id).tile_bank_id == bank_id:
+			out.append(style_id)
+	return out
+
+
 ## Every character that belongs to a style, in a stable order.
 static func characters_of(style_id: StringName) -> Array[CharacterSpec]:
 	var out: Array[CharacterSpec] = []

@@ -115,6 +115,14 @@ tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/que
 Four ready-made designs live in `docs/lpc_designs/`; add `--preview=build/hero.png` to look
 before anything is written.
 
+The GROUND comes in the same way. A tile bank either draws its tiles from authored rows in the
+rig's own alphabet, or cuts each one out of art somebody drew — a file and a cell, listed with
+its artists and their licences, gated by the same rule the character layers are:
+
+```bash
+tools/fetch_tiles.sh data/tiles/lpc32.json
+```
+
 ## Making it your game
 
 | To change | Edit | Touch any code? |
@@ -134,6 +142,7 @@ before anything is written.
 | New mechanics | a `GameHooks` subclass in `games/<id>/` | one file, never the template |
 | New body parts | `data/rigs/*.json` | no |
 | New terrain — a floor, a door, a cliff | `data/tiles/*.json` | no |
+| Hand-drawn terrain | a sheet in `data/imports/tiles/<bank>/`, a cell per tile in the bank | no |
 
 If changing any of these needs a code edit, that's a bug in the template.
 
@@ -259,11 +268,26 @@ judged before the world is rebuilt around it.
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
 - [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.sh`
 - [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
+- [x] **M40d** — the ground is hand-drawn too: a tile bank says whether its pixels are authored rows or a CELL cut from art somebody drew, licence-gated and credited per file beside the cast. The demo's twelve tiles come out of the LPC base tileset with their ids, order and solid flags unchanged, so every map and all 23 sessions carried on untouched
 - [x] **M40c** — the demo is hand-drawn: twelve characters composed from text recipes, creatures included (LPC has no non-human body, so a Slink is a child body wearing a lizard head), every map at 32px tiles, and all 23 play sessions unchanged
 - [x] **M40b** — the world at 32px: a style states its `world_scale`, the window grows and every interface layer is drawn at it, so a 64x64 cast plays in a 640x360 world while every screen, font and layout gate keeps measuring against 320x180. Saves moved to tile units (v10) so a change of art cannot move a saved player
 - [x] **M40a** — hand-drawn characters: a style's sheets come from the rig or from an import (`sheets_from`), Universal LPC exports are converted at build time, licence-gated by file, credited beside the sprites and drift-gated like everything else. The world at 32px, the credits screen and the cast itself are the phases that follow
 
 ## Experience Gained
+
+- Extended an asset pipeline with a second input source behind one data field, so hand-drawn
+  terrain and procedurally generated terrain are two arms of one build step: the runtime contract,
+  every map file and both editor integrations were untouched, and the change was provable by 23
+  end-to-end runs producing byte-identical logs.
+- Enforced third-party licensing on a second class of asset by reusing the existing predicate
+  rather than re-deriving it, so one implementation of licence-family matching governs every
+  imported file, and the generated attribution file merges both sources with no second reader.
+- Scoped a quality gate to the population it can speak about and asserted the boundary as set
+  membership, so an exempted category cannot silently empty the gate and a third category cannot
+  opt out of both lists.
+- Found and fixed a latent defect in an existing build tool by reasoning about what its tests
+  could not see: a constant shared by both directions of a round-trip conversion, invisible to the
+  round trip by construction, which had been emitting files on the wrong grid for four releases.
 
 - Integrated a third-party art toolchain through an existing source seam without touching the
   runtime: a build-time converter re-cuts the vendor's fixed-layout sheet into the internal

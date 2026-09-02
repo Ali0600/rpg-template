@@ -19,8 +19,9 @@ regression, however good that game looks.
   `TileGen` drawn by five hardcoded routines until M16, and the cost was legible: no routine
   could draw a door, so the quest's cave was built out of grass-world tiles. **Imported art is
   the one exception, and it has a name:** a style whose `sheets_from` is `lpc` shows pixels the
-  artists drew, converted from a Universal LPC export. What stays data is WHERE it comes from
-  and what it may be LICENSED under, and both are gated (§2).
+  artists drew, converted from a Universal LPC export, and a bank whose `pixels_from` is `files`
+  cuts its ground out of art somebody drew. What stays data is WHERE it comes from and what it
+  may be LICENSED under, and both are gated (§2).
 - **Sound is data too, and generated the same way.** A cue's SHAPE is a row in
   `data/banks/<id>.json`; its VOICE is a `SoundStyle` under `data/sounds/`. Three voices share
   one bank the way three sprite styles share one rig. Template code never names a cue as a
@@ -96,6 +97,40 @@ name, so a view calling the audio singleton silently drops itself AND every suit
 on it out of that gate. **Naming it in a comment is enough to do this** - which is how the
 signal came to exist. Pure classes (`BattleLogic`) go one step further and COLLECT cues for the
 view to drain, because a fight's cues must survive a defeat, whose effects are discarded.
+
+**A BANK says where its pixels come from, and that is the whole switch.** `pixels_from` is
+`rows` - authored in the rig's alphabet, drawn in the style's ramps - or `files`, where each tile
+is a CELL cut from art an artist drew. The `sheets_from` shape one layer down: a StringName
+checked against a list, a typo refused BY NAME, and the two arms stated as a pair rather than
+inferred from an absence. The bank is the right home for it because a bank already IS the recipe,
+the ordered list of ids with `solid` and `decor` on each; a style stays "which bank", so one game
+paints hand-drawn ground and another the rig's own with no third concept. A `files` bank lists
+the art it cuts from in `character.json`'s own credit shape, so it is handed to `LpcImport` as one
+more recipe and the ground lands in `credits.json` beside the cast with no second reader.
+`TileGen.problems` holds what needs both the bank and the art: the image present, the cell inside
+it, a hole in a non-decor cut refused by tile name, and every file offered under a licence the
+style accepts - through `LpcImport.license_allowed`, because a second opinion about licence
+families is how share-alike ships as credit-only.
+
+**`credits.json` and `LICENSE.txt` exist exactly when something imported went into them**, so
+they are emitted after BOTH arms rather than inside the import one: a style can draw its own
+characters and still stand on somebody else's ground. The notice names both routes, because one
+sentence claiming the character generator drew the ground too is the wrong-genre-claim-in-a-
+comment failure M32 already paid for.
+
+**A palette rule cannot speak about imported pixels**, so the palette gate skips an imported bank
+and COUNTS what it checked; membership is asserted as a SET over the banks the way it already is
+over the styles, so a third kind of pixel source cannot opt out of both lists. And "no tile is
+one flat colour" runs over every style, because the usual way to get a flat tile from a cut is to
+pick the middle of a transition block - LPC's ground sheets have exactly one, and it is one
+colour.
+
+**Terrain has no transitions, and that is a stated divergence.** Every reference draws the edge
+between two materials as its own tile, and LPC ships the 3x3 ring for it; this template paints
+one id per cell, so a shoreline is a hard edge. Deferred rather than rejected, because a cell
+would stop being one tile id and that is what every map file, both editor translators and
+`MapData.problems` are built on. See `docs/GENRE_CONVENTIONS.md` §15, which is measured from the
+artwork rather than recalled.
 
 **A tile names a ramp, never a colour, and `solid` is art data.** `TileBank.problems()`
 refuses a ragged row, a typo'd pixel, a duplicated id, a tile that is not the bank's declared
@@ -1189,6 +1224,7 @@ tools/map_io.sh --in=build/maps/quest_village.tmj
 tools/map_io.sh --verify                       # check.sh step 6d
 tools/lpc_compose.sh docs/lpc_designs/the_road.json --preview=build/hero.png
 tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer
+tools/fetch_tiles.sh data/tiles/lpc32.json      # the art an imported bank cuts from
 ```
 
 **The atlas travels WITH the maps.** Both editors resolve their tileset image relative to the map
@@ -1445,6 +1481,16 @@ Sound works identically: edit `data/banks/*.json` or `data/sounds/*.tres`, re-ru
 `data/imports/<style>/<id>/sheet.png` + `character.json` (the recipe is in
 `data/imports/lpc32/README.md`), re-run `gen_sprites.gd`, and commit the folder together with
 what it produced - the sheet, its JSON, `credits.json` and `LICENSE.txt`.
+
+**Imported TERRAIN is the same loop one directory along.** The sheets live at
+`data/imports/tiles/<bank>/<file>` - under the same `.gdignore`, and NOT under
+`data/imports/<style>/`, where the character arm reports any png that is not a `sheet.png`;
+`data/tiles/<bank>.json` names a file and a CELL per tile plus the artists and licences;
+`tools/fetch_tiles.sh` fetches whatever a bank's `url` fields name. **Choose the cells by
+LOOKING** - the first pass here gave the inn a cold green stone floor and a table that sat high
+in its cell like a stool, and both were re-cut against a screenshot. And after regenerating, run
+`--import` before photographing anything: the game loads the IMPORTED texture, so a fresh
+`tiles.png` behind a stale import reads as the change not having happened.
 
 **Commit the `.import` sidecar with every generated file.** An imported asset ships as its
 sidecar plus the engine's cached copy; the original file is not packed, so a `.wav` or `.png`
