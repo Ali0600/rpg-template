@@ -48,7 +48,13 @@ const RECORD_LAYERS := ["spawns", "npcs", "warps", "objects", "enemies"]
 ## The tileset checks are the ones that matter. A GID is an index, so a map that was painted
 ## against a different bank is not a broken file - it is a map full of the wrong tiles, and every
 ## other gate in this project would pass it.
-static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringArray) -> Array[String]:
+## `tile_size` is what the CALLER will read the file at, and zero means "do not check" - the
+## default is for a caller that has no table to hand. It matters because every coordinate in a
+## Tiled file is in PIXELS: an object is placed at `tile * tile_size` and read back by dividing,
+## so a file painted at one size and read at another puts every record at a fraction of its tile,
+## silently, on a map that still parses. It is the tileset coupling exactly, in another unit.
+static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringArray,
+		tile_size: int = 0) -> Array[String]:
 	var out: Array[String] = []
 	if str(raw.get("type", "")) != "map":
 		out.append("not a Tiled map: type is '%s'" % raw.get("type", ""))
@@ -57,6 +63,10 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 	if str(raw.get("orientation", "orthogonal")) != "orthogonal":
 		out.append("map is '%s', and this template draws orthogonal maps"
 			% raw.get("orientation", ""))
+	var grid := int(raw.get("tilewidth", 0))
+	if tile_size > 0 and grid != tile_size:
+		out.append("map was painted on a %dpx grid and is being read at %dpx - every record on it "
+			% [grid, tile_size] + "would land at a fraction of its own tile")
 	var sets: Array = raw.get("tilesets", [])
 	if sets.size() != 1:
 		out.append("map uses %d tilesets; a template map is painted from exactly one" % sets.size())

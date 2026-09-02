@@ -59,7 +59,11 @@ static func atlas_name(style: String) -> String:
 ## The tileset checks are the ones that matter, for `TiledMap.problems()`'s reason: a tile is
 ## stored as an INDEX into the atlas, so a map painted against one bank and read against another
 ## is not a broken file, it is a map full of the wrong tiles.
-static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringArray) -> Array[String]:
+## `tile_size` is what the CALLER will read the file at; zero means "do not check". `TiledMap`'s
+## twin and for its reason - LDtk stores a tile at `px` in pixels and an entity likewise, so a
+## file painted on one grid and read on another moves every record without breaking the file.
+static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringArray,
+		tile_size: int = 0) -> Array[String]:
 	var out: Array[String] = []
 	var defs: Dictionary = raw.get("defs", {})
 	var levels: Array = raw.get("levels", [])
@@ -67,6 +71,10 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 		out.append("project holds %d levels; a template map is one level" % levels.size())
 	if bool(raw.get("externalLevels", false)):
 		out.append("project keeps its levels in separate files, and this reads them inline")
+	var grid := int(raw.get("defaultGridSize", 0))
+	if tile_size > 0 and grid != tile_size:
+		out.append("project was painted on a %dpx grid and is being read at %dpx - every record "
+			% [grid, tile_size] + "on it would land at a fraction of its own tile")
 	var sets: Array = defs.get("tilesets", [])
 	if sets.size() != 1:
 		out.append("project uses %d tilesets; a template map is painted from exactly one"

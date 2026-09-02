@@ -1891,3 +1891,65 @@ essentially all of them — and the wrong answer was the reassuring one.
 on the part that only the RESULT can produce (a count, a timestamped line, a field the script
 does not contain), and sanity-check the finding against a second signal such as the step's
 duration.
+
+## A constant both directions of a round trip share is invisible to that round trip
+
+A round-trip test proves a reader understands a writer. If both of them are handed the same wrong
+number, they agree perfectly and the file between them is wrong.
+
+**Why it came up:** the tool that exports maps to Tiled and LDtk held `const TILE_SIZE := 16` and
+passed it to the exporter and the importer alike. The demo moved to 32px tiles four milestones
+earlier. Every export since had declared a 16px grid over a 384x32 atlas — which an editor slices
+into quarter tiles, with every object at half its cell — and the gate that round-trips all six maps
+through real files passed every time, because 16 out and 16 back is the same map. Nothing was
+looking at the file itself.
+
+**Takeaway:** a round trip cannot see a value its two halves share. Read such a value from the
+artifact both sides already depend on (here, the generated tile table), and assert what was WRITTEN
+from outside the round trip — a test that opens the exported file and checks the field.
+
+## A skipped required check reports SUCCESS, so the status job must always run
+
+Branch protection asks "did the context named `check` succeed?" GitHub answers yes for a job that
+was skipped by its own `if:`, so a conditional on the status job turns "the gate never ran" into a
+green merge.
+
+**Why it came up:** collapsing two workflows into one, the required status became a job that
+depends on the gate and the mutation sweep. Both are skipped on a docs-only change — correctly —
+so the status job had to run anyway and decide: it passes when everything succeeded, and when
+everything was skipped for a reason it can name, and fails on anything else, including an empty
+answer from the job that decides what to run.
+
+**Takeaway:** a job that answers a required status runs with `if: always()` and works out the
+verdict from `needs.<job>.result` itself. Never let a conditional decide whether the verdict is
+produced — only what it says.
+
+## A mutant can HANG instead of failing, and a hang reads as a broken harness
+
+Deleting a line is not always "the code does something wrong". Sometimes it is "the code never
+finishes".
+
+**Why it came up:** a mutant aimed at a reachability walk deleted the line that marks a place as
+reached. The walk is a fixpoint loop — keep going while anything changed — so with nothing ever
+marked, it never terminated. The mutation run sat there until it was killed, which looks exactly
+like a hung test rather than like a rule being proven.
+
+**Takeaway:** run a new test file, and any first mutation cycle, under a short timeout so a
+non-terminating result surfaces in seconds. When a mutant hangs, re-aim it at a line whose loss is
+observable rather than fatal — for a fixpoint, the flag that ends the loop rather than the state it
+accumulates.
+
+## A sprite catalogue has the bodies it has, and a missing category is a design constraint
+
+Asset libraries are drawn by people with a scope. What they did not draw is not an oversight to
+work around; it decides what your content can be.
+
+**Why it came up:** converting a game's cast to Liberated Pixel Cup art, two of the twelve were
+creatures. LPC has no non-human body at all — its bodies are human, skeleton and zombie. So a
+lizard-like creature is the CHILD body wearing a lizard head and tail, and an undead one is an
+ordinary body in the palette's own green under a cape. Both work, and neither is what the design
+document said.
+
+**Takeaway:** inventory the catalogue for the thing your content most depends on BEFORE committing
+to the content, and treat an absence as load-bearing — the adaptation (a human frame wearing a
+beast head) is usually available and is a different design than the one you set out to build.
