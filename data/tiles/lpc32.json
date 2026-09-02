@@ -19,7 +19,11 @@
 		"",
 		"The files block travels in the pack, which is about two kilobytes of names and URLs. It",
 		"is left there rather than filtered out: credits.json is the file a credits screen reads,",
-		"and an exclude rule that has to keep growing is worse than the bytes."
+		"and an exclude rule that has to keep growing is worse than the bytes.",
+		"",
+		"tools/fetch_tiles.sh fetches every file with a `url` into data/imports/tiles/lpc32/.",
+		"plants.png has none on purpose: it ships as a zip from its OpenGameArt page, so the one",
+		"sheet inside it is extracted and placed by hand, and the script says so rather than failing."
 	],
 	"files": [
 		{
@@ -35,7 +39,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/outdoor/PNG/grass.png"
 		},
 		{
 			"file": "dirt.png",
@@ -50,7 +55,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/outdoor/PNG/dirt.png"
 		},
 		{
 			"file": "water.png",
@@ -65,7 +71,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/outdoor/PNG/water.png"
 		},
 		{
 			"file": "house.png",
@@ -80,7 +87,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/building-exterior/house.png"
 		},
 		{
 			"file": "dungeon.png",
@@ -95,7 +103,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/sewer-dungeon/dungeon.png"
 		},
 		{
 			"file": "castlefloors.png",
@@ -110,7 +119,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/2535"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/HughSpectrum/castlefloors.png"
 		},
 		{
 			"file": "stairs.png",
@@ -125,7 +135,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/building-interior/stairs.png"
 		},
 		{
 			"file": "country.png",
@@ -140,7 +151,8 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
-			]
+			],
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/building-interior/country.png"
 		},
 		{
 			"file": "plants.png",

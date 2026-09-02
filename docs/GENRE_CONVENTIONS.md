@@ -49,6 +49,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
+| [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px, **one id per cell and no edge tiles** | **diverges deliberately** — [transitions are their own milestone](DECISIONS.md) |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -991,6 +992,46 @@ theme at all. Neither is downstream of the other, which is why they are two fiel
 **Remaining gap:** whether the victory fanfare should differ after a boss. Deferred in
 [DECISIONS.md](DECISIONS.md) — it is a second field answering a second question, and a fled boss
 fight cannot happen here anyway (a boss refuses every escape).
+
+---
+
+## 15. Terrain
+
+**The convention.** Ground is a grid of small square tiles, and the interesting part is what
+happens where two materials MEET. Every reference draws those edges as tiles of their own: a
+tileset carries a fill for each material plus a ring of edge and corner pieces, and the map
+places them by hand or an editor places them from a rule. The count is what makes it concrete -
+LPC's own ground sheets are a 3x3 ring of edges and corners around one centre fill, which is the
+shape a Tiled or Godot "terrain" tool consumes, and the same nine-piece arrangement turns up in
+tileset after tileset because it is the minimum that closes every corner.
+
+Beside that, the vocabulary is small and stable across the era: a walkable ground, a second
+ground that reads as a path or road, an impassable material (water, cliff, wall), something
+green and solid to break the space up, and - indoors - a floor, a door, and stairs. This
+template's twelve ids are that list plus a decor pair (a table and a rug), which is why the demo
+could change art without changing a single map.
+
+**Measured, not recalled.** The layout claim above is measured from the art this milestone
+imports: `grass.png`, `dirt.png` and `water.png` in the LPC base tileset are each 3 cells by 6 at
+32px - a 3x3 transition ring, a pair of decor clumps, and a row of plain fills. What the
+reference CONSOLES did is left thin here on purpose: the NES and SNES tile data that would settle
+it is reachable only through disassemblies this pass did not open, and the secondhand accounts
+are about compression and metatiles rather than about edges. So the convention above is stated
+from artwork that can be counted rather than from prose about games.
+
+**This template.** One tile id per cell, and no edge pieces at all. `MapData` is a legend and a
+grid of characters, `TileSetFactory` builds a single atlas source with one collision polygon per
+solid tile, and nothing anywhere knows that grass and water are neighbours. So a shoreline is a
+hard edge, and the demo's ponds and paths are rectangles.
+
+**Divergence, deliberate.** The alternative is real and is a milestone of its own: Godot's TileSet
+carries terrain sets, and the LPC sheets already hold the pieces. It is deferred rather than
+rejected - see `docs/DECISIONS.md` - because it reaches past the art into the map format (a cell
+would stop being one id), and because the flat version is what a template needs first: a game
+that adds its own tiles gets a working world without authoring nine pieces per material.
+
+**Gap, named:** animated water (LPC ships the frames; the atlas has one row and the runtime has
+no clock for it) and multi-tile objects like a whole tree, which need a record rather than a cell.
 
 ---
 

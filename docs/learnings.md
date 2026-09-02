@@ -564,6 +564,13 @@ its way into the game, and nothing in the gate, the tests or the log mentioned i
 **Takeaway:** when a build gate checks a committed artifact, check what the RUNTIME loads too —
 between the two sits an importer, a bundler or a minifier that is free to change it.
 
+**The same gap, from the other side:** regenerating an asset changes the file, and does not change
+what `load()` returns until the engine re-imports. Swapping two tiles in a bank and re-running the
+generator left the running game showing the old ground — the file on disk was right, the drift gate
+compared it happily, and the screenshot was of the cached copy. It reads as "the change did not
+take", which sends the next hour into the generator. Run the import step before LOOKING at
+anything, and treat a no-effect symptom as a cache question before a logic question.
+
 ## A file that is committed but not imported is missing from the export
 
 An imported asset ships as its `.import` sidecar plus the engine's cached copy; the original
@@ -1953,3 +1960,16 @@ document said.
 **Takeaway:** inventory the catalogue for the thing your content most depends on BEFORE committing
 to the content, and treat an absence as load-bearing — the adaptation (a human frame wearing a
 beast head) is usually available and is a different design than the one you set out to build.
+## Give a scratch tool a home outside the project it is scratching
+
+A throwaway script left in a source tree is inside every rule the source tree has.
+
+**Why it came up:** three one-off scripts for looking at tile sheets were parked in a build
+directory to keep them out of the commit. That directory then held `.gd` files outside every
+declared source root, and a gate whose whole job is to notice a new top-level directory of code
+went red — correctly. Moving them under the project's own tool directory would have worked and
+left three files one careless `git add` from being committed.
+
+**Takeaway:** put scratch tooling outside the repository entirely and invoke it by absolute path.
+It cannot be committed by accident, and it cannot trip the rules that exist to catch real code
+arriving somewhere unwatched.
