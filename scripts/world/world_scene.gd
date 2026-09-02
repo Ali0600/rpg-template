@@ -197,6 +197,17 @@ func _bind_style(style: SpriteStyle) -> void:
 	UiScale.rescale(self, _style)
 
 
+## _bind_style's PAIR. The window belongs to the ROOT, not to this scene, so a world that grew
+## it and then went away has left somebody else's furniture moved. In the game that is the frame
+## before quit and costs nothing; in a test run it is every suite that comes afterwards laying
+## itself out against a window this one resized - which is what happened the day the demo became
+## a 2x style. Eleven suites boot a world and exactly one of them put the window back, because
+## the rule was written down in that suite rather than in the thing that breaks it. A driver
+## here copes with the twelfth suite nobody has written yet.
+func _exit_tree() -> void:
+	UiScale.apply(get_window(), null)
+
+
 ## The size every screen lays itself out against: the design size, at every world scale, NEVER
 ## the live viewport. A screen that measured the viewport would space its rows twice as far
 ## apart in a 640x360 world and land its help line off the bottom - and every layout gate,

@@ -1082,7 +1082,13 @@ validator that has only ever passed is decoration.
   local), never by loosening the pattern.
 - Gates run **unpiped** — `cmd | tail` exits with `tail`'s status, so a failing gate
   reports success.
-- Autoloads outlive a suite: call `GameState.reset()` in `before_test`.
+- Autoloads outlive a suite: call `GameState.reset()` in `before_test`. **So does the root
+  WINDOW**, which a 32px style grows to 640x360 - `world_scene._exit_tree` puts it back as the
+  scene leaves the tree, because eleven suites boot a world and the one that remembered to
+  restore it in `after_test` was the only one where the rule was true. A shared global asserted
+  at an arbitrary point in a run is order-dependent by construction, and suite order is sorted
+  on APFS and hash-ordered on ext4: that combination passed locally every time and failed on the
+  runner about half the time.
 - Assert on simulated frames, never wall-clock time. In a suite with no `scene_runner` that
   means `await get_tree().physics_frame`, not `await_millis()`: under load a millisecond
   spans no physics frame at all, and "the player did not move" becomes a fact about how busy

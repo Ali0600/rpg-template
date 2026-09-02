@@ -683,3 +683,4 @@ scripts/spritegen/tile_gen.gd	s|\tif not images.has\(from\):|\tif false:|	tests/
 scripts/spritegen/tile_gen.gd	s|\tif cell.x < 0 or cell.y < 0 or rect.end.x > image.get_width\(\) or rect.end.y > image.get_height\(\):|\tif false:|	tests/unit/test_tile_bank.gd	a cell past the edge of its sheet is cut anyway
 scripts/spritegen/tile_gen.gd	s|\tout.convert\(Image.FORMAT_RGBA8\)|\tpass|	tests/unit/test_tile_bank.gd	art with no alpha channel reads as opaque everywhere, so the hole check passes anything
 tests/helpers/art_fixtures.gd	s|\t\tif bank\(bank_id\).imports\(\):|\t\tif not bank(bank_id).imports():|	tests/unit/test_gates_consistency.gd	the two bank lists are swapped, so an imported bank is handed to the palette gate
+scripts/world/world_scene.gd	s|\tUiScale.apply\(get_window\(\), null\)|\tpass|	tests/integration/test_world_scale.gd	a world that goes away leaves the window at its own scale, and every suite after it lays out against a window it did not choose

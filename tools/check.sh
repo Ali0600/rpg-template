@@ -104,6 +104,11 @@ if [ -f addons/gdUnit4/bin/GdUnitCmdTool.gd ]; then
   gd_out=$("$GODOT" --headless $GODOT_FRAMES --path . -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests --ignoreHeadlessMode -c 2>&1)
   gd_status=$?
   printf '%s\n' "$gd_out" | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Overall Summary|Executed test suites' || true
+  # WHICH test failed, not just that one did. Without this a red gate in CI names a count and
+  # nothing else, and the only way to find out is to reproduce the whole run on that platform -
+  # which is exactly the situation where you cannot. gdUnit4 prints the name and the reason
+  # around its FAILED line, so print that band and nothing else.
+  printf '%s\n' "$gd_out" | sed 's/\x1b\[[0-9;]*m//g' | grep -A6 -E '> .* FAILED' || true
   if printf '%s' "$gd_out" | grep -q 'handle_crash'; then
     echo "  gdUnit4 CRASHED during discovery or execution (exit was $gd_status)"
     gd_status=1

@@ -1973,3 +1973,36 @@ left three files one careless `git add` from being committed.
 **Takeaway:** put scratch tooling outside the repository entirely and invoke it by absolute path.
 It cannot be committed by accident, and it cannot trip the rules that exist to catch real code
 arriving somewhere unwatched.
+
+## A rule written down in one place is true in that place and nowhere else
+
+When several components can break an invariant, putting the repair in one of them fixes one of
+them.
+
+**Why it came up:** binding a 32px art style grows the root window to 640x360. Eleven test suites
+boot a world, and exactly one of them put the window back afterwards — with a comment explaining
+precisely why it mattered. The other ten left it, so whether the run went green depended on
+whether the suite that asserts the window's size happened to run before or after one of them.
+That order is stable on one filesystem and not on another, so it passed locally every time and
+failed on the runner about half the time.
+
+**Takeaway:** when an invariant can be broken by many callers, put the repair in the thing that
+BREAKS it, not in the callers — here, the scene that grew the window restores it as it leaves the
+tree, which covers the twelfth suite nobody has written yet. And a shared global that a test
+asserts is order-dependent by construction: assert it where it is set and unset, not at some
+arbitrary point in a shared run.
+
+## A test that fails on the runner and never locally may be a suite ORDER, not a platform
+
+"Works on my machine" is usually read as a platform difference. Between test suites in one
+process, it is often the order they ran in.
+
+**Why it came up:** a gate went red once on CI with a single unnamed failure, passed on the next
+run over the same code, and passed three times locally. It was reproduced in one command by
+naming two suites on the command line in the order the runner happened to pick — a world suite,
+then the self-check that reads the window. Directory listing order is sorted on APFS and hash
+ordered on ext4, so the same suite set runs in a different sequence on the runner.
+
+**Takeaway:** before blaming a platform for an intermittent test, try reordering the suites on
+one machine. And make failures name themselves — this cost two CI cycles only because the gate
+printed a count and threw the name away.
