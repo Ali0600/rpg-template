@@ -409,9 +409,9 @@ scripts/autoload/audio_bus.gd	s|\tif not _play\(_music, id, false\):|\tif not _p
 scripts/autoload/audio_bus.gd	s|^\t\tstop_music\(\)$|\t\tpass|	tests/integration/test_world_music.gd	a dungeon inherits whatever the last map was playing
 scripts/world/world_scene.gd	s|\t\tAudioBus.play_music\(_offered.title_music\)|\t\tpass|	tests/integration/test_world_music.gd	the title screen is silent
 scripts/data/game_manifest.gd	s|\t\tif not FileAccess.file_exists\(track\):|\t\tif false:|	tests/unit/test_game_manifest.gd	a game names a theme nobody generated and the title is quietly silent
-.github/workflows/ci.yml	s|^      - "docs/FLOW.md"$|      # removed|	tests/unit/test_ci_paths.gd	a hand-edit to the generated flow doc skips the drift gate built to catch it
-.github/workflows/check-docs.yml	s|      - "!docs/FLOW.md"|      # - "!docs/FLOW.md"|	tests/unit/test_ci_paths.gd	the no-op check answers green for the one doc the real gate must see
-.github/workflows/check-docs.yml	s|      - "docs/\*\*"|      - "tests/**"|	tests/unit/test_ci_paths.gd	a test change gets a green check that tested nothing at all
+.github/workflows/ci.yml	s|^      - "docs/FLOW.md" #.*$|      # removed|	tests/unit/test_ci_paths.gd	a hand-edit to the generated flow doc, pushed to main, runs no gate at all
+tools/ci_changed.sh	s|      docs/FLOW.md\) needs=true ;;|      docs/FLOW.md) ;;|	tests/unit/test_ci_paths.gd	the generated flow doc skips the gate, so a hand-edit lands and every later run goes red
+tools/ci_changed.sh	s|      docs/\*\) ;;|      tests/*) ;;|	tests/unit/test_ci_paths.gd	a test change is read as prose and gets a green check that tested nothing at all
 
 # --- M25: magic - the resource layer ---
 scripts/data/combat_def.gd	s|return base_mp \+ mp_per_level \* \(maxi\(level, 1\) - 1\)|return base_mp|	tests/unit/test_combat_def.gd	magic stops growing with level, so every caster is a level-1 one forever
@@ -662,3 +662,6 @@ scripts/spritegen/lpc_compose.gd	s|base = parts\[parts.size\(\) - 1\]|pass|	test
 scripts/spritegen/lpc_compose.gd	s|if scheme != PALETTE_VERSION:|if false:|	tests/unit/test_lpc_compose.gd	art drawn in a palette scheme nobody fetched is remapped from whatever was loaded
 scripts/ui/battle_screen.gd	s|var step := _drawn_width\(\) / STAGGER_WIDTH|var step := 1.0|	tests/integration/test_battle_layout.gd	a party of 64px fighters is stepped as far apart as one of 32px, so they stand in each other
 tests/unit/test_imported_art.gd	s|const MAX_GROUND_SPREAD := 2|const MAX_GROUND_SPREAD := 64|	tests/unit/test_imported_art.gd	the ground-line spread is allowed a whole cell, so a cape measured as a foot passes
+tools/mutants_scope.sh	s|  grep -qE "\$HARNESS_RE" "\$1"|  true|	tests/unit/test_ci_paths.gd	every change reads as a harness change, so the pull request lane sweeps everything and is the full sweep wearing a fast name
+tools/ci_changed.sh	s|  if \[ "\$seen" -eq 0 \]; then needs=true; fi|  :|	tests/unit/test_ci_paths.gd	an empty change list skips the gate, so a base ref that did not resolve reads as a docs change
+.github/workflows/ci.yml	s|    if: always\(\)|    if: success()|	tests/unit/test_ci_paths.gd	the required status is skipped when the gate is, and GitHub reports a skipped check as green

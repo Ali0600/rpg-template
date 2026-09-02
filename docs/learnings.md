@@ -1859,3 +1859,35 @@ the group's shape at both sizes, and left the original numbers exactly as they w
 **Takeaway:** when a layout constant survives a change of content size unchanged, check whether
 it should have — and express it against whatever it was measured against, so the old value falls
 out arithmetically.
+
+## A scoping rule that includes its own bookkeeping file scopes nothing
+
+A filter meant to select a subset will select everything if the file the subset is DESCRIBED in
+is inside the filter's own trigger.
+
+**Why it came up:** CI picks which mutation tests a pull request needs by looking at what the
+diff touched, and treats any change under `tools/` as "the harness moved, run everything". The
+list of mutants lives at `tools/mutants.tsv`, and the project's contract requires every new rule
+to add a row to it — so every pull request that obeyed the contract ran the full sweep. Nine of
+the last ten did. The fast lane and the slow lane were the same eighteen minutes, and three
+places in the documentation said otherwise.
+
+**Takeaway:** when a rule says "changes to X mean we cannot narrow", list the files that
+actually make narrowing unsafe instead of naming their directory — and check whether the data
+the narrowing reads is sitting in that directory.
+
+## An instrument that reads a log must skip the log's own echo of itself
+
+Searching a CI log for a phrase finds the step that PRINTS the phrase as well as the step that
+means it.
+
+**Why it came up:** auditing which mutants each pull request selected, the first pass grepped
+the run logs for "nothing this change touches has a mutant" and reported that every recent run
+had scoped down to nothing. That string appears in the workflow's own shell script, which the
+log prints verbatim before running it. The truth was the opposite — every run had selected
+essentially all of them — and the wrong answer was the reassuring one.
+
+**Takeaway:** when grepping output that contains the source of the thing being measured, anchor
+on the part that only the RESULT can produce (a count, a timestamped line, a field the script
+does not contain), and sanity-check the finding against a second signal such as the step's
+duration.

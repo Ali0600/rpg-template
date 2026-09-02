@@ -1,47 +1,69 @@
 name: check
 
-# Every push and pull request runs the same gate a developer runs locally, on a machine
-# that has never seen this project before. That is the point: tools/check.sh passing on the
-# laptop that wrote the code proves less than it appears to.
+# Every push and pull request runs the same gate a developer runs locally, on a machine that
+# has never seen this project before. That is the point: tools/check.sh passing on the laptop
+# that wrote the code proves less than it appears to.
 #
-# ## Why a merge shows TWO `check` runs
+# ## The shape
+#
+#   changes   what did this touch, and which mutants does it need? Seconds, no engine.
+#   gate      tools/check.sh - the whole thing, about two minutes.
+#   sweep     the mutants, four shards in parallel.
+#   check     the REQUIRED status, and the only job the ruleset knows about. It runs even
+#             when the others are skipped, which is how a docs-only change reports green
+#             without booting an engine.
+#
+# `check` is `if: always()`, and that is load-bearing rather than defensive. A job that `needs`
+# a skipped job is itself skipped, and GitHub reports a skipped required check as SUCCESS - so
+# any other conditional here would turn "the gate never ran" into a green merge. It accepts
+# exactly two shapes: everything succeeded, or nothing needed to run. Anything else, including
+# an empty answer from `changes`, is a failure.
+#
+# ## Why a merge shows TWO runs
 #
 # Because a merge IS two events: `pull_request` while the branch is open, then `push` when it
-# lands on main. They cost about nine minutes each and they are not the same run.
+# lands on main. They are not the same run.
 #
-#   pull_request  gate + the mutants THIS DIFF could have broken (mutants_scope.sh). Fast,
-#                 because somebody is waiting on it to merge.
+#   pull_request  gate + the mutants THIS DIFF could have broken (mutants_scope.sh).
 #   push (main)   gate + ALL of them. Nobody is waiting, and it is the only run that proves
 #                 the mutants a change made decorative SOMEWHERE ELSE - which scoping cannot
 #                 see by construction.
 #
-# The main run does two more things the PR run cannot. It is the green signal `pages.yml`
-# deploys from, so deleting it would leave the deploy racing the tests instead of waiting for
-# them. And it tests the tree that actually exists: the PR run tested a MERGE PREVIEW, so if
-# main moved in between, the squashed commit is a tree nobody has ever run the gate against.
+# The main run does two more things the pull request run cannot. It is the green signal
+# pages.yml deploys from, so deleting it would leave the deploy racing the tests instead of
+# waiting for them. And it tests the tree that actually exists: the pull request run tested a
+# MERGE PREVIEW, so if main moved in between, the squashed commit is a tree nobody has ever run
+# the gate against.
 #
 # The tempting trim - skip check.sh on main and run only the sweep - is self-defeating. The
-# sweep passes --assume-green, which is sound only because check.sh has just proven every
-# suite green in the same job; without it the sweep has to re-prove each baseline itself, and
-# runs the suites anyway.
+# sweep passes --assume-green, which is sound only because check.sh has proven every suite
+# green on this same commit; without it the sweep re-proves each baseline itself, and runs the
+# suites anyway.
 #
-# ## Why a DOCS-ONLY change does not run this at all
+# ## Why a DOCS-ONLY change runs no gate
 #
-# A change to prose can break nothing this gate tests, so the paths below skip it - and
-# because the ruleset REQUIRES a status named `check`, check-docs.yml answers with the same
-# name in seconds, or every docs pull request would wait forever on a check that never comes.
-# The two path lists are mirror images and tests/unit/test_ci_paths.gd fails the build when
-# they drift apart.
+# A change to prose can break nothing this gate tests. On a pull request `changes` says so and
+# gate and sweep are skipped, while `check` still reports; on a push the `paths:` filter below
+# means no run at all, which is also what keeps pages from redeploying an identical build.
+#
+# This used to be a second workflow with the same name, answering the required status on the
+# inverse paths - GitHub's own documented pattern, and it worked. It was replaced because two
+# workflows named `check` made the Actions tab unreadable (which is how nobody noticed the
+# "fast" pull request lane was running the full sweep), because pages.yml matches its trigger
+# BY WORKFLOW NAME, and because re-running the no-op by hand on a red pull request overwrote
+# the real verdict - a fail-open on the merge gate, one click away.
 #
 # docs/FLOW.md is the exception that proves the design: it is GENERATED from
 # tools/flow_model.json and drift-gated, so a hand-edit to it must run the real gate - landing
-# one ungated would turn every later run red. The membership test derives that exception from
-# the generators themselves, so the next drift-gated doc cannot be forgotten here.
+# one ungated would turn every later run red. tools/ci_changed.sh holds that rule, once, where
+# it can be run and tested; tests/unit/test_ci_paths.gd derives the exception from the
+# generators themselves, so the next drift-gated doc cannot be forgotten.
 on:
   push:
     branches: [main]
-    # Mirrored in pull_request below and inverted in check-docs.yml; order matters, later
-    # patterns override earlier ones.
+    # A docs-only push runs nothing at all, so pages does not redeploy an identical build.
+    # The pull request side needs no filter: `changes` answers there, and a job that never
+    # starts cannot report the status the ruleset requires.
     paths:
       - "**"
       - "!CLAUDE.md"
@@ -49,16 +71,10 @@ on:
       - "!docs/**"
       - "docs/FLOW.md" # generated and drift-gated - a hand-edit must run the real gate
   pull_request:
-    paths:
-      - "**"
-      - "!CLAUDE.md"
-      - "!README.md"
-      - "!docs/**"
-      - "docs/FLOW.md"
   workflow_dispatch:
 
-# Least privilege: this job only reads the repo. The Pages deploy lives in its own
-# workflow with its own, narrower grants.
+# Least privilege: these jobs only read the repo. The Pages deploy lives in its own workflow
+# with its own, narrower grants.
 permissions:
   contents: read
 
@@ -91,19 +107,100 @@ env:
   # different file. To update, bump GODOT_VERSION and paste the new sum from
   # https://github.com/godotengine/godot-builds/releases/download/<version>/SHA512-SUMS.txt
   GODOT_SHA512: 4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+  # Four is measured rather than chosen: the mutants take about 1.6 seconds each, so a shard of
+  # a full sweep is roughly four and a half minutes - long enough that the ~20 seconds of
+  # checkout and import it pays are noise, short enough that nobody waits on it.
+  SHARDS: 4
 
 jobs:
-  check:
+  # What this change touches, answered once and handed to everything below. No engine, so it
+  # costs seconds - and it prints the mutant list, which is the line to read when a run is
+  # slower than expected.
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
+    outputs:
+      needs_gate: ${{ steps.decide.outputs.needs_gate }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Enough history for a pull request to diff against its own merge base. The default
-          # depth of 1 has no merge base at all, and the scoping step would silently select
-          # nothing - which would read as "this change needs no mutants".
-          fetch-depth: 50
+          # The whole history. A pull request needs a merge base to diff against, and a
+          # truncated one has none at all - the scoping would silently select nothing, which
+          # reads as "this change needs no mutants". At 33MB it is not worth the risk.
+          fetch-depth: 0
+
+      - name: Decide whether the gate has anything to do
+        id: decide
+        env:
+          # Through the environment, never interpolated into the script body: a ${{ }} value
+          # is pasted as TEXT before bash ever sees it, so anything shell-significant in it
+          # would be executed rather than read.
+          BASE_REF: ${{ github.base_ref }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" != "pull_request" ]; then
+            # A push already passed the paths filter above, and a manual run is somebody
+            # asking for the gate by hand.
+            echo "needs_gate=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags origin "$BASE_REF"
+          answer="$(tools/ci_changed.sh --base "origin/$BASE_REF")"
+          echo "changed since origin/$BASE_REF:"
+          git diff --name-only "origin/$BASE_REF"...HEAD | sed 's/^/  /'
+          echo "needs_gate=$answer"
+          echo "needs_gate=$answer" >> "$GITHUB_OUTPUT"
+
+      # The mutation sweep is split by WHERE it runs, not weakened.
+      #
+      # A pull request proves the mutants its own diff can have broken - the rows that mutate a
+      # file it touched, or that name a suite it touched, plus any row it ADDED. That is the set
+      # a change can plausibly have made decorative.
+      #
+      # Every merge to main then re-runs all of them, because scoping cannot see a test that
+      # went decorative because of a change somewhere else entirely. Nobody is waiting on that
+      # run, which is the whole point of putting it there.
+      #
+      # Selected ONCE, here, and handed to the shards as an artifact: four jobs each running the
+      # scoper would be four answers to one question, and only one list gets printed.
+      #
+      # Note what does NOT move: tools/mutants_aim.sh runs inside check.sh over the WHOLE file
+      # on every run. That is the check that catches new code stealing an old mutant's aim, it
+      # costs under a second, and it has caught that twice.
+      - name: Choose the mutants this run must prove
+        if: steps.decide.outputs.needs_gate == 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            tools/mutants_scope.sh --base "origin/$BASE_REF" > mutants.tsv
+          else
+            grep -vE '^[[:space:]]*(#|$)' tools/mutants.tsv > mutants.tsv || true
+          fi
+          rows=$(grep -cvE '^[[:space:]]*(#|$)' mutants.tsv || true)
+          echo "$rows mutant(s) to prove:"
+          cut -f1,4 mutants.tsv | sed 's/^/  /'
+
+      - name: Hand the list to the shards
+        if: steps.decide.outputs.needs_gate == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutants
+          path: mutants.tsv
+          retention-days: 1
+
+  gate:
+    needs: changes
+    if: needs.changes.outputs.needs_gate == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Cache the Godot binary
         id: godot-cache
@@ -135,45 +232,100 @@ jobs:
           GODOT_BIN: /home/runner/godot-bin/godot
         run: tools/check.sh
 
-      # The mutation sweep is split by WHERE it runs, not weakened.
-      #
-      # A pull request proves the mutants its own diff can have broken - the rows that mutate a
-      # file it touched, or that name a suite it touched, plus any row it ADDED. That is the set
-      # a change can plausibly have made decorative, and it takes seconds instead of ten minutes.
-      #
-      # Every merge to main then re-runs all of them, because scoping cannot see a test that
-      # went decorative because of a change somewhere else entirely. Nobody is waiting on that
-      # run, which is the whole point of putting it there.
-      #
-      # Note what does NOT move: tools/mutants_aim.sh runs inside check.sh over the WHOLE file
-      # on every run of both. That is the check that catches new code stealing an old mutant's
-      # aim, it costs under a second, and it has caught that twice.
-      #
-      # --assume-green on both: check.sh has just proven all 54 suites green in this same job,
-      # so re-proving each one before its mutants is 49 engine boots to answer it again.
-      - name: Prove the mutants this change could have broken
-        if: github.event_name == 'pull_request'
+  # Every shard proves its slice of the list `changes` chose. They are one job split four ways
+  # rather than four different jobs: same commit, same engine, same script.
+  #
+  # --assume-green is sound here for the reason it is sound locally: `gate` has just proven
+  # every suite green on THIS commit, and a suite run has never shared anything with a mutant
+  # run but the checkout, the binary and the import cache - all three of which a shard rebuilds
+  # from the same inputs. What it accepts, stated plainly: if a suite were already red, every
+  # mutant against it would read as killed. `needs: gate` is what makes that impossible.
+  sweep:
+    needs: [changes, gate]
+    if: needs.changes.outputs.needs_gate == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      # Never true here. The default cancels the other shards the moment one reports, which
+      # throws away three quarters of the answer to save a few minutes of a run nobody is
+      # waiting on - and a surviving mutant is exactly when the rest of the list matters.
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Take the list of mutants
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: mutants
+
+      - name: Cache the Godot binary
+        id: godot-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      # Kept rather than assumed: a cache entry can be evicted between two jobs of one run, and
+      # a shard that answered "no binary" would be a mutation verdict nobody got.
+      - name: Download and verify Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/${zip}"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$zip" "$url"
+          echo "${GODOT_SHA512}  ${zip}" | sha512sum --check --strict
+          mkdir -p ~/godot-bin
+          unzip -q "$zip" -d ~/godot-bin
+          mv ~/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot-bin/godot
+          chmod +x ~/godot-bin/godot
+
+      - name: Prove this shard's mutants
         env:
           GODOT_BIN: /home/runner/godot-bin/godot
-          # Through the environment, never interpolated into the script body: a ${{ }} value
-          # is pasted as TEXT before bash ever sees it, so anything shell-significant in it
-          # would be executed rather than read.
-          BASE_REF: ${{ github.base_ref }}
+          SHARD: ${{ matrix.shard }}
         run: |
-          set -uo pipefail
-          git fetch --no-tags --depth=50 origin "$BASE_REF"
-          tools/mutants_scope.sh --base "origin/$BASE_REF" > /tmp/scoped.tsv
-          rows=$(grep -cvE '^\s*(#|$)' /tmp/scoped.tsv || true)
-          echo "selected $rows mutant(s) for this diff:"
-          cut -f1,4 /tmp/scoped.tsv | sed 's/^/  /'
+          set -euo pipefail
+          awk -v k="$SHARD" -v n="$SHARDS" '(NR - 1) % n == k' mutants.tsv > shard.tsv
+          rows=$(grep -cvE '^[[:space:]]*(#|$)' shard.tsv || true)
+          echo "shard $SHARD of $SHARDS: $rows mutant(s)"
           if [ "$rows" -eq 0 ]; then
-            echo "nothing this change touches has a mutant - main will run the full sweep."
+            echo "nothing to prove in this shard."
             exit 0
           fi
-          MUTANTS_TSV=/tmp/scoped.tsv tools/mutate_check.sh --assume-green --all
+          # Fail loudly. An import that half-worked leaves suites unable to resolve their own
+          # types, every mutant reads as killed by the wreckage, and the shard reports green.
+          ~/godot-bin/godot --headless --path . --import
+          MUTANTS_TSV=shard.tsv tools/mutate_check.sh --assume-green --all
 
-      - name: Prove every mutant still bites
-        if: github.event_name != 'pull_request'
+  # The required status, and the only context the ruleset names. It runs whatever happened
+  # above - see the header: a skipped required check reports SUCCESS, so this job existing and
+  # always running is what stops "the gate never ran" from reading as "the gate passed".
+  check:
+    if: always()
+    needs: [changes, gate, sweep]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Say what the gate decided
         env:
-          GODOT_BIN: /home/runner/godot-bin/godot
-        run: tools/mutate_check.sh --assume-green --all
+          NEEDS_GATE: ${{ needs.changes.outputs.needs_gate }}
+          GATE: ${{ needs.gate.result }}
+          SWEEP: ${{ needs.sweep.result }}
+        run: |
+          set -euo pipefail
+          echo "needs_gate=$NEEDS_GATE gate=$GATE sweep=$SWEEP"
+          if [ "$GATE" = "success" ] && [ "$SWEEP" = "success" ]; then
+            echo "the gate and every mutant shard passed."
+            exit 0
+          fi
+          if [ "$NEEDS_GATE" = "false" ] && [ "$GATE" = "skipped" ] && [ "$SWEEP" = "skipped" ]; then
+            echo "docs only: nothing the gate tests can have moved."
+            exit 0
+          fi
+          # Everything else, including an empty NEEDS_GATE from a changes job that failed.
+          echo "the gate did not pass, or did not run when it should have."
+          exit 1

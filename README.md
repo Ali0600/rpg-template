@@ -17,7 +17,8 @@ It ships two halves:
    maps with warps between them, NPCs and branching dialog, items you pick up and carry,
    game-flow states, a pause menu with per-game save slots, saves with migrations, a seeded
    RNG, procedurally generated sound effects, a headless QA harness, and CI that runs all
-   of it.
+   of it — the same gate a developer runs locally, plus a mutation sweep across four parallel
+   shards that proves the gates themselves still bite.
 
 ## Why it looks the way it looks
 
@@ -271,6 +272,16 @@ judged before the world is rebuilt around it.
   layer's licence is checked against a per-style allow-list by family — not by prefix, since
   CC-BY is a prefix of CC-BY-SA — with credits and a licence notice generated deterministically
   alongside the sprites, and the build refusing a non-compliant layer by name.
+- Audited and rebuilt a CI/CD pipeline from measured evidence rather than inspection: found
+  that a scoping rule was silently running the full test-mutation sweep on nearly every pull
+  request, cut a typical run from ~18 minutes to ~3 by fixing the rule and sharding the sweep
+  across parallel jobs, and collapsed two same-named workflows into one whose required status
+  job reports correctly in every outcome — closing a fail-open where a manual re-run could
+  overwrite a failing verdict.
+- Hardened a deployment pipeline: pinned every third-party action to a commit SHA with
+  automated update PRs, scoped a `workflow_run` deploy to pushes on the default branch so a
+  fork branch could not publish, and reduced a build cache from 1.3GB to the artifacts the
+  build actually uses.
 - Scaled a rendering surface instead of its contents to support a second art resolution: one
   transform above the layout let a 2x world ship without re-tuning a single UI constant, font
   size or layout assertion, verified by measuring rendered rectangles in screen space rather

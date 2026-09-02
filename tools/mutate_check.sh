@@ -70,10 +70,13 @@ run_suite() {
 
 verified_green=" "
 
-# Skips the baseline runs. Only safe where a FULL green suite run already happened in the same
-# job moments earlier - check.sh proves all 54 suites green at step 4/9 and only then reaches
-# step 9/9, and CI does the same in one job. In that window a per-suite baseline is a second
-# answer to a question already answered, and it is 49 extra engine boots to get it.
+# Skips the baseline runs. Only safe where a FULL green suite run already proved this exact
+# tree - check.sh proves every suite green at step 4/9 and only then reaches step 9/9, and in
+# CI the `gate` job does it before any `sweep` shard starts. Across jobs is the same claim as
+# within one: a suite run and a mutant run have never shared anything but the checkout, the
+# binary and the import cache, and a shard rebuilds all three from the same inputs. In that
+# window a per-suite baseline is a second answer to a question already answered, and it is
+# dozens of extra engine boots to get it.
 #
 # The risk it accepts, stated plainly: if a suite were ALREADY red, every mutant against it
 # would read as KILLED. That is exactly what the baseline exists to catch - so this flag is for

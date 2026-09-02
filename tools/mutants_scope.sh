@@ -12,10 +12,31 @@
 # Editing tools/mutants.tsv itself selects every row the diff ADDED or CHANGED, so a new
 # mutant is proven on the pull request that introduces it rather than after it merges.
 #
-# Touching the HARNESS - anything under tools/ or the workflows - selects EVERYTHING. Scoping
-# by file assumes the machinery running the mutants is fixed; a change to check.sh or
-# mutate_check.sh can invalidate every row at once, and by file it would select almost nothing.
-# The commit that introduced this scoping is exactly that case.
+# Touching the HARNESS selects EVERYTHING. Scoping by file assumes the machinery running the
+# mutants is fixed; a change to check.sh or mutate_check.sh can invalidate every row at once,
+# and by file it would select almost nothing. The commit that introduced this scoping is
+# exactly that case.
+#
+# The harness is the files that RUN a mutant, and the list is exact rather than a directory.
+# It used to be "anything under tools/", which included tools/mutants.tsv - and this project's
+# contract requires every new rule to add a row there, so nearly every pull request that
+# obeyed the contract selected all of them. Measured 2026-09-02: nine of the last ten pull
+# request runs selected 513 to 579 of 579, and the "fast" lane was the full sweep wearing its
+# name. A change to mutants.tsv needs no blanket: added_rows() below already selects exactly
+# the rows it added.
+#
+# addons/gdUnit4/ is in the list because it is the runner every suite executes under, and
+# .github/ rather than .github/workflows/ so a composite action put beside them counts too.
+#
+# Accepted and stated rather than solved: project.godot and tests/helpers/* reach many suites
+# and are still scoped by file. Main's full sweep is the backstop for both.
+HARNESS_RE='^(tools/(check|mutate_check|mutants_scope|mutants_aim|_engine)\.sh|\.github/|addons/gdUnit4/)'
+
+# ONE predicate, used by the dispatch below AND by the selftest. It was two copies of the same
+# regex, so the selftest was proving a duplicate of the rule rather than the rule.
+is_harness_change() { # $1 file of changed paths
+  grep -qE "$HARNESS_RE" "$1"
+}
 #
 # What this is NOT: a replacement for the full sweep. Scoping cannot see a test that went
 # decorative because of a change somewhere else entirely, so main re-runs everything on every
@@ -83,16 +104,26 @@ tests/unit/test_b.gd"
   # A file whose NAME contains a row's name must not match - selection is on whole paths.
   check "a path that merely contains another"         0 "scripts/a.gd.uid"
 
+  # A row whose mutated file lives under tools/ must still be reachable BY FILE, or narrowing
+  # the harness rule would make it unselectable rather than merely unblanketed.
+  printf 'tools/compile_all.gd\ts|a|b|\ttests/unit/test_compile_all.gd\tlabel c\n' >> "$tsv"
+  check "a tool that is not the harness selects its own row" 1 "tools/compile_all.gd"
+
   # The harness rule is a grep over the changed list rather than a row match, so it is checked
-  # against the real predicate rather than through select_rows.
-  harness() { printf '%s\n' "$2" | grep -qE '^(tools/|\.github/workflows/)'; }
-  if harness "" "tools/check.sh"; then echo "  ok: a harness change is recognised"
-  else echo "  selftest FAIL: tools/ not recognised as the harness"; fail=1; fi
-  if harness "" ".github/workflows/ci.yml"; then echo "  ok: a workflow change is recognised"
-  else echo "  selftest FAIL: workflows not recognised as the harness"; fail=1; fi
-  if harness "" "scripts/world/world_scene.gd"; then
-    echo "  selftest FAIL: ordinary source misread as the harness"; fail=1
-  else echo "  ok: ordinary source is not the harness"; fi
+  # through the REAL predicate - is_harness_change - rather than through a copy of its regex.
+  harness() { printf '%s\n' "$2" > "$dir/one"; is_harness_change "$dir/one"; }
+  for path in tools/check.sh tools/mutate_check.sh tools/mutants_scope.sh tools/mutants_aim.sh \
+      tools/_engine.sh .github/workflows/ci.yml addons/gdUnit4/bin/GdUnitCmdTool.gd; do
+    if harness "" "$path"; then echo "  ok: $path is the harness"
+    else echo "  selftest FAIL: $path is not recognised as the harness"; fail=1; fi
+  done
+  # The two that used to be swept up by "anything under tools/". mutants.tsv is the one that
+  # cost the most: every pull request obeying the add-a-mutant rule ran the whole sweep.
+  for path in tools/mutants.tsv tools/gen_sprites.gd scripts/world/world_scene.gd; do
+    if harness "" "$path"; then
+      echo "  selftest FAIL: $path misread as the harness"; fail=1
+    else echo "  ok: $path is not the harness"; fi
+  done
 
   rm -rf "$dir"
   [ "$fail" -eq 0 ] || return 1
@@ -122,7 +153,7 @@ case "${1:-}" in
       rm -f "$changed"
       exit 0
     fi
-    if grep -qE '^(tools/|\.github/workflows/)' "$changed"; then
+    if is_harness_change "$changed"; then
       echo "mutants_scope: the harness itself changed - selecting every mutant" >&2
       grep -vE '^[[:space:]]*(#|$)' "$TSV"
     else
