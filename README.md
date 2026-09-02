@@ -275,6 +275,12 @@ judged before the world is rebuilt around it.
 
 ## Experience Gained
 
+- Diagnosed an intermittent CI failure that never reproduced locally by first fixing the
+  observability gap that made it undiagnosable — the test step reported a failure count and
+  discarded the name it had already captured — then reproducing it deterministically as a suite
+  ORDERING difference rather than a platform one, and moving the repair into the component that
+  broke the shared invariant instead of into the eleven callers that could.
+
 - Extended an asset pipeline with a second input source behind one data field, so hand-drawn
   terrain and procedurally generated terrain are two arms of one build step: the runtime contract,
   every map file and both editor integrations were untouched, and the change was provable by 23
