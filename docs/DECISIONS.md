@@ -2577,6 +2577,45 @@ the rule needed an observable that was neither the request log (the request happ
 nor the device: `music_starts()` counts actual starts, and a mutant proved the earlier version
 was unkillable.
 
+## One workflow, and the required check is a job that always runs — *the CI audit, 2026-09-02*
+
+**Supersedes the M24.1 entry below**, which is kept because its reasoning was right and the
+thing that replaced it is a different trade rather than a correction.
+
+**The fork:** the user said the CI "doesn't make sense" and asked for an audit. It measured
+three things worth acting on: nine of the last ten pull request runs swept 513–579 of 579
+mutants, so the "fast" lane was the full sweep wearing a fast name; the sweep is 90% of an
+eighteen-minute run and was one sequential job; and two workflows both named `check` made the
+Actions tab unreadable, which is how the first finding hid for four milestones.
+
+- **One workflow, four jobs, a `check` job on `if: always()`** — *chosen.* The status the
+  ruleset requires is now a job that runs in every outcome and reports what happened above it.
+  A docs-only pull request skips the gate and the sweep and still gets its green `check` in
+  seconds, which is what the stand-in bought; and the three things the stand-in cost go away —
+  the ambiguous Actions tab, `pages.yml` matching a trigger by a name two files answered to,
+  and the re-run hole its own header documented (re-running the no-op on a red pull request
+  overwrote the real verdict). The cost: `check` is now a job whose condition is load-bearing,
+  because GitHub reports a SKIPPED required check as success. A test and a mutant pin it.
+- **Keeping the stand-in and fixing only the scoper** — *rejected.* It fixes the eighteen
+  minutes, which was the loudest problem, and leaves the fail-open one click away.
+- **A `paths:` filter on the pull request side too** — *rejected.* That is what made the
+  stand-in necessary: a job that never starts cannot report the status the ruleset requires.
+  The filter stays on the PUSH side, where no status is required and skipping the run is also
+  what keeps pages from redeploying an identical build.
+- **The rule in YAML** — *rejected, and this is the general one.* It was a `paths:` list
+  mirrored by an inverse list in a second file: one rule spelled twice, in a language neither
+  copy could be run in, pinned by a test that PARSED the workflow. It is now
+  `tools/ci_changed.sh` with a selftest, and the test calls it the way CI does.
+
+**Sharding the sweep** rides along: four shards, `fail-fast: false` because the default cancels
+the other three the moment one reports, and a surviving mutant is exactly when the rest of the
+list matters. The list is chosen once and handed down as an artifact rather than recomputed per
+shard. Main goes from ~18 minutes to ~7; a scoped pull request to ~3.
+
+*Deferred — worth trying:* a composite action for the cache-and-download block, which now
+appears three times (gate, sweep, pages). Hook: `.github/actions/godot/action.yml`, and the
+scoper's harness list already says `.github/` rather than `.github/workflows/` so it would count.
+
 ## Docs-only changes skip the gate, and a stand-in answers the required check — *M24.1*
 
 **The fork:** the user watched a comment-only change run two nine-minute gates. A docs change

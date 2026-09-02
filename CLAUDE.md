@@ -1300,27 +1300,60 @@ mutants its own diff could have broken (`mutants_scope.sh`: rows that mutate a f
 name a suite it touched, or were added by it); every merge to `main` re-runs all of them, where
 nobody is waiting. `mutants_aim.sh` still runs over the WHOLE file on every run of both -
 that is the check that catches new code stealing an old mutant's aim, and it costs under a
-second. Both CI paths pass `--assume-green`, which is only safe because `check.sh` has just
-proven all 54 suites green in the same job.
+second. Both CI paths pass `--assume-green`, which is sound because `gate` has just proven every
+suite green ON THAT COMMIT; a shard shares nothing with it but the checkout, the binary and the
+import cache, and rebuilds all three from the same inputs.
 
-**A docs-only change runs no gate, and the required status is answered by a stand-in.**
-`check` is a REQUIRED status, so a pull request that produces none can never merge - which is
-why the gate cannot simply ignore docs paths. `check-docs.yml` answers with the same workflow
-and job name in seconds; ci.yml's paths and its are mirror images, and `test_ci_paths.gd`
-fails the build when they drift - with the exceptions DERIVED from the generators, because
-`docs/FLOW.md` is drift-gated output and a hand-edit to it must run the real gate. Three
-mutants aim at the YAML itself, which works because sed edits text, not GDScript.
+**THE HARNESS IS A LIST OF FILES, NOT A DIRECTORY, AND THAT IS WHY.** Touching the machinery
+that RUNS mutants (`check.sh`, `mutate_check.sh`, `mutants_scope.sh`, `mutants_aim.sh`,
+`_engine.sh`, `.github/`, `addons/gdUnit4/`) selects EVERY row, because such a change can
+invalidate all of them at once. It used to be "anything under `tools/`", which swept in
+`tools/mutants.tsv` - and this contract requires every new rule to add a row there, so nearly
+every pull request that OBEYED the contract ran the full sweep. Measured 2026-09-02: nine of the
+last ten pull request runs selected 513 to 579 of 579, the "fast" lane and the full sweep were
+the same eighteen minutes, and the documentation in three places said otherwise. A change to
+`mutants.tsv` needs no blanket: `added_rows()` already selects exactly the rows it added.
+
+**The sweep is four shards, and `fail-fast` is off.** The default cancels the other shards the
+moment one reports, which throws away three quarters of the answer to save minutes of a run
+nobody is waiting on - and a surviving mutant is precisely when the rest of the list matters.
+The list is chosen ONCE in `changes` and handed down as an artifact, so four jobs cannot become
+four answers to one question and only one list is printed.
+
+**One workflow, and the required status is a job that ALWAYS runs.** `check` is a REQUIRED
+status, so a pull request that produces none can never merge; GitHub also reports a SKIPPED
+required check as success, so a status job with any condition other than `always()` turns "the
+gate never ran" into a green merge. The `check` job therefore accepts exactly two shapes -
+everything succeeded, or nothing needed to run - and fails on anything else, including an empty
+answer from `changes`. `tools/ci_changed.sh` holds the docs rule, once, where it can be RUN and
+tested; `test_ci_paths.gd` calls it rather than parsing YAML, and derives the `docs/FLOW.md`
+exception from the generators so the next drift-gated doc cannot be forgotten.
+
+This replaced `check-docs.yml`, a second workflow with the same name answering the required
+status on the inverse paths. That is GitHub's own documented pattern and it worked; it went
+because two workflows named `check` made the Actions tab unreadable (which is how the scoper
+bug above hid in plain sight), because `pages.yml` matches its trigger BY WORKFLOW NAME, and
+because re-running the no-op by hand on a red pull request overwrote the real verdict - a
+fail-open on the merge gate, one click away, documented in its own header.
 
 **A merge runs `check` twice, and that is the design.** `pull_request` proves the gate plus the
 mutants that diff could have broken; `push` to main proves the gate plus ALL of them, is the
 green signal `pages.yml` deploys from, and is the only run that tests the SQUASHED tree - the PR
 run tested a merge preview, which is a different tree the moment main moves. Skipping `check.sh`
-on the main run does not save it either: `--assume-green` is sound only because the suites were
-just proven green in the same job.
+on the main run does not save it either: `--assume-green` needs a suite run on that commit.
+
+**`pages.yml` deploys only from a PUSH to main.** `branches: [main]` on a `workflow_run` filters
+the triggering run's HEAD BRANCH, and a fork's pull request from a branch named `main` has
+exactly that - so the event is checked too. It caches only the `web_*` export templates: the
+engine finds a template by looking for one file by name, so the other platforms' were 1.3GB
+restored on every deploy. A cache entry is immutable for its key, so trimming what goes in
+does nothing until the KEY moves.
 
 **Open the PR and walk away.** `gh pr merge --auto --squash` merges it when CI goes green;
-polling a 17-minute run is how a session gets spent. This needs a required status check on
-`main` - without one, `--auto` merges immediately, which is the trap.
+polling is how a session gets spent. This needs a required status check on `main` - without
+one, `--auto` merges immediately, which is the trap. The repository is squash-only (merge
+commits and rebase merges are off), so a bare `gh pr merge` or a click in the UI cannot land
+something the history was not written for.
 
 **Write a commit message or a PR body to a FILE and pass `-F`, never `-m "..."`.** Every message
 here is multi-paragraph prose full of backticks, `!=` and `${}`, and a double-quoted shell string

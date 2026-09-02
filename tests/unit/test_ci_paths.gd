@@ -1,19 +1,36 @@
 extends GdUnitTestSuite
-## The two path filters that decide which changes run the real gate, kept as mirror images.
+## The rule that decides which changes run the real gate, and the lane the gate runs in.
 ##
-## ci.yml skips the gate for docs-only changes and check-docs.yml answers the required status
-## in their place - which means the two lists are ONE rule written in two files, and a rule
-## spelled twice is the drift this repo's lessons file warns about in every form. The stakes
-## are asymmetric too: a path missing from ci.yml's negations runs the gate for nothing, but a
-## path wrongly INCLUDED in check-docs.yml lets a change land with a green check that tested
-## nothing at all.
+## The predicate itself lives in tools/ci_changed.sh - one script, with its own selftest -
+## because it used to be a `paths:` list in ci.yml mirrored by an inverse list in a second
+## workflow, and a rule spelled twice in YAML is one nobody can run. This suite calls that
+## script the way CI does and pins the answers that matter, plus the two properties of the
+## workflow file that no script can hold: that the drift-gated docs are re-included in the
+## push filter, and that the required `check` job reports whatever happened above it.
 ##
-## Godot has no YAML parser, so this reads the lists by line - which is fine, because the shape
-## it accepts is the shape the files actually have, and a rewrite that breaks the parse fails
-## this suite rather than silently reading an empty list.
+## The stakes are asymmetric, which is why the wrong answers are named in the failure messages:
+## a `true` too many runs the gate for nothing, and a `false` too many lands a change with a
+## green check that tested it.
 
 const REAL := "res://.github/workflows/ci.yml"
-const DOCS := "res://.github/workflows/check-docs.yml"
+const PREDICATE := "res://tools/ci_changed.sh"
+
+
+## What tools/ci_changed.sh answers for a set of changed paths - run exactly as ci.yml runs it,
+## rather than re-implemented here. A test that re-implemented the rule would agree with itself.
+func _needs_gate(paths: Array) -> bool:
+	var args: Array[String] = [ProjectSettings.globalize_path(PREDICATE), "--files"]
+	for p: Variant in paths:
+		args.append(str(p))
+	var out: Array = []
+	var code := OS.execute("bash", args, out, true)
+	assert_int(code).override_failure_message(
+		"tools/ci_changed.sh exited %d for %s: %s" % [code, paths, out]).is_equal(0)
+	var answer := str(out[0]).strip_edges()
+	assert_bool(answer == "true" or answer == "false").override_failure_message(
+		"the predicate answered '%s' for %s, which is neither true nor false" % [answer, paths]
+		).is_true()
+	return answer == "true"
 
 
 ## Every `- "..."` entry in the paths: block that follows `marker`, in order.
@@ -62,62 +79,97 @@ func _drift_gated_docs() -> Array[String]:
 	return out
 
 
-func test_the_push_and_pull_request_lists_are_the_same_list() -> void:
-	# One rule, hand-copied because workflow YAML has no anchors worth trusting - so the copy
-	# is pinned instead.
-	assert_array(_paths_after(REAL, "push:")).is_equal(_paths_after(REAL, "pull_request:"))
+func test_the_two_ci_scripts_prove_themselves() -> void:
+	# Both carry a selftest and check.sh runs the scoper's at step 8b, which is enough to catch
+	# a break and NOT enough to prove the rules are tested: a mutant needs a SUITE to judge it,
+	# and a rule whose only witness is a step in a shell script has none. So they run here too.
+	#
+	# The scoper's is the one that matters most. Its harness rule used to sweep every mutant for
+	# any change under tools/ - including tools/mutants.tsv, which this project's contract
+	# requires every new rule to touch - so the pull request lane was the full sweep wearing a
+	# fast name for nine of its last ten runs, and nothing said so.
+	for script in [PREDICATE, "res://tools/mutants_scope.sh"]:
+		var out: Array = []
+		var code := OS.execute("bash",
+			[ProjectSettings.globalize_path(script), "--selftest"], out, true)
+		assert_int(code).override_failure_message(
+			"%s --selftest failed:\n%s" % [script, "\n".join(PackedStringArray(out))]).is_equal(0)
 
 
-func test_the_docs_check_is_the_exact_inverse_of_the_real_one() -> void:
-	# Real: everything, minus the docs, plus the exceptions.
-	# Docs: the docs, minus the exceptions.
-	# Anything else and there is either a change no workflow answers - a pull request that
-	# waits forever on its required check - or one BOTH answer where only the no-op is green.
-	var real := _paths_after(REAL, "pull_request:")
-	var docs := _paths_after(DOCS, "pull_request:")
-	assert_str(real[0]).override_failure_message(
-		"the real gate no longer starts from everything").is_equal("**")
-	var real_skips: Array[String] = []
-	var real_exceptions: Array[String] = []
-	for entry in real.slice(1):
-		if entry.begins_with("!"):
-			real_skips.append(entry.trim_prefix("!"))
-		else:
-			real_exceptions.append(entry)
-	var docs_includes: Array[String] = []
-	var docs_exceptions: Array[String] = []
-	for entry in docs:
-		if entry.begins_with("!"):
-			docs_exceptions.append(entry.trim_prefix("!"))
-		else:
-			docs_includes.append(entry)
-	assert_array(docs_includes).override_failure_message(
-		"the docs check answers for %s, the real gate skips %s - a change in the gap gets a "
-		% [docs_includes, real_skips]
-		+ "green check that tested nothing, or no check at all").is_equal(real_skips)
-	assert_array(docs_exceptions).override_failure_message(
-		"the real gate re-includes %s but the docs check still answers for %s"
-		% [real_exceptions, docs_exceptions]).is_equal(real_exceptions)
+func test_the_predicate_answers_for_the_things_that_can_break_the_gate() -> void:
+	# Fixed points on both sides. Code, content, tests and the harness run it; prose does not.
+	for path in ["scripts/world/world_scene.gd", "tests/unit/test_saves.gd",
+			"data/maps/quest_village.json", "tools/check.sh", ".github/workflows/ci.yml",
+			"project.godot", "assets/generated/lpc32/quest_wanderer.png"]:
+		assert_bool(_needs_gate([path])).override_failure_message(
+			"'%s' would skip the gate, landing with a check that tested it" % path).is_true()
+	for path in ["CLAUDE.md", "README.md", "docs/DECISIONS.md", "docs/lpc_designs/the_road.json"]:
+		assert_bool(_needs_gate([path])).override_failure_message(
+			"'%s' runs the whole gate, which can prove nothing about it" % path).is_false()
 
 
-func test_every_drift_gated_doc_is_kept_out_of_the_docs_shortcut() -> void:
+func test_one_file_that_matters_pulls_the_whole_change_through_the_gate() -> void:
+	# The direction that must not be an average: a change is docs-only when EVERY path in it is.
+	assert_bool(_needs_gate(["docs/DECISIONS.md", "scripts/world/world_scene.gd"])) \
+		.override_failure_message(
+		"a change touching docs AND code skipped the gate").is_true()
+
+
+func test_no_evidence_is_not_evidence_of_no_change() -> void:
+	# An empty diff is more likely a base ref that did not resolve than a pull request with
+	# nothing in it, and the safe answer to "I could not tell" is to run the gate.
+	assert_bool(_needs_gate([])).override_failure_message(
+		"an empty change list skips the gate, so a broken merge base reads as a docs change"
+		).is_true()
+
+
+func test_every_drift_gated_doc_runs_the_real_gate() -> void:
 	# docs/FLOW.md is generated from the flow model and compared by check.sh - a hand-edit
-	# landing through the no-op check would turn every LATER run red while its own was green.
-	# Derived from the generators, so the day a second gen_*_doc.gd writes into docs/, this
-	# fails until its output is excepted in both files.
+	# landing without the gate would turn every LATER run red while its own was green. Derived
+	# from the generators, so the day a second gen_*_doc.gd writes into docs/, this fails until
+	# its output is excepted both in the predicate and in the push filter.
 	var gated := _drift_gated_docs()
 	assert_int(gated.size()).override_failure_message(
 		"no generator writes into docs/ any more - if that is true, this rule and the "
-		+ "exceptions in both workflows can go").is_greater(0)
-	var real := _paths_after(REAL, "pull_request:")
-	var docs := _paths_after(DOCS, "pull_request:")
+		+ "exceptions in the predicate and the workflow can go").is_greater(0)
+	var push_paths := _paths_after(REAL, "push:")
 	for doc in gated:
-		assert_bool(real.has(doc)).override_failure_message(
-			"%s is generated and drift-gated, but ci.yml does not re-include it - a hand-edit "
-			% doc + "to it would skip the gate that exists to catch exactly that").is_true()
-		assert_bool(docs.has("!" + doc)).override_failure_message(
-			"%s is generated and drift-gated, but check-docs.yml still answers for it" % doc
-			).is_true()
+		assert_bool(_needs_gate([doc])).override_failure_message(
+			"%s is generated and drift-gated, but the predicate lets it skip the gate that "
+			% doc + "exists to catch exactly that").is_true()
+		assert_bool(push_paths.has(doc)).override_failure_message(
+			"%s is generated and drift-gated, but ci.yml's push filter does not re-include it "
+			% doc + "- a hand-edit pushed to main would run no gate at all").is_true()
+
+
+func test_the_push_filter_still_starts_from_everything() -> void:
+	# The push side is the one place a `paths:` list survives, and it is subtractive: start
+	# from everything, then take the prose out. Inverted - a list of what to INCLUDE - a new
+	# top-level directory would silently run no gate at all.
+	var push_paths := _paths_after(REAL, "push:")
+	assert_str(push_paths[0]).override_failure_message(
+		"the push filter no longer starts from everything, so a new directory runs no gate"
+		).is_equal("**")
+
+
+func test_the_required_check_reports_whatever_happened_above_it() -> void:
+	# GitHub reports a SKIPPED required check as success. The `check` job therefore has to run
+	# in every outcome, including the ones where the jobs it needs were skipped or failed - so
+	# its condition is `always()` and nothing else. Any other conditional here turns "the gate
+	# never ran" into a green merge, silently, which is the exact failure the whole file exists
+	# to prevent.
+	var text := FileAccess.get_file_as_string(REAL)
+	var at := text.find("\n  check:\n")
+	assert_int(at).override_failure_message(
+		"ci.yml has no job named `check`, which is the status the ruleset requires"
+		).is_greater(-1)
+	var block := text.substr(at, 200)
+	assert_str(block).override_failure_message(
+		"the required `check` job is conditional on something other than always(), so a run "
+		+ "where the gate was skipped would report success").contains("if: always()")
+	assert_str(block).override_failure_message(
+		"the required `check` job does not wait for the gate and the sweep, so it can report "
+		+ "before they have").contains("needs: [changes, gate, sweep]")
 
 
 ## The concurrency lane, which decides whether two merges can cancel each other.

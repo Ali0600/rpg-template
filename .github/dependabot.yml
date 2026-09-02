@@ -1,0 +1,23 @@
+# Keeps the SHA pins moving.
+#
+# Every `uses:` in this repository is pinned to a commit, which is the right way to depend on
+# somebody else's code and also a way to never update it: a pin is a decision made once and
+# then forgotten, and the tag comment beside it is the only sign of how old it has become.
+# Dependabot opens a pull request when one moves, and it maintains that comment because the
+# comment is on the same line as the reference.
+#
+# Actions version independently of one another, which is what makes an auto-updater safe here -
+# there is no framework holding them in a lockstep set the way an SDK would.
+#
+# Each of these pull requests touches .github/, which the mutant scoper counts as the harness,
+# so every one runs the full sharded sweep. That is correct: a change to the machinery that
+# runs the mutants can invalidate every row at once.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels: []

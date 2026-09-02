@@ -30,7 +30,16 @@ jobs:
   build:
     # Never deploy off a red build. workflow_dispatch has no upstream run to inspect, so it is
     # allowed through explicitly rather than by the check being absent.
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    #
+    # The `event == 'push'` half is not redundant with `branches: [main]` above. That filter
+    # matches the triggering run's HEAD BRANCH, and a pull request from a fork whose branch is
+    # itself called `main` produces a run with exactly that head branch - so without this, a
+    # stranger could deploy their own tree by naming their branch well. A push to main is the
+    # only thing that should ever publish.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -48,7 +57,11 @@ jobs:
           path: |
             ~/godot-bin
             ~/.local/share/godot/export_templates
-          key: godot-web-${{ env.GODOT_VERSION }}
+          # The key changed with the contents on purpose: a cache entry is IMMUTABLE for its
+          # key, so trimming what goes into it does nothing until the key moves. The old one
+          # held every platform's templates - 1.3GB restored on every deploy to export one web
+          # build.
+          key: godot-web-only-${{ env.GODOT_VERSION }}
 
       - name: Download and verify Godot and its templates
         if: steps.godot-cache.outputs.cache-hit != 'true'
@@ -71,8 +84,15 @@ jobs:
           # the form it reports: "4.7.1.stable", not the release tag "4.7.1-stable".
           dest=~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
           mkdir -p "$dest"
-          unzip -q "$tpz" -d /tmp/templates
+          # Only the web templates. The engine finds a template by looking for one file by
+          # name (export_templates/<version>/<name>), so the other platforms' are 1.3GB of
+          # cache this workflow can never use. The glob rather than the exact name because
+          # which of the eight it wants depends on the preset - this one has thread support
+          # off, so it needs web_nothreads_release.zip rather than web_release.zip, and that
+          # is the preset's decision to change.
+          unzip -q "$tpz" 'templates/web_*' -d /tmp/templates
           mv /tmp/templates/templates/* "$dest"/
+          ls -la "$dest"
 
       - name: Export the web build
         run: |
