@@ -466,7 +466,10 @@ func _assert_position(step: Dictionary) -> void:
 	if raw.size() != 2:
 		_fail("assert_position needs a tile")
 		return
-	var tile_size := int(step.get("tile_size", 16))
+	# The running world's own tile size, never a number written in the script: a session that
+	# stated its own would keep passing after a map changed style, reporting on a tile that is
+	# no longer where it says.
+	var tile_size := GameState.tile_size
 	var actual := MapData.world_to_tile(pos, tile_size)
 	var wanted := Vector2i(raw[0], raw[1])
 	if actual != wanted:

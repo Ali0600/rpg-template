@@ -10,7 +10,7 @@ extends RefCounted
 ## VERSION is bumped whenever the shape changes, and Migrations carries an old file forward.
 ## Anything that persists across a session lives here; anything derived is recomputed.
 
-const VERSION := 9
+const VERSION := 10
 
 var version: int = VERSION
 ## Which game wrote this. Added in v3, and the one fact a save carries that no map can
@@ -19,7 +19,12 @@ var version: int = VERSION
 ## mismatched file.
 var game: StringName = &""
 var map: StringName = &""
-var position: Vector2 = Vector2.ZERO
+## Where the player stood, in TILES of the map named above - fractional, because free movement
+## does not stop on tile boundaries. Pixels until v10, and the rename is the point: a style
+## decides how many pixels a tile is, so a file recording pixels describes a place only while
+## nothing about the art changes. The demo's move from 16px to 32px tiles would have put every
+## existing save half way to where it was written, silently, on a map that still parses.
+var tile: Vector2 = Vector2.ZERO
 var facing: int = Dir.D.DOWN
 var flags: Dictionary = {}
 var seen: Dictionary = {}
@@ -60,7 +65,7 @@ func to_dict() -> Dictionary:
 		"version": version,
 		"game": String(game),
 		"map": String(map),
-		"position": [position.x, position.y],
+		"tile": [tile.x, tile.y],
 		"facing": facing,
 		"flags": flags,
 		"seen": seen,
@@ -81,9 +86,9 @@ static func from_dict(d: Dictionary) -> SaveData:
 	out.version = int(d.get("version", VERSION))
 	out.game = StringName(str(d.get("game", "")))
 	out.map = StringName(str(d.get("map", "")))
-	var raw := JsonFile.to_float_array(d.get("position", []))
+	var raw := JsonFile.to_float_array(d.get("tile", []))
 	if raw.size() == 2:
-		out.position = Vector2(raw[0], raw[1])
+		out.tile = Vector2(raw[0], raw[1])
 	out.facing = int(d.get("facing", Dir.D.DOWN))
 	out.flags = d.get("flags", {}) if d.get("flags", {}) is Dictionary else {}
 	out.seen = d.get("seen", {}) if d.get("seen", {}) is Dictionary else {}

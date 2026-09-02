@@ -58,6 +58,19 @@ var style_id: StringName = &"gb16"
 var music_id: StringName = &""
 
 
+## Where the game's maps live, and the one place a map id becomes a path. `root` is a var so a
+## test can point the world at a fixture map without one shipping: a map under data/maps is
+## content, and content nobody plays still enters every map gate, both editor round trips and
+## map_io --verify. A suite that moves it puts it back in after_test, the FileSpriteSource.root
+## and SaveManager.base_dir precedent.
+const MAP_DIR := "res://data/maps"
+static var root: String = MAP_DIR
+
+
+static func path_of(map_id: StringName) -> String:
+	return "%s/%s.json" % [root, map_id]
+
+
 static func load_from(path: String) -> MapData:
 	var file := JsonFile.read(path)
 	if not file.ok:

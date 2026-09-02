@@ -39,7 +39,7 @@ func _good_save() -> SaveData:
 	var data := SaveData.new()
 	data.game = &"quest"
 	data.map = &"quest_village"
-	data.position = MapData.tile_to_world(Vector2i(3, 3), 16)
+	data.tile = Vector2(3.5, 3.5)
 	data.facing = Dir.D.DOWN
 	return data
 
@@ -139,7 +139,7 @@ func test_saving_from_the_menu_writes_this_games_slot() -> void:
 	assert_object(written).is_not_null()
 	assert_str(String(written.game)).is_equal("quest")
 	assert_str(String(written.map)).is_equal("quest_village")
-	assert_vector(written.position).is_equal_approx(spot, Vector2(1.0, 1.0))
+	assert_vector(written.tile).is_equal_approx(spot / float(GameState.tile_size), Vector2(0.1, 0.1))
 	# Saving is not leaving. The menu stays up so the row shows what was just written.
 	assert_object(_world.pause_screen()).override_failure_message(
 		"the menu closed itself after a save").is_not_null()
@@ -180,7 +180,7 @@ func test_a_save_made_in_another_map_restores_into_that_map() -> void:
 	var data := SaveData.new()
 	data.game = &"quest"
 	data.map = &"quest_keep"
-	data.position = MapData.tile_to_world(Vector2i(4, 4), 16)
+	data.tile = Vector2(4.5, 4.5)
 	data.facing = Dir.D.DOWN
 	assert_bool(SaveManager.save(1, data)).is_true()
 
@@ -201,7 +201,7 @@ func test_another_games_save_is_never_even_offered() -> void:
 	var stranger := SaveData.new()
 	stranger.game = &"other"
 	stranger.map = &"quest_village"
-	stranger.position = Vector2(64.0, 64.0)
+	stranger.tile = Vector2(4.0, 4.0)
 	assert_bool(SaveManager.save(2, stranger)).is_true()
 	SaveDirs.write_raw(&"quest", 2, FileAccess.get_file_as_string(SaveManager.slot_path(&"other", 2)))
 
@@ -454,9 +454,9 @@ func test_a_save_point_writes_the_slot_it_was_pointed_at() -> void:
 		"the save point reported a write that reached no file").is_true()
 	var read := SaveManager.load_slot(&"quest", 1)
 	assert_object(read).is_not_null()
-	assert_vector(read.position).override_failure_message(
+	assert_vector(read.tile).override_failure_message(
 		"the save point wrote a save of somewhere the player was not standing"
-		).is_equal(spot)
+		).is_equal(spot / float(GameState.tile_size))
 	# It STAYS open and the row now says what it holds - the pause menu's rule for the same
 	# press, and what stops a save reading as a press the game swallowed.
 	assert_object(_world.save_screen()).override_failure_message(

@@ -14,6 +14,12 @@ extends Node
 var game: StringName = &""
 var current_map: StringName = &""
 var player_position: Vector2 = Vector2.ZERO
+## How many pixels a tile of the current map is. Written by the world on entering one, and by
+## nothing else - it is the map's style speaking. It lives here because a save records tiles
+## and the state records pixels, so somebody has to know the rate, and every other candidate
+## (the file, the menu, the QA harness) would be a second answer to a question the map already
+## settles. Before a map is entered it is what every save written before v10 assumed.
+var tile_size: int = int(Migrations.PRE_V10_TILE_PIXELS)
 var player_facing: int = 0  # Dir.D value; DOWN is 0.
 var flags: Dictionary = {}
 var seen: Dictionary = {}
@@ -79,6 +85,7 @@ func reset() -> void:
 	game = &""
 	current_map = &""
 	player_position = Vector2.ZERO
+	tile_size = int(Migrations.PRE_V10_TILE_PIXELS)
 	player_facing = 0
 	flags = {}
 	seen = {}
@@ -330,7 +337,7 @@ func to_save() -> SaveData:
 	var out := SaveData.new()
 	out.game = game
 	out.map = current_map
-	out.position = player_position
+	out.tile = player_position / float(maxi(tile_size, 1))
 	out.facing = player_facing
 	out.flags = flags.duplicate(true)
 	out.seen = seen.duplicate(true)
@@ -363,7 +370,7 @@ func to_save() -> SaveData:
 func from_save(data: SaveData) -> void:
 	game = data.game
 	current_map = data.map
-	player_position = data.position
+	player_position = data.tile * float(maxi(tile_size, 1))
 	player_facing = data.facing
 	flags = data.flags.duplicate(true)
 	seen = data.seen.duplicate(true)

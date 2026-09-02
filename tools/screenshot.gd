@@ -11,6 +11,10 @@ extends SceneTree
 ##
 ## Not headless: --headless uses a dummy renderer that draws nothing, so the PNG would be
 ## blank. It needs a real driver and therefore does not run in CI.
+##
+## --resolution states the WINDOW, and a style that wants a bigger world resizes it from inside
+## (UiScale.apply, when the style is bound) - so a shot of a 32px game comes back 640x360 whatever
+## is passed here. Ask for the design size and let the scene say if it wants more.
 
 const DEFAULT_SCENE := "res://scenes/sprite_lab/sprite_lab.tscn"
 const DEFAULT_OUT := "user://screenshot.png"

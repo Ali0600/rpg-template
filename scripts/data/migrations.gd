@@ -47,6 +47,8 @@ static func apply(raw: Dictionary, game: StringName) -> Dictionary:
 				d = _v7_to_v8(d)
 			8:
 				d = _v8_to_v9(d)
+			9:
+				d = _v9_to_v10(d)
 			_:
 				# No step for this version. Stop rather than loop forever; the caller's
 				# validation reports the mismatch.
@@ -165,7 +167,26 @@ static func _v8_to_v9(d: Dictionary) -> Dictionary:
 	return d
 
 
+## How many pixels a tile was in every save written before v10. FROZEN: this is a historical
+## fact about files already on disk, not a reading of whatever style is running now - a
+## migration that consulted the live style would carry the same file to different places
+## depending on which game was loaded, which is drift no test could reproduce.
+const PRE_V10_TILE_PIXELS := 16.0
+
+
+## Pixels become TILES. Every save before this was written by a game whose tiles were 16px
+## across, so the conversion is a division by a constant; from v10 on a save says where the
+## player stood in the map's own units and no change of art can move them.
+static func _v9_to_v10(d: Dictionary) -> Dictionary:
+	var raw := JsonFile.to_float_array(d.get("position", []))
+	if raw.size() == 2:
+		d["tile"] = [raw[0] / PRE_V10_TILE_PIXELS, raw[1] / PRE_V10_TILE_PIXELS]
+	d.erase("position")
+	d["version"] = 10
+	return d
+
+
 ## The versions this build can carry forward. Used by the test that pins the chain, so adding
 ## a step without a fixture is caught rather than assumed.
 static func supported_versions() -> Array[int]:
-	return [1, 2, 3, 4, 5, 6, 7, 8, 9]
+	return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

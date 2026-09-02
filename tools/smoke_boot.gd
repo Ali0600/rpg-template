@@ -83,6 +83,15 @@ func _init() -> void:
 		failures.append("default_texture_filter is not Nearest - pixel art would be blurred")
 	if str(ProjectSettings.get_setting("display/window/stretch/scale_mode", "")) != "integer":
 		failures.append("stretch scale_mode is not integer - pixels would be uneven sizes")
+	# Every screen lays out against UiScale.DESIGN_SIZE and every layout gate measures there.
+	# If the project boots at some other size, all of them are measuring a window nobody is
+	# looking at - and each one would still pass.
+	var booted := Vector2i(
+		int(ProjectSettings.get_setting("display/window/size/viewport_width", 0)),
+		int(ProjectSettings.get_setting("display/window/size/viewport_height", 0)))
+	if booted != UiScale.DESIGN_SIZE:
+		failures.append("the project boots at %s where every screen is laid out for %s"
+			% [booted, UiScale.DESIGN_SIZE])
 
 	if failures.is_empty():
 		print("smoke_boot: OK")

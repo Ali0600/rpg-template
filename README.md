@@ -49,6 +49,13 @@ procedural cast, drift-gated the same way, with every layer's licence checked by
 credits written beside the sprites. The procedural rig stays the default; `sheets_from` on a
 style picks the arm.
 
+Those characters are 64x64 on 32px tiles, which needs more room than the template's 320x180. So
+a style says how big its WORLD is (`world_scale`) and the interface does not follow: the window
+doubles, every screen is drawn at that scale, and each one keeps laying itself out against the
+same 320x180 it always did. Twenty tiles across at either size, with no screen constant, font
+size or layout gate touched. Saves record TILES rather than pixels for the same reason — a file
+that recorded pixels would describe a different place the moment the art changed size.
+
 ![The warden, at the gate](docs/images/dialog.png)
 
 ## Quick start
@@ -186,6 +193,7 @@ judged before the world is rebuilt around it.
 | `scripts/world/` | Movement, collision, maps, camera, interaction. |
 | `scripts/ui/` | Dialog runner and its view, the pause menu, Sprite Lab. |
 | `scripts/autoload/` | EventBus, Registry, GameState, SaveManager, Router, AudioBus, Qa. |
+| `scripts/util/` | Build-time readers, `Dir`, `Sfx`, and `UiScale` — how big a style's world is. |
 | `data/` | All content: games, styles, rigs, characters, maps, dialog, config. |
 | `games/<id>/` | A game's own code, if it has any. |
 | `assets/generated/` | Build output of `tools/gen_sprites.gd` — never hand-edited. |
@@ -245,6 +253,7 @@ judged before the world is rebuilt around it.
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
 - [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.sh`
 - [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
+- [x] **M40b** — the world at 32px: a style states its `world_scale`, the window grows and every interface layer is drawn at it, so a 64x64 cast plays in a 640x360 world while every screen, font and layout gate keeps measuring against 320x180. Saves moved to tile units (v10) so a change of art cannot move a saved player
 - [x] **M40a** — hand-drawn characters: a style's sheets come from the rig or from an import (`sheets_from`), Universal LPC exports are converted at build time, licence-gated by file, credited beside the sprites and drift-gated like everything else. The world at 32px, the credits screen and the cast itself are the phases that follow
 
 ## Experience Gained
@@ -256,6 +265,13 @@ judged before the world is rebuilt around it.
   layer's licence is checked against a per-style allow-list by family — not by prefix, since
   CC-BY is a prefix of CC-BY-SA — with credits and a licence notice generated deterministically
   alongside the sprites, and the build refusing a non-compliant layer by name.
+- Scaled a rendering surface instead of its contents to support a second art resolution: one
+  transform above the layout let a 2x world ship without re-tuning a single UI constant, font
+  size or layout assertion, verified by measuring rendered rectangles in screen space rather
+  than the properties that produce them.
+- Migrated a persisted format to unit-independent coordinates (a versioned save migration with
+  a frozen conversion constant), renaming the field alongside so the compiler enumerated every
+  reader rather than leaving them to manual search.
 - Split a quality gate by capability and proved the split with a membership assertion (the two
   lists of styles must together equal every style on disk), so a new kind of source cannot
   silently opt out of every gate.

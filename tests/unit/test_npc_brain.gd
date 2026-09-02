@@ -103,6 +103,28 @@ func test_a_patrol_visits_its_waypoints_in_the_authored_order() -> void:
 			break
 	assert_array(order).is_equal(wanted)
 
+func test_arriving_is_measured_in_tiles_so_a_bigger_world_is_not_a_shuffle() -> void:
+	# What "close enough" means is set by how far a body travels in a frame, and that doubles
+	# with the world. A flat 1.5px at 32px tiles is under two frames of walking, so a patroller
+	# would arrive, overshoot, turn round and shuffle on the spot forever.
+	#
+	# Literals on both sides, and the pair is the test: 2px short is arrival on a 32px map and
+	# is NOT arrival on a 16px one. A single sample could be satisfied by any constant at all.
+	# Dwell zero, or the first intent is the brain standing about and this measures that
+	# instead - the margin is only reachable once it is actually walking somewhere.
+	var record := {"behavior": "patrol", "path": [[4, 4], [8, 4]], "dwell_min": 0, "dwell_max": 0}
+	var wide := NpcBrain.of(record, MapData.tile_to_world(Vector2i(4, 4), 32), 32, _rng("wide"))
+	var narrow := NpcBrain.of(record, MapData.tile_to_world(Vector2i(4, 4), TILE), TILE, _rng("narrow"))
+	var short_by_2 := func(brain: NpcBrain, tile: int) -> Vector2:
+		return brain.intent(MapData.tile_to_world(Vector2i(4, 4), tile) - Vector2(2.0, 0.0))
+	assert_vector(short_by_2.call(wide, 32)).override_failure_message(
+		"two pixels short of a waypoint on a 32px map is still being walked at"
+		).is_equal(Vector2.ZERO)
+	assert_vector(short_by_2.call(narrow, TILE)).override_failure_message(
+		"two pixels short of a waypoint on a 16px map counts as arrived, which is the margin"
+		+ " every shipped session was recorded against").is_not_equal(Vector2.ZERO)
+
+
 func test_a_patrol_with_no_path_stands_still_rather_than_spinning() -> void:
 	var brain := _brain({"behavior": "patrol", "path": []}, Vector2i(3, 3))
 	for i in 60:

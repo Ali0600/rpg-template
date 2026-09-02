@@ -157,6 +157,17 @@ func test_an_imported_style_may_not_name_a_rig() -> void:
 	style.rig_id = &"gb16"
 	assert_str("\n".join(style.problems())).contains("names rig 'gb16'")
 
+func test_a_style_drawn_at_no_scale_at_all_is_refused() -> void:
+	# A zero here is a window of no size and a layer scaled to nothing - a game that boots to
+	# a blank screen with every gate green, because every screen would still lay itself out
+	# correctly inside a world nobody can see.
+	var style := _imported_style()
+	style.world_scale = 0
+	assert_str("\n".join(style.problems())).contains("world_scale must be at least 1")
+	style.world_scale = 1
+	assert_array(style.problems()).is_empty()
+
+
 func test_an_imported_style_must_list_its_licences() -> void:
 	# An empty list would mean "anything" or "nothing", and a licence policy must not be a guess.
 	var style := _imported_style()

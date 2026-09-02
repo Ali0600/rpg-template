@@ -38,6 +38,8 @@ var _source: SpriteSource
 var _views: Array[SpriteView] = []
 var _direction_labels: Array[Label] = []
 var _contact: Node2D
+var _chrome: CanvasLayer
+var _strip: Node2D
 var _title: Label
 var _detail: Label
 var _help: Label
@@ -74,7 +76,8 @@ func _build_chrome() -> void:
 	var dim_color := _style.ui_color("dim")
 	var layer := CanvasLayer.new()
 	layer.name = "Chrome"
-	add_child(layer)
+	_chrome = layer
+	UiScale.mount(layer, self, _style)
 	_title = _label(layer, Vector2(6, 2), 9, text_color)
 	_detail = _label(layer, Vector2(6, 14), 7, dim_color)
 	_help = _label(layer, Vector2(6, 168), 7, dim_color)
@@ -86,6 +89,7 @@ func _build_chrome() -> void:
 	var strip := Node2D.new()
 	strip.name = "Directions"
 	strip.position = DIRECTION_ORIGIN
+	_strip = strip
 	add_child(strip)
 	for i in Dir.ALL.size():
 		var view := SpriteView.new()
@@ -103,16 +107,39 @@ func _build_chrome() -> void:
 	add_child(_contact)
 
 
+## Brings the chrome and the two world-space origins to the current style's scale. The labels
+## live on a CanvasLayer and are laid out in design pixels, exactly as every screen in the game
+## is; the strip and the contact sheet are world nodes, so their origins are multiplied.
+func _rescale_chrome() -> void:
+	if _chrome == null:
+		return
+	_chrome.scale = UiScale.layer_scale(_style)
+	var world := float(UiScale.scale_of(_style))
+	# The backdrop is a world-space rect, so it is sized in world pixels. The .tscn's own
+	# numbers are a view of the default style; the size is set here because only a style knows.
+	var background := get_node_or_null("Background") as ColorRect
+	if background != null:
+		background.size = Vector2(UiScale.window_size(_style))
+	if _strip != null:
+		_strip.position = DIRECTION_ORIGIN * world
+	if _contact != null:
+		_contact.position = CAST_ORIGIN * world
+
+
 ## Spaces the four views by the CURRENT style's cell, at the largest scale that keeps all four
 ## inside the strip. Views are positioned by their FEET, which is what the SpriteView origin
 ## is - so they line up on one baseline however tall the character turns out to be.
 func _layout_strip() -> void:
-	var scale_factor := clampi(STRIP_WIDTH / (Dir.ALL.size() * maxi(_style.cell_size.x, 1)), 1, VIEW_SCALE)
-	var spacing := _style.cell_size.x * scale_factor + DIRECTION_GAP
+	var world := UiScale.scale_of(_style)
+	var room := STRIP_WIDTH * world
+	var scale_factor := clampi(room / (Dir.ALL.size() * maxi(_style.cell_size.x, 1)), 1, VIEW_SCALE)
+	var spacing := _style.cell_size.x * scale_factor + DIRECTION_GAP * world
 	for i in _views.size():
 		_views[i].scale = Vector2(scale_factor, scale_factor)
 		_views[i].position = Vector2(i * spacing, 0)
-		_direction_labels[i].position = DIRECTION_ORIGIN + Vector2(i * spacing - 2, 4)
+		# The labels are chrome, so they are placed in DESIGN pixels: the spacing above is in
+		# world pixels and has to come back down through the scale to sit under its view.
+		_direction_labels[i].position = DIRECTION_ORIGIN + Vector2(i * spacing / world - 2, 4)
 
 
 func _label(parent: Node, at: Vector2, size: int, color: Color) -> Label:
@@ -144,11 +171,16 @@ func _load_style() -> void:
 	var style_id := _style_ids[_style_index % _style_ids.size()]
 	_style = load("res://data/styles/%s.tres" % style_id) as SpriteStyle
 	_rig = null if _style.imports() else Rig.load_from("res://data/rigs/%s.json" % _style.rig_id)
+	# The lab is judged at the size the art is played at, which is the whole reason it lays
+	# itself out for the game's own viewport. A 64px style is played in a 640x360 window, so
+	# that is the window it is looked at in - the world scene's rule, through the same call.
+	UiScale.apply(get_window(), _style)
 
 
 func _reload() -> void:
 	_load_style()
 	_restyle_chrome()
+	_rescale_chrome()
 	_layout_strip()
 	var style_id := _style.id
 	if _style.imports():

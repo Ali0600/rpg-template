@@ -29,7 +29,7 @@ func _save_for(game: StringName, map: StringName) -> SaveData:
 	var data := SaveData.new()
 	data.game = game
 	data.map = map
-	data.position = Vector2(16.0, 32.0)
+	data.tile = Vector2(1.0, 2.0)
 	data.facing = Dir.D.DOWN
 	return data
 
@@ -183,13 +183,15 @@ func test_saving_over_unreadable_bytes_parks_them_first() -> void:
 	assert_object(SaveManager.load_slot(&"quest", 0)).is_not_null()
 
 func test_a_fractional_position_is_not_truncated() -> void:
-	# Reading a position through an int conversion loses the fraction silently, and the
-	# player reloads a few pixels from where they stood.
+	# Reading a place through an int conversion loses the fraction silently, and the player
+	# reloads a few pixels from where they stood. Free movement stops between tiles, so a save
+	# in tile units is fractional by design and the same trap is one division further along.
+	GameState.tile_size = 16
 	GameState.new_game(&"quest", &"quest_village", Vector2(120.8, 136.4), Dir.D.DOWN)
 	SaveManager.save(0, GameState.to_save())
 	var loaded := SaveManager.load_slot(&"quest", 0)
-	assert_float(loaded.position.x).is_equal_approx(120.8, 0.001)
-	assert_float(loaded.position.y).is_equal_approx(136.4, 0.001)
+	assert_float(loaded.tile.x).is_equal_approx(120.8 / 16.0, 0.0001)
+	assert_float(loaded.tile.y).is_equal_approx(136.4 / 16.0, 0.0001)
 
 func test_an_empty_slot_loads_as_nothing_rather_than_as_a_blank_game() -> void:
 	# Returning a default SaveData would make "no save here" indistinguishable from "a save
@@ -425,6 +427,52 @@ func test_a_version_7_save_is_carried_forward() -> void:
 		"the v7->v8 step lost the purse it was handed").is_equal(41)
 	assert_str(str(data.equipment.get("weapon", ""))).override_failure_message(
 		"the v7->v8 step lost the gear it was handed").is_equal("bronze_sword")
+
+func test_a_version_9_save_is_carried_forward_into_tiles() -> void:
+	var file := JsonFile.read(FIXTURES + "v9.json")
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	var migrated := Migrations.apply(file.data, &"quest")
+	var data := SaveData.from_dict(migrated)
+	assert_array(data.problems()).is_empty()
+	assert_int(data.version).is_equal(SaveData.VERSION)
+	# 88 and 40 pixels of a 16px map. The whole point of the step: what the file said in
+	# pixels means tile five and a half across, two and a half down, and it means that
+	# whatever tile size the game is running at when the save is finally loaded.
+	assert_vector(data.tile).override_failure_message(
+		"the v9->v10 step read a pixel position as a tile one").is_equal(Vector2(5.5, 2.5))
+	assert_bool(migrated.has("position")).override_failure_message(
+		"the migrated save still carries the pixels it was converted from").is_false()
+	# The step must not drop what v9 already knew - a fixture missing any of these could not
+	# tell a conversion from a rewrite.
+	assert_int(int(data.items.get("tonic", 0))).override_failure_message(
+		"the v9->v10 step lost the bag it was handed").is_equal(2)
+	assert_int(int(data.party.get("level", 0))).override_failure_message(
+		"the v9->v10 step lost the party it was handed").is_equal(3)
+	assert_dict(data.companions).override_failure_message(
+		"the v9->v10 step lost the companion it was handed").contains_keys(["scrapper"])
+	assert_int(data.gold).override_failure_message(
+		"the v9->v10 step lost the purse it was handed").is_equal(41)
+
+
+## Where the state stands is pixels; where a save says it stands is tiles. This is the one
+## conversion between them, and it is the reason a change of art cannot move a saved player.
+func test_a_save_is_written_in_the_tiles_of_the_map_it_was_written_on() -> void:
+	# AFTER new_game, which resets: the world sets this on entering a map, and a map is entered
+	# after a game is started. A test that set it first would be pinning an order the game does
+	# not use, and would pass against a reset that forgot the field.
+	GameState.new_game(&"quest", &"quest_village", Vector2(80.0, 48.0), Dir.D.DOWN)
+	GameState.tile_size = 32
+	assert_vector(GameState.to_save().tile).override_failure_message(
+		"a save under 32px tiles was written in pixels wearing a tile's name"
+		).is_equal(Vector2(2.5, 1.5))
+	# And back: the same file read on a 16px map puts the player half as far out, which is the
+	# same PLACE on that map and the whole reason the file records tiles.
+	var data := SaveData.new()
+	data.tile = Vector2(2.5, 1.5)
+	GameState.tile_size = 16
+	GameState.from_save(data)
+	assert_vector(GameState.player_position).is_equal(Vector2(40.0, 24.0))
+
 
 func test_a_version_8_save_is_carried_forward() -> void:
 	var file := JsonFile.read(FIXTURES + "v8.json")

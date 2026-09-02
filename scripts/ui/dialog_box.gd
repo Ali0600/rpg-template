@@ -72,7 +72,7 @@ var _revealed := 0.0
 var _blipped := 0
 var _style: SpriteStyle
 var _gate := InputGate.new()
-var _viewport := Vector2i(320, 180)
+var _viewport := UiScale.DESIGN_SIZE
 
 
 ## How wide a line of text may be, given the screen. A function rather than a constant because

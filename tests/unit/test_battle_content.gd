@@ -614,55 +614,11 @@ func _guaranteed_party(manifest: GameManifest, map_id: StringName) -> Array:
 	return out
 
 ## Whether `map_id` can still be reached from the game's first map when every warp demanding
-## `flag` is refused.
-##
-## A FIXPOINT rather than a plain walk, because a locked door moves with the key: the keep asks
-## for `gate_key`, the key lies in the hollow, and the hollow asks for the flag - so refusing the
-## flag closes the keep too, one room removed. A walk that ignored items would call the keep
-## reachable alone and quietly conclude the player might arrive there without a companion.
-##
-## An item NO map object grants is assumed obtainable (the smith's tonics, the hermit's oil,
-## which come out of conversations). That direction is the safe one: assuming an item is
-## available can only make more maps reachable, which makes fewer companions count as guaranteed
-## and the balance requirement HARDER. The reverse - failing to notice a source - would inflate
-## the party the gate balances, which is the mistake this whole derivation exists to prevent.
+## `flag` is refused. The walk itself lives in WarpGraph, because the map-content gate asks the
+## same question for a different reason - and two walks would eventually disagree about a
+## locked door, each gate then reporting on a game the other does not believe in.
 func _reachable_without(manifest: GameManifest, map_id: StringName, flag: StringName) -> bool:
-	var granted := _items_granted_by_maps()
-	var reached := {manifest.start_map: true}
-	var changed := true
-	while changed:
-		changed = false
-		for here: Variant in reached.keys():
-			var map := MapData.load_from("res://data/maps/%s.json" % here)
-			if not map.ok:
-				continue
-			for entry: Variant in map.warps:
-				var warp: Dictionary = entry
-				if StringName(str(warp.get("requires_flag", ""))) == flag:
-					continue
-				var need := StringName(str(warp.get("requires_item", "")))
-				if granted.has(need) and not reached.has(granted[need]):
-					continue
-				var there := StringName(str(warp.get("map", "")))
-				if String(there).is_empty() or reached.has(there):
-					continue
-				reached[there] = true
-				changed = true
-	return reached.has(map_id)
-
-## Which map hands out each item, for the walk above. Only map OBJECTS are sourced; anything a
-## conversation gives is deliberately absent, and `_reachable_without` says why.
-func _items_granted_by_maps() -> Dictionary:
-	var out := {}
-	for path in ContentScan.files_of("res://data/maps", "json"):
-		var map := MapData.load_from(path)
-		for entry: Variant in map.objects:
-			var object: Dictionary = entry
-			var gives := StringName(str(object.get("give_item", "")))
-			if not String(gives).is_empty() and not out.has(gives):
-				out[gives] = map.id
-	return out
-
+	return WarpGraph.reachable(manifest, flag).has(map_id)
 func test_two_tonics_are_what_sits_between_those_two_outcomes() -> void:
 	# The tuning point named out loud: the tonics are for the player who lands some presses and
 	# misses others, and two of them have to be worth about a third of the fight.

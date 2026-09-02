@@ -1329,11 +1329,29 @@ in-game credits surface is owed (phase C). *Credit-only* — `deferred — worth
 that must ship closed: one edit to `licenses` on the style, and the importer names every layer
 that has to go.
 
-Phase B, recorded now so it is not re-derived: the world at 32px means a `world_scale` on the
-style (viewport 320×180 × scale, UI layers drawn at scale, `battle_sprite_scale` as data).
-*Keep 320×180 with 32px tiles* (ten tiles wide) is the alternative the user can still look at;
-*`GameConfig` in TILE units rather than pixels* is `deferred — worth trying` (hook:
-`Locomotion.read_input` consumes `walk_speed`).
+Phase B, **built 2026-09-02**: `SpriteStyle.world_scale`, the window at `UiScale.DESIGN_SIZE ×
+scale`, and every UI CanvasLayer drawn at that scale. One correction to the plan recorded above:
+the battle sprite scale is **DERIVED** (`SPRITE_SCALE / world_scale`) rather than a field on the
+style. It is a property of the battle screen's own bands — the capacity `MAX_PARTY` and `MAX_FOES`
+are declared against and the layout audit measures at — so a second copy in data would be a second
+opinion about a layout only one gate measures, and the two would drift the first time the bands
+moved. *A `battle_sprite_scale` field* stays `deferred — worth trying`, and the hook is
+`BattleScreen._make_fighter`: the day a game wants its fighters drawn at some other multiple, the
+divisor stays and the numerator comes from data.
+
+*Keep 320×180 with 32px tiles* (ten tiles wide) is the alternative the user can still look at.
+*A SubViewport for the world, with the UI outside it* — rejected: it moves every screen into a
+second tree and routes input through a container, where scaling the layers changes one property
+per layer and no screen at all. *`GameConfig` in TILE units rather than pixels* is
+`deferred — worth trying` (hook: `Locomotion.read_input` consumes `walk_speed`).
+
+**Saves became TILE units in the same phase (v10)**, which was not in the original plan and is the
+part that could not be deferred: a save recording pixels describes a place only while the art does
+not change, so the demo's own move to 32px tiles would have moved every existing save. The field
+was RENAMED with its unit (`position` → `tile`) rather than quietly re-meaning, so the compile gate
+enumerated every reader. *Migrating positions at load time against the live style* — rejected: a
+migration that consults the running game carries one file to different places depending on which
+game loaded it, which is drift no test can reproduce; the divisor is frozen at 16 instead.
 
 ## Cell size is 16×24, not 16×32
 

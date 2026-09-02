@@ -150,7 +150,7 @@ func _build_game(manifest: GameManifest) -> bool:
 	_camera = Camera2D.new()
 	_dialog = _new_dialog()
 	_hint = ControlsHint.new()
-	add_child(_hint)
+	_mount_ui(_hint)
 	return true
 
 
@@ -176,11 +176,46 @@ func _on_sound_changed() -> void:
 		_refresh_pause()
 
 
+## Binds a style: what the world is drawn WITH, and how big the world IS.
+##
+## ONE function, called by enter_map and by open_title, because binding a style is three
+## statements that must not come apart - the style itself, the letterbox colour, and the window
+## the two are shown in. The title used to do two of the three, and the milestone before this
+## one records what a partial bind costs: the title asked for its music through a bus with no
+## voice and played nothing at all for four milestones, on every platform.
+##
+## rescale() is the pair to _mount_ui: the dialog box and the controls hint are built in
+## _build_game, BEFORE any map has said which style is running, so mounting alone cannot know
+## their scale. They are brought to it here, along with anything left over from another style.
+func _bind_style(style: SpriteStyle) -> void:
+	_style = style
+	# Anything outside the map - the letterbox on a map smaller than the viewport - is painted
+	# with the style's own panel colour rather than the engine's default grey, so a small area
+	# reads as framed rather than as unfinished. Style-driven, like every other colour.
+	RenderingServer.set_default_clear_color(_style.ui_color("panel"))
+	UiScale.apply(get_window(), _style)
+	UiScale.rescale(self, _style)
+
+
+## The size every screen lays itself out against: the design size, at every world scale, NEVER
+## the live viewport. A screen that measured the viewport would space its rows twice as far
+## apart in a 640x360 world and land its help line off the bottom - and every layout gate,
+## which measures against 320x180, would still pass.
+func _ui_size() -> Vector2i:
+	return UiScale.DESIGN_SIZE
+
+
+## The one way an interface layer joins the tree. See UiScale.mount: the tenth add_child is the
+## one that forgets the scale, and what it produces is a quarter-size menu in the corner.
+func _mount_ui(layer: CanvasLayer) -> void:
+	UiScale.mount(layer, self, _style)
+
+
 func _new_dialog() -> DialogBox:
 	var box := DialogBox.new()
 	box.closed.connect(_on_dialog_closed)
 	box.sound_wanted.connect(_on_sound_wanted)
-	add_child(box)
+	_mount_ui(box)
 	return box
 
 
@@ -277,14 +312,18 @@ func _teardown_game() -> void:
 ## and the first boot all take the same path - three ways into a map is three places for the
 ## camera limits to be forgotten.
 ##
-## `at` overrides the spawn with an exact position, which is what restoring a save is: a save
-## records where the player STOOD, and no spawn describes that. Nothing else passes it.
-func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) -> bool:
-	var data := MapData.load_from("res://data/maps/%s.json" % map_id)
-	_style = load("res://data/styles/%s.tres" % data.style_id) as SpriteStyle
-	if _style == null:
+## `at_tile` overrides the spawn with an exact place, which is what restoring a save is: a save
+## records where the player STOOD, and no spawn describes that. Nothing else passes it, and it
+## is in TILES because the caller is `restore` - which has the file and has not yet loaded the
+## map, so it cannot know how many pixels a tile of the destination is. That conversion happens
+## below, once the map's own style has answered.
+func enter_map(map_id: StringName, spawn_id: StringName, at_tile: Vector2 = NO_SPOT) -> bool:
+	var data := MapData.load_from(MapData.path_of(map_id))
+	var style := load("res://data/styles/%s.tres" % data.style_id) as SpriteStyle
+	if style == null:
 		push_error("World: map '%s' names unknown style '%s'" % [map_id, data.style_id])
 		return false
+	_bind_style(style)
 
 	var tiles_meta := JsonFile.read("res://assets/generated/%s/tiles.json" % _style.id)
 	var tiles_texture := load("res://assets/generated/%s/tiles.png" % _style.id) as Texture2D
@@ -303,19 +342,17 @@ func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) 
 	_built = built
 	add_child(built.root)
 
-	# Anything outside the map - the letterbox on a map smaller than the viewport - is painted
-	# with the style's own panel colour rather than the engine's default grey, so a small area
-	# reads as framed rather than as unfinished. Style-driven, like every other colour.
-	RenderingServer.set_default_clear_color(_style.ui_color("panel"))
-
 	_source = FileSpriteSource.create(_style.id)
 	# The dialog box takes its colours from the map's style, so a map in a different style
 	# arrives with matching chrome rather than the previous map's.
 	if _dialog.get_child_count() == 0:
-		_dialog.setup(_style, get_viewport_rect().size)
+		_dialog.setup(_style, _ui_size())
 	if _hint.get_child_count() == 0:
-		_hint.setup(_style, get_viewport_rect().size, _game.controls_hint)
-	_spawn_player(data, spawn_id, at)
+		_hint.setup(_style, _ui_size(), _game.controls_hint)
+	# Written here, from the map's own style, and by nobody else: a save records tiles, the
+	# world moves in pixels, and this is the rate between them.
+	GameState.tile_size = _built.tile_size
+	_spawn_player(data, spawn_id, at_tile)
 	_spawn_npcs(data)
 	_spawn_enemies(data)
 	_configure_camera(data)
@@ -346,11 +383,13 @@ func enter_map(map_id: StringName, spawn_id: StringName, at: Vector2 = NO_SPOT) 
 	return true
 
 
-func _spawn_player(data: MapData, spawn_id: StringName, at: Vector2) -> void:
-	# A finite `at` is a restored position and is used as given. The spawn lookup below is
+func _spawn_player(data: MapData, spawn_id: StringName, at_tile: Vector2) -> void:
+	# A finite `at_tile` is a restored place and is used as given, converted here because this
+	# is the first point where the map's tile size is known. The spawn lookup below is
 	# skipped rather than done-and-discarded, so a save into a map with no matching spawn name
 	# does not report a spawn fault it does not have.
-	if not at.is_finite():
+	var at := at_tile * float(_built.tile_size)
+	if not at_tile.is_finite():
 		at = MapBuilder.spawn_position(data, spawn_id, _built.tile_size)
 		if at == Vector2(-1.0, -1.0):
 			push_error("World: map '%s' has no spawn '%s'" % [data.id, spawn_id])
@@ -847,11 +886,11 @@ func open_pause() -> bool:
 	_pause.equip_requested.connect(_on_equip_requested)
 	_pause.unequip_requested.connect(_on_unequip_requested)
 	_pause.member_selected.connect(_on_member_selected)
-	add_child(_pause)
+	_mount_ui(_pause)
 	_pause_member = &""
 	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
 		_gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows(),
-		_saves_from_the_menu()), _style, get_viewport_rect().size)
+		_saves_from_the_menu()), _style, _ui_size())
 	Router.open_overlay(Router.State.PAUSED)
 	return true
 
@@ -891,7 +930,7 @@ func _slot_summaries_for(manifest: GameManifest) -> Array[SlotSummary]:
 func _style_for(manifest: GameManifest) -> SpriteStyle:
 	if manifest == null:
 		return null
-	var data := MapData.load_from("res://data/maps/%s.json" % manifest.start_map)
+	var data := MapData.load_from(MapData.path_of(manifest.start_map))
 	if not data.ok:
 		return null
 	return load("res://data/styles/%s.tres" % data.style_id) as SpriteStyle
@@ -954,10 +993,10 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 	# and wired in another is a view that eventually gets built and not wired.
 	_battle.sound_wanted.connect(_on_sound_wanted)
 	_battle.finished.connect(_on_battle_finished)
-	add_child(_battle)
+	_mount_ui(_battle)
 	_battle.setup(BattleLogic.of(_game.combat, defs, _battle_members(), _battle_items(),
 		seen_key, _battle_seed(seen_key)),
-		_style, get_viewport_rect().size, _source)
+		_style, _ui_size(), _source)
 	# A fight takes the room's music over. A game naming no battle theme touches nothing at all,
 	# which is not merely a legal shape but is exactly the behaviour every fight had before this
 	# existed - so the field being empty is the old game, unchanged.
@@ -993,8 +1032,8 @@ func open_rest() -> bool:
 	_night = RestScreen.new()
 	_night.sound_wanted.connect(_on_sound_wanted)
 	_night.finished.connect(_close_rest)
-	add_child(_night)
-	_night.setup(_style, get_viewport_rect().size, _config.rest_fade_frames,
+	_mount_ui(_night)
+	_night.setup(_style, _ui_size(), _config.rest_fade_frames,
 		_config.rest_hold_frames, "The night passes.")
 	Router.open_overlay(Router.State.RESTING)
 	return true
@@ -1028,8 +1067,8 @@ func open_save() -> bool:
 	_saving.sound_wanted.connect(_on_sound_wanted)
 	_saving.save_requested.connect(_on_save_point_write)
 	_saving.left.connect(_close_save)
-	add_child(_saving)
-	_saving.setup(SaveMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
+	_mount_ui(_saving)
+	_saving.setup(SaveMenu.of(_slot_summaries()), _style, _ui_size())
 	Router.open_overlay(Router.State.SAVING)
 	return true
 
@@ -1077,9 +1116,9 @@ func open_shop(shop_id: StringName) -> bool:
 	_shop.sold.connect(_on_shop_sold)
 	_shop.left.connect(_close_shop)
 	_shop.stock = def
-	add_child(_shop)
+	_mount_ui(_shop)
 	_shop.setup(ShopMenu.of(_stock_rows(def), _sellable_rows(), GameState.gold,
-		def.greeting, def.thanks, def.poor_line), _style, get_viewport_rect().size)
+		def.greeting, def.thanks, def.poor_line), _style, _ui_size())
 	Router.open_overlay(Router.State.SHOP)
 	return true
 
@@ -1619,15 +1658,16 @@ func open_title() -> bool:
 	# game exactly as a map does, and both of the things it needs to present one, the look and
 	# the sound, are resolved here.
 	AudioBus.use_style(_offered.sound_style)
-	# The letterbox around the viewport, which no map has set yet because no map has been
-	# entered. Without this the title sits in engine grey.
-	RenderingServer.set_default_clear_color(style.ui_color("panel"))
+	# The style is bound before a map has been entered, which is what puts the title on the
+	# right letterbox colour AND at the right size: a game drawn at 32px opens its title in a
+	# 640x360 window, not in one that resizes under the player the moment they press New game.
+	_bind_style(style)
 	_title = TitleScreen.new()
 	_title.sound_wanted.connect(_on_sound_wanted)
 	_title.load_requested.connect(_on_title_load)
 	_title.new_game_requested.connect(_on_title_new_game)
-	add_child(_title)
-	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), style, get_viewport_rect().size,
+	_mount_ui(_title)
+	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), style, _ui_size(),
 		_offered.title)
 	if not String(_offered.title_music).is_empty():
 		AudioBus.play_music(_offered.title_music)
@@ -1684,8 +1724,8 @@ func open_game_over() -> bool:
 	_game_over.load_requested.connect(_on_game_over_load)
 	_game_over.new_game_requested.connect(_on_game_over_new_game)
 	_game_over.title_requested.connect(_on_game_over_title)
-	add_child(_game_over)
-	_game_over.setup(GameOverMenu.of(_slot_summaries()), _style, get_viewport_rect().size)
+	_mount_ui(_game_over)
+	_game_over.setup(GameOverMenu.of(_slot_summaries()), _style, _ui_size())
 	Router.open_overlay(Router.State.GAME_OVER)
 	return true
 
@@ -1818,7 +1858,15 @@ func restore(data: SaveData) -> bool:
 	# party at all. This is where that becomes a real hero, from the curve of whichever game is
 	# actually running, which is a fact neither the file nor GameState can reach.
 	_ensure_party()
-	return enter_map(data.map, &"", data.position)
+	if not enter_map(data.map, &"", data.tile):
+		return false
+	# The state is told where the body actually stands. from_save() converted the file's tiles
+	# with whatever tile size was bound BEFORE this load - the map the player was leaving, which
+	# at a change of style is a different number - and enter_map has just converted them again
+	# with the destination's. This is the one line that makes those two agree, on the frame the
+	# load lands rather than on the next physics tick.
+	GameState.set_player(_player.global_position, data.facing)
+	return true
 
 
 ## Test and QA access. Reaching for the node directly from outside would tie every test to

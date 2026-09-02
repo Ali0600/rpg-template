@@ -26,6 +26,16 @@ enum Outline {
 ## tiles look like they belong to the same world.
 @export var tile_size: int = 16
 
+## How many WORLD pixels one interface pixel is. The window is UiScale.DESIGN_SIZE times this,
+## and every screen is drawn at this scale - so a 32px style shows the same twenty tiles across
+## as a 16px one, while every menu, font size and layout audit keeps measuring against the one
+## design size. 1 is the template's own world and changes nothing; lpc32 is 2.
+##
+## On the STYLE rather than the config because it is a property of the ART: a 64x64 cell needs
+## the room, and a game mixing a 16px map with a 32px one would resize its window mid-walk,
+## which is why test_map_content refuses it.
+@export var world_scale: int = 1
+
 ## Which rig (data/rigs/<id>.json) supplies the part shapes.
 @export var rig_id: StringName = &"gb16"
 
@@ -212,6 +222,8 @@ func problems() -> Array[String]:
 		out.append("cell_size must be positive, got %s" % cell_size)
 	if tile_size <= 0:
 		out.append("tile_size must be positive, got %d" % tile_size)
+	if world_scale < 1:
+		out.append("world_scale must be at least 1, got %d" % world_scale)
 	if not SHEET_SOURCES.has(sheets_from):
 		out.append("sheets_from '%s' is not one of %s" % [sheets_from, SHEET_SOURCES])
 	elif imports():

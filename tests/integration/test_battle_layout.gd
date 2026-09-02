@@ -81,6 +81,76 @@ func _screen(level := 1, mp := 8, spells: Array = [], items: Array = [],
 	return screen
 
 
+## The same fight, drawn under a style that wants a bigger world. Every character is the
+## wanderer because the wanderer is the only one drawn in lpc32 yet, which is fine here: this
+## is about how big a fighter is drawn, not about who it is.
+func _wide_screen() -> BattleScreen:
+	var screen := BattleScreen.new()
+	var style := load("res://data/styles/lpc32.tres") as SpriteStyle
+	UiScale.mount(screen, self, style)
+	var combat := _combat(true)
+	var enemy := _enemy()
+	enemy.character = &"quest_wanderer"
+	var logic := BattleHelpers.solo(combat, enemy, combat.max_hp(1), 0, 1, [], 0, 0, 8, [])
+	screen.setup(logic, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(&"lpc32"))
+	_screens.append(screen)
+	return screen
+
+
+## How tall a fighter actually is on the SCREEN: its cell, through its own scale and through
+## the scale of the layer it is drawn on. Reading either alone measures half the answer.
+func _drawn_height(screen: BattleScreen, view: SpriteView) -> float:
+	return float(view.cell_size().y) * view.scale.y * screen.scale.y
+
+
+func test_a_fighter_is_drawn_at_the_same_size_whatever_the_world_is() -> void:
+	# The screen is a CanvasLayer already drawn at the world's scale, so a bare SPRITE_SCALE
+	# would draw a 64px cell 128 screen pixels tall in the 180 this layout was measured for.
+	# Divided, both styles put a fighter on the same FRACTION of the screen - which is what
+	# "the battle screen looks the same at every scale" actually means.
+	var narrow := _screen()
+	var wide := _wide_screen()
+	var small := _drawn_height(narrow, narrow._foe_views[0])
+	var big := _drawn_height(wide, wide._foe_views[0])
+	assert_float(small).override_failure_message(
+		"a 16x24 fighter is not being drawn at twice its size").is_equal(48.0)
+	assert_float(big).override_failure_message(
+		"a 64x64 fighter is drawn %spx tall in a 360px world, where the layout holds three"
+		% big).is_equal(128.0)
+	# The rule both obey, stated once: a fighter is drawn at twice the size it is in the world.
+	# NOT at the same fraction of the screen - the two cells are different shapes, 24 rows on a
+	# 16px tile against 64 on a 32px one, and asserting a shared fraction would be asserting
+	# that every style must draw its characters at the same proportion, which is a design
+	# decision the template leaves to whoever draws them.
+	for pair: Array in [[narrow, small], [wide, big]]:
+		var screen: BattleScreen = pair[0]
+		assert_float(float(pair[1]) / float(screen._foe_views[0].cell_size().y)) \
+			.override_failure_message("a fighter is not drawn at %sx its world size on '%s'"
+			% [BattleScreen.SPRITE_SCALE, screen._style.id]).is_equal(BattleScreen.SPRITE_SCALE)
+
+
+func test_the_wide_screen_still_draws_nothing_over_anything() -> void:
+	# The layout is measured in design pixels and the fighters are the one thing on it sized by
+	# the ART. A 64px cell is more than twice the 24 this screen was laid out around, so the
+	# audit is run again over there rather than assumed to carry.
+	var screen := _wide_screen()
+	_assert_nothing_overlaps(screen, "command at 32px")
+
+
+func test_every_style_draws_its_fighters_on_whole_pixels() -> void:
+	# SPRITE_SCALE divided by a world scale that does not divide it is a fighter drawn on
+	# fractional pixels, which in a nearest-filtered pixel game is a row of the sprite silently
+	# doubled or dropped. The styles on disk are the population, so a style added later with an
+	# awkward scale fails here rather than in somebody's screenshot.
+	for id in ArtFixtures.style_ids():
+		var style := ArtFixtures.style(id)
+		var drawn := BattleScreen.SPRITE_SCALE / float(UiScale.scale_of(style))
+		assert_float(drawn).override_failure_message(
+			"style '%s' draws its fighters at %sx, which is not a whole number of pixels"
+			% [id, drawn]).is_equal(floorf(drawn))
+		assert_float(drawn).is_greater(0.0)
+
+
 ## A screen with a FULL party on it - as many members as the view says it can draw. The
 ## capacity is the content contract, so the audit is run at it rather than at the size the demo
 ## happens to ship: a layout that holds two and not three is a layout that fails the day a game
