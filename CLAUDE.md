@@ -1153,8 +1153,12 @@ tools/check.sh                 # import, lint, parse, compile, tests, boot, art 
 MUTANTS=1 tools/check.sh       # + prove every gate bites (milestone close)
 tools/mutate_check.sh --list   # what each mutant claims to cover
 tools/mutants_scope.sh         # the mutants THIS branch's diff could have broken
+tools/ci_changed.sh            # would this change run the gate? (the docs rule, runnable)
 tools/pack_check.sh            # export the .pck and PLAY it - the artifact, not the source tree
 ```
+
+Both scoping scripts carry a `--selftest` and `test_ci_paths.gd` runs them, because a rule whose
+only witness is a step inside `check.sh` has no suite for a mutant to be judged by.
 
 **Maps go out to a visual editor and come back.** `tools/map_io.gd` is the command; `TiledMap`
 and `LdtkMap` are the translators behind it, and they answer the same four function names

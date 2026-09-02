@@ -446,12 +446,12 @@ judged before the world is rebuilt around it.
   libm transcendentals, which are unpinned between macOS and the Linux CI runner), musical
   pitch from an integer fixed-point ratio table with octaves applied as exact binary
   doublings, and the rendered PCM drift-gated byte-for-byte across both platforms.
-- Partitioned CI by change type using GitHub's skipped-but-required-check pattern: docs-only
-  pull requests are answered by a same-named stand-in workflow in seconds while code changes
-  run the full gate, with the two path filters pinned as exact inverses by a test and the
-  generated-and-drift-gated exceptions derived from the generators themselves - and mutation
-  coverage extended to the workflow YAML, proving the filter rules are enforced rather than
-  hoped.
+- Partitioned CI by change type without a second workflow: one required status job reports in
+  every outcome (a skipped required check reads as success, so the condition is pinned by a
+  test and a mutant), the docs-versus-code rule lives in one shell script with its own selftest
+  rather than in mirrored YAML path filters, and the generated-and-drift-gated exceptions are
+  derived from the generators themselves - with mutation coverage extended to the workflow and
+  those scripts, proving the rules are enforced rather than hoped.
 
 - Designed a deterministic, seed-driven asset generation pipeline producing game-ready sprite
   sheets plus machine-readable metadata, with reproducibility enforced by golden-hash
