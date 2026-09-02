@@ -2642,3 +2642,5 @@ every docs pull request waits forever on a check that never comes.
   which works because sed edits text. `mutants_aim.sh` immediately caught the first one
   matching both copies of the mirrored list; fixed by making the copies differ textually (a
   trailing comment) rather than by loosening the pattern.
+
+<!-- CI probe: docs-only change, to prove the required check reports green with the gate skipped. Reverted immediately. -->
