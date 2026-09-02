@@ -24,7 +24,6 @@ extends GdUnitTestSuite
 ## docs/DECISIONS.md before treating it as one.
 
 const MAP_DIR := "res://data/maps"
-const TILE_SIZE := 16
 
 ## The tile bank in index order, which is what a tile index MEANS. Read from the generated table
 ## because that is the file the coupling runs through - a list of our own would prove the
@@ -37,6 +36,17 @@ func _tile_ids(style: String) -> PackedStringArray:
 	for entry: Variant in file.data.get("tiles", []):
 		out.append(str((entry as Dictionary).get("id", "")))
 	return out
+
+## The size that bank's indices are drawn at, from the same generated table. Read rather than
+## written down for `_shipped_style()`'s reason one unit along: a size spelled into this suite is
+## handed to BOTH directions of the round trip, where a wrong one cancels itself out and comes
+## back the same map. `tools/map_io.gd` held a literal 16 through four milestones that way, and
+## every export it wrote declared a 16px grid over a 32px atlas.
+func _tile_size(style: String) -> int:
+	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+	assert_bool(file.ok).override_failure_message(
+		"no generated tile table for '%s', so no coordinate here means anything" % style).is_true()
+	return int(file.data.get("tile_size", 0))
 
 func _native_of(path: String) -> Dictionary:
 	var file := JsonFile.read(path)
@@ -51,7 +61,8 @@ func _maps() -> PackedStringArray:
 
 func _exported(path: String) -> Dictionary:
 	var native := _native_of(path)
-	return LdtkMap.from_native(native, _tile_ids(str(native.get("style", "gb16"))), TILE_SIZE)
+	var style := str(native.get("style", "gb16"))
+	return LdtkMap.from_native(native, _tile_ids(style), _tile_size(style))
 
 ## The style the shipped maps are actually drawn in, read from the first of them. Named here
 ## rather than written out, because the demo has changed style once already and a style spelled
@@ -70,7 +81,8 @@ func test_every_shipped_map_survives_a_trip_through_ldtk() -> void:
 	for path in _maps():
 		var native := _native_of(path)
 		var ids := _tile_ids(str(native.get("style", "gb16")))
-		var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
+		var size := _tile_size(str(native.get("style", "gb16")))
+		var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, size), ids, size)
 		var faults := MapData.differences(MapData.load_from(path), MapData.from_dictionary(back))
 		assert_array(faults).override_failure_message(
 			"'%s' came back from LDtk as a different map:\n  %s"
@@ -83,7 +95,8 @@ func test_a_map_that_came_back_is_still_a_map_the_game_can_read() -> void:
 	for path in _maps():
 		var native := _native_of(path)
 		var ids := _tile_ids(str(native.get("style", "gb16")))
-		var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
+		var size := _tile_size(str(native.get("style", "gb16")))
+		var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, size), ids, size)
 		var after := MapData.from_dictionary(back)
 		assert_bool(after.ok).override_failure_message(
 			"'%s' did not parse after a trip through LDtk: %s" % [path, after.error]).is_true()
@@ -108,7 +121,12 @@ func test_a_tile_lands_where_ldtk_says_it_should() -> void:
 	var ids := _tile_ids("dusk16")
 	assert_int(ids.find("wall")).override_failure_message(
 		"this test needs a tile that is NOT index 0, or it cannot see a wrong src").is_greater(0)
-	var made := LdtkMap.from_native(native, ids, TILE_SIZE)
+	# The pixel figures below are written out as literals, which is the point of them - so the
+	# premise they rest on is asserted rather than assumed. If dusk16 ever moves off 16px this
+	# fails HERE, naming the fixture, instead of failing as arithmetic that looks like a bug.
+	assert_int(_tile_size("dusk16")).override_failure_message(
+		"this test's pixel figures are dusk16's 16px grid written out").is_equal(16)
+	var made := LdtkMap.from_native(native, ids, _tile_size("dusk16"))
 	var level: Dictionary = (made["levels"] as Array)[0]
 	var ground: Dictionary = (level["layerInstances"] as Array)[0]
 	assert_str(str(ground["__identifier"])).is_equal("ground")
@@ -122,7 +140,7 @@ func test_a_tile_lands_where_ldtk_says_it_should() -> void:
 			"a wall cell points at tile %s rather than %d" % [tile["t"], at]).is_equal(at)
 		var src := JsonFile.to_int_array(tile["src"])
 		assert_int(src[0]).override_failure_message(
-			"src is not pixels into the atlas: %s" % [src]).is_equal(at * TILE_SIZE)
+			"src is not pixels into the atlas: %s" % [src]).is_equal(at * _tile_size("dusk16"))
 		assert_int(src[1]).is_equal(0)
 	# The bottom-right cell of a 2x2 map at 16px sits at (16, 16), in pixels.
 	var corners: Array = []
@@ -137,7 +155,8 @@ func test_every_field_a_record_carries_is_declared() -> void:
 	# are derived from the records rather than hand-listed - a game may put anything on an npc,
 	# and a fixed list would silently drop whatever the template did not know about.
 	var native := _native_of(_maps()[0])
-	var made := LdtkMap.from_native(native, _tile_ids(str(native.get("style", "gb16"))), TILE_SIZE)
+	var style := str(native.get("style", "gb16"))
+	var made := LdtkMap.from_native(native, _tile_ids(style), _tile_size(style))
 	var declared := {}
 	for entry: Variant in (made["defs"] as Dictionary)["entities"]:
 		var def: Dictionary = entry
@@ -209,7 +228,7 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 	# against another is not a broken file - it is a map full of the wrong tiles, and nothing
 	# else in this project would notice.
 	var ids := _tile_ids(_shipped_style())
-	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).override_failure_message(
 		"a map painted against the bank it is being read with was refused").is_empty()
 	var shorter := ids.duplicate()
@@ -217,9 +236,26 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), shorter)).override_failure_message(
 		"the bank lost a tile and the map was accepted anyway").is_not_empty()
 
+func test_a_map_painted_on_another_grid_is_refused() -> void:
+	# The Tiled suite's twin, and the same silence: LDtk writes a tile at `px` in pixels and an
+	# entity likewise, so a project painted on one grid and read on another moves every record
+	# without breaking the file - and a round trip cannot see it, since both directions share the
+	# number.
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var size := _tile_size(style)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, size)
+	assert_array(LdtkMap.problems(made, StringName(style), ids, size)).override_failure_message(
+		"a project read at the size it was painted on was refused").is_empty()
+	assert_array(LdtkMap.problems(made, StringName(style), ids, size * 2)) \
+		.override_failure_message("a project painted at %dpx was accepted at %dpx; every record "
+		% [size, size * 2] + "on it would land at half its tile").is_not_empty()
+	assert_array(LdtkMap.problems(made, StringName(style), ids)).override_failure_message(
+		"a caller with no table to hand should get no size complaint, and got one").is_empty()
+
 func test_a_map_painted_against_another_style_is_refused() -> void:
 	var ids := _tile_ids(_shipped_style())
-	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	assert_array(LdtkMap.problems(made, &"gb16", ids)).override_failure_message(
 		"a map painted for one style was read as another without complaint").is_not_empty()
 
@@ -227,13 +263,13 @@ func test_a_project_keeping_its_levels_elsewhere_is_refused() -> void:
 	# LDtk can split levels into `.ldtkl` files beside the project. This reads them inline, so a
 	# split project would present as a map with no layers rather than as an unsupported file.
 	var ids := _tile_ids(_shipped_style())
-	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	made["externalLevels"] = true
 	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).is_not_empty()
 
 func test_a_project_with_two_tilesets_is_refused() -> void:
 	var ids := _tile_ids(_shipped_style())
-	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	var sets: Array = (made["defs"] as Dictionary)["tilesets"]
 	sets.append({"identifier": "other", "uid": 99, "__cWid": 4, "__cHei": 1, "tileGridSize": 16})
 	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).override_failure_message(
@@ -242,7 +278,7 @@ func test_a_project_with_two_tilesets_is_refused() -> void:
 
 func test_a_project_holding_more_than_one_level_is_refused() -> void:
 	var ids := _tile_ids(_shipped_style())
-	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	var levels: Array = made["levels"]
 	levels.append(levels[0])
 	assert_array(LdtkMap.problems(made, StringName(_shipped_style()), ids)).is_not_empty()
@@ -259,7 +295,8 @@ func test_a_structured_field_survives_as_more_than_a_string() -> void:
 		"warps": [], "objects": [], "enemies": [],
 	}
 	var ids := _tile_ids("dusk16")
-	var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
+	var size := _tile_size("dusk16")
+	var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, size), ids, size)
 	var npc: Dictionary = (back["npcs"] as Array)[0]
 	assert_that(MapData.plain_numbers(npc.get("path"))).override_failure_message(
 		"a patrol path came back as %s" % [npc.get("path")]).is_equal([[1, 2], [3, 4]])
@@ -278,7 +315,8 @@ func test_a_field_the_records_disagree_about_stays_lossless() -> void:
 		"warps": [], "objects": [], "enemies": [],
 	}
 	var ids := _tile_ids("dusk16")
-	var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
+	var size := _tile_size("dusk16")
+	var back := LdtkMap.to_native(LdtkMap.from_native(native, ids, size), ids, size)
 	var npcs: Array = back["npcs"]
 	assert_that(MapData.plain_numbers((npcs[0] as Dictionary).get("note"))).override_failure_message(
 		"a number under a disagreed-about field came back as %s"
@@ -287,7 +325,8 @@ func test_a_field_the_records_disagree_about_stays_lossless() -> void:
 
 func test_a_map_says_which_bank_it_was_painted_against() -> void:
 	var native := _native_of(_maps()[0])
-	var made := LdtkMap.from_native(native, _tile_ids(str(native.get("style", "gb16"))), TILE_SIZE)
+	var style := str(native.get("style", "gb16"))
+	var made := LdtkMap.from_native(native, _tile_ids(style), _tile_size(style))
 	assert_str(LdtkMap.style_of(made)).is_equal(str(native.get("style", "")))
 
 func test_a_file_naming_no_style_is_not_guessed_at() -> void:
@@ -301,7 +340,7 @@ func test_the_tileset_image_is_named_beside_the_map() -> void:
 	# drawn on it. Both translators answer `atlas_name()`, so one export directory serves both.
 	var native := _native_of(_maps()[0])
 	var style := str(native.get("style", "gb16"))
-	var made := LdtkMap.from_native(native, _tile_ids(style), TILE_SIZE)
+	var made := LdtkMap.from_native(native, _tile_ids(style), _tile_size(style))
 	var set_one: Dictionary = ((made["defs"] as Dictionary)["tilesets"] as Array)[0]
 	assert_str(str(set_one["relPath"])).is_equal(LdtkMap.atlas_name(style))
 	assert_str(str(set_one["relPath"])).override_failure_message(
@@ -321,7 +360,7 @@ func test_a_tile_layer_points_at_the_same_sheet() -> void:
 	# editor reads the layer's copy. They have to agree.
 	var native := _native_of(_maps()[0])
 	var style := str(native.get("style", "gb16"))
-	var made := LdtkMap.from_native(native, _tile_ids(style), TILE_SIZE)
+	var made := LdtkMap.from_native(native, _tile_ids(style), _tile_size(style))
 	var found := 0
 	for entry: Variant in ((made["levels"] as Array)[0] as Dictionary)["layerInstances"]:
 		var layer: Dictionary = entry

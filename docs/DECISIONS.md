@@ -197,6 +197,18 @@ its own 0.9.3 test file — which current LDtk opens — is missing eleven of th
 (the legend is rebuilt, and a legend is a spelling choice), and a third private notion of "same
 map" would have been three gates that eventually disagree about what a map is.
 
+**A number both directions share, found 2026-09-02 and fixed.** The command held a
+`const TILE_SIZE := 16` and handed it to the exporter and the importer alike, so `--verify` sent 16
+out and read 16 back and every map came home identical — while the demo had moved to 32px tiles
+four milestones earlier, and every file written since declared a 16px grid over a 384x32 atlas,
+which an editor slices into quarter tiles with every object at half its cell. The size now comes
+from the generated `tiles.json` beside the ids and for their reason; both translators refuse a
+declared grid that disagrees with the size the caller reads at; and `tests/unit/test_map_io.gd`
+spawns the engine, runs the command and reads what it WROTE, because a check living only inside
+`--verify` is a step in `check.sh` that no mutant can be judged by. The general rule went to
+`docs/learnings.md`: a constant both directions of a round trip share is invisible to that round
+trip.
+
 **Stated limitation rather than a hidden one:** no gate here proves either editor OPENS these
 files. All of them are this reader understanding this writer. The one independent check made was
 validating all six generated `.ldtk` files against LDtk's published 1.5.3 schema — zero errors —

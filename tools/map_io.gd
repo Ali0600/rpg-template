@@ -25,7 +25,6 @@ extends SceneTree
 
 const MAP_DIR := "res://data/maps"
 const TILE_TABLE := "res://assets/generated/%s/tiles.json"
-const TILE_SIZE := 16
 ## Where --verify does its round trip. Under user:// so a checkout stays clean and a sandbox with
 ## a read-only project directory can still run the gate.
 const SCRATCH := "user://map_io_verify"
@@ -135,10 +134,10 @@ func _write_one(native_path: String, out_path: String, format: String) -> bool:
 	var native := _native_of(native_path)
 	if native.is_empty():
 		return false
-	var ids := _tile_ids(str(native.get("style", "gb16")))
-	if ids.is_empty():
+	var table := _tile_table(str(native.get("style", "gb16")))
+	if table.is_empty():
 		return false
-	var made := _to_editor(format, native, ids)
+	var made := _to_editor(format, native, table)
 	var file := FileAccess.open(out_path, FileAccess.WRITE)
 	if file == null:
 		_fail("could not write '%s': %s" % [out_path, error_string(FileAccess.get_open_error())])
@@ -216,8 +215,8 @@ func _run_verify() -> void:
 			var native := _native_of(path)
 			if native.is_empty():
 				return
-			var ids := _tile_ids(str(native.get("style", "gb16")))
-			if ids.is_empty():
+			var table := _tile_table(str(native.get("style", "gb16")))
+			if table.is_empty():
 				return
 			var scratch_path := "%s/%s.%s" % [SCRATCH, path.get_file().get_basename(),
 				str((FORMATS[format] as Dictionary)["ext"])]
@@ -286,11 +285,13 @@ func _sweep(root: String) -> void:
 ## The one place a format name becomes a translator call. Both translators answer the same two
 ## names, so this is a lookup rather than a branch - and a third editor never touches this file's
 ## logic.
-func _to_editor(format: String, native: Dictionary, ids: PackedStringArray) -> Dictionary:
+func _to_editor(format: String, native: Dictionary, table: Dictionary) -> Dictionary:
+	var ids: PackedStringArray = table["ids"]
+	var size := int(table["tile_size"])
 	if format == "ldtk":
-		return LdtkMap.from_native(native, ids, TILE_SIZE,
+		return LdtkMap.from_native(native, ids, size,
 			_chrome_of(str(native.get("style", ""))))
-	return TiledMap.from_native(native, ids, TILE_SIZE)
+	return TiledMap.from_native(native, ids, size)
 
 
 ## The running style's own UI palette, handed to the LDtk exporter so a map opens in the editor
@@ -308,16 +309,18 @@ func _chrome_of(style: String) -> Dictionary:
 
 func _from_editor(format: String, raw: Dictionary, where: String) -> Dictionary:
 	var style := StringName(_style_of(format, raw))
-	var ids := _tile_ids(String(style))
-	if ids.is_empty():
+	var table := _tile_table(String(style))
+	if table.is_empty():
 		return {}
-	var faults := LdtkMap.problems(raw, style, ids) if format == "ldtk" \
-		else TiledMap.problems(raw, style, ids)
+	var ids: PackedStringArray = table["ids"]
+	var size := int(table["tile_size"])
+	var faults := LdtkMap.problems(raw, style, ids, size) if format == "ldtk" \
+		else TiledMap.problems(raw, style, ids, size)
 	if not faults.is_empty():
 		_fail("'%s' is not fit to import:\n    %s" % [where, "\n    ".join(faults)])
 		return {}
-	return LdtkMap.to_native(raw, ids, TILE_SIZE) if format == "ldtk" \
-		else TiledMap.to_native(raw, ids, TILE_SIZE)
+	return LdtkMap.to_native(raw, ids, size) if format == "ldtk" \
+		else TiledMap.to_native(raw, ids, size)
 
 
 ## Which tile bank a file was painted against, asked of the file itself. Both translators answer
@@ -365,20 +368,30 @@ func _native_of(path: String) -> Dictionary:
 	return out
 
 
-## The bank in index order, which is what a tile index MEANS. Read from the generated table
-## because that is the file the coupling actually runs through - a list of our own would check
-## the translators against a bank nobody paints with.
-func _tile_ids(style: String) -> PackedStringArray:
+## `{"ids": PackedStringArray, "tile_size": int}`, or empty when there is nothing to read.
+##
+## The bank in index order, which is what a tile index MEANS, and the SIZE those indices are
+## drawn at. Both from the generated table because that is the file the coupling actually runs
+## through - a list of our own would check the translators against a bank nobody paints with,
+## and a size of our own is worse: both directions would share it, so the round trip could never
+## see it. This file said 16 for four milestones after the demo moved to 32px tiles, and every
+## export declared a 16px grid over a 384x32 atlas, which an editor slices into quarter tiles.
+func _tile_table(style: String) -> Dictionary:
 	var file := JsonFile.read(TILE_TABLE % style)
 	if not file.ok:
 		_fail("no generated tile table for '%s' - run gen_sprites.gd first" % style)
-		return PackedStringArray()
-	var out := PackedStringArray()
+		return {}
+	var ids := PackedStringArray()
 	for entry: Variant in file.data.get("tiles", []):
-		out.append(str((entry as Dictionary).get("id", "")))
-	if out.is_empty():
+		ids.append(str((entry as Dictionary).get("id", "")))
+	if ids.is_empty():
 		_fail("the tile table for '%s' is empty" % style)
-	return out
+		return {}
+	var drawn_at := int(file.data.get("tile_size", 0))
+	if drawn_at <= 0:
+		_fail("the tile table for '%s' names no tile_size" % style)
+		return {}
+	return {"ids": ids, "tile_size": drawn_at}
 
 
 func _fail(message: String) -> void:

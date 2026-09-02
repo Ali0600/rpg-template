@@ -15,7 +15,6 @@ extends GdUnitTestSuite
 ## coordinate, and every record intact.
 
 const MAP_DIR := "res://data/maps"
-const TILE_SIZE := 16
 
 ## The tile bank in index order, which is what a GID means. Read from the generated tiles.json
 ## because that is the file the coupling actually runs through - a test with its own list would
@@ -28,6 +27,17 @@ func _tile_ids(style: String) -> PackedStringArray:
 	for entry: Variant in file.data.get("tiles", []):
 		out.append(str((entry as Dictionary).get("id", "")))
 	return out
+
+## The size that bank's indices are drawn at, from the same generated table. Read rather than
+## written down for `_shipped_style()`'s reason one unit along: a size spelled into this suite is
+## handed to BOTH directions of the round trip, where a wrong one cancels itself out and comes
+## back the same map. `tools/map_io.gd` held a literal 16 through four milestones that way, and
+## every export it wrote declared a 16px grid over a 32px atlas.
+func _tile_size(style: String) -> int:
+	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+	assert_bool(file.ok).override_failure_message(
+		"no generated tile table for '%s', so no coordinate here means anything" % style).is_true()
+	return int(file.data.get("tile_size", 0))
 
 func _native_of(path: String) -> Dictionary:
 	var file := JsonFile.read(path)
@@ -63,8 +73,8 @@ func test_every_shipped_map_survives_a_trip_through_tiled() -> void:
 	for path in _maps():
 		var native := _native_of(path)
 		var ids := _tile_ids(str(native.get("style", "gb16")))
-		var tiled := TiledMap.from_native(native, ids, TILE_SIZE)
-		var back := TiledMap.to_native(tiled, ids, TILE_SIZE)
+		var tiled := TiledMap.from_native(native, ids, _tile_size(str(native.get("style", "gb16"))))
+		var back := TiledMap.to_native(tiled, ids, _tile_size(str(native.get("style", "gb16"))))
 		var faults := MapData.differences(MapData.load_from(path), MapData.from_dictionary(back))
 		assert_array(faults).override_failure_message(
 			"'%s' came back from Tiled as a different map:\n  %s"
@@ -80,7 +90,8 @@ func test_a_map_that_came_back_is_still_a_map_the_game_can_read() -> void:
 	for path in _maps():
 		var native := _native_of(path)
 		var ids := _tile_ids(str(native.get("style", "gb16")))
-		var back := TiledMap.to_native(TiledMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
+		var size := _tile_size(str(native.get("style", "gb16")))
+		var back := TiledMap.to_native(TiledMap.from_native(native, ids, size), ids, size)
 		var after := MapData.from_dictionary(back)
 		assert_bool(after.ok).override_failure_message(
 			"'%s' did not parse after a trip through Tiled: %s" % [path, after.error]).is_true()
@@ -92,7 +103,7 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 	# painted against one bank and read against another is not a broken file - it is a map full of
 	# the wrong tiles, and nothing else in this project would notice.
 	var ids := _tile_ids(_shipped_style())
-	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), ids)).override_failure_message(
 		"a map painted against the bank it is being read with was refused").is_empty()
 	var shorter := ids.duplicate()
@@ -101,9 +112,26 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 		"the bank lost a tile and the map was accepted anyway - every id past the change is now "
 		+ "a different tile").is_not_empty()
 
+func test_a_map_painted_on_another_grid_is_refused() -> void:
+	# THE COUPLING IN ANOTHER UNIT. Every coordinate in a Tiled file is in PIXELS - an object is
+	# written at `tile * tile_size` and read back by dividing - so a file painted on one grid and
+	# read on another puts every record at a fraction of its own tile, on a map that still parses.
+	# It cannot be caught by a round trip, because both directions are handed the same number.
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var size := _tile_size(style)
+	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, size)
+	assert_array(TiledMap.problems(tiled, StringName(style), ids, size)).override_failure_message(
+		"a map read at the size it was painted on was refused").is_empty()
+	assert_array(TiledMap.problems(tiled, StringName(style), ids, size * 2)) \
+		.override_failure_message("a map painted at %dpx was accepted at %dpx; every record on it "
+		% [size, size * 2] + "would land at half its tile").is_not_empty()
+	assert_array(TiledMap.problems(tiled, StringName(style), ids)).override_failure_message(
+		"a caller with no table to hand should get no size complaint, and got one").is_empty()
+
 func test_a_map_painted_against_another_style_is_refused() -> void:
 	var ids := _tile_ids(_shipped_style())
-	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	assert_array(TiledMap.problems(tiled, &"gb16", ids)).override_failure_message(
 		"a map painted for one style was read as another without complaint").is_not_empty()
 
@@ -111,13 +139,13 @@ func test_an_infinite_map_is_refused() -> void:
 	# Tiled will happily make one, and a template map has a fixed size - `MapData.size()` is the
 	# width of row zero. An infinite map has no rows at all in the same sense.
 	var ids := _tile_ids(_shipped_style())
-	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	tiled["infinite"] = true
 	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), ids)).is_not_empty()
 
 func test_a_map_with_two_tilesets_is_refused() -> void:
 	var ids := _tile_ids(_shipped_style())
-	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, TILE_SIZE)
+	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
 	var sets: Array = tiled["tilesets"]
 	sets.append({"firstgid": 100, "name": "other", "tilecount": 4})
 	assert_array(TiledMap.problems(tiled, StringName(_shipped_style()), ids)).override_failure_message(
@@ -136,7 +164,8 @@ func test_a_structured_field_survives_as_more_than_a_string() -> void:
 		"warps": [], "objects": [], "enemies": [],
 	}
 	var ids := _tile_ids("dusk16")
-	var back := TiledMap.to_native(TiledMap.from_native(native, ids, TILE_SIZE), ids, TILE_SIZE)
+	var size := _tile_size("dusk16")
+	var back := TiledMap.to_native(TiledMap.from_native(native, ids, size), ids, size)
 	var npc: Dictionary = (back["npcs"] as Array)[0]
 	assert_that(MapData.plain_numbers(npc.get("path"))).override_failure_message(
 		"a patrol path came back as %s" % [npc.get("path")]).is_equal([[1, 2], [3, 4]])
@@ -151,7 +180,7 @@ func test_a_map_says_which_bank_it_was_painted_against() -> void:
 	# the wrong one.
 	var native := _native_of(_maps()[0])
 	var ids := _tile_ids(str(native.get("style", "gb16")))
-	var tiled := TiledMap.from_native(native, ids, TILE_SIZE)
+	var tiled := TiledMap.from_native(native, ids, _tile_size(str(native.get("style", "gb16"))))
 	assert_str(TiledMap.style_of(tiled)).is_equal(str(native.get("style", "")))
 
 func test_a_file_naming_no_style_is_not_guessed_at() -> void:
@@ -166,7 +195,7 @@ func test_the_tileset_image_is_named_beside_the_map() -> void:
 	# image, only an editor does. `map_io.gd` copies the sheet in under this name.
 	var native := _native_of(_maps()[0])
 	var style := str(native.get("style", "gb16"))
-	var made := TiledMap.from_native(native, _tile_ids(style), TILE_SIZE)
+	var made := TiledMap.from_native(native, _tile_ids(style), _tile_size(style))
 	var image := str((((made["tilesets"] as Array)[0]) as Dictionary)["image"])
 	assert_str(image).override_failure_message(
 		"the tileset image is '%s', which does not name the style it belongs to" % image

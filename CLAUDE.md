@@ -950,6 +950,23 @@ map full of the wrong tiles, and every other gate here would pass it. `problems(
 mismatch by NAME and by COUNT, so reordering `data/tiles/*.json` is a loud failure rather than a
 silently redecorated map. Mutants cover both, plus dropping `firstgid` (every tile off by one).
 
+**THE GRID IS THE SAME COUPLING IN ANOTHER UNIT, and it was wrong for four milestones.** Every
+coordinate in either editor's file is in PIXELS - a record is written at `tile * tile_size` and
+read back by dividing - so a file painted on one grid and read on another puts every record at a
+fraction of its own tile, on a map that still parses. `map_io.gd` held a `const TILE_SIZE := 16`
+and handed it to BOTH directions, so `--verify` round-tripped every map back to itself while every
+exported file declared a 16px grid over the demo's 384x32 atlas: an editor slices that into quarter
+tiles. **A constant both directions of a round trip share is invisible to that round trip.** The
+size now comes from the generated `tiles.json`, beside the ids and for their reason, and
+`problems()` refuses a declared grid that disagrees with the size the caller will read at (zero
+means "no table to hand", the only case that skips the check).
+
+**`tests/unit/test_map_io.gd` runs the COMMAND and reads what it wrote.** `--verify` is a step
+inside `check.sh`, which no mutant can be judged by; this suite spawns the engine the way
+`test_ci_paths.gd` spawns bash, exports both formats to `user://`, and asserts the declared grid
+and the atlas beside them. Five mutants ride on it - the table's size, both translators' refusals,
+and both writers' declared grid. No `--fixed-fps` on that spawn: `map_io` quits in its first frame.
+
 **Tiled has no array property** - its types are string/int/float/bool/colour/file/object/class - so
 a record field that is an array (a patrol `path`, a formation's `group`) travels as JSON behind a
 marker. Scalars deliberately do NOT: they become real typed properties, which is the entire point,
