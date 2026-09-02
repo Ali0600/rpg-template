@@ -26,9 +26,10 @@ func after_test() -> void:
 		_world.free()
 	_world = null
 	MapData.root = MapData.MAP_DIR
-	# The window and the state both outlive a suite; a run left at 640x360 would re-scale every
-	# layout audit that came after it, and the failure would look like the audit's fault.
-	UiScale.apply(get_tree().root, load(DUSK) as SpriteStyle)
+	# The window is NOT put back here. It outlives a suite, and a run left at 640x360 re-scales
+	# every layout audit that comes afterwards - but the world scene restores it as it leaves the
+	# tree, and a second writer here would mask a mutant aimed at that one. The test below is
+	# what proves it happens.
 	GameState.reset()
 	Router.reset()
 
@@ -95,6 +96,29 @@ func _boot_narrow() -> Node2D:
 func _on_screen(control: Control) -> Rect2:
 	return control.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, control.size)
 
+
+func test_a_world_that_goes_away_leaves_the_window_as_it_found_it() -> void:
+	# The pair to binding a style. The window belongs to the root, so a world that grew it and
+	# then went away has moved furniture that is not its own - and the suites that come next lay
+	# themselves out against 320x180 whatever the window says, so their failures read as layout
+	# faults rather than as this one leaving the lights on.
+	#
+	# It is asserted right after free() rather than left to after_test, because after_test is
+	# where the old fix lived: eleven suites boot a world and exactly one of them put the window
+	# back, so the rule was true where it was written down and nowhere else. THE ORDER OF THE
+	# SUITES decided whether the run went green, which is why it passed here and failed on the
+	# runner.
+	var world := await _boot_wide()
+	assert_vector(world.get_viewport_rect().size).override_failure_message(
+		"the fixture did not grow the window, so freeing it cannot prove anything"
+		).is_equal(Vector2(UiScale.DESIGN_SIZE) * 2.0)
+	world.free()
+	_world = null
+	await _steps(1)
+	assert_vector(get_tree().root.get_viewport().get_visible_rect().size) \
+		.override_failure_message("the world went away and left the window at another style's "
+		+ "size, so every suite after it lays out against a window it did not choose"
+		).is_equal(Vector2(UiScale.DESIGN_SIZE))
 
 func test_a_32px_style_is_played_in_a_640x360_world() -> void:
 	var world := await _boot_wide()
