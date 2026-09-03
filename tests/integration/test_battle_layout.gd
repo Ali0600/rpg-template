@@ -286,30 +286,82 @@ func _spell(name: String, cost: int) -> BattleLogic.SpellRow:
 		SpellDef.Kind.ATTACK, 5, 0)
 
 
+## Whether anything between this node and the screen is invisible. A row inside a hidden window
+## is not on screen, and measuring it would report a collision nobody can see.
+func _shown(node: Node, screen: BattleScreen) -> bool:
+	var at := node
+	while at != null and at != screen:
+		var control := at as CanvasItem
+		if control != null and not control.visible:
+			return false
+		at = at.get_parent()
+	return true
+
+
+## The nearest chrome kind above `node`, or nothing. Asked by ancestry rather than by an identity
+## list, which is what the fill exclusion used to be - and a list every new bar had to be added to.
+func _kind_above(node: Node, screen: BattleScreen) -> StringName:
+	var at := node.get_parent()
+	while at != null and at != screen:
+		var kind := UiChrome.kind_of(at)
+		if kind != &"":
+			return kind
+		at = at.get_parent()
+	return &""
+
+
+## The nearest thing above `node` that CONTAINS it - a window or a header band - or null.
+func _container_of(node: Node, screen: BattleScreen) -> Node:
+	var at := node.get_parent()
+	while at != null and at != screen:
+		var kind := UiChrome.kind_of(at)
+		if kind == UiChrome.FRAME or kind == UiChrome.HEADER:
+			return at
+		at = at.get_parent()
+	return null
+
+
 ## Every rectangle the player can actually see, with the name of the node that owns it.
 ##
-## ColorRects and Labels both, because the collision that shipped was text on text and the
-## next one could as easily be text on a bar. A Label's `size` is only meaningful once it has
+## ColorRects, Labels, portraits and FIGHTERS. A Label's `size` is only meaningful once it has
 ## laid out, so its height comes from the font it was given - what is being asserted is where
 ## a line of text SITS, and a zero-height rect intersects nothing.
+##
+## The fighters are the M42 addition and the reason this audit could be green while the screen
+## was wrong. It measured two node classes and a SpriteView is neither, so a health bar drawn
+## across a character's chest collided with nothing this could see - which is exactly the
+## picture that got the old screen rejected. A view's origin is its FEET, so its rectangle
+## reaches up and back from there by the anchor.
 func _visible_rects(screen: BattleScreen) -> Array:
 	var out: Array = []
-	# A bar's FILL is drawn inside its own track by construction - that is what a bar is - so
-	# the two are one widget rather than two peers. Excluded by identity rather than by "one
-	# rect contains another", which would also excuse a label genuinely buried under a panel.
-	var fills: Array[ColorRect] = []
-	fills.append_array(screen._foe_fills)
-	fills.append_array(screen._member_fills)
+	for node in SceneHelpers.find_all_by_class(screen, "SpriteView"):
+		var view := node as SpriteView
+		if not view.visible or not _shown(view, screen) or view.cell_size() == Vector2i.ZERO:
+			continue
+		var span := Vector2(view.cell_size()) * view.scale
+		out.append([_name_of(screen, view) + " (a fighter)",
+			Rect2(view.position - Vector2(view.anchor()) * view.scale, span), view])
+	for node in SceneHelpers.find_all_by_class(screen, "TextureRect"):
+		var face := node as TextureRect
+		if not face.visible or not _shown(face, screen):
+			continue
+		out.append([_name_of(screen, face), Rect2(face.global_position, face.size), face])
 	for node in SceneHelpers.find_all_by_class(screen, "ColorRect"):
 		var rect := node as ColorRect
 		# The backdrop is a COVER, not a peer: it is the whole screen by construction, and
 		# auditing it against everything drawn on top of it would report the entire screen.
-		if not rect.visible or rect.size >= Vector2(VIEWPORT) or fills.has(rect):
+		#
+		# Anything INSIDE a bar is skipped for a narrower reason: a fill drawn in its own track
+		# is what a bar IS, so the widget is one peer rather than two. By ancestry rather than by
+		# an identity list, which is what the list was and which every new bar had to be added to.
+		if not rect.visible or not _shown(rect, screen) or rect.size >= Vector2(VIEWPORT):
 			continue
-		out.append([_name_of(screen, rect), Rect2(rect.global_position, rect.size)])
+		if _kind_above(rect, screen) == UiChrome.BAR:
+			continue
+		out.append([_name_of(screen, rect), Rect2(rect.global_position, rect.size), rect])
 	for node in SceneHelpers.find_all_by_class(screen, "Label"):
 		var label := node as Label
-		if not label.visible or label.text.strip_edges().is_empty():
+		if not label.visible or not _shown(label, screen) or label.text.strip_edges().is_empty():
 			continue
 		var font := label.get_theme_font("font")
 		var size := label.get_theme_font_size("font_size")
@@ -336,19 +388,24 @@ func _visible_rects(screen: BattleScreen) -> Array:
 		# tall: a second line drawn over the foe bars is exactly the collision this audit exists
 		# to catch, and a rect fixed at one line's height cannot see it.
 		out.append([_name_of(screen, label) + " '" + label.text + "'",
-			Rect2(at, Vector2(measured.x, float(size * lines)))])
+			Rect2(at, Vector2(measured.x, float(size * lines))), label])
 	return out
 
 
 ## A readable name for a node, so a failure says WHICH two things collided rather than handing
 ## back two rectangles to work out.
 func _name_of(screen: BattleScreen, node: Node) -> String:
-	var index := 0
-	for child in screen.get_children():
-		if child == node:
-			return "child %d (%s)" % [index, node.get_class()]
-		index += 1
-	return node.get_class()
+	# The path from the screen down, because things nest now: "child 4 (Panel) > child 1 (Label)"
+	# says which window a stray row belongs to, where a bare class name says only that one exists.
+	var parts: Array[String] = []
+	var at := node
+	while at != null and at != screen:
+		var parent := at.get_parent()
+		if parent == null:
+			break
+		parts.push_front("child %d (%s)" % [at.get_index(), at.get_class()])
+		at = parent
+	return " > ".join(parts) if not parts.is_empty() else node.get_class()
 
 
 ## How many lines a wrapping label actually comes to. Measured from the font rather than read off
@@ -393,8 +450,14 @@ func _assert_nothing_leaves_the_window(screen: BattleScreen, page: String) -> vo
 			% [page, named[0], rect.end.y, VIEWPORT.y]).is_less_equal(float(VIEWPORT.y))
 
 
-## The audit itself: no two visible things share pixels. Named separately from the tests so
-## every page below is one line and the failure message says which page it was.
+## The audit itself: no two visible things share pixels, and anything inside a window stays
+## inside it. Named separately from the tests so every page below is one line and the failure
+## message says which page it was.
+##
+## A CONTAINER is not a peer. A window is drawn behind everything in it by construction, and a
+## cursor is drawn behind the row it selects - so measuring either as a peer would report the
+## whole screen. What is asserted about them instead is the thing they promise: a window ENCLOSES
+## its contents, and partial overlap - a row half out of its own window - is the failure.
 func _assert_nothing_overlaps(screen: BattleScreen, page: String) -> void:
 	var rects := _visible_rects(screen)
 	assert_int(rects.size()).override_failure_message(
@@ -403,6 +466,35 @@ func _assert_nothing_overlaps(screen: BattleScreen, page: String) -> void:
 		for j in range(i + 1, rects.size()):
 			var a: Rect2 = rects[i][1]
 			var b: Rect2 = rects[j][1]
+			var a_node: Node = rects[i][2]
+			var b_node: Node = rects[j][2]
+			# One inside the other: assert the containment rather than the separation.
+			if _container_of(b_node, screen) == a_node:
+				assert_bool(a.encloses(b)).override_failure_message(
+					"on the %s page, %s %s sticks out of %s %s"
+					% [page, rects[j][0], b, rects[i][0], a]).is_true()
+				continue
+			if _container_of(a_node, screen) == b_node:
+				assert_bool(b.encloses(a)).override_failure_message(
+					"on the %s page, %s %s sticks out of %s %s"
+					% [page, rects[i][0], a, rects[j][0], b]).is_true()
+				continue
+			# A cursor sits UNDER a row: it may cover one whole, and must not clip any other.
+			if UiChrome.kind_of(a_node) == UiChrome.SELECT \
+					or UiChrome.kind_of(b_node) == UiChrome.SELECT:
+				var bar: Rect2 = a if UiChrome.kind_of(a_node) == UiChrome.SELECT else b
+				var other: Rect2 = b if UiChrome.kind_of(a_node) == UiChrome.SELECT else a
+				assert_bool(not bar.intersects(other) or bar.encloses(other)) \
+					.override_failure_message(
+					"on the %s page, the cursor %s half-covers %s %s"
+					% [page, bar, rects[j][0] if bar == a else rects[i][0], other]).is_true()
+				continue
+			# A window may sit inside another window's content area; the containment above has
+			# already covered the pair that are actually nested.
+			if UiChrome.kind_of(a_node) == UiChrome.FRAME and a.encloses(b):
+				continue
+			if UiChrome.kind_of(b_node) == UiChrome.FRAME and b.encloses(a):
+				continue
 			assert_bool(a.intersects(b)).override_failure_message(
 				"on the %s page, %s %s is drawn over %s %s"
 				% [page, rects[i][0], a, rects[j][0], b]).is_false()
