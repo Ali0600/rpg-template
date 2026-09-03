@@ -16,11 +16,13 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Rook",
+			"portrait": "quest_scrapper",
 			"text": "Warden won't have me. Says one sword is enough for a village this size.",
 			"next": "ask"
 		},
 		"ask": {
 			"speaker": "Rook",
+			"portrait": "quest_scrapper",
 			"text": "The road east disagrees. Two of us come back from it; one doesn't.",
 			"choices": [
 				{
@@ -43,14 +45,17 @@
 		},
 		"joined": {
 			"speaker": "Rook",
+			"portrait": "quest_scrapper",
 			"text": "Right. I'll take the left side. Try to keep up."
 		},
 		"alone": {
 			"speaker": "Rook",
+			"portrait": "quest_scrapper",
 			"text": "You will, probably. I'll be here either way."
 		},
 		"along": {
 			"speaker": "Rook",
+			"portrait": "quest_scrapper",
 			"text": "Still here. Still the left side."
 		}
 	}

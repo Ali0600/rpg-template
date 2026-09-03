@@ -133,3 +133,31 @@ func test_a_single_slot_still_draws() -> void:
 	assert_str(joined).override_failure_message(
 		"a one-slot save point drew no slot row: %s" % joined).contains("Slot 1")
 	screen.free()
+
+
+func test_the_save_point_marks_the_slot_it_would_write_to() -> void:
+	# The rows say what is in each slot; only the cursor says which one a press would overwrite.
+	# It used to be a "*" written into the front of the row's own text, which is why this suite
+	# could see it by reading Labels - a bar is a different node and needs its own assertion, or
+	# a save point that marked nothing would pass every measurement here.
+	var screen := SaveScreen.new()
+	add_child(screen)
+	screen.setup(SaveMenu.of(_slots(3)), _style(), VIEWPORT)
+	await get_tree().process_frame
+	assert_bool(screen._select.visible).override_failure_message(
+		"no slot is marked, so the screen cannot say where it would write").is_true()
+	var first := screen.selected_row()
+	assert_object(first).is_not_null()
+	var bar := Rect2(screen._select.global_position, screen._select.size)
+	assert_bool(bar.has_point(first.global_position)).override_failure_message(
+		"the cursor is not over the row it reports as chosen").is_true()
+	# And it MOVES. A bar parked on row 0 marks something true at the start and wrong after.
+	screen.menu().move(1)
+	screen._paint()
+	var second := screen.selected_row()
+	assert_object(second).is_not_equal(first)
+	var moved := Rect2(screen._select.global_position, screen._select.size)
+	assert_bool(moved.has_point(second.global_position)).override_failure_message(
+		"the cursor moved to a different row and the bar stayed put").is_true()
+	assert_vector(moved.position).is_not_equal(bar.position)
+	screen.free()

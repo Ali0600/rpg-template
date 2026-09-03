@@ -12,16 +12,19 @@
 	"nodes": {
 		"heard": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "You went in. And you came out.",
 			"next": "quiet"
 		},
 		"quiet": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "Then the keep is only a building again. It wants a light, and that lantern ran dry years ago.",
 			"next": "where"
 		},
 		"where": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "The hermit in the cave east of the town hoards oil by the flask. Light it, and I will believe it."
 		}
 	}

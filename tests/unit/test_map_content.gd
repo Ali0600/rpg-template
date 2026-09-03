@@ -119,6 +119,38 @@ func test_the_art_check_notices_a_person_nobody_drew() -> void:
 	assert_bool(_has_art(&"lpc32", &"quest_wanderer")).is_true()
 
 
+func test_every_face_a_conversation_names_has_art_in_the_game_s_style() -> void:
+	# The dialog half of the same rule, and the same failure: a `portrait` naming a character with
+	# no sheet is not an error a player sees as one - the face is simply absent and the box lays
+	# out as though the line were unattributed. The two halves live in different directories and
+	# are joined by a bare string, which is the shape S13b's element check has: a typo on either
+	# side is a pairing that silently never fires while both files stay individually valid.
+	var seen := 0
+	for manifest_path in ContentScan.files("res://data/games", ["tres"]):
+		var manifest := load(manifest_path) as GameManifest
+		if manifest == null:
+			continue
+		var style := MapData.load_from(MapData.path_of(manifest.start_map)).style_id
+		for path in ContentScan.files("res://data/dialog", ["json"]):
+			var file := JsonFile.read(path)
+			for node_id: Variant in file.get_dict("nodes").keys():
+				var node: Dictionary = file.get_dict("nodes")[node_id]
+				var face := StringName(str(node.get("portrait", "")))
+				if String(face).is_empty():
+					continue
+				seen += 1
+				assert_bool(_has_art(style, face)).override_failure_message(
+					"%s/%s draws '%s', who has no generated art for style '%s'"
+					% [path.get_file(), node_id, face, style]).is_true()
+	assert_int(seen).override_failure_message(
+		"no conversation names a face, so this proved nothing").is_greater(3)
+
+func test_the_face_check_notices_a_speaker_nobody_drew() -> void:
+	# The control. Without it the loop above passes on a game whose dialog names nobody.
+	assert_bool(_has_art(&"lpc32", &"nobody_drew_this")).is_false()
+	assert_bool(_has_art(&"lpc32", &"quest_warden")).is_true()
+
+
 func _has_art(style_id: StringName, character: StringName) -> bool:
 	if String(character).is_empty():
 		return false

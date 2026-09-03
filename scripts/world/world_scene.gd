@@ -873,7 +873,7 @@ func _open_dialog(dialog_id: StringName) -> bool:
 		push_error("World: " + p)
 
 	_player.halt()
-	if not _dialog.open(runner):
+	if not _dialog.open(runner, _source):
 		return false
 	Router.open_overlay(Router.State.DIALOG)
 	EventBus.dialog_changed.emit({"dialog_id": dialog_id, "open": true})

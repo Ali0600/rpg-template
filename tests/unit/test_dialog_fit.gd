@@ -64,7 +64,10 @@ func test_the_font_is_the_one_the_box_was_measured_against() -> void:
 
 
 func test_every_shipped_line_fits_the_window_that_draws_it() -> void:
-	var width := DialogBox.text_width(_viewport_width())
+	# Charged for the WIDEST face any shipped style would put beside it. A line that fits next to
+	# a small portrait and not a large one is a line that clips for whoever plays the style nobody
+	# measured - the capacity pattern, applied to a column rather than a row count.
+	var width := DialogBox.text_width(_viewport_width(), DialogBox.widest_face())
 	var faults: Array[String] = []
 	for path in ContentScan.files(DIALOG_DIR, ["json"]):
 		var file := JsonFile.read(path)
@@ -84,6 +87,7 @@ func test_every_shipped_choice_fits_its_row() -> void:
 	# mid-word with no ellipsis. The cursor and its padding eat into the width, so they are
 	# measured as part of the string rather than hand-waved.
 	var width := DialogBox.text_width(_viewport_width()) - float(DialogBox.CHOICE_INSET)
+	# A choice is never drawn beside a face: it sits in its own band under the whole text area.
 	var faults: Array[String] = []
 	for path in ContentScan.files(DIALOG_DIR, ["json"]):
 		var file := JsonFile.read(path)
@@ -95,7 +99,7 @@ func test_every_shipped_choice_fits_its_row() -> void:
 				faults.append("%s/%s offers %d choices, the box draws %d"
 					% [path.get_file(), node_id, choices.size(), DialogBox.MAX_CHOICES])
 			for choice: Variant in choices:
-				var label := "> " + str((choice as Dictionary).get("text", ""))
+				var label := str((choice as Dictionary).get("text", ""))
 				if _lines_used(label, width) > 1:
 					faults.append("%s/%s choice '%s' is wider than its row"
 						% [path.get_file(), node_id, label])

@@ -12,11 +12,13 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Elder",
+			"portrait": "town_elder",
 			"text": "You came down the north road. Then you have seen the gate, and the woman standing at it.",
 			"next": "ask"
 		},
 		"ask": {
 			"speaker": "Elder",
+			"portrait": "town_elder",
 			"text": "Eleven years she has kept a door shut on a building nobody uses. Will you go in for her?",
 			"choices": [
 				{
@@ -36,20 +38,24 @@
 		},
 		"promised": {
 			"speaker": "Elder",
+			"portrait": "town_elder",
 			"text": "Then see the smith before you go - she is east along this row, and she keeps something for cuts.",
 			"next": "farewell"
 		},
 		"deferred": {
 			"speaker": "Elder",
+			"portrait": "town_elder",
 			"text": "Tomorrow is a fine place to keep things. She has kept it there eleven years.",
 			"next": "farewell"
 		},
 		"silence": {
 			"speaker": "Elder",
+			"portrait": "town_elder",
 			"text": "An honest answer, at least."
 		},
 		"farewell": {
 			"speaker": "Elder",
+			"portrait": "town_elder",
 			"text": "Go on, then. The hermit east of here has been asking after that keep too."
 		}
 	}

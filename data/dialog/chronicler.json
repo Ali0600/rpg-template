@@ -29,11 +29,13 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Chronicler",
+			"portrait": "quest_warden",
 			"text": "Roads eat travellers, and the village\nforgets them by spring.",
 			"next": "ask"
 		},
 		"ask": {
 			"speaker": "Chronicler",
+			"portrait": "quest_warden",
 			"text": "Shall I set your journey down,\nso far as it has gone?",
 			"choices": [
 				{
@@ -49,10 +51,12 @@
 		},
 		"written": {
 			"speaker": "Chronicler",
+			"portrait": "quest_warden",
 			"text": "Then hold still. Ink is slow."
 		},
 		"later": {
 			"speaker": "Chronicler",
+			"portrait": "quest_warden",
 			"text": "The page keeps. Come back\nbefore the road does."
 		}
 	}

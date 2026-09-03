@@ -40,7 +40,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Status screen](#3-the-status-screen) | Level, HP, XP-to-next, stats, worn gear | A page of world-worded lines | **met** (M20) |
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices | All of it | **met** (M18.1) |
-| [Dialog](#6-dialog) | Bottom window, revealed text, choices | Bottom box, reveal, choice band, size-gated | **met** |
+| [Dialog](#6-dialog) | Bottom window, revealed text, choices, a named speaker, a portrait | Framed box, speaker in its header, the speaker's face, reveal, choice band, size-gated | **met** (M42) — no advance indicator, [named](#6-dialog) |
 | [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
@@ -205,7 +205,34 @@ A choice can also carry money: `spend_gold` with a mandatory `poor_next`, which 
 refusal the player hears. See `DECISIONS.md` for why money is shown-and-refused where an item
 requirement is hidden.
 
-**Gap:** no portraits, no per-player text speed. Both are candidates; neither is load-bearing.
+**What the box LOOKS like, added in M42** — the section had position and behaviour and nothing
+about chrome, which is what a rebuild needed. Read from screenshots on the Game UI Database
+(Persona 4 Golden's Dialogue & Speech captures) rather than recalled:
+
+- **The speaker is NAMED, in a tab of its own** sitting above the box's top-left corner in a
+  second fill, not inline with the text. It is the one piece of the box that changes colour per
+  speaker in Persona, and it is what makes a conversation with two people readable.
+- **The portrait sits LEFT, and it is big** - a bust that overlaps the box's edge rather than a
+  square inside it. The text column starts to its right.
+- **There is an ADVANCE INDICATOR**, bottom-right of the box, marking "there is more, press on".
+  Every reference has one; the shapes differ (a blinking triangle, a filled circle, an animated
+  glyph) and the position does not.
+- **Choices are their own small boxes**, stacked and right-aligned ABOVE the text box rather than
+  inside it, so the question stays readable while the answers are being chosen.
+
+**This template's adaptation, and what it does not take.** The speaker moves into the box's own
+header band rather than a floating tab, because at 320x180 a tab outside a box six pixels from
+the screen edge has nowhere to sit. The portrait is a 12-design-pixel FACE inside the box rather
+than an overlapping bust, for the same reason - a Persona bust is a third of the screen's height,
+and the equivalent here would be the whole box. Choices stay in their band INSIDE the box, where
+they have been since M5 and where the fit gate measures them; lifting them out would put a second
+window over the world for every question.
+
+**Gap:** ~~no portraits~~ — **closed in M42**: a dialog node names its own `portrait`, so a
+conversation with two speakers shows two faces, and a sign or a chest shows none. No per-player
+text speed, and no advance indicator: the box reveals a character at a time and a reader can see
+it is still going, but a finished line looks exactly like a line with nothing after it, which is
+the one piece of the anatomy above this template still does not have.
 
 ---
 
@@ -1144,6 +1171,40 @@ own Sekiro and Final Fantasy VIII-X influences.
 Clair Obscur page and the ArtStation HUD-concept galleries (403), the Medium UX write-up (403),
 and the itch.io Persona 5 study (403). Nothing above rests on them.
 
+### 16a. Away from the fight: the menu, the counter, the save point, the title
+
+Everything above is read off a battle screen. These are the same four rules on the surfaces a
+player spends most of their time in, and they are here because §1, §5, §8 and §12 all describe
+ORDER and BEHAVIOUR and say nothing about chrome - so a rebuild of those screens had §16's
+generalities and nothing else to go on.
+
+**A save screen is windows over the world, and each slot is its own frame.** Sea of Stars: a
+titled bar reading "Save Game", then one framed panel per slot carrying its number, its name and
+its timestamp right-aligned, a POINTER hand to the left of the chosen one, and underneath a
+details panel - Level, Gold, Time, Location - with the party standing beside it as their own
+walking sprites. The cave behind it all stays visible.
+
+**This template diverges on one of those and says why:** rows in ONE window rather than a frame
+each. Sea of Stars offers three slots and this template offers up to twelve, and twelve framed
+panels do not fit 180 pixels - `GameConfig.MAX_SAVE_SLOTS` is the capacity the layout audit
+measures at. The rest carries: the window sits over the live world, it is titled, and the chosen
+row is marked.
+
+**A shop is a row of windows, and the list is HEADED.** Sea of Stars heads its stock list with
+its columns - "ITEM NAME", "OWNED", "PRICE" - which is the one thing that makes a list of numbers
+readable without being told what they are, and the template's counter has had all three columns
+since M18.1 with nothing naming them.
+
+**A pause menu puts the party beside the commands.** All three modern references show the cast in
+the menu: Sea of Stars as portraits and stats, Persona 5 as angled portrait tiles, Clair Obscur
+as a column of framed portrait cards. This template drew a list of commands and nothing else -
+who you are was somewhere else entirely, on a status page one press away.
+
+**A title screen is mostly its own name.** Nothing in the references argues for a framed window
+around a title's rows; what they share is that the name is the largest thing on screen and the
+rows sit under it in the lower half. That is what this template already does, so the title's
+rebuild is chrome on the rows and nothing more.
+
 **Gap, named:** no window in this game is player-recolourable, which EarthBound and Pokemon both
 offer and which is the one convention in this section the template does not follow. It is a
 settings surface rather than a chrome one - the mechanism (`ui_colors` on the style) already
@@ -1219,6 +1280,17 @@ because a claim about what a window looks like cannot be carried by prose:
 Bot-blocked or paywalled on 2026-09-03 and therefore NOT cited anywhere above: the Sea of Stars
 wiki (402), interfaceingame.com's Clair Obscur page, the ArtStation HUD-concept galleries and the
 Medium UX write-up (403 each), and the itch.io Persona 5 study (403).
+
+§6's appearance half and §16a were added the same way, from these screens:
+
+- [Game UI Database — Dialogue & Speech](https://www.gameuidatabase.com/index.php?scrn=162) —
+  Persona 4 Golden's boxes: the speaker's name in a tab above the box's corner, the portrait
+  bust to the left overlapping its edge, the advance indicator bottom-right, and choices as
+  their own stack of small boxes above the text
+- [Game UI Database — Sea of Stars](https://www.gameuidatabase.com/gameData.php?id=2196), the
+  Title and Modals captures: the save screen as a titled bar, one framed panel per slot with a
+  pointer beside the chosen one, a details panel of Level / Gold / Time / Location, and the party
+  drawn beside it as their own walking sprites - all of it over the live world
 
 Element research (§13b, added in M33). The Final Fantasy and Pokémon numbers come from
 disassemblies of the shipped ROMs, because the wikis were bot-blocked and the Archive was down;

@@ -11,11 +11,13 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Carter",
+			"portrait": "town_carter",
 			"text": "Mind yourself - I walk this road all day and I'll not stop for you.",
 			"next": "road"
 		},
 		"road": {
 			"speaker": "Carter",
+			"portrait": "town_carter",
 			"text": "Up to the north road, down past the well, and back. Someone has to, and the elder is not going to."
 		}
 	}

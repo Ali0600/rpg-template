@@ -17,11 +17,13 @@
 	"nodes": {
 		"refused": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "Not alone you don't. I said one sword was enough for this village - the road is not this village. Rook is down by the west wall.",
 			"next": "wait"
 		},
 		"wait": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "Take her, and I will open it myself."
 		}
 	}

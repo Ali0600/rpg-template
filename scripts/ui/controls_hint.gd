@@ -10,17 +10,18 @@ extends CanvasLayer
 const FADE_SECONDS := 0.6
 const LINGER_SECONDS := 1.2
 
-var _label := Label.new()
+var _label: Label = null
 var _elapsed := 0.0
 var _dismissed := false
 
 
 func setup(style: SpriteStyle, viewport_size: Vector2i, text: String) -> void:
 	layer = 5
+	# Built through the chrome like every other label in the game, so it takes the project font
+	# and the style's own quiet colour with no arithmetic of its own.
+	_label = UiChrome.label(style, "dim")
 	_label.text = text
 	_label.position = Vector2(6, viewport_size.y - 14)
-	_label.add_theme_font_size_override("font_size", UiChrome.FONT_SIZE)
-	_label.add_theme_color_override("font_color", style.ui_color("dim"))
 	add_child(_label)
 
 

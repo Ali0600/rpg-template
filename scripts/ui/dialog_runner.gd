@@ -24,6 +24,12 @@ extends RefCounted
 class Line:
 	var speaker: String
 	var text: String
+	## Whose face to draw, or nothing. A CHARACTER id rather than the speaker's name, because the
+	## name is prose a writer picks and the id is the thing that has a sheet - and because a
+	## conversation may put two people in one node's mouth, which a name-to-character map cannot
+	## express. Empty is the normal case: a sign, a chest and a well have no face.
+	var portrait: StringName = &""
+	var text_lines: int = 0
 	var choices: Array[String] = []
 
 	func has_choices() -> bool:
@@ -108,6 +114,7 @@ func line() -> Line:
 	var out := Line.new()
 	out.speaker = str(node.get("speaker", ""))
 	out.text = str(node.get("text", ""))
+	out.portrait = StringName(str(node.get("portrait", "")))
 	for choice in _visible_choices(node):
 		out.choices.append(str((choice as Dictionary).get("text", "")))
 	return out
