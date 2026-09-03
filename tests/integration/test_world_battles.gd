@@ -344,18 +344,28 @@ func test_the_battle_screen_draws_the_magic_and_what_each_spell_costs() -> void:
 	await _boot()
 	GameState.set_party(9, 0, 1, 5)
 	_world.open_battle_with([_enemy(4, 1, 0)], "quest_village/foe")
-	var caption := "".join(_screen_text())
-	assert_str(caption).override_failure_message(
-		"the battle screen never says how much magic the player has").contains("MP 5/")
+	var screen: BattleScreen = _world.battle_screen()
+	assert_bool(screen._mp_bars[0].root.visible).override_failure_message(
+		"the battle screen never says how much magic the player has").is_true()
+	# What the player HAS, which is the number this test is about. Deliberately not the maximum
+	# beside it: that comes from the demo's own level curve, and pinning it here would make a
+	# rebalance fail in a test about whether the screen draws a readout at all.
+	assert_str(screen._mp_bars[0].numbers.text).override_failure_message(
+		"the magic readout says '%s'" % screen._mp_bars[0].numbers.text).starts_with("5/")
 
 	# Down onto Magic, in, and the page has to name a price ON THE ROW. Asserted as the whole
 	# row text: the hero's caption says "MP" too, so a test looking for that substring alone
 	# passes with every price stripped off the list - the masking path that makes a check
 	# decoration.
+	# The row is priced, and it is the row the cursor is ON. Two assertions where the old one
+	# carried both facts in a string: the "> " that used to prefix a selected row was part of its
+	# text, so "the page prices its rows" and "the cursor is on this one" could not come apart.
 	_open_the_spells()
 	assert_array(_screen_text()).override_failure_message(
 		"the spell page does not price its rows: %s" % [_screen_text()]) \
-		.contains(["> Ember  3 MP"])
+		.contains(["Ember  3 MP"])
+	assert_str(screen.selected_row().text).override_failure_message(
+		"the cursor is not on the row the page opened with").is_equal("Ember  3 MP")
 
 ## Opens the spell page and repaints, so the labels hold what the page would draw.
 func _open_the_spells() -> void:

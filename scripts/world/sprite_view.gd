@@ -96,6 +96,13 @@ func cell_size() -> Vector2i:
 	return _meta.cell if _meta != null else Vector2i.ZERO
 
 
+## Where this character's origin sits inside their cell - the point this node's position IS.
+## Needed by anything that has to work out the RECTANGLE a character occupies rather than the
+## point they stand on: the node is at their feet, so the cell reaches up and back from here.
+func anchor() -> Vector2i:
+	return _meta.anchor if _meta != null else Vector2i.ZERO
+
+
 func _play() -> void:
 	if _sprite.sprite_frames == null:
 		return

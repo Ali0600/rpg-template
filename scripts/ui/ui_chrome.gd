@@ -67,6 +67,12 @@ const FRAME := &"frame"
 const HEADER := &"header"
 const SELECT := &"select"
 const BAR := &"bar"
+const PORTRAIT := &"portrait"
+## The content rect, parked on the panel when it is built. A window's own rect is not what
+## "inside the window" means - the border and the header band are part of it - so the audit has
+## to be able to ask for the same rectangle the layout placed against, rather than settle for the
+## outer one and pass a row hanging over the bottom edge.
+const INNER := &"ui_inner"
 
 
 ## A window: fill, rule, and an optional header band with a name in it.
@@ -126,6 +132,7 @@ static func frame(style: SpriteStyle, rect: Rect2, title := "") -> Frame:
 	box.anti_aliasing = false
 	out.panel.add_theme_stylebox_override("panel", box)
 	if title.is_empty():
+		out.panel.set_meta(INNER, out.inner())
 		return out
 	out.header = ColorRect.new()
 	out.header.color = style.ui_color("header")
@@ -139,6 +146,7 @@ static func frame(style: SpriteStyle, rect: Rect2, title := "") -> Frame:
 	out.title.text = title.to_upper()
 	out.title.position = Vector2(float(PAD), 0.0)
 	out.header.add_child(out.title)
+	out.panel.set_meta(INNER, out.inner())
 	return out
 
 
@@ -180,7 +188,10 @@ static func bar(style: SpriteStyle, role: String, width: float) -> Bar:
 	out.fill.size = Vector2(width, float(BAR_HEIGHT))
 	out.root.add_child(out.fill)
 	out.numbers = label(style, "text")
-	out.numbers.position = Vector2(width + 3.0, -1.0)
+	# Two above the track, so the figures and the bar together occupy exactly one line of the
+	# font: a block is laid out in whole lines and a readout that hangs a pixel below its own
+	# row is one the cursor cannot cover.
+	out.numbers.position = Vector2(width + 3.0, -2.0)
 	out.root.add_child(out.numbers)
 	out.root.size = Vector2(width, float(BAR_HEIGHT))
 	return out
@@ -194,8 +205,58 @@ static func fill(b: Bar, value: int, most: int) -> void:
 	b.numbers.text = "%d/%d" % [maxi(value, 0), maxi(most, 0)]
 
 
+## The content rect of a window, in its own coordinates - what `inside the window` means.
+static func inner_of(panel: Node) -> Rect2:
+	if panel == null or not panel.has_meta(INNER):
+		return Rect2()
+	return panel.get_meta(INNER)
+
+
 ## What kind of thing this is, or nothing. The audits ask; nothing in the game does.
 static func kind_of(node: Node) -> StringName:
 	if node == null or not node.has_meta(KIND):
 		return &""
 	return StringName(str(node.get_meta(KIND)))
+
+
+## A character's face, cut from the standing frame of their own sheet.
+##
+## Drawn at 1 texture pixel per WORLD pixel, which on a layer already scaled to the world comes
+## out the size that face is when you walk around as them - and the same number of design pixels
+## whatever style is running, because a style with twice the cell declares twice the portrait.
+##
+## Returns a hidden node when the character has no sheet, rather than nothing: a party block with
+## a hole in it still lays out, and a missing PNG should cost a face rather than a screen.
+static func portrait(style: SpriteStyle, source: SpriteSource, character: StringName) -> TextureRect:
+	var out := TextureRect.new()
+	out.set_meta(KIND, PORTRAIT)
+	out.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# EXPAND_IGNORE_SIZE or the node takes its TEXTURE's size and the assignment below is a
+	# suggestion - which is how a 24px face lands in a block laid out for 12 and the audit
+	# reports a cursor half-covering it.
+	out.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	var span := float(style.portrait_size) / float(UiScale.scale_of(style))
+	out.custom_minimum_size = Vector2(span, span)
+	out.size = Vector2(span, span)
+	var sheet := source.sheet(character)
+	if sheet.is_empty():
+		out.visible = false
+		return out
+	var meta: SheetMeta = sheet["meta"]
+	var at := AtlasTexture.new()
+	at.atlas = sheet["texture"]
+	# The face's rect is in CELL coordinates, so the row this character faces the camera on is
+	# added here - once, in the one place that turns the measurement into a region.
+	at.region = Rect2i(meta.portrait.position
+		+ Vector2i(0, maxi(meta.row_of(Dir.D.DOWN), 0) * meta.cell.y), meta.portrait.size)
+	# Without this a portrait samples the neighbouring frame's edge pixels at some scales, which
+	# is a thin line of somebody else's shoulder down the side of every face.
+	at.filter_clip = true
+	out.texture = at
+	out.stretch_mode = TextureRect.STRETCH_SCALE
+	return out
+
+
+## How big a face is drawn, in the units a screen lays out in.
+static func portrait_span(style: SpriteStyle) -> float:
+	return float(style.portrait_size) / float(UiScale.scale_of(style))

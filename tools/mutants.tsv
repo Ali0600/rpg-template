@@ -447,8 +447,8 @@ scripts/ui/battle_logic.gd	s|\t\t_index = Row.MAGIC|\t\t_index = Row.ATTACK|	tes
 scripts/ui/battle_logic.gd	s|if def == null or def.learn_level > level:|if def == null:|	tests/integration/test_world_battles.gd	every spell in the game is castable from level one
 scripts/ui/battle_screen.gd	s|\treturn clampi\(_logic.index\(\) - VISIBLE_ROWS \+ 1, 0, count - VISIBLE_ROWS\)|\treturn 0|	tests/integration/test_battle_layout.gd	a page longer than the window never scrolls, so its last rows cannot be reached
 scripts/ui/battle_screen.gd	s|\t\tvar at := first \+ i|\t\tvar at := i|	tests/integration/test_battle_layout.gd	the window is worked out and then ignored, so the rows drawn never move
-scripts/ui/battle_screen.gd	s|\tlabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT|\tpass|	tests/integration/test_battle_layout.gd	the player block runs left across the screen and lands on the command list again
-scripts/ui/battle_screen.gd	s|if _logic.member_count\(\) != 1 or _logic.member_max_mp\(0\) <= 0:|if false:|	tests/integration/test_battle_layout.gd	a game with no magic is told about magic it does not have
+scripts/ui/battle_screen.gd	s|\tvar text_x := inner.position.x \+ face_span \+ 3.0|\tvar text_x := inner.position.x - 40.0|	tests/integration/test_battle_layout.gd	a member's name and bars are drawn left of the window that holds them
+scripts/ui/battle_screen.gd	s|\t\tvar casts := _logic.member_max_mp\(i\) > 0|\t\tvar casts := true|	tests/integration/test_battle_layout.gd	a game with no magic is shown an empty magic bar it can never fill
 scripts/ui/battle_screen.gd	s|\t\treturn \"%s  %d MP\" % \[spell.name, spell.cost\]|\t\treturn spell.name|	tests/integration/test_world_battles.gd	the spell page names no prices, so the choice is made blind
 scripts/world/world_scene.gd	s|\t\t\tout.append\("MP %d/%d" % \[mp, curve.max_mp\(level\)\]\)|\t\t\tpass|	tests/integration/test_world_equipment.gd	nothing outside a fight says how much magic is left
 
@@ -500,7 +500,7 @@ scripts/ui/battle_logic.gd	s|^\t\t\tif not everything and not only.has\(def.id\)
 scripts/world/world_scene.gd	s|GameState.set_companion\(member.id, curve.max_hp\(level\), earned, level, curve.max_mp\(level\)\)|GameState.set_companion(member.id, 1, 0, 1, 0)|	tests/integration/test_world_party.gd	a companion joins at one hit point whatever their curve says
 scripts/world/world_scene.gd	s|\t\t\t\t\t\tGameState.set_companion\(member, int\(record.get\("hp", 0\)\),|\t\t\t\t\t\tGameState.set_party(int(record.get("hp", 0)),|	tests/integration/test_world_party.gd	a companion's fight result is written over the leader
 scripts/ui/battle_screen.gd	s|\t\tvar mine := acting and player_side and swinging == i|\t\tvar mine := acting and player_side|	tests/integration/test_battle_layout.gd	every member leans when any one of them swings
-scripts/ui/battle_screen.gd	s|\treturn MEMBERS_Y \+ at \* MEMBER_PITCH|\treturn MEMBERS_Y|	tests/integration/test_battle_layout.gd	a party's blocks are all drawn on top of each other
+scripts/ui/battle_screen.gd	s|\t\tvar top := inner.position.y \+ i \* BLOCK_PITCH|\t\tvar top := inner.position.y|	tests/integration/test_battle_layout.gd	a party's blocks are all drawn on top of each other
 
 scripts/autoload/game_state.gd	s|^\tif String\(slot\).is_empty\(\):$|\tif false:|	tests/unit/test_party.gd	gear can be equipped into a slot that is not a slot
 scripts/ui/pause_menu.gd	s|^\tif _members.size\(\) > 1:$|\tif false:|	tests/unit/test_pause_menu.gd	a party opens equipment without asking whose
@@ -565,7 +565,7 @@ data/enemies/keeper.tres	s|boss = true|boss = false|	tests/unit/test_battle_cont
 data/enemies/slink.tres	s|boss = false|boss = true|	tests/unit/test_battle_content.gd	the tutorial fight becomes inescapable
 tests/helpers/battle_driver.gd	s|\t\treturn BattleLogic.Row.FLEE|\t\treturn BattleLogic.Row.ATTACK|	tests/unit/test_battle_content.gd	the runner never presses Run, so no escape is ever attempted
 scripts/ui/battle_screen.gd	s|\t_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART|\t_message.autowrap_mode = TextServer.AUTOWRAP_OFF|	tests/integration/test_battle_layout.gd	the caption stops wrapping, so a long line is drawn past the window edge
-scripts/ui/battle_screen.gd	s|\t_message.size.x = float\(viewport_size.x\) - MARGIN \* 2.0|\t_message.size.x = 1.0|	tests/integration/test_battle_layout.gd	the caption wraps against one pixel, which is what a Label falls back to
+scripts/ui/battle_screen.gd	s|\t_message.size.x = wide - MARGIN \* 2.0|\t_message.size.x = 1.0|	tests/integration/test_battle_layout.gd	the caption wraps against one pixel, which is what a Label falls back to
 scripts/ui/battle_logic.gd	s|\tif not _queued.is_empty\(\):|\tif false:|	tests/unit/test_battle_logic.gd	the queue is never drained, so a sweep reports only its first foe
 scripts/ui/battle_logic.gd	s|\t_queued = lines.slice\(1\)|\t_queued = []|	tests/unit/test_battle_logic.gd	only the first line of a sequence is queued, and the rest are lost
 scripts/ui/battle_logic.gd	s|\t\t_say\(next_line, _after_message\)|\t\t_say(next_line, Phase.PLAYER_ACT)|	tests/unit/test_battle_logic.gd	a sequence forgets where it was going, so a winning sweep hands the turn back
