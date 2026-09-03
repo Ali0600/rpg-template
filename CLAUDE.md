@@ -1558,3 +1558,14 @@ PRE-EXISTING and untested; the save point did not introduce it, it made it visib
 get a row, the rows to be DISTINCT, and them to go down the screen in order - because a screen
 that drew nothing, or stacked all twelve rows on one line, is comfortably inside any window. That
 is M36's lesson applied before the bug rather than after it.
+
+**The README is a landing page, not a changelog, and it was rebuilt from 546 lines to 181 on
+2026-09-03 because nobody had read it top to bottom since the demo changed art.** Three rules
+keep it that way. A milestone's line goes in `docs/MILESTONES.md`, never in the README.
+"Experience Gained" is seven resume-shaped bullets, each a thing the project can point at with a
+number in it: a milestone SHARPENS or REPLACES one, never appends - if nothing gets sharper, it
+does not belong there. And every picture shows the demo as it currently is; when the art
+changes, retake the shots from scripted sessions (the `screenshot` op, windowed with
+`--rendering-driver opengl3 --fixed-fps 60`; the dialog box types a character a frame, so wait
+about 260 frames for a line to finish). The old pictures showed a procedural cast the game had
+not worn for three milestones, and every gate was green the whole time.
