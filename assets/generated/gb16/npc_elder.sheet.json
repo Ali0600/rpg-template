@@ -34,9 +34,15 @@
 		"right",
 		"up"
 	],
+	"portrait": [
+		2,
+		1,
+		12,
+		12
+	],
 	"rows": 4,
 	"seed": 2,
 	"source": "procedural",
 	"style": "gb16",
-	"version": 1
+	"version": 2
 }

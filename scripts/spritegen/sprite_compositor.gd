@@ -149,3 +149,34 @@ static func ground_row(img: Image) -> int:
 			if img.get_pixel(x, y).a > 0.0:
 				return y
 	return -1
+
+
+## The HIGHEST row holding any opaque pixel: the top of this character's head, or of whatever
+## they are wearing on it. `ground_row`'s pair, and -1 for a blank image for its reason.
+static func top_row(img: Image) -> int:
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.0:
+				return y
+	return -1
+
+
+## Where a character's FACE is inside a frame: a square of `size`, starting at the top of the
+## drawn pixels and centred on the column the character stands in.
+##
+## Measured rather than declared, which is `anchor`'s own rule and matters more here: LPC bodies
+## sit a few rows down inside their frame, a hat or a pair of horns raises the top by several
+## more, and a rig character drawn shorter than its cell starts lower again. A fixed offset would
+## be right for whichever character it was chosen against and quietly wrong for the rest of the
+## cast - and a portrait framed on somebody's collarbone is not an error anything can report.
+##
+## Clamped rather than refused, so a square larger than the drawn character still lands inside
+## the cell; `SheetMeta.problems()` is what refuses a size the cell cannot hold at all. Integer
+## throughout: the drift gate compares this text on two operating systems.
+static func portrait_rect(frame: Image, anchor_x: int, size: int) -> Rect2i:
+	var top := top_row(frame)
+	if top < 0:
+		return Rect2i(0, 0, 0, 0)
+	var wide := maxi(frame.get_width() - size, 0)
+	var tall := maxi(frame.get_height() - size, 0)
+	return Rect2i(clampi(anchor_x - size / 2, 0, wide), clampi(top, 0, tall), size, size)

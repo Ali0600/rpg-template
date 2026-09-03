@@ -6,9 +6,14 @@
 		"what makes dropping in a third-party or AI-generated pack a data operation rather",
 		"than a code one.",
 		"",
-		"There is deliberately no PNG beside this file: it exercises metadata handling only."
+		"There is deliberately no PNG beside this file: it exercises metadata handling only.",
+		"",
+		"VERSION 2 since M42, which added `portrait` - the square a face is cut from. An outside",
+		"pack has to declare one, and that is a real cost to this seam stated deliberately: a",
+		"sheet this build cannot fully read is refused rather than half-drawn, and the version",
+		"number is how the contract says what it needs. Measured from the art, like the anchor."
 	],
-	"version": 1,
+	"version": 2,
 	"cell": [16, 24],
 	"columns": 4,
 	"rows": 4,
@@ -18,6 +23,7 @@
 		"walk": { "frames": [0, 1, 2, 3], "fps": 8, "loop": true }
 	},
 	"anchor": [8, 23],
+	"portrait": [2, 1, 12, 12],
 	"source": "external",
 	"style": "someone_elses_pack",
 	"character": "wanderer",

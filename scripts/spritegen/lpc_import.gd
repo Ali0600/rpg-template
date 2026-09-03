@@ -151,6 +151,12 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 	# Measured, not declared - SheetBuilder's rule. LPC bodies stand a few rows above the
 	# bottom of the frame, and a shadow layer, if one was exported, stands lower still.
 	meta.anchor = Vector2i(cell.x / 2, ground)
+	# Cut from the sheet just built rather than from the export, so both arms measure the same
+	# thing: the frame this character faces the camera on, standing still. Frame 0 of the
+	# canonical DOWN row - LPC's own standing pose, and the one `idle` plays.
+	meta.portrait = SpriteCompositor.portrait_rect(
+		sheet.get_region(Rect2i(0, Dir.ALL.find(Dir.D.DOWN) * cell.y, cell.x, cell.y)),
+		meta.anchor.x, style.portrait_size)
 	meta.animations = {
 		"idle": {"frames": [0], "fps": style.idle_fps, "loop": true},
 		"walk": {"frames": WALK_CYCLE.duplicate(), "fps": style.walk_fps, "loop": true},

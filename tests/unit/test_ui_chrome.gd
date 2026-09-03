@@ -260,6 +260,21 @@ func test_a_style_missing_a_colour_is_refused_by_name() -> void:
 		assert_str("\n".join(style.problems())).override_failure_message(
 			"a style with no '%s' is accepted" % role).contains("'%s'" % role)
 
+func test_a_face_bigger_than_the_cell_it_is_cut_from_is_refused() -> void:
+	# The square is cut out of ONE frame, so a size the cell cannot hold is a region that samples
+	# whatever is drawn under it - the next row of the sheet, which is the same character facing
+	# somewhere else. The generator would clamp it into the cell and produce a face that is not
+	# the size anybody asked for, silently.
+	var style := (load(STYLE) as SpriteStyle).duplicate() as SpriteStyle
+	style.portrait_size = mini(style.cell_size.x, style.cell_size.y) + 1
+	assert_str("\n".join(style.problems())).contains("portrait_size")
+	style.portrait_size = 0
+	assert_str("\n".join(style.problems())).contains("portrait_size")
+	style.portrait_size = mini(style.cell_size.x, style.cell_size.y)
+	assert_array(style.problems()).override_failure_message(
+		"a face exactly as big as the cell is refused, and it is the largest legal one"
+	).is_empty()
+
 func test_a_fighter_scale_below_one_is_refused() -> void:
 	var style := (load(STYLE) as SpriteStyle).duplicate() as SpriteStyle
 	style.battle_sprite_scale = 0
