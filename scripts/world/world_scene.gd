@@ -901,7 +901,7 @@ func open_pause() -> bool:
 	_pause_member = &""
 	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
 		_gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows(),
-		_saves_from_the_menu()), _style, _ui_size())
+		_saves_from_the_menu()), _style, _ui_size(), _source)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
 
@@ -1238,12 +1238,32 @@ func _member_rows() -> Array:
 	var out: Array = []
 	if _game == null or _game.party.is_empty():
 		return out
-	out.append({"id": "", "name": "You"})
+	# Each row carries what a LIST needs and what a PARTY PANEL needs: the menu reads `id` and
+	# `name`, and the screen draws the rest. Assembled here for `_status_lines`'s reason - a
+	# level is a Registry question and a pure menu may not ask one.
+	out.append(_member_row(&"", "You", _game.player_character, GameState.player_level,
+		GameState.player_hp, GameState.player_mp, _game.combat))
 	for member in _active_party():
-		out.append({"id": String(member.id), "name": member.name})
+		_ensure_member(member)
+		var numbers := GameState.companion(member.id)
+		out.append(_member_row(member.id, member.name, member.character,
+			_member_level(member.id), int(numbers.get("hp", 0)), int(numbers.get("mp", 0)),
+			_member_curve(member.id)))
 	# One name is not a party: with nobody recruited yet the leader stands alone, and a member
 	# step in front of a page with one answer is the cursor-with-one-row problem again.
 	return [] if out.size() < 2 else out
+
+
+## One member, as both a row in a list and a block in a party panel. The maxima come from that
+## member's own curve rather than being stored, which is the rule everywhere else: a stat that is
+## DERIVED from level has one source, and a copy in a dictionary is a second one to drift.
+func _member_row(id: StringName, name: String, character: StringName, level: int,
+		hp: int, mp: int, curve: CombatDef) -> Dictionary:
+	return {
+		"id": String(id), "name": name, "character": String(character), "level": level,
+		"hp": hp, "max_hp": 0 if curve == null else curve.max_hp(level),
+		"mp": mp, "max_mp": 0 if curve == null else curve.max_mp(level),
+	}
 
 
 ## One row per slot the template knows about, each naming what is in it. Built HERE for the

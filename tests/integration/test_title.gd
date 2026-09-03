@@ -46,8 +46,10 @@ func test_the_title_wears_the_games_own_name() -> void:
 	var world := _boot()
 	var screen: TitleScreen = world.title_screen()
 	var found := ""
-	for child in screen.get_children():
-		if child is Label and (child as Label).text == _manifest().title:
+	# Recursive: the rows moved into a window of their own, and the heading did not - but a walk
+	# that only sees direct children would stop finding either the day one more thing nests.
+	for child in SceneHelpers.find_all_by_class(screen, "Label"):
+		if (child as Label).text == _manifest().title:
 			found = (child as Label).text
 	assert_str(found).override_failure_message(
 		"nothing on the title says what game this is").is_equal(_manifest().title)
@@ -214,3 +216,23 @@ func test_starting_a_run_announces_the_state_change() -> void:
 	assert_str(first).override_failure_message(
 		"starting a run announced %s" % [seen]).is_equal("TITLE->WORLD")
 
+
+func test_the_title_marks_the_row_a_press_would_take() -> void:
+	# The title opens its cursor on a row a press will DO something with - which is only true if
+	# there is a cursor to see. It used to be a "> " on the front of the row's own text; a bar is
+	# a different node and needs its own assertion, or a title marking nothing passes every test
+	# that reads a row's words.
+	var world := _boot()
+	await await_idle_frame()
+	var screen: TitleScreen = world.title_screen()
+	assert_object(screen).is_not_null()
+	assert_bool(screen._select.visible).override_failure_message(
+		"no row is marked at the title, so a press is a guess").is_true()
+	var picked := screen.selected_row()
+	assert_object(picked).is_not_null()
+	var bar := Rect2(screen._select.global_position, screen._select.size)
+	assert_bool(bar.has_point(picked.global_position)).override_failure_message(
+		"the cursor is not over the row the title reports as chosen").is_true()
+	assert_bool(bar.has_point(screen._rows[0].global_position)) \
+		.override_failure_message("the cursor covers a row the menu did not choose") \
+		.is_equal(screen._rows[0] == picked)

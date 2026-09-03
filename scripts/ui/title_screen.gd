@@ -34,9 +34,11 @@ const ROWS_Y := 96
 var _menu: TitleMenu = null
 var _style: SpriteStyle = null
 var _backdrop := ColorRect.new()
-var _heading := Label.new()
+var _heading: Label = null
+var _frame: UiChrome.Frame = null
+var _select: ColorRect = null
 var _rows: Array[Label] = []
-var _help := Label.new()
+var _help: Label = null
 
 var _gate := InputGate.new()
 
@@ -77,51 +79,78 @@ func _build(viewport_size: Vector2i, heading: String) -> void:
 	add_child(_backdrop)
 
 	# Centred across the whole width rather than positioned by hand: a game with a longer name
-	# than this one's should not have to come and edit a constant.
+	# than this one's should not have to come and edit a constant. Nothing in the references
+	# argues for a window around a title's own name - what they share is that the name is the
+	# largest thing on screen, which is what HEADING_SIZE is for. See GENRE_CONVENTIONS S16a.
+	_heading = UiChrome.label(_style, "text", HEADING_SIZE)
 	_heading.text = heading
 	_heading.position = Vector2(0, ROWS_Y - 48)
 	_heading.size = Vector2(viewport_size.x, HEADING_SIZE + 6)
 	_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_heading.add_theme_font_size_override("font_size", HEADING_SIZE)
 	add_child(_heading)
 
-	# Enough rows for the widest page, built once, so a page change repaints rather than
-	# rebuilding and there is no frame on which the screen is half-built.
-	for i in maxi(_menu.row_count(), _menu.slot_count()):
-		var row := Label.new()
-		row.position = Vector2(0, ROWS_Y + i * ROW_PITCH)
-		row.size = Vector2(viewport_size.x, ROW_SIZE + 2)
+	# The rows in a window of their own, centred under the name. Enough for the widest page,
+	# built once, so a page change repaints rather than rebuilding and there is no frame on which
+	# the screen is half-built.
+	var count := maxi(_menu.row_count(), _menu.slot_count())
+	var height := float(UiChrome.BORDER * 2 + UiChrome.PAD * 2) + count * ROW_PITCH
+	var width := float(viewport_size.x) * 0.6
+	_frame = UiChrome.frame(_style, Rect2((float(viewport_size.x) - width) * 0.5,
+		float(ROWS_Y) - float(UiChrome.PAD), width, height))
+	add_child(_frame.panel)
+	var inner := _frame.inner()
+	_select = UiChrome.select(_style)
+	_frame.panel.add_child(_select)
+	for i in count:
+		var row := UiChrome.label(_style, "text")
+		row.position = Vector2(inner.position.x, inner.position.y + i * ROW_PITCH)
+		row.size = Vector2(inner.size.x, ROW_PITCH)
 		row.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		row.add_theme_font_size_override("font_size", ROW_SIZE)
-		add_child(row)
+		_frame.panel.add_child(row)
 		_rows.append(row)
 
-	_help.position = Vector2(MARGIN, viewport_size.y - 14)
-	_help.add_theme_font_size_override("font_size", HELP_SIZE)
+	_help = UiChrome.label(_style, "dim")
+	_help.position = Vector2(MARGIN, viewport_size.y - 12)
 	add_child(_help)
 
 
 func _paint() -> void:
 	if _style == null or _menu == null:
 		return
-	var panel := _style.ui_color("panel")
 	var text := _style.ui_color("text")
 	var dim := _style.ui_color("dim")
 
-	_backdrop.color = panel
+	_backdrop.color = _style.ui_color("panel")
 	_heading.add_theme_color_override("font_color", text)
 	_help.add_theme_color_override("font_color", dim)
 	_help.text = "W/S to choose    E to pick" if _menu.page() == TitleMenu.Page.TOP \
 		else "W/S to choose    E to pick    Esc to go back"
 
+	# The window is as tall as the page it is DRAWING, not as tall as the widest one it could.
+	# Built for the widest - a slot list is longer than two commands - it stood over the first
+	# page with a hand's width of nothing under the last row, which reads as a list that failed
+	# to finish rather than as a menu.
+	_frame.panel.size.y = float(UiChrome.BORDER * 2 + UiChrome.PAD * 2) \
+		+ maxi(_menu.size(), 1) * ROW_PITCH
+	_select.visible = false
 	for i in _rows.size():
 		var row := _rows[i]
 		row.visible = i < _menu.size()
 		if not row.visible:
 			continue
 		var selected := i == _menu.index()
-		row.text = ("> " if selected else "  ") + _label_for(i)
+		row.text = _label_for(i)
 		row.add_theme_color_override("font_color", text if selected else dim)
+		if selected:
+			UiChrome.place(_select, row, _frame.inner().size.x, ROW_PITCH)
+
+
+## The row the cursor is on, or null when nothing is pressable.
+func selected_row() -> Label:
+	var at := _menu.index()
+	if at < 0 or at >= _rows.size() or not _rows[at].visible:
+		return null
+	return _rows[at]
 
 
 func _label_for(at: int) -> String:

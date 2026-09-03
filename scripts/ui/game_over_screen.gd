@@ -34,9 +34,11 @@ const ROW_PITCH := 11
 var _menu: GameOverMenu = null
 var _style: SpriteStyle = null
 var _backdrop := ColorRect.new()
-var _title := Label.new()
-var _blurb := Label.new()
-var _help := Label.new()
+var _title: Label = null
+var _blurb: Label = null
+var _help: Label = null
+var _frame: UiChrome.Frame = null
+var _select: ColorRect = null
 var _rows: Array[Label] = []
 
 var _gate := InputGate.new()
@@ -71,36 +73,44 @@ func _build(viewport_size: Vector2i) -> void:
 	_backdrop.size = viewport_size
 	add_child(_backdrop)
 
+	_title = UiChrome.label(_style, "text")
 	_title.position = Vector2(MARGIN, MARGIN)
-	_title.add_theme_font_size_override("font_size", TITLE_SIZE)
 	add_child(_title)
 
-	_blurb.position = Vector2(MARGIN, MARGIN + 14)
-	_blurb.add_theme_font_size_override("font_size", HELP_SIZE)
+	_blurb = UiChrome.label(_style, "dim")
+	_blurb.position = Vector2(MARGIN, MARGIN + 12)
 	add_child(_blurb)
 
-	# Enough rows for the widest page, built once, so a page change repaints rather than
-	# rebuilding and there is no frame on which the screen is half-built.
-	for i in maxi(_menu.row_count(), _menu.slot_count()):
-		var row := Label.new()
-		row.position = Vector2(MARGIN, MARGIN + 32 + i * ROW_PITCH)
-		row.add_theme_font_size_override("font_size", ROW_SIZE)
-		add_child(row)
+	# The rows in a window, as everywhere else. Enough for the widest page, built once, so a page
+	# change repaints rather than rebuilding and there is no frame on which the screen is
+	# half-built.
+	var count := maxi(_menu.row_count(), _menu.slot_count())
+	var height := float(UiChrome.BORDER * 2 + UiChrome.PAD * 2) + count * ROW_PITCH
+	_frame = UiChrome.frame(_style, Rect2(MARGIN, MARGIN + 28,
+		float(viewport_size.x) * 0.6, height))
+	add_child(_frame.panel)
+	var inner := _frame.inner()
+	_select = UiChrome.select(_style)
+	_frame.panel.add_child(_select)
+	for i in count:
+		var row := UiChrome.label(_style, "text")
+		row.position = Vector2(inner.position.x + float(UiChrome.ROW_INSET),
+			inner.position.y + i * ROW_PITCH)
+		_frame.panel.add_child(row)
 		_rows.append(row)
 
-	_help.position = Vector2(MARGIN, viewport_size.y - 14)
-	_help.add_theme_font_size_override("font_size", HELP_SIZE)
+	_help = UiChrome.label(_style, "dim")
+	_help.position = Vector2(MARGIN, viewport_size.y - 12)
 	add_child(_help)
 
 
 func _paint() -> void:
 	if _style == null or _menu == null:
 		return
-	var panel := _style.ui_color("panel")
 	var text := _style.ui_color("text")
 	var dim := _style.ui_color("dim")
 
-	_backdrop.color = panel
+	_backdrop.color = _style.ui_color("panel")
 	_title.add_theme_color_override("font_color", text)
 	_blurb.add_theme_color_override("font_color", dim)
 	_help.add_theme_color_override("font_color", dim)
@@ -110,14 +120,31 @@ func _paint() -> void:
 	_help.text = "W/S to choose    E to pick" if _menu.page() == GameOverMenu.Page.TOP \
 		else "W/S to choose    E to pick    Esc to go back"
 
+	# The window is as tall as the page it is DRAWING, not as tall as the widest one it could.
+	# Built for the widest - a slot list is longer than two commands - it stood over the first
+	# page with a hand's width of nothing under the last row, which reads as a list that failed
+	# to finish rather than as a menu.
+	_frame.panel.size.y = float(UiChrome.BORDER * 2 + UiChrome.PAD * 2) \
+		+ maxi(_menu.size(), 1) * ROW_PITCH
+	_select.visible = false
 	for i in _rows.size():
 		var row := _rows[i]
 		row.visible = i < _menu.size()
 		if not row.visible:
 			continue
 		var selected := i == _menu.index()
-		row.text = ("> " if selected else "  ") + _label_for(i)
+		row.text = _label_for(i)
 		row.add_theme_color_override("font_color", text if selected else dim)
+		if selected:
+			UiChrome.place(_select, row, _frame.inner().size.x, ROW_PITCH)
+
+
+## The row the cursor is on, or null when nothing is pressable.
+func selected_row() -> Label:
+	var at := _menu.index()
+	if at < 0 or at >= _rows.size() or not _rows[at].visible:
+		return null
+	return _rows[at]
 
 
 func _label_for(at: int) -> String:

@@ -169,7 +169,9 @@ guessing, because a guessed game presents as the game you meant to run behaving 
   18 → 3 min) and a sub-second static check that every mutant still targets one line.
 - Built model-based testing of the application's state machine: transitions declared as data
   and driven through the real game, seeded random walks over one live world, and automatic
-  counterexample shrinking (a 24-step failure reduced to 5).
+  counterexample shrinking (a 24-step failure reduced to 5). Extended it to rendered layout —
+  automated audits of every screen's geometry that caught defects six years of passing tests
+  could not see, including readouts drawn over the sprites they described.
 - Replaced closed-form game-balance rules with deterministic simulation: the real combat engine
   played to completion under opposed policies across many seeds, asserting from shipped data
   that skilled play always wins and unskilled play always loses.

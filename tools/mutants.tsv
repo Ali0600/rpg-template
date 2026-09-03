@@ -748,3 +748,14 @@ scripts/ui/dialog_box.gd	s|\t\t\tUiChrome.place\(_select, _choice_labels\[i\],|\
 scripts/ui/dialog_box.gd	s|\t_speaker.text = line.speaker.to_upper\(\)|\t_speaker.text = \"\"|	tests/integration/test_dialog_box_layout.gd	the window's band never names who is talking
 scripts/ui/save_screen.gd	s|\t\t\tUiChrome.place\(_select, row, _frame.inner\(\).size.x, ROW_PITCH\)|\t\t\tpass|	tests/integration/test_slot_layout.gd	no slot is ever marked, so a save point cannot say where it is about to write
 data/dialog/village_well.json	s|\t\t\t\"speaker\": \"The well\",|\t\t\t\"speaker\": \"The well\", \"portrait\": \"nobody_drew_this\",|	tests/unit/test_map_content.gd	a conversation names a face nobody drew and ships anyway
+
+# -- M42: the counter, the party panel, the title and the end ----------------------------
+scripts/ui/shop_screen.gd	s|\t\trow.clip_text = true|\t\trow.clip_text = false|	tests/integration/test_shop_layout.gd	a long item name is drawn out from under its own price
+scripts/ui/shop_screen.gd	s|\t\tprice.position = Vector2\(inner.position.x \+ inner.size.x \* PRICE_COLUMN,|\t\tprice.position = Vector2(inner.position.x,|	tests/integration/test_shop_layout.gd	the price column starts where the name does, so the two are drawn over each other
+scripts/ui/shop_screen.gd	s|\t_help.text = \"W/S to choose    E to take    Esc to go back\"|\t_help.text = \"arrows: choose   Z: take   X: back\"|	tests/integration/test_shop_layout.gd	the counter tells the player to press a key nothing is bound to
+scripts/ui/pause_screen.gd	s|\t\tname_label.clip_text = true|\t\tname_label.clip_text = false|	tests/integration/test_pause_layout.gd	a long member name is drawn out of the window that holds it
+scripts/ui/pause_screen.gd	s|\tif _menu.has_members\(\):|\tif true:|	tests/integration/test_pause_layout.gd	a game with nobody recruited draws a party panel listing one person
+scripts/ui/pause_screen.gd	s|\t\tvar top := inner.position.y \+ i \* BLOCK_PITCH|\t\tvar top := inner.position.y|	tests/integration/test_pause_layout.gd	every member's block is drawn on top of every other
+scripts/ui/pause_screen.gd	s|\t\t\trow.add_theme_color_override\(\"font_color\", text\)$|\t\t\tpass|	tests/integration/test_pause_layout.gd	the status readout's rows are drawn as quietly as an unchosen command
+scripts/ui/title_screen.gd	s|\t\t\tUiChrome.place\(_select, row, _frame.inner\(\).size.x, ROW_PITCH\)|\t\t\tpass|	tests/integration/test_title.gd	no row is marked at the title, so a press is a guess
+scripts/ui/sprite_lab.gd	s|\t\tbackground.color = _style.ui_color\(\"panel\"\)|\t\tpass|	tests/integration/test_sprite_lab_scene.gd	the lab draws every style on one hardcoded backdrop

@@ -38,7 +38,9 @@ const ROW_PITCH := 10
 ## still shows down the right-hand side.
 const LIST_WIDTH := 150
 const PURSE_WIDTH := 92
-const KEEPER_HEIGHT := 34
+## Where the price column starts inside the list, as a fraction of its width. The name gets the
+## left of the row and the price the right, and they no longer share the whole of it.
+const PRICE_COLUMN := 0.62
 
 ## Indexed by ShopMenu.Row, so the order is the enum's rather than a second list's.
 const TOP_LABELS: Array[String] = ["Buy", "Sell", "Leave"]
@@ -49,14 +51,15 @@ var stock: ShopDef = null
 
 var _menu: ShopMenu = null
 var _style: SpriteStyle = null
-var _list_panel := ColorRect.new()
-var _purse_panel := ColorRect.new()
-var _desc_panel := ColorRect.new()
-var _keeper_panel := ColorRect.new()
-var _purse := Label.new()
-var _desc := Label.new()
-var _keeper := Label.new()
-var _help := Label.new()
+var _list: UiChrome.Frame = null
+var _purse_frame: UiChrome.Frame = null
+var _desc_frame: UiChrome.Frame = null
+var _keeper_frame: UiChrome.Frame = null
+var _purse: Label = null
+var _desc: Label = null
+var _keeper: Label = null
+var _help: Label = null
+var _select: ColorRect = null
 var _rows: Array[Label] = []
 var _prices: Array[Label] = []
 
@@ -90,75 +93,96 @@ func menu() -> ShopMenu:
 
 
 func _build(viewport_size: Vector2i, title: String) -> void:
-	var list_height := MARGIN + PADDING * 2 + ROW_PITCH * maxi(
-		maxi(TOP_LABELS.size(), _menu.stock_count()), maxi(_menu.sellable_count(), 1))
+	var count := maxi(maxi(TOP_LABELS.size(), _menu.stock_count()),
+		maxi(_menu.sellable_count(), 1))
+	var chrome := float(UiChrome.HEADER_HEIGHT + UiChrome.BORDER * 2 + UiChrome.PAD * 2)
+	var list_height := chrome + count * ROW_PITCH
 
-	# The list, top-left. No full-screen backdrop anywhere in this view: the world behind the
-	# panels is the point.
-	_list_panel.position = Vector2(MARGIN, MARGIN)
-	_list_panel.size = Vector2(LIST_WIDTH, list_height)
-	add_child(_list_panel)
+	# The list, top-left, HEADED with its own columns. Sea of Stars heads its stock list "ITEM
+	# NAME / OWNED / PRICE", which is the one thing that makes a list of numbers readable without
+	# being told what they are - and this counter has had all three columns since M18.1 with
+	# nothing naming them. No full-screen backdrop anywhere in this view: the world behind the
+	# windows is the point.
+	_list = UiChrome.frame(_style, Rect2(MARGIN, MARGIN, LIST_WIDTH, list_height), " ")
+	add_child(_list.panel)
+	var inner := _list.inner()
 
-	# The purse, top-right of the list - the one number a shopper checks most.
-	_purse_panel.position = Vector2(MARGIN + LIST_WIDTH + MARGIN, MARGIN)
-	_purse_panel.size = Vector2(PURSE_WIDTH, PADDING * 2 + ROW_PITCH)
-	add_child(_purse_panel)
-	_purse.position = Vector2(PADDING, PADDING - 2)
-	_purse.add_theme_font_size_override("font_size", ROW_SIZE)
-	_purse_panel.add_child(_purse)
+	# The purse, right of the list - the one number a shopper checks most.
+	# The chrome PLUS a line, which is what a one-row window is. It was the chrome minus its own
+	# band, and the purse was drawn into a single pixel of content - the number was there and
+	# clipped in half, which reads as a rendering fault rather than as a wrong constant.
+	_purse_frame = UiChrome.frame(_style, Rect2(MARGIN + LIST_WIDTH + MARGIN, MARGIN,
+		PURSE_WIDTH, chrome + float(UiChrome.FONT_SIZE)), "purse")
+	add_child(_purse_frame.panel)
+	_purse = UiChrome.label(_style, "dim")
+	_purse.position = _purse_frame.inner().position
+	_purse_frame.panel.add_child(_purse)
 
-	for i in maxi(maxi(TOP_LABELS.size(), _menu.stock_count()), maxi(_menu.sellable_count(), 1)):
-		var row := Label.new()
-		row.position = Vector2(PADDING, PADDING + i * ROW_PITCH - 2)
-		row.add_theme_font_size_override("font_size", ROW_SIZE)
-		_list_panel.add_child(row)
+	# Added BEFORE the rows so it is drawn behind them.
+	_select = UiChrome.select(_style)
+	_list.panel.add_child(_select)
+	for i in count:
+		var row := UiChrome.label(_style, "text")
+		row.position = Vector2(inner.position.x + float(UiChrome.ROW_INSET),
+			inner.position.y + i * ROW_PITCH)
+		# BOUNDED to its own column and trimmed with an ellipsis past it. A Label with no width
+		# does not clip, wrap or complain - it draws straight on, and here that meant a long name
+		# running underneath its own price. A trimmed name still reads; a name with a number
+		# printed through it does not.
+		row.size = Vector2(inner.size.x * PRICE_COLUMN - float(UiChrome.ROW_INSET) * 2.0,
+			ROW_PITCH)
+		row.clip_text = true
+		row.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_list.panel.add_child(row)
 		_rows.append(row)
-		# A separate right-aligned label rather than padded text: a price column that lines up
-		# is most of what makes a list of goods readable, and spaces cannot align a font whose
-		# digits are not all one width.
-		var price := Label.new()
-		price.position = Vector2(PADDING, PADDING + i * ROW_PITCH - 2)
-		price.size = Vector2(LIST_WIDTH - PADDING * 2, ROW_PITCH)
+		# A separate right-aligned label rather than padded text: a price column that lines up is
+		# most of what makes a list of goods readable, and spaces cannot align a font whose digits
+		# are not all one width.
+		#
+		# It is given its OWN half of the row since M42. It used to span the whole width at the
+		# same position, so a long name ran underneath its own price - measured at x=95 against a
+		# name reaching x=110, and invisible because the demo's own wares are short words.
+		var price := UiChrome.label(_style, "text")
+		price.position = Vector2(inner.position.x + inner.size.x * PRICE_COLUMN,
+			inner.position.y + i * ROW_PITCH)
+		price.size = Vector2(inner.size.x * (1.0 - PRICE_COLUMN), ROW_PITCH)
 		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		price.add_theme_font_size_override("font_size", ROW_SIZE)
-		_list_panel.add_child(price)
+		_list.panel.add_child(price)
 		_prices.append(price)
 
-	# The item's own words, under the list. The description field has existed since items did
-	# and this is the first screen to show it.
-	_desc_panel.position = Vector2(MARGIN, MARGIN + list_height + 2)
-	_desc_panel.size = Vector2(LIST_WIDTH + MARGIN + PURSE_WIDTH, PADDING * 2 + ROW_PITCH)
-	add_child(_desc_panel)
-	_desc.position = Vector2(PADDING, PADDING - 2)
-	_desc.add_theme_font_size_override("font_size", HELP_SIZE)
-	_desc_panel.add_child(_desc)
+	# The item's own words, under the list.
+	_desc_frame = UiChrome.frame(_style, Rect2(MARGIN, MARGIN + list_height + 2,
+		LIST_WIDTH + MARGIN + PURSE_WIDTH,
+		float(UiChrome.BORDER * 2 + UiChrome.PAD * 2 + UiChrome.FONT_SIZE)))
+	add_child(_desc_frame.panel)
+	_desc = UiChrome.label(_style, "dim")
+	_desc.position = _desc_frame.inner().position
+	_desc_frame.panel.add_child(_desc)
 
-	# The keeper, along the bottom in the dialog box's shape - same margin, same panel colour,
-	# so the counter reads as the same conversation the player walked in with.
-	_keeper_panel.position = Vector2(MARGIN, viewport_size.y - KEEPER_HEIGHT - MARGIN)
-	_keeper_panel.size = Vector2(viewport_size.x - MARGIN * 2, KEEPER_HEIGHT)
-	add_child(_keeper_panel)
-	_keeper.position = Vector2(PADDING, PADDING - 2)
-	_keeper.size = Vector2(viewport_size.x - MARGIN * 2 - PADDING * 2, ROW_PITCH * 2)
+	# The keeper, along the bottom in the DIALOG BOX's shape - same margin, same window, same
+	# height, DERIVED rather than copied: "the dialog box's shape" was a hand-typed 34 that had
+	# no way of following the box when it changed.
+	var keeper_height := float(DialogBox.height_for(0))
+	_keeper_frame = UiChrome.frame(_style, Rect2(MARGIN,
+		float(viewport_size.y) - keeper_height - MARGIN,
+		float(viewport_size.x) - MARGIN * 2.0, keeper_height), title if not title.is_empty() else " ")
+	add_child(_keeper_frame.panel)
+	var keeper_inner := _keeper_frame.inner()
+	_keeper = UiChrome.label(_style, "text")
+	_keeper.position = keeper_inner.position
+	_keeper.size = Vector2(keeper_inner.size.x, ROW_PITCH * 2.0)
 	_keeper.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_keeper.add_theme_font_size_override("font_size", ROW_SIZE)
-	_keeper_panel.add_child(_keeper)
+	_keeper_frame.panel.add_child(_keeper)
 
-	_help.position = Vector2(PADDING, KEEPER_HEIGHT - ROW_PITCH - 2)
-	_help.add_theme_font_size_override("font_size", HELP_SIZE)
-	_keeper_panel.add_child(_help)
-	if not title.is_empty():
-		_keeper.text = title
+	_help = UiChrome.label(_style, "dim")
+	_help.position = Vector2(keeper_inner.position.x,
+		keeper_inner.position.y + keeper_inner.size.y - float(UiChrome.FONT_SIZE))
+	_keeper_frame.panel.add_child(_help)
 
 
 func _paint() -> void:
 	if _menu == null or _style == null:
 		return
-	# No fallback colour is typed here: a style that forgot to define its panel should show
-	# that, not be quietly covered for - the DialogBox rule.
-	var panel := _style.ui_color("panel")
-	for rect in [_list_panel, _purse_panel, _desc_panel, _keeper_panel]:
-		rect.color = panel
 	var text := _style.ui_color("text")
 	var dim := _style.ui_color("dim")
 
@@ -167,12 +191,21 @@ func _paint() -> void:
 	_purse.text = "= %dg" % _menu.total() if _menu.asking() else _menu.gold_label()
 	_purse.add_theme_color_override("font_color", text if _menu.asking() else dim)
 	_desc.text = _menu.description()
-	_desc.add_theme_color_override("font_color", dim)
+	# An empty window is a box with nothing in it, which reads as something that failed to load.
+	# The description only exists while a row is under the cursor that has one.
+	_desc_frame.panel.visible = not _desc.text.strip_edges().is_empty()
+	# The list is headed by its COLUMNS where there are columns, and by the page's own name where
+	# there are not - "ITEM OWNED PRICE" over Buy / Sell / Leave names three things that are not
+	# there. Sea of Stars heads its stock list exactly this way; its top menu is not a list.
+	_list.title.text = ("item          owned   price" if _menu.page() != ShopMenu.Page.TOP
+		else "wares").to_upper()
+	_list.title.add_theme_color_override("font_color", text)
 	_keeper.text = _menu.line()
-	_keeper.add_theme_color_override("font_color", text)
-	_help.text = "arrows: choose   Z: take   X: back"
-	_help.add_theme_color_override("font_color", dim)
+	# The keys this game actually binds. It said "Z: take" for eighteen milestones, and nothing
+	# is bound to Z - a player following it exactly would conclude the counter was broken.
+	_help.text = "W/S to choose    E to take    Esc to go back"
 
+	_select.visible = false
 	for i in _rows.size():
 		var row := _rows[i]
 		var price := _prices[i]
@@ -182,20 +215,31 @@ func _paint() -> void:
 			continue
 		var selected := i == _menu.index()
 		if _menu.page() == ShopMenu.Page.TOP:
-			row.text = ("> " if selected else "  ") + TOP_LABELS[i]
+			row.text = TOP_LABELS[i]
 			price.text = ""
 		else:
 			var r := _menu.row(i)
-			row.text = ("> " if selected else "  ") + ShopMenu.row_label(r)
-			# The owned count beside the price, the way a shop that respects its customer
-			# shows what they are already carrying.
+			row.text = "" if r == null else ShopMenu.row_label(r)
+			# The owned count beside the price, the way a shop that respects its customer shows
+			# what they are already carrying.
 			price.text = "" if r == null else ("%dg  x%d" % [r.price, r.owned] if r.owned > 0
 				else "%dg" % r.price)
 		# An unaffordable row is dim even under the cursor, so "I cannot buy that" is visible
 		# BEFORE the press that refuses rather than only after it.
-		var lit := text if selected and _menu.affordable(i) else dim
+		var lit := text if _menu.affordable(i) else dim
 		row.add_theme_color_override("font_color", lit)
 		price.add_theme_color_override("font_color", lit)
+		if selected:
+			UiChrome.place(_select, row, _list.inner().size.x, ROW_PITCH)
+
+
+## The row the cursor is on, or null when the list is empty. What replaced reading a "> " off the
+## front of a row's own text.
+func selected_row() -> Label:
+	var at := _menu.index()
+	if at < 0 or at >= _rows.size() or not _rows[at].visible:
+		return null
+	return _rows[at]
 
 
 func _unhandled_input(event: InputEvent) -> void:
