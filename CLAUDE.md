@@ -1618,12 +1618,12 @@ that drew nothing, or stacked all twelve rows on one line, is comfortably inside
 is M36's lesson applied before the bug rather than after it.
 
 **The README is a landing page, not a changelog, and it was rebuilt from 546 lines to 181 on
-2026-09-03 because nobody had read it top to bottom since the demo changed art.** Three rules
-keep it that way. A milestone's line goes in `docs/MILESTONES.md`, never in the README.
-"Experience Gained" is seven resume-shaped bullets, each a thing the project can point at with a
-number in it: a milestone SHARPENS or REPLACES one, never appends - if nothing gets sharper, it
-does not belong there. And every picture shows the demo as it currently is; when the art
-changes, retake the shots from scripted sessions (the `screenshot` op, windowed with
-`--rendering-driver opengl3 --fixed-fps 60`; the dialog box types a character a frame, so wait
-about 260 frames for a line to finish). The old pictures showed a procedural cast the game had
-not worn for three milestones, and every gate was green the whole time.
+2026-09-03 because nobody had read it top to bottom since the demo changed art.** Its shape is
+the house rule for every repo now - the global agent config's *Repo docs* section, checked by
+`/docs-audit`: a milestone's line goes in `docs/MILESTONES.md` and never here, and "Experience
+Gained" is at most seven bullets a milestone SHARPENS or REPLACES, never appends. The part that is
+this project's own: every picture shows the demo as it currently is, and when the art changes the
+shots are retaken from scripted sessions (the `screenshot` op, windowed with `--rendering-driver
+opengl3 --fixed-fps 60`; the dialog box types a character a frame, so wait about 260 frames for a
+line to finish). The old pictures showed a procedural cast the game had not worn for three
+milestones, and every gate was green the whole time.
