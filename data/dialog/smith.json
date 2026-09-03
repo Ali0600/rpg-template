@@ -15,16 +15,19 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Smith",
+			"portrait": "town_smith",
 			"text": "Every one of us was drawn by the same hand. Same palette, same outline, same ground under our feet.",
 			"next": "point"
 		},
 		"point": {
 			"speaker": "Smith",
+			"portrait": "town_smith",
 			"text": "Change the style and we all change together. That's the trick of it.",
 			"next": "offer"
 		},
 		"offer": {
 			"speaker": "Smith",
+			"portrait": "town_smith",
 			"text": "You have the look of someone walking east. Take these - bitter, but they close a cut mid-swing.",
 			"choices": [
 				{ "text": "Thank you.", "next": "took", "give_item": "tonic", "give_count": 2,

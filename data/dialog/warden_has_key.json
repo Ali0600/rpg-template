@@ -11,16 +11,19 @@
 	"nodes": {
 		"notice": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "That is the key. You found it in an afternoon.",
 			"next": "shrug"
 		},
 		"shrug": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "Go on, then. The gate is east, and it has been shut a long time. Whatever took the keep is still in there.",
 			"next": "light"
 		},
 		"light": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "And take a light. The lantern in there ran dry years ago - the hermit in the cave east of the town hoards oil by the flask."
 		}
 	}

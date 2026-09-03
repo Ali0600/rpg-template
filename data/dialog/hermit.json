@@ -14,11 +14,13 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Hermit",
+			"portrait": "quest_hermit",
 			"text": "Nobody comes down here for the view.",
 			"next": "shelf"
 		},
 		"ask": {
 			"speaker": "Hermit",
+			"portrait": "quest_hermit",
 			"text": "I have kept the rest since. More than one person needs.",
 			"choices": [
 				{
@@ -36,14 +38,17 @@
 		},
 		"gave": {
 			"speaker": "Hermit",
+			"portrait": "quest_hermit",
 			"text": "Take a flask. Mind the wick - it catches faster than you expect."
 		},
 		"passing": {
 			"speaker": "Hermit",
+			"portrait": "quest_hermit",
 			"text": "Everyone is, eventually. The shelf keeps."
 		},
 		"shelf": {
 			"speaker": "Hermit",
+			"portrait": "quest_hermit",
 			"text": "There is oil on the shelf. The keep's lantern drank its last flask years before the gate was barred.",
 			"next": "ask"
 		}

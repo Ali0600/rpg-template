@@ -251,7 +251,7 @@ games/quest/quest_hooks.gd	s|if ctx.map_id != START_MAP or ctx.has_flag\(FLAG_ME
 
 # --- M13.3: the box states its capacity ---
 scripts/ui/dialog_box.gd	s|const CHOICE_Y := TEXT_Y \+ TEXT_LINES \* LINE_PITCH \+ 2|const CHOICE_Y := TEXT_Y + 11|	tests/integration/test_dialog_box_layout.gd	choices are drawn back on top of the last line of text
-scripts/ui/dialog_box.gd	s|_text.size = Vector2\(text_width\(_viewport.x\), TEXT_LINES \* LINE_PITCH\)|_text.size = Vector2(text_width(_viewport.x), LINE_PITCH)|	tests/integration/test_dialog_box_layout.gd	the text area shows one line of the three the writing is allowed
+scripts/ui/dialog_box.gd	s|\t_text.size = Vector2\(text_width\(_viewport.x\), TEXT_LINES \* LINE_PITCH\)|\t_text.size = Vector2(text_width(_viewport.x), LINE_PITCH)|	tests/integration/test_dialog_box_layout.gd	the text area shows one line of the three the writing is allowed
 scripts/ui/dialog_box.gd	s|const TEXT_LINES := 3|const TEXT_LINES := 9|	tests/unit/test_dialog_fit.gd	the fit gate is told the box is nine lines tall and stops catching overflow
 scripts/ui/dialog_box.gd	s|return CHOICE_Y \+ count \* CHOICE_PITCH \+ PAD_BOTTOM|return BOX_HEIGHT|	tests/integration/test_dialog_box_layout.gd	the box never grows, so the choices fall off the bottom of it
 
@@ -740,3 +740,11 @@ scripts/spritegen/sheet_meta.gd	s|^const VERSION := 2$|const VERSION := 1|	tests
 scripts/spritegen/sheet_meta.gd	s|\tif portrait.size.x <= 0 or portrait.size.y <= 0:|\tif false:|	tests/unit/test_sprite_contract.gd	a sheet with no face at all is accepted, and every menu draws an empty square
 scripts/spritegen/sheet_meta.gd	s|\telif anchor.x < portrait.position.x or anchor.x >= portrait.end.x:|\telif false:|	tests/unit/test_sprite_contract.gd	a face measured off some other character's column is accepted
 scripts/data/sprite_style.gd	s|\telif portrait_size > mini\(cell_size.x, cell_size.y\):|\telif false:|	tests/unit/test_ui_chrome.gd	a style may ask for a face larger than the cell it is cut from
+
+# -- M42: a conversation has a face, and a save point is a window ------------------------
+scripts/ui/dialog_runner.gd	s|\tout.portrait = StringName\(str\(node.get\(\"portrait\", \"\"\)\)\)|\tout.portrait = \&\"\"|	tests/integration/test_dialog_box_layout.gd	nobody's face is ever drawn, so every conversation is unattributed
+scripts/ui/dialog_box.gd	s|\t\t\tspan = UiChrome.portrait_span\(_style\)|\t\t\tpass|	tests/integration/test_dialog_box_layout.gd	a face is drawn over the first words of every line it belongs to
+scripts/ui/dialog_box.gd	s|\t\t\tUiChrome.place\(_select, _choice_labels\[i\],|\t\t\tUiChrome.place\(_select, _choice_labels\[0\],|	tests/integration/test_dialog_box_layout.gd	the cursor sits on the first answer whichever one is chosen
+scripts/ui/dialog_box.gd	s|\t_speaker.text = line.speaker.to_upper\(\)|\t_speaker.text = \"\"|	tests/integration/test_dialog_box_layout.gd	the window's band never names who is talking
+scripts/ui/save_screen.gd	s|\t\t\tUiChrome.place\(_select, row, _frame.inner\(\).size.x, ROW_PITCH\)|\t\t\tpass|	tests/integration/test_slot_layout.gd	no slot is ever marked, so a save point cannot say where it is about to write
+data/dialog/village_well.json	s|\t\t\t\"speaker\": \"The well\",|\t\t\t\"speaker\": \"The well\", \"portrait\": \"nobody_drew_this\",|	tests/unit/test_map_content.gd	a conversation names a face nobody drew and ships anyway

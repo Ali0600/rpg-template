@@ -12,16 +12,19 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Kid",
+			"portrait": "town_kid",
 			"text": "You're going west, aren't you. Everyone who goes west has that face.",
 			"next": "brag"
 		},
 		"brag": {
 			"speaker": "Kid",
+			"portrait": "town_kid",
 			"text": "There's a hollow past the village. Something lives down there and it NESTS things. That's when it sits on a thing so you can't have it.",
 			"next": "boast"
 		},
 		"boast": {
 			"speaker": "Kid",
+			"portrait": "town_kid",
 			"text": "The elder says you promised to go into the keep. Did you?",
 			"choices": [
 				{
@@ -37,10 +40,12 @@
 		},
 		"knew": {
 			"speaker": "Kid",
+			"portrait": "town_kid",
 			"text": "I KNEW it. I'm telling everyone. Take a light, it's dark in there, everyone knows that."
 		},
 		"shrug": {
 			"speaker": "Kid",
+			"portrait": "town_kid",
 			"text": "That's what grown-ups always say."
 		}
 	}

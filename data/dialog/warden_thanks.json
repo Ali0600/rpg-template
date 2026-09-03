@@ -9,11 +9,13 @@
 	"nodes": {
 		"see": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "There is a light in the keep. I can see it from here.",
 			"next": "done"
 		},
 		"done": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "I have been the warden of a dark building for eleven years. Thank you for making it a lit one."
 		}
 	}

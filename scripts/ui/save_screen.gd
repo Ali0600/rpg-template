@@ -38,9 +38,10 @@ const PANEL_WIDTH := 150
 
 var _menu: SaveMenu = null
 var _style: SpriteStyle = null
-var _panel := ColorRect.new()
-var _title := Label.new()
-var _help := Label.new()
+var _frame: UiChrome.Frame = null
+var _panel: Panel = null
+var _help: Label = null
+var _select: ColorRect = null
 var _rows: Array[Label] = []
 
 ## The duplicate-event guard every view here has: the same event can reach a handler twice in
@@ -79,54 +80,55 @@ func menu() -> SaveMenu:
 
 
 func _build(viewport_size: Vector2i, title: String) -> void:
-	# One row per slot, and at least one: a panel with no rows in it is a window the player
-	# cannot read and cannot escape - the empty-bag rule every list here follows.
+	# One row per slot, and at least one: a window with no rows in it is one the player cannot
+	# read and cannot escape - the empty-bag rule every list here follows.
 	var count := maxi(_menu.slot_count(), 1)
-	_panel.position = Vector2(MARGIN, MARGIN)
 	# Sized to what is about to be laid out rather than to the viewport: a window is as big as
-	# the thing inside it. ONE assignment, computed once and reused by the help line's position
-	# below - two expressions for one height is two numbers that drift, and the one that loses
-	# is whichever runs second.
-	var height := PADDING + TITLE_SIZE + count * ROW_PITCH + HELP_SIZE + PADDING
-	_panel.size = Vector2(mini(PANEL_WIDTH, maxi(viewport_size.x - MARGIN * 2, 1)), height)
+	# the thing inside it. ONE arithmetic, computed once and reused by the help line's position
+	# below - two expressions for one height is two numbers that drift, and the one that loses is
+	# whichever runs second.
+	var body := count * ROW_PITCH + HELP_SIZE
+	var height := float(UiChrome.HEADER_HEIGHT + UiChrome.BORDER * 2 + UiChrome.PAD * 2 + body)
+	_frame = UiChrome.frame(_style, Rect2(Vector2(MARGIN, MARGIN),
+		Vector2(minf(PANEL_WIDTH, maxf(viewport_size.x - MARGIN * 2.0, 1.0)), height)),
+		title if not title.is_empty() else "RECORD YOUR JOURNEY")
+	_panel = _frame.panel
 	add_child(_panel)
 
-	_title.text = title if not title.is_empty() else "RECORD YOUR JOURNEY"
-	_title.position = Vector2(PADDING, PADDING - 2)
-	_title.add_theme_font_size_override("font_size", TITLE_SIZE)
-	_panel.add_child(_title)
-
+	var inner := _frame.inner()
+	# Added BEFORE the rows so it is drawn behind them: a bar the row sits on, where this screen
+	# used to write a "*" into the front of the row's own text.
+	_select = UiChrome.select(_style)
+	_panel.add_child(_select)
 	for i in count:
-		var row := Label.new()
-		row.position = Vector2(PADDING, PADDING + TITLE_SIZE + i * ROW_PITCH)
-		row.add_theme_font_size_override("font_size", ROW_SIZE)
+		var row := UiChrome.label(_style, "text")
+		row.position = Vector2(inner.position.x + float(UiChrome.ROW_INSET),
+			inner.position.y + i * ROW_PITCH)
 		_panel.add_child(row)
 		_rows.append(row)
 
+	_help = UiChrome.label(_style, "dim")
 	_help.text = "Enter: save    Esc: leave"
-	_help.position = Vector2(PADDING, PADDING + TITLE_SIZE + count * ROW_PITCH)
-	_help.add_theme_font_size_override("font_size", HELP_SIZE)
+	_help.position = Vector2(inner.position.x, inner.position.y + count * ROW_PITCH)
 	_panel.add_child(_help)
 
 
 func _paint() -> void:
 	if _menu == null or _style == null:
 		return
-	var panel := _style.ui_color("panel")
 	var text := _style.ui_color("text")
 	var dim := _style.ui_color("dim")
-	_panel.color = panel
-	_title.add_theme_color_override("font_color", text)
-	_help.add_theme_color_override("font_color", dim)
+	_select.visible = false
 	for i in _rows.size():
 		var row := _rows[i]
 		var selected := i == _menu.index()
 		# The same wording as every other slot list in the game, from the one function that
 		# words one. "empty" and "damaged" are different facts and a save point is exactly
 		# where the difference matters.
-		row.text = "%s %s" % ["*" if selected else " ",
-			PauseMenu.slot_label(i, _menu.summary(i))] if i < _menu.slot_count() else ""
+		row.text = PauseMenu.slot_label(i, _menu.summary(i)) if i < _menu.slot_count() else ""
 		row.add_theme_color_override("font_color", text if selected else dim)
+		if selected:
+			UiChrome.place(_select, row, _frame.inner().size.x, ROW_PITCH)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -162,3 +164,11 @@ func _write(slot: int) -> void:
 		return
 	sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 	save_requested.emit(slot)
+
+
+## The row the cursor is on. What replaced reading a "*" off the front of a row's own text.
+func selected_row() -> Label:
+	var at := _menu.index()
+	if at < 0 or at >= _rows.size():
+		return null
+	return _rows[at]

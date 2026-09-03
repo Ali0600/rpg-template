@@ -844,6 +844,32 @@ consequence, stated: a foe dying or falling asleep shifts the draws of foes afte
 that fight*. That is deterministic in the seed and the inputs, which is all the replay
 guarantee ever claimed.
 
+## A conversation shows a face, and the face is world size — *M42*
+
+The gap §6 recorded as "no portraits" since it was written, closed once the faces existed —
+M42's sheet contract measures one per character off their own standing frame.
+
+**The fork: how does a node know whose face to draw?** Put to the person this is built for.
+
+- **An explicit `portrait` on the node.** *Chosen.* A character id, validated like every other id:
+  the content gate refuses one with no sheet under the running style, naming the file and the
+  node. It costs an edit per node — 48 of them — and it is the only one of the three that can
+  express a conversation where two people speak, which the demo's own warden-and-Rook scenes do.
+- *A speaker-name map* (`"Warden" -> quest_warden` in one file). Rejected: a second place a name
+  has to match, and a miss is silent — the face simply does not appear.
+- *The world passes whoever you interacted with*. Rejected: no data change at all, and wrong the
+  moment a conversation has a second speaker or is opened by a sign, a chest or a well.
+
+**The second fork: how big is the face?** Chosen: **world size** — the same 12 design pixels the
+battle screen draws, which is the size that character is when you walk around as them.
+
+- *Twice world size*, which is closer to what the references do — Persona's bust overlaps the box
+  and is a third of the screen. `deferred — worth trying`, and the cost is MEASURED rather than
+  guessed: at 24 design pixels the text column drops from 285px to 273 and **three shipped lines
+  stop fitting** (the kid's brag, the warden's why, and one more). Those are tightenings, not
+  splits, so no play session would move — but they are prose somebody wrote. The hook is one
+  number: what `DialogBox._show_face` passes to `UiChrome.portrait`.
+
 ## A spell's target shape is data, and the foe bars multiply — *M28*
 
 **Groups and multi-target magic arrive together, in the genre and here.** Dragon Quest I has

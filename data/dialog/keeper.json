@@ -24,6 +24,7 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Innkeeper",
+			"portrait": "inn_keeper",
 			"text": "Room's yours for four gold.\nBed's warm and the door bolts.",
 			"choices": [
 				{
@@ -41,14 +42,17 @@
 		},
 		"poor": {
 			"speaker": "Innkeeper",
+			"portrait": "inn_keeper",
 			"text": "Four gold, I said. Come back\nwhen your purse agrees."
 		},
 		"bye": {
 			"speaker": "Innkeeper",
+			"portrait": "inn_keeper",
 			"text": "Suit yourself. Bed's here."
 		},
 		"abed": {
 			"speaker": "Innkeeper",
+			"portrait": "inn_keeper",
 			"text": "Bed's the one by the window.\nSleep well."
 		}
 	}

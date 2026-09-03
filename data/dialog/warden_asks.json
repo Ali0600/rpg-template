@@ -16,12 +16,14 @@
 	"nodes": {
 		"greet": {
 			"speaker": "Warden",
-			"text": "You will want to know why the gate is barred. I barred it. Something took the keep eleven years ago, and I could not take it back.",
+			"portrait": "quest_warden",
+			"text": "You want to know why the gate is barred. I barred it. Something took the keep eleven years ago, and I could not take it back.",
 			"set_flag": "met_the_warden",
 			"next": "why"
 		},
 		"why": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "The key went west into the hollow, under the roots of the one bush down there. What nests beside it now is why nobody has fetched it.",
 			"choices": [
 				{
@@ -37,10 +39,12 @@
 		},
 		"good": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "Then you are already doing more than I have in a decade. Mind the smith in the town south of here - she keeps something for cuts."
 		},
 		"fair": {
 			"speaker": "Warden",
+			"portrait": "quest_warden",
 			"text": "It is. And it will still be my problem tomorrow, when you have run out of other things to do."
 		}
 	}
