@@ -36,6 +36,22 @@ enum Outline {
 ## which is why test_map_content refuses it.
 @export var world_scale: int = 1
 
+## How many times its WORLD size a fighter is drawn at in a battle. The screen divides this by
+## world_scale, because a battle screen is a CanvasLayer already drawn at that scale - so this
+## number is what lands on the glass either way, and 1 means "the size this character is when you
+## walk around as them".
+##
+## Two for the 16px styles, which is what shipped and what every layout measured before M42 was
+## taken at. ONE for lpc32: a 64px cell at twice size is 128 of the 180 design pixels this layout
+## has, a third of the screen for one fighter, and it is why the readouts had nowhere to go but
+## on top of the sprites they belonged to.
+##
+## On the STYLE rather than derived, which reverses M40's call and takes up the hook that entry
+## named. The argument for deriving it was that the multiple is a property of the screen's bands;
+## the answer is that how big a character is drawn is a property of how big the character IS,
+## which is what a style knows and a screen does not.
+@export var battle_sprite_scale: int = 2
+
 ## Which rig (data/rigs/<id>.json) supplies the part shapes.
 @export var rig_id: StringName = &"gb16"
 
@@ -83,10 +99,23 @@ const SHEET_SOURCES: Array[StringName] = [SHEETS_FROM_RIG, SHEETS_FROM_LPC]
 ## style. Name one here only to colour it differently from the bank.
 @export var tile_ramps: Dictionary = {}
 
-## Interface colours (text, dim text, panel), as hex strings. Deliberately NOT part of
+## Interface colours, as hex strings, keyed by the roles in UI_ROLES. Deliberately NOT part of
 ## `ramps`: chrome re-skins with the style, but a UI colour must never become legal inside a
 ## sprite, and everything in `ramps` is exactly what the palette gate permits there.
 @export var ui_colors: Dictionary = {}
+
+## Every role a screen may ask for, and `problems()` requires ALL of them. Until M42 this
+## dictionary was validated by nothing and `ui_color()` answered white for anything missing - so
+## a style could ship with no chrome at all and the first anybody heard of it was a white screen.
+##
+## Eight, and each is a different job. `panel` fills a window and `border` rules it; `header` is
+## the band across its top; `select` is the bar the cursor is; `text` and `dim` are what is said
+## loudly and quietly; `hp` and `mp` are the only COLOURS on screen, which is Persona 5's own
+## stated rule and what makes a bar readable at a glance rather than parsed.
+##
+## Kept as a list a screen's ask is checked against - see test_ui_chrome's role census - because
+## the alternative is a typo answering a colour nobody chose.
+const UI_ROLES: Array[String] = ["panel", "border", "header", "select", "text", "dim", "hp", "mp"]
 
 @export var walk_frames: int = 4
 @export var walk_fps: int = 8
@@ -124,11 +153,14 @@ func ramp(name: String) -> PackedColorArray:
 	return out
 
 
-## An interface colour by role ("text", "dim", "panel"). Falls back to a legible neutral so
-## a style that has not defined chrome still renders readable text rather than black on black.
-func ui_color(role: String, fallback: Color = Color(1, 1, 1, 1)) -> Color:
+## An interface colour by role - one of UI_ROLES. Every shipped style defines all of them
+## (`problems()` refuses one that does not), so a miss here is a typo in a SCRIPT rather than a
+## style's choice: it says so loudly and returns a neutral, because a screen that failed to draw
+## would be a worse way to report a misspelled role than one drawn in the wrong colour.
+func ui_color(role: String) -> Color:
 	if not ui_colors.has(role):
-		return fallback
+		push_error("SpriteStyle '%s' has no ui_color '%s'" % [id, role])
+		return Color(1, 1, 1, 1)
 	return Color(str(ui_colors[role]))
 
 
@@ -224,6 +256,11 @@ func problems() -> Array[String]:
 		out.append("tile_size must be positive, got %d" % tile_size)
 	if world_scale < 1:
 		out.append("world_scale must be at least 1, got %d" % world_scale)
+	if battle_sprite_scale < 1:
+		out.append("battle_sprite_scale must be at least 1, got %d" % battle_sprite_scale)
+	for role in UI_ROLES:
+		if not ui_colors.has(role) or not str(ui_colors[role]).begins_with("#"):
+			out.append("ui_colors has no '%s'; every screen in the game asks for it" % role)
 	if not SHEET_SOURCES.has(sheets_from):
 		out.append("sheets_from '%s' is not one of %s" % [sheets_from, SHEET_SOURCES])
 	elif imports():

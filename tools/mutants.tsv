@@ -653,7 +653,7 @@ scripts/world/world_scene.gd	s|var at := at_tile \* float\(_built.tile_size\)|va
 scripts/data/migrations.gd	s|d = _v9_to_v10\(d\)|break|	tests/unit/test_saves.gd	a v9 save is handed on unmigrated, still speaking in pixels
 scripts/data/migrations.gd	s|const PRE_V10_TILE_PIXELS := 16.0|const PRE_V10_TILE_PIXELS := 32.0|	tests/unit/test_saves.gd	every save written before v10 lands the player half way to where they stood
 scripts/autoload/game_state.gd	s|out.tile = player_position / float\(maxi\(tile_size, 1\)\)|out.tile = player_position|	tests/unit/test_saves.gd	a save is written in pixels wearing a tile's name
-scripts/ui/battle_screen.gd	s|var drawn := SPRITE_SCALE / float\(UiScale.scale_of\(_style\)\)|var drawn := SPRITE_SCALE|	tests/integration/test_battle_layout.gd	a fighter under a 32px style is drawn at four times its world size
+scripts/ui/battle_screen.gd	s|return float\(_style.battle_sprite_scale\) / float\(UiScale.scale_of\(_style\)\)|return float(_style.battle_sprite_scale)|	tests/integration/test_battle_layout.gd	a fighter under a 32px style is drawn at twice the size its style asked for
 scripts/world/npc_brain.gd	s|return ARRIVE_EPSILON_PER_TILE \* float\(_tile_size\)|return ARRIVE_EPSILON_PER_TILE * 16.0|	tests/unit/test_npc_brain.gd	at 32px tiles an NPC shuffles forever a pixel short of its waypoint
 scripts/autoload/qa.gd	s|var tile_size := GameState.tile_size|var tile_size := 16|	tests/unit/test_qa_ops.gd	a play session reads a 32px world in 16px tiles and asserts the wrong door
 tests/helpers/warp_graph.gd	s|changed = true|pass|	tests/unit/test_map_content.gd	the reach walk stops one door in, so the rooms beyond it are never compared with the rest
@@ -721,3 +721,12 @@ scripts/world/map_builder.gd	s|\t\tout.append\(data.ground_at\(at \+ offset\)\)|
 # Unset it and the game draws in the engine's own face - at the right size, in the right place,
 # looking almost right - so the gate has to be aimed at the OUTCOME rather than at the setting.
 project.godot	s|theme/custom_font=\"res://assets/fonts/pixel_operator_8.ttf\"|theme/custom_font=\"\"|	tests/unit/test_dialog_fit.gd	the game draws in the engine's own font and every measured line is about a font nobody sees
+
+# -- M42: the pieces every screen is drawn from -------------------------------------------
+scripts/data/sprite_style.gd	s|\tfor role in UI_ROLES:|\tfor role in []:|	tests/unit/test_ui_chrome.gd	a style may ship with no interface colours at all and draws white on white
+scripts/data/sprite_style.gd	s|\tif battle_sprite_scale < 1:|\tif false:|	tests/unit/test_ui_chrome.gd	a style may draw its fighters at no size at all
+scripts/ui/ui_chrome.gd	s|\tbox.border_color = style.ui_color\(\"border\"\)|\tbox.border_color = style.ui_color(\"panel\")|	tests/unit/test_ui_chrome.gd	a window is ruled in its own fill, so it is a rectangle rather than a frame
+scripts/ui/ui_chrome.gd	s|\tout.fill.color = style.ui_color\(role\)|\tout.fill.color = style.ui_color(\"text\")|	tests/unit/test_ui_chrome.gd	health and magic are drawn the same colour, so neither says which it is
+scripts/ui/ui_chrome.gd	s|\tb.fill.size = Vector2\(floorf\(b.width \* clampf\(span, 0.0, 1.0\)\), float\(BAR_HEIGHT\)\)|\tb.fill.size = Vector2(b.width, float(BAR_HEIGHT))|	tests/unit/test_ui_chrome.gd	every bar is drawn full whatever it is measuring
+scripts/ui/ui_chrome.gd	s|\tbar.visible = true|\tbar.visible = false|	tests/unit/test_ui_chrome.gd	the cursor is never shown, so no list says which row it is on
+scripts/ui/ui_chrome.gd	s|\t\ttop \+= float\(HEADER_HEIGHT\)|\t\tpass|	tests/unit/test_ui_chrome.gd	a window's header band is not counted, so its title covers the first row under it

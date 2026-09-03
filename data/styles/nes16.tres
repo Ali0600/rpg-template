@@ -15,6 +15,7 @@ script = ExtResource("1_style")
 id = &"nes16"
 cell_size = Vector2i(16, 24)
 tile_size = 16
+battle_sprite_scale = 2
 rig_id = &"gb16"
 tile_bank_id = &"gb16"
 ramps = {
@@ -60,8 +61,13 @@ part_choices = {
 outline_mode = 2
 outline_color_hex = "#000000"
 ui_colors = {
+"border": "#bcbcbc",
 "dim": "#787878",
+"header": "#101010",
+"hp": "#fcbc3c",
+"mp": "#3cbcfc",
 "panel": "#000000",
+"select": "#3c3c3c",
 "text": "#fcfcfc"
 }
 walk_frames = 4

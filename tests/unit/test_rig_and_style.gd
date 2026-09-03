@@ -140,6 +140,11 @@ func _imported_style() -> SpriteStyle:
 	s.rig_id = &""
 	s.licenses = JsonFile.to_string_array(["CC0", "CC-BY-SA"])
 	s.ramps = {"x": ["#000000", "#777777", "#ffffff"]}
+	# Every interface role, DERIVED from the list rather than typed out: this fixture is about
+	# the sheet axis, and a ninth role added tomorrow should not make it fail about chrome. The
+	# colour is the same for all of them because nothing here looks at one.
+	for role in SpriteStyle.UI_ROLES:
+		s.ui_colors[role] = "#ffffff"
 	return s
 
 func test_a_valid_imported_style_reports_nothing() -> void:

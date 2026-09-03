@@ -25,6 +25,7 @@ id = &"lpc32"
 cell_size = Vector2i(64, 64)
 tile_size = 32
 world_scale = 2
+battle_sprite_scale = 1
 rig_id = &""
 tile_bank_id = &"lpc32"
 sheets_from = &"lpc"
@@ -54,8 +55,13 @@ part_choices = {}
 outline_mode = 1
 outline_color_hex = "#0a0a14"
 ui_colors = {
+"border": "#5c5c75",
 "dim": "#75758a",
+"header": "#1b1b3a",
+"hp": "#b5703a",
+"mp": "#5a5a9c",
 "panel": "#0a0a14",
+"select": "#34346b",
 "text": "#e8e0d0"
 }
 walk_frames = 4
