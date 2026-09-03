@@ -298,6 +298,26 @@ func _shown(node: Node, screen: BattleScreen) -> bool:
 	return true
 
 
+## The room INSIDE a container, in screen space. A header band has no inner rect of its own -
+## what is in it is in it - so it answers with its whole rectangle.
+func _content(node: Node, outer: Rect2) -> Rect2:
+	var inner := UiChrome.inner_of(node)
+	if inner.size == Vector2.ZERO:
+		return outer
+	return Rect2(outer.position + inner.position, inner.size)
+
+
+## Which rectangle a child has to fit in. CONTENT for the things a window holds, and the window's
+## whole rect for its own chrome: a header band IS the top of the window rather than something
+## inside it, and a cursor is deliberately inset past the content edge so the bar reads as being
+## around its row rather than starting at the same pixel. Both must still be inside the window.
+func _room_for(child: Node, container: Node, outer: Rect2) -> Rect2:
+	var kind := UiChrome.kind_of(child)
+	if kind == UiChrome.HEADER or kind == UiChrome.SELECT:
+		return outer
+	return _content(container, outer)
+
+
 ## The nearest chrome kind above `node`, or nothing. Asked by ancestry rather than by an identity
 ## list, which is what the fill exclusion used to be - and a list every new bar had to be added to.
 func _kind_above(node: Node, screen: BattleScreen) -> StringName:
@@ -341,6 +361,14 @@ func _visible_rects(screen: BattleScreen) -> Array:
 		var span := Vector2(view.cell_size()) * view.scale
 		out.append([_name_of(screen, view) + " (a fighter)",
 			Rect2(view.position - Vector2(view.anchor()) * view.scale, span), view])
+	# The windows themselves. Collected LAST of the containers on purpose - a frame is not a peer
+	# of what is inside it, and the pair rule above turns each such pairing into a containment
+	# check. Without them in the list at all, "inside its window" was a rule nothing evaluated.
+	for node in SceneHelpers.find_all_by_class(screen, "Panel"):
+		var frame := node as Panel
+		if not frame.visible or not _shown(frame, screen):
+			continue
+		out.append([_name_of(screen, frame), Rect2(frame.global_position, frame.size), frame])
 	for node in SceneHelpers.find_all_by_class(screen, "TextureRect"):
 		var face := node as TextureRect
 		if not face.visible or not _shown(face, screen):
@@ -468,16 +496,22 @@ func _assert_nothing_overlaps(screen: BattleScreen, page: String) -> void:
 			var b: Rect2 = rects[j][1]
 			var a_node: Node = rects[i][2]
 			var b_node: Node = rects[j][2]
-			# One inside the other: assert the containment rather than the separation.
+			# One inside the other: assert the containment rather than the separation, and
+			# against the window's CONTENT rect rather than its outer one. The border and the
+			# header band are part of a window and not part of the room inside it, so measuring
+			# against the outer rect passes a row hanging over the bottom edge - which is what
+			# the command window was doing when this was first written.
 			if _container_of(b_node, screen) == a_node:
-				assert_bool(a.encloses(b)).override_failure_message(
+				var room := _room_for(b_node, a_node, a)
+				assert_bool(room.encloses(b)).override_failure_message(
 					"on the %s page, %s %s sticks out of %s %s"
-					% [page, rects[j][0], b, rects[i][0], a]).is_true()
+					% [page, rects[j][0], b, rects[i][0], room]).is_true()
 				continue
 			if _container_of(a_node, screen) == b_node:
-				assert_bool(b.encloses(a)).override_failure_message(
+				var space := _room_for(a_node, b_node, b)
+				assert_bool(space.encloses(a)).override_failure_message(
 					"on the %s page, %s %s sticks out of %s %s"
-					% [page, rects[i][0], a, rects[j][0], b]).is_true()
+					% [page, rects[i][0], a, rects[j][0], space]).is_true()
 				continue
 			# A cursor sits UNDER a row: it may cover one whole, and must not clip any other.
 			if UiChrome.kind_of(a_node) == UiChrome.SELECT \
@@ -488,6 +522,19 @@ func _assert_nothing_overlaps(screen: BattleScreen, page: String) -> void:
 					.override_failure_message(
 					"on the %s page, the cursor %s half-covers %s %s"
 					% [page, bar, rects[j][0] if bar == a else rects[i][0], other]).is_true()
+				continue
+			# TWO FIGHTERS may overlap, and that is what a staggered file IS: they stand back and
+			# up from one another so a party of three fits a field two of them would fill, each
+			# still showing their head and their weapon arm. A rule that forbade it would be a
+			# rule against formations.
+			#
+			# Not a free pass, though - what it must never be is two fighters in the same PLACE,
+			# which is a file that forgot to step and reads as one character with a doubled
+			# outline. So the exemption asserts the thing the overlap is allowed for.
+			if a_node is SpriteView and b_node is SpriteView:
+				assert_vector((a_node as SpriteView).position).override_failure_message(
+					"two fighters stand on the same spot, so one is drawn inside the other"
+				).is_not_equal((b_node as SpriteView).position)
 				continue
 			# A window may sit inside another window's content area; the containment above has
 			# already covered the pair that are actually nested.
@@ -660,9 +707,9 @@ func test_a_page_longer_than_the_window_still_fits_in_it() -> void:
 	assert_int(_drawn_rows(screen).size()).override_failure_message(
 		"a six-row page drew more rows than the window has slots").is_equal(4)
 	for row in screen._rows:
-		assert_float(row.position.y).override_failure_message(
-			"a row is drawn above the band the layout reserves for it").is_greater_equal(
-			BattleScreen.ROWS_Y)
+		assert_float(row.global_position.y).override_failure_message(
+			"a row is drawn above the window that holds it").is_greater_equal(
+			BattleScreen.PANELS_Y)
 	_assert_nothing_overlaps(screen, "six-spell")
 
 func test_every_row_of_a_long_page_can_be_reached_by_cursoring_down() -> void:
@@ -675,9 +722,10 @@ func test_every_row_of_a_long_page_can_be_reached_by_cursoring_down() -> void:
 	var seen := {}
 	for step in 6:
 		screen._paint()
-		for row in _drawn_rows(screen):
-			if row.begins_with("> "):
-				seen[row.substr(2)] = true
+		var picked := screen.selected_row()
+		assert_object(picked).override_failure_message(
+			"the page is open and no row is under the cursor").is_not_null()
+		seen[picked.text] = true
 		screen.logic().move(1)
 	for spell: BattleLogic.SpellRow in screen.logic().spell_rows():
 		var wanted := "%s  %d MP" % [spell.name, spell.cost]
@@ -712,13 +760,13 @@ func test_only_a_game_with_magic_is_told_about_magic() -> void:
 	# draws the line and by one that never does. A game with no spells being shown "MP 0/0" is
 	# a system the player is told about and can never find.
 	var without := _screen(1, 0, [], [], false)
-	assert_bool(without._hero_mp.visible).override_failure_message(
-		"a game with no magic is shown a magic readout: '%s'" % without._hero_mp.text).is_false()
+	assert_bool(without._mp_bars[0].root.visible).override_failure_message(
+		"a game with no magic is shown a magic bar").is_false()
 
 	var with_magic := _screen(1, 5)
-	assert_bool(with_magic._hero_mp.visible).override_failure_message(
+	assert_bool(with_magic._mp_bars[0].root.visible).override_failure_message(
 		"a game with magic does not say how much is left").is_true()
-	assert_str(with_magic._hero_mp.text).contains("MP 5/8")
+	assert_str(with_magic._mp_bars[0].numbers.text).is_equal("5/8")
 
 
 func test_a_full_party_is_drawn_without_anything_overlapping() -> void:
@@ -768,8 +816,8 @@ func test_the_party_fits_between_the_fighters_and_the_help_line() -> void:
 	var lowest := 0.0
 	for label: Label in screen._member_labels:
 		lowest = maxf(lowest, label.global_position.y + label.get_theme_font_size("font_size"))
-	for bar: ColorRect in screen._member_bars:
-		lowest = maxf(lowest, bar.global_position.y + bar.size.y)
+	for bar: UiChrome.Bar in screen._hp_bars:
+		lowest = maxf(lowest, bar.root.global_position.y + float(UiChrome.BAR_HEIGHT))
 	assert_float(lowest).override_failure_message(
 		"the party's last block reaches y=%f, past the help line" % lowest) \
 		.is_less(float(VIEWPORT.y) - 14.0)
@@ -814,6 +862,12 @@ func test_exactly_one_member_is_marked_at_a_time() -> void:
 		assert_int(_marked_count(screen)).override_failure_message(
 			"%d members were marked while member %d had the turn"
 			% [_marked_count(screen), logic.commander()]).is_equal(1)
+		# WHICH one, not just how many. The count alone cannot see a mark that stayed put: with
+		# the turn never released it is still exactly one arrow, on the wrong person - and a
+		# player reading it as "you are about to be hit" is reading about somebody else.
+		assert_int(screen.marked_member()).override_failure_message(
+			"the mark is on member %d where member %d has the turn"
+			% [screen.marked_member(), logic.commander()]).is_equal(logic.commander())
 		logic.press()
 		_walk(logic, BattleLogic.Phase.PLAYER_ACT)
 		_walk(logic, BattleLogic.Phase.MESSAGE)
@@ -823,13 +877,25 @@ func test_exactly_one_member_is_marked_at_a_time() -> void:
 	screen._paint()
 	assert_int(_marked_count(screen)).override_failure_message(
 		"%d members were marked while the enemy took aim" % _marked_count(screen)).is_equal(1)
+	# And it has MOVED, to whoever is about to be hit. This is the assertion the count could
+	# never make: a party member still holding the turn from their own swing leaves the mark on
+	# them, which is one arrow, in the wrong place, saying the wrong thing.
+	assert_int(screen.marked_member()).override_failure_message(
+		"the enemy is aiming at member %d and the mark is on member %d"
+		% [logic.target_member(), screen.marked_member()]).is_equal(logic.target_member())
 
 
-## How many member captions are currently carrying the marker.
+## How many member blocks the mark is currently covering. Read off the BAR rather than off the
+## front of a caption, which is what it was: the marker used to be a "> " inside the row's own
+## string, so a test that wanted to know who was marked had to parse text, and could not tell a
+## marked member from one whose NAME began with a chevron.
 func _marked_count(screen: BattleScreen) -> int:
+	if not screen._party_mark.visible:
+		return 0
+	var bar := Rect2(screen._party_mark.global_position, screen._party_mark.size)
 	var out := 0
 	for label: Label in screen._member_labels:
-		if label.visible and label.text.begins_with("> "):
+		if label.visible and bar.has_point(label.global_position):
 			out += 1
 	return out
 
@@ -868,42 +934,50 @@ func test_a_full_party_wearing_statuses_still_fits() -> void:
 	_assert_nothing_overlaps(screen, "full party wearing statuses")
 
 
-func test_every_foe_of_a_full_formation_has_a_visible_block() -> void:
-	# The overlap audit proves nothing COLLIDES; it cannot prove anything was drawn. A layout
+func test_every_foe_of_a_full_formation_is_named() -> void:
+	# The overlap audit proves nothing COLLIDES; it cannot prove anything was drawn. A banner
 	# that forgot the third foe would pass it perfectly.
 	var screen := _full_field_screen()
 	var drawn := 0
-	for label: Label in screen._foe_labels:
+	for label: Label in screen._foe_names:
 		if label.visible and not label.text.strip_edges().is_empty():
 			drawn += 1
 	assert_int(drawn).override_failure_message(
-		"a formation of %d drew %d captions" % [BattleScreen.MAX_FOES, drawn]) \
+		"a formation of %d named %d of them" % [BattleScreen.MAX_FOES, drawn]) \
 		.is_equal(BattleScreen.MAX_FOES)
 
+func test_one_bar_says_how_the_foe_you_are_aiming_at_is_doing() -> void:
+	# ONE, whatever the formation's size - which is the M42 divergence from this template's own
+	# M28, and Clair Obscur's shape. Eight reference games and not one draws a bar per enemy.
+	var lone := _screen()
+	assert_str(lone._foe_bar.numbers.text).override_failure_message(
+		"the banner says nothing about the foe in front of you").is_equal("99/99")
+	var crowd := _full_field_screen()
+	assert_int(crowd._foe_names.size()).is_equal(BattleScreen.MAX_FOES)
+	assert_str(crowd._foe_bar.numbers.text).override_failure_message(
+		"a formation of three draws something other than one bar").is_equal("99/99")
 
-func test_a_lone_foe_keeps_the_block_it_has_always_had() -> void:
-	# The parity pin on the other side: a fight against one foe is pixel-identical to every
-	# screenshot taken before formations existed, and this is the assertion that says so.
-	var screen := _screen()
-	assert_int(screen._foe_bars.size()).is_equal(1)
-	assert_float(screen._foe_bars[0].global_position.y).override_failure_message(
-		"the lone foe's bar moved from where it has always been") \
-		.is_equal(BattleScreen.FOE_BAR_Y)
-
-
-func test_the_formation_fits_above_the_cue_line() -> void:
-	# The bound the pitch is chosen against, asserted rather than eyeballed: the lowest thing a
-	# foe's block draws must still sit above the band the "!" uses, or the crowd covers the one
-	# thing the player is reacting to.
+func test_the_named_foe_is_the_one_the_bar_is_about() -> void:
+	# The banner's own coupling: a name is LIT to say the number below belongs to it, so a bar
+	# about one foe under a name lit for another is a readout pointing at the wrong body.
 	var screen := _full_field_screen()
-	var lowest := 0.0
-	for label: Label in screen._foe_labels:
-		lowest = maxf(lowest, label.global_position.y + label.get_theme_font_size("font_size"))
-	for bar: ColorRect in screen._foe_bars:
-		lowest = maxf(lowest, bar.global_position.y + bar.size.y)
-	assert_float(lowest).override_failure_message(
-		"the formation's last block reaches y=%f, into the cue band" % lowest) \
-		.is_less(float(VIEWPORT.y) * 0.5 - 30.0)
+	var logic := screen.logic()
+	# Aim at the last foe, which is not the one a fresh banner shows.
+	logic.press()
+	_walk(logic, BattleLogic.Phase.MENU)
+	assert_int(logic.phase()).override_failure_message(
+		"the cursor over the formation never opened").is_equal(BattleLogic.Phase.FOE)
+	logic.move(1)
+	screen._paint()
+	var aimed := screen.marked_foe()
+	assert_int(aimed).override_failure_message(
+		"the cursor moved and the banner still shows the first foe").is_not_equal(0)
+	var text := screen._style.ui_color("text")
+	for i in screen._foe_names.size():
+		var lit: Color = screen._foe_names[i].get_theme_color("font_color")
+		assert_bool(lit == text).override_failure_message(
+			"foe %d is lit %s where the bar is about foe %d" % [i, lit, aimed]) \
+			.is_equal(i == aimed)
 
 
 func test_only_the_foe_that_is_swinging_leans_forward() -> void:
@@ -959,10 +1033,13 @@ func test_exactly_one_foe_is_marked_while_the_cursor_is_up() -> void:
 		"the mark did not stay on the foe the blow is travelling toward").is_equal(1)
 
 
-## How many foe captions are currently carrying the marker.
+## How many foes the banner is currently lighting - which is how it says whose number the one
+## bar underneath belongs to. Read off the COLOUR rather than off a marker inside the text, for
+## the party mark's reason.
 func _marked_foes(screen: BattleScreen) -> int:
+	var text := screen._style.ui_color("text")
 	var out := 0
-	for label: Label in screen._foe_labels:
-		if label.visible and label.text.begins_with("> "):
+	for label: Label in screen._foe_names:
+		if label.visible and label.get_theme_color("font_color") == text:
 			out += 1
 	return out

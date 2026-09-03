@@ -54,13 +54,34 @@ const ROW_PITCH := 11
 ## FIXED rather than derived from the page. A stack sized to its contents eventually reaches
 ## whatever is above it, and no amount of choosing good numbers prevents that - only a bound
 ## does. A page longer than the window SCROLLS; see _first_visible.
-const ROWS_Y := 120.0
+## THE BANDS, top to bottom, in design pixels. Every one of these was a loose number before M42
+## and they are written together now because they are one budget: 180 pixels, shared out.
+##
+##   4..26    the foes' banner - who is in front of you, and how the one you are aiming at is
+##   28..52   the caption, MESSAGE_LINES lines of it
+##   ..102    the field: fighters stand with their FEET on FLOOR_Y
+##   106..164 the two windows - commands on the left, the party on the right
+##   168..    the help line
+##
+## The tightest of them is the field. A dusk16 fighter draws 48 design pixels tall where an lpc32
+## one draws 32, so the taller one is what decides where the caption may end and where the windows
+## may start - and the audit measures every band at the capacity this view declares.
+const BANNER_Y := 4.0
+## Two lines of the font inside the border and padding: the names, then the bar and its figures.
+const BANNER_HEIGHT := 24.0
+const CAPTION_Y := 30.0
+## Where a fighter's FEET are. Everything above it is the caption's, everything below the two
+## windows' - and the tallest fighter any style draws is 48 design pixels, which is what decides
+## both edges: 104 - 48 clears the caption by two, and 104 clears the windows by two.
+const FLOOR_Y := 104.0
+const PANELS_Y := 106.0
+const PANELS_HEIGHT := 60.0
+## The command window and the party window split the bottom band, left and right. Sea of Stars'
+## own arrangement: the list of what you can do sits beside the people who can do it.
+const COMMANDS_WIDTH := 140.0
+const PARTY_X := 150.0
+
 const VISIBLE_ROWS := 4
-const HERO_BAR_Y := 120.0
-## Where a LONE foe's bar sits - the spot it has occupied since fights existed, written out as a
-## constant now that its neighbours are computed. It was `mid - 44.0` inline, which is the same
-## number at this viewport and a worse thing to compare a layout assertion against.
-const FOE_BAR_Y := 46.0
 
 ## How many fighters this screen can draw on the player's side, and therefore how large a party
 ## a game on this template may declare. THE CAPACITY IS THE CONTENT CONTRACT, not an
@@ -73,26 +94,22 @@ const FOE_BAR_Y := 46.0
 ## bar and a legible caption each, and it is the genre's own common size - Chrono Trigger's
 ## active three, Dragon Quest II's full party.
 const MAX_PARTY := 3
-## Where a party of two or more stacks, and how far apart. A party of ONE keeps HERO_BAR_Y and
-## a separate MP line, which is the layout that shipped and the one the layout audit pins.
-## Sharing the band is what makes the block compact: at one member there is room for two lines,
-## and at three there is not.
-const MEMBERS_Y := 112.0
-const MEMBER_PITCH := 17.0
+## How tall one member's block is inside the party window, and how far apart they sit. A block is
+## two lines of the font - a name, then the bars and their figures - and the pitch is one more, so
+## there is a pixel of air between one member and the next rather than a wall of numbers.
+const BLOCK_HEIGHT := 16.0
+const BLOCK_PITCH := 17.0
+
+## The same contract on the other side: how many foes this screen can draw, and therefore how
+## large a formation a map record may name. Three for the same reason as MAX_PARTY - it is what
+## the banner names on one line at the widest names the layout audit uses, and it is the size the
+## genre's own small fights come in.
+const MAX_FOES := 3
 
 ## The same contract on the other side: how many foes this screen can draw, and therefore how
 ## large a formation a map record may name. Three for the same reason - it is what the band
 ## above the cue line holds, and it is the size the genre's own small fights come in.
 ##
-## The pitch is tighter than the party's because a foe's caption carries no magic: a bar and one
-## line, three times, between the title and the cue band at y=60.
-const MAX_FOES := 3
-const FOES_Y := 20.0
-## Thirteen rather than fourteen, and the layout audit is why: at fourteen the third foe's
-## caption ends exactly on the cue band's first pixel. Nothing overlapped, so the overlap audit
-## was happy - but a block that touches the one thing the player is reacting to has no room to
-## be wrong in, and the bound test asks for clearance rather than for a tie.
-const FOE_PITCH := 13.0
 
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
@@ -102,8 +119,14 @@ const LUNGE := 10.0
 ## about these numbers rather than a multiple anything is drawn at, which is why it stayed here
 ## when the multiple itself moved into the style.
 const STAGGER_WIDTH := 32.0
-const BAR_WIDTH := 64.0
-const BAR_HEIGHT := 4.0
+## How wide a member's bars are inside their block, and how wide the banner's one foe bar is.
+## The foe's is wider because it is the only one up there and it is what the player is aiming at.
+## How much of a fallen member's face is left. Faded rather than hidden: they are still in the
+## party and still what an inn will put back up, and a face that vanished would read as somebody
+## having left the fight.
+const DOWN_FADE := 0.4
+const BAR_WIDTH := 26.0
+const FOE_BAR_WIDTH := 80.0
 
 ## Indexed by BattleLogic.Row, so the order is the enum's rather than a second list's.
 const COMMANDS: Array[String] = ["Attack", "Magic", "Item", "Flee"]
@@ -111,28 +134,38 @@ const COMMANDS: Array[String] = ["Attack", "Magic", "Item", "Flee"]
 var _logic: BattleLogic = null
 var _style: SpriteStyle = null
 var _backdrop := ColorRect.new()
-var _title := Label.new()
 var _help := Label.new()
 var _cue := Label.new()
 var _message := Label.new()
-var _rows: Array[Label] = []
 
-## One entry per member, all four lists index-aligned with the logic's own party order.
+## The foes' banner: who is in front of you, and one bar for the one you are aiming at.
+##
+## ONE bar rather than one each, which is what M28 shipped and what put a readout on top of every
+## sprite it belonged to. Eight reference games and not one draws a bar per enemy - Sea of Stars
+## and Persona 5 draw none at all, Clair Obscur draws exactly this: a single bar for the target,
+## with the rest of the formation named and nothing more. See docs/DECISIONS.md.
+var _banner: UiChrome.Frame = null
+var _foe_names: Array[Label] = []
+var _foe_bar: UiChrome.Bar = null
+
+## The command window, headed with whoever's turn it is.
+var _commands: UiChrome.Frame = null
+var _rows: Array[Label] = []
+var _select: ColorRect = null
+
+## The party window: one block per member - a face, a name, and two bars.
+var _party: UiChrome.Frame = null
+var _party_mark: ColorRect = null
+var _faces: Array[TextureRect] = []
+var _member_labels: Array[Label] = []
+var _hp_bars: Array[UiChrome.Bar] = []
+var _mp_bars: Array[UiChrome.Bar] = []
+
+## One entry per fighter, index-aligned with the logic's own order.
 var _member_views: Array[SpriteView] = []
 var _member_homes: Array[Vector2] = []
-var _member_bars: Array[ColorRect] = []
-var _member_fills: Array[ColorRect] = []
-var _member_labels: Array[Label] = []
-## And one entry per foe, index-aligned with the fight's own formation order. Five lists on each
-## side, mirrored deliberately: the two sides are the same problem drawn at opposite corners.
 var _foe_views: Array[SpriteView] = []
 var _foe_homes: Array[Vector2] = []
-var _foe_bars: Array[ColorRect] = []
-var _foe_fills: Array[ColorRect] = []
-var _foe_labels: Array[Label] = []
-## The magic line, drawn only for a party of ONE - at two or more it folds into the caption,
-## because there is no room for a second line each.
-var _hero_mp := Label.new()
 
 var _gate := InputGate.new()
 
@@ -169,13 +202,67 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	_backdrop.size = viewport_size
 	add_child(_backdrop)
 
-	_title.position = Vector2(MARGIN, MARGIN)
-	_title.add_theme_font_size_override("font_size", TITLE_SIZE)
-	add_child(_title)
+	var wide := float(viewport_size.x)
+	var edge := float(UiChrome.PAD) + float(UiChrome.BORDER)
+	_build_banner(wide)
 
-	var mid := float(viewport_size.y) * 0.5
-	var count := _logic.member_count()
-	var foes := _logic.foe_count()
+	_message.position = Vector2(MARGIN, CAPTION_Y)
+	_message.add_theme_font_size_override("font_size", ROW_SIZE)
+	# WRAPS, and a Label does not do that on its own: with no width set it has nothing to wrap
+	# against, and with no clip it draws straight past the window edge - where the text is not
+	# truncated, it is simply somewhere the player cannot see. Measured at the capacity this view
+	# DECLARES (MAX_PARTY members, MAX_FOES foes, a sweep that fells two of them), the caption ran
+	# to 451px in a 320px window.
+	#
+	# Three lines rather than one is also the genre's own shape, and this screen was the outlier:
+	# every reference battle message area holds more than one line - Pokemon 2, EarthBound 3,
+	# Dragon Warrior 8 - and Dragon Warrior word-wraps into them automatically.
+	# See docs/GENRE_CONVENTIONS.md S7c.
+	_message.size.x = wide - MARGIN * 2.0
+	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_message)
+
+	_build_field(viewport_size, source)
+
+	# The cue sits BETWEEN the two sides, in the gap the fighters leave down the middle of the
+	# field - the one place on this screen nothing else is drawn, which is where the thing a
+	# player is reacting to belongs.
+	_cue.position = Vector2(0.0, FLOOR_Y - 32.0)
+	_cue.size = Vector2(wide, 12.0)
+	_cue.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cue.add_theme_font_size_override("font_size", TITLE_SIZE)
+	add_child(_cue)
+
+	_build_commands(edge)
+	_build_party(wide, edge, source)
+
+	_help.position = Vector2(MARGIN, float(viewport_size.y) - 12.0)
+	_help.add_theme_font_size_override("font_size", HELP_SIZE)
+	add_child(_help)
+
+
+## The foes' banner: their names on one line, and under it a single bar for whichever one the
+## player is aiming at. A name per foe rather than one joined string, because each is lit or
+## dimmed on its own - which is how the banner says which of them the bar is about.
+func _build_banner(wide: float) -> void:
+	_banner = UiChrome.frame(_style, Rect2(MARGIN - 2.0, BANNER_Y,
+		wide - (MARGIN - 2.0) * 2.0, BANNER_HEIGHT))
+	add_child(_banner.panel)
+	var inner := _banner.inner()
+	var at := inner.position
+	for i in _logic.foe_count():
+		var name_label := UiChrome.label(_style, "text")
+		name_label.position = at
+		_banner.panel.add_child(name_label)
+		_foe_names.append(name_label)
+		at.x += 4.0
+	_foe_bar = UiChrome.bar(_style, "hp", FOE_BAR_WIDTH)
+	_foe_bar.root.position = Vector2(inner.position.x, inner.position.y + 10.0)
+	_banner.panel.add_child(_foe_bar.root)
+
+
+## The field: two staggered files of fighters, feet on FLOOR_Y.
+func _build_field(viewport_size: Vector2i, source: SpriteSource) -> void:
 	# The generated walk and idle sheets, unchanged. A battle-only "attack" clip would mean new
 	# rig parts, a new clip in SheetBuilder and a change to the sheet contract - so the lunge
 	# is done by moving the NODE, which needs none of it and re-skins with everything else.
@@ -185,101 +272,81 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	#
 	# The step between them is a fraction of how wide a fighter DRAWS, not a flat number of
 	# pixels: 18 and 14 were chosen against a 16x24 cell at twice size, and a style whose
-	# fighters are twice that wide needs twice the room to keep the same file. At the width
-	# they were chosen for this is exactly 18 and 14, so every layout measured before this is
-	# untouched.
+	# fighters are twice that wide needs twice the room to keep the same file.
 	var step := _drawn_width() / STAGGER_WIDTH
-	for i in count:
-		var home := Vector2(float(viewport_size.x) * 0.26 - i * 18.0 * step, mid + 8.0 - i * 14.0 * step)
+	for i in _logic.member_count():
+		var home := Vector2(float(viewport_size.x) * 0.26 - i * 18.0 * step,
+			FLOOR_Y - i * 14.0 * step)
 		_member_homes.append(home)
 		_member_views.append(_make_fighter(source, _logic.member_character(i), home,
 			Dir.D.RIGHT))
 	# The formation stands in the mirror of that file - back and up the other way, so the first
 	# foe is where the only foe always stood and the rest step behind it.
-	for at in foes:
-		var spot := Vector2(float(viewport_size.x) * 0.74 + at * 18.0 * step, mid + 8.0 - at * 14.0 * step)
+	for at in _logic.foe_count():
+		var spot := Vector2(float(viewport_size.x) * 0.74 + at * 18.0 * step,
+			FLOOR_Y - at * 14.0 * step)
 		_foe_homes.append(spot)
 		_foe_views.append(_make_fighter(source, _logic.foe_character(at), spot, Dir.D.LEFT))
 
-	var right := float(viewport_size.x) - MARGIN
-	# The party's blocks are the bottom-right corner, mirroring the enemy's top-right one, and
-	# every text line is RIGHT-ALIGNED so it ends at the edge instead of starting at it.
-	# Left-aligned, a status line that grows simply runs off the screen - the same class of
-	# bug as one that grows into its neighbour, and quieter.
-	for i in count:
-		var bar := ColorRect.new()
-		var fill := ColorRect.new()
-		var label := Label.new()
-		_build_bar(bar, fill, label, Vector2(right - BAR_WIDTH, _member_block_y(i, count)))
-		_align_right(label, right)
-		_member_bars.append(bar)
-		_member_fills.append(fill)
-		_member_labels.append(label)
-	# The magic line only shows at ONE member - at two or more it folds into the caption,
-	# because a second line each is what the band does not have room for. Built and parented
-	# either way and hidden by its own caption, because a node created and never added to the
-	# tree is a node nothing will ever free.
-	_hero_mp.position = Vector2(MARGIN, HERO_BAR_Y + BAR_HEIGHT + 10.0)
-	_hero_mp.add_theme_font_size_override("font_size", HELP_SIZE)
-	_align_right(_hero_mp, right)
-	add_child(_hero_mp)
-	# The formation's blocks, in the corner the single foe's bar has always been in. At ONE foe
-	# the block still sits exactly where it shipped - the `_member_block_y` bargain - but the
-	# caption is right-anchored like every other, which it was not until M42.
-	#
-	# It was left-anchored at the bar's own x, and that only ever fitted by luck: the text ran
-	# rightward out of a box with 72px left in it. The pixel font is wider per character than the
-	# engine's default was, and "Test Foe  99/99" promptly ran to x=341 in a 320px window - the
-	# containment audit caught it, which is the half of that audit M36 added. Anchoring it to the
-	# same edge as the party's makes the width the caption grows into a bounded one.
-	for at in foes:
-		var foe_bar := ColorRect.new()
-		var foe_fill := ColorRect.new()
-		var foe_label := Label.new()
-		_build_bar(foe_bar, foe_fill, foe_label,
-			Vector2(right - BAR_WIDTH, _foe_block_y(at, foes)))
-		_align_right(foe_label, right)
-		_foe_bars.append(foe_bar)
-		_foe_fills.append(foe_fill)
-		_foe_labels.append(foe_label)
 
-	_cue.position = Vector2(0.0, mid - 30.0)
-	_cue.size = Vector2(viewport_size.x, 12.0)
-	_cue.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_cue.add_theme_font_size_override("font_size", TITLE_SIZE)
-	add_child(_cue)
-
-	_message.position = Vector2(MARGIN, MARGIN + 14)
-	_message.add_theme_font_size_override("font_size", ROW_SIZE)
-	# WRAPS, and a Label does not do that on its own: with no width set it has nothing to wrap
-	# against, and with no clip it draws straight past the window edge - where the text is not
-	# truncated, it is simply somewhere the player cannot see. Measured at the capacity this view
-	# DECLARES (MAX_PARTY members, MAX_FOES foes, a sweep that fells two of them), the caption ran
-	# to 451px in a 320px window.
-	#
-	# Two lines rather than one is also the genre's own shape, and this screen was the outlier:
-	# every reference battle message area holds more than one line - Pokemon 2, EarthBound 3,
-	# Dragon Warrior 8 - and Dragon Warrior word-wraps into them automatically at 22 columns.
-	# See docs/GENRE_CONVENTIONS.md S7c.
-	_message.size.x = float(viewport_size.x) - MARGIN * 2.0
-	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_message)
-
-	# A FIXED window of slots, at fixed positions. The pool used to be sized to the longest page
-	# the fight could show, which fixed a truncation - a row with no label is one the player
-	# cannot see and therefore cannot cast - and traded it for an unbounded stack: six spells
-	# would have put the top row up among the fighters. A window bounds both, because a page
-	# longer than it scrolls instead of growing.
+## The command window, headed with the name of whoever is choosing. Sea of Stars' own shape, and
+## the reason it is headed at all: with a party, the menu is a question addressed to somebody.
+##
+## A FIXED window of slots, at fixed positions. The pool used to be sized to the longest page
+## the fight could show, which fixed a truncation - a row with no label is one the player
+## cannot see and therefore cannot cast - and traded it for an unbounded stack: six spells
+## would have put the top row up among the fighters. A window bounds both, because a page
+## longer than it scrolls instead of growing.
+func _build_commands(edge: float) -> void:
+	_commands = UiChrome.frame(_style, Rect2(MARGIN - 2.0, PANELS_Y, COMMANDS_WIDTH,
+		PANELS_HEIGHT), " ")
+	add_child(_commands.panel)
+	var inner := _commands.inner()
+	# Added BEFORE the rows, so it is drawn behind them: this is a bar the text sits ON.
+	_select = UiChrome.select(_style)
+	_commands.panel.add_child(_select)
 	for i in VISIBLE_ROWS:
-		var row := Label.new()
-		row.position = Vector2(MARGIN, ROWS_Y + i * ROW_PITCH)
-		row.add_theme_font_size_override("font_size", ROW_SIZE)
-		add_child(row)
+		var row := UiChrome.label(_style, "text")
+		row.position = Vector2(inner.position.x + float(UiChrome.ROW_INSET),
+			inner.position.y + i * ROW_PITCH)
+		_commands.panel.add_child(row)
 		_rows.append(row)
 
-	_help.position = Vector2(MARGIN, viewport_size.y - 14)
-	_help.add_theme_font_size_override("font_size", HELP_SIZE)
-	add_child(_help)
+
+## The party window: one block per member - their face, their name and level, and their two bars
+## beside it. ONE shape whatever the party's size, which is what retired the old screen's two:
+## a solo hero had a bar and a separate magic line, a party had neither, and the two layouts had
+## to be kept true separately.
+func _build_party(wide: float, edge: float, source: SpriteSource) -> void:
+	_party = UiChrome.frame(_style, Rect2(PARTY_X, PANELS_Y,
+		wide - PARTY_X - (MARGIN - 2.0), PANELS_HEIGHT))
+	add_child(_party.panel)
+	var inner := _party.inner()
+	_party_mark = UiChrome.select(_style)
+	_party.panel.add_child(_party_mark)
+	var face_span := UiChrome.portrait_span(_style)
+	var text_x := inner.position.x + face_span + 3.0
+	for i in _logic.member_count():
+		var top := inner.position.y + i * BLOCK_PITCH
+		var face := UiChrome.portrait(_style, source, _logic.member_character(i))
+		face.position = Vector2(inner.position.x, top + 2.0)
+		_party.panel.add_child(face)
+		_faces.append(face)
+		var name_label := UiChrome.label(_style, "text")
+		name_label.position = Vector2(text_x, top)
+		_party.panel.add_child(name_label)
+		_member_labels.append(name_label)
+		# The bars share the block's SECOND line: their figures are a line of the font and the
+		# track is centred in it, so a block is exactly two lines tall and the mark that covers
+		# one covers all of it.
+		var hp := UiChrome.bar(_style, "hp", BAR_WIDTH)
+		hp.root.position = Vector2(text_x, top + 10.0)
+		_party.panel.add_child(hp.root)
+		_hp_bars.append(hp)
+		var mp := UiChrome.bar(_style, "mp", BAR_WIDTH)
+		mp.root.position = Vector2(text_x + 64.0, top + 10.0)
+		_party.panel.add_child(mp.root)
+		_mp_bars.append(mp)
 
 
 ## How wide one fighter draws, in the units this screen lays out in.
@@ -312,27 +379,6 @@ func _make_fighter(source: SpriteSource, character: StringName, at: Vector2, fac
 	return view
 
 
-## Makes a label's text END at `right` rather than start where it was put. The box spans the
-## whole width, which costs nothing - only the text is drawn - and means a line of any length
-## stays anchored to the corner it belongs to.
-func _align_right(label: Label, right: float) -> void:
-	label.position.x = MARGIN
-	label.size.x = right - MARGIN
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-
-
-func _build_bar(back: ColorRect, fill: ColorRect, label: Label, at: Vector2) -> void:
-	back.position = at
-	back.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
-	add_child(back)
-	fill.position = at
-	fill.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
-	add_child(fill)
-	label.position = at + Vector2(0.0, BAR_HEIGHT + 1.0)
-	label.add_theme_font_size_override("font_size", HELP_SIZE)
-	add_child(label)
-
-
 ## The clock. One tick of the rules, one repaint, and - once - one result.
 func _physics_process(_delta: float) -> void:
 	if _logic == null or _committed:
@@ -350,23 +396,6 @@ func _physics_process(_delta: float) -> void:
 		finished.emit(_logic.outcome(), _logic.effects())
 
 
-## Where one member's bar sits. A party of ONE keeps exactly where it shipped, which is what
-## makes a solo fight pixel-identical to every screenshot and every layout assertion taken
-## before parties existed; two or more share the band from MEMBERS_Y down.
-func _member_block_y(at: int, count: int) -> float:
-	if count <= 1:
-		return HERO_BAR_Y
-	return MEMBERS_Y + at * MEMBER_PITCH
-
-
-## And where one foe's does. The same bargain in the opposite corner: a formation of ONE keeps
-## the spot the single enemy's bar has occupied since fights existed.
-func _foe_block_y(at: int, count: int) -> float:
-	if count <= 1:
-		return FOE_BAR_Y
-	return FOES_Y + at * FOE_PITCH
-
-
 func _paint() -> void:
 	if _style == null or _logic == null:
 		return
@@ -375,32 +404,15 @@ func _paint() -> void:
 	var dim := _style.ui_color("dim")
 
 	_backdrop.color = panel
-	_title.add_theme_color_override("font_color", text)
 	_help.add_theme_color_override("font_color", dim)
 	_message.add_theme_color_override("font_color", text)
 	_cue.add_theme_color_override("font_color", text)
 
-	_title.text = _foes_title().to_upper()
 	_message.text = _logic.message()
 	_help.text = _help_text()
 
-	for i in _member_labels.size():
-		# A fallen member's own numbers, dimmed rather than hidden: they are still in the party
-		# and still the thing an inn will put back up, and a row that vanished would read as
-		# somebody having left.
-		_paint_bar(_member_bars[i], _member_fills[i], _member_labels[i], dim,
-			dim if _logic.member_down(i) else text,
-			_logic.member_hp(i), _logic.member_max_hp(i), _member_caption(i))
-	_hero_mp.text = _hero_mp_caption()
-	_hero_mp.visible = not _hero_mp.text.is_empty()
-	_hero_mp.add_theme_color_override("font_color", text)
-	for at in _foe_labels.size():
-		# A felled foe dims and stays, for the member rule's reason turned around: something that
-		# vanished mid-fight would read as having fled, and the formation is what the player is
-		# counting down.
-		_paint_bar(_foe_bars[at], _foe_fills[at], _foe_labels[at], dim,
-			dim if _logic.foe_down(at) else text,
-			_logic.enemy_hp(at), _logic.enemy_max_hp(at), _foe_caption(at))
+	_paint_banner(text, dim)
+	_paint_party(text, dim)
 
 	# The one cue the player is reacting to, showing exactly when the rules say the window is
 	# open. Reading it from the logic rather than re-deriving a countdown here is what keeps
@@ -412,25 +424,85 @@ func _paint() -> void:
 	_paint_rows(text, dim)
 
 
-## What one member is worth. At ONE member this is exactly the line that shipped - the name is
-## "You" because the world synthesizes the solo leader with that name, so there is no branch
-## here for it - and the magic half is a second line below. At two or more the magic folds in
-## and a marker says whose turn it is, or who is about to be hit.
+## The formation, named, with one bar under it for the foe being aimed at.
 ##
-## The magic half only exists for a game that has magic: a "0 MP" on a game with no spells is
-## a stat the player can do nothing about and would spend the whole run wondering at.
-func _member_caption(at: int) -> String:
-	var line := "%s  Lv%d  %d/%d" % [_logic.member_name(at), _logic.member_level(at),
-		_logic.member_hp(at), _logic.member_max_hp(at)]
-	if _logic.member_count() > 1:
-		if _logic.member_max_mp(at) > 0:
-			line += "  MP %d/%d" % [_logic.member_mp(at), _logic.member_max_mp(at)]
-		line = ("> " if _marked(at) else "  ") + line
-	# APPENDED, never in place of the numbers. Final Fantasy I overwrites the HP readout with the
-	# status because its block holds one number and no more; this one has a caption line and a
-	# bar, so keeping both is the honest adaptation rather than the faithful one.
-	line += _tag_suffix(_logic.member_tag(at))
-	return line
+## A felled foe dims and stays: something that vanished mid-fight would read as having fled, and
+## the formation is what the player is counting down.
+func _paint_banner(text: Color, dim: Color) -> void:
+	var shown := _shown_foe()
+	var at := _banner.inner().position
+	for i in _foe_names.size():
+		var label := _foe_names[i]
+		label.text = _logic.enemy_name(i) + _tag_suffix(_logic.foe_tag(i))
+		label.position.x = at.x
+		# Lit when this is the one the bar is about, dim otherwise - which is how a line of names
+		# says which of them the number below belongs to, with no second marker to read.
+		label.add_theme_color_override("font_color",
+			dim if _logic.foe_down(i) else (text if i == shown else dim))
+		at.x += _text_width(label) + 8.0
+	UiChrome.fill(_foe_bar, _logic.enemy_hp(shown), _logic.enemy_max_hp(shown))
+	_foe_bar.numbers.add_theme_color_override("font_color", text)
+
+
+## Which foe the banner's bar is about: the one the cursor is over, or the one a blow is on its
+## way to, and otherwise the first still standing. Never nothing - a bar with no subject would
+## blink out between turns, and the player is aiming at somebody the whole time.
+func _shown_foe() -> int:
+	if _logic.phase() == BattleLogic.Phase.FOE:
+		var rows := _logic.foe_rows()
+		var row := _logic.index()
+		if row >= 0 and row < rows.size():
+			return rows[row]
+	var struck := _logic.struck_foe()
+	if struck >= 0 and struck < _logic.foe_count():
+		return struck
+	for i in _logic.foe_count():
+		if not _logic.foe_down(i):
+			return i
+	return 0
+
+
+## One block per member: their face, their name and level, and their two bars.
+##
+## A fallen member's own numbers, dimmed rather than hidden: they are still in the party and
+## still the thing an inn will put back up, and a row that vanished would read as somebody
+## having left.
+func _paint_party(text: Color, dim: Color) -> void:
+	var marked := marked_member()
+	for i in _member_labels.size():
+		var down := _logic.member_down(i)
+		var lit := dim if down else text
+		_member_labels[i].text = "%s  Lv%d" % [_logic.member_name(i), _logic.member_level(i)] \
+			+ _tag_suffix(_logic.member_tag(i))
+		_member_labels[i].add_theme_color_override("font_color", lit)
+		# A face FADES with its owner rather than vanishing, for the caption's reason. Done with
+		# the node's own alpha rather than a colour, which keeps this file free of one: a colour
+		# typed in scripts/ui/ is a build failure, and rightly - it is how chrome stops re-skinning.
+		_faces[i].modulate.a = DOWN_FADE if down else 1.0
+		UiChrome.fill(_hp_bars[i], _logic.member_hp(i), _logic.member_max_hp(i))
+		_hp_bars[i].numbers.add_theme_color_override("font_color", lit)
+		# The magic bar only exists for a game that has magic: an empty one on a game with no
+		# spells is a stat the player can do nothing about and would spend the whole run
+		# wondering at.
+		var casts := _logic.member_max_mp(i) > 0
+		_mp_bars[i].root.visible = casts
+		if casts:
+			UiChrome.fill(_mp_bars[i], _logic.member_mp(i), _logic.member_max_mp(i))
+			_mp_bars[i].numbers.add_theme_color_override("font_color", lit)
+	# The mark moves once, when the turn does. It covers the whole block rather than a line of
+	# it, because what it is marking is a person rather than a row.
+	_party_mark.visible = marked >= 0 and marked < _member_labels.size()
+	if _party_mark.visible:
+		var inner := _party.inner()
+		_party_mark.position = Vector2(inner.position.x - float(UiChrome.ROW_INSET),
+			inner.position.y + marked * BLOCK_PITCH)
+		_party_mark.size = Vector2(inner.size.x + float(UiChrome.ROW_INSET), BLOCK_HEIGHT)
+
+
+## How wide a label's text actually is, which is what a row of names has to be stepped by.
+func _text_width(label: Label) -> float:
+	return label.get_theme_font("font").get_string_size(label.text,
+		HORIZONTAL_ALIGNMENT_LEFT, -1.0, label.get_theme_font_size("font_size")).x
 
 
 ## A status tag as it is written into a caption, or nothing at all. One function for both sides,
@@ -439,70 +511,39 @@ func _tag_suffix(tag: String) -> String:
 	return "" if tag.is_empty() else "  " + tag
 
 
-## Whether this member is the one the screen should point at right now: the one whose turn it
-## is, or the one the enemy has aimed at. Never both at once, because nobody on the player's
+## Which member the screen is pointing at right now: the one whose turn it is, or the one the
+## enemy has aimed at, and -1 for neither. Never both at once, because nobody on the player's
 ## side holds the turn while the enemy has it.
 ##
 ## The mark stays put across a member's whole turn - choosing AND swinging - which is what makes
 ## it readable: it moves once, when the turn does, rather than blinking off at the press.
-func _marked(at: int) -> bool:
-	if _logic.commander() == at:
-		return true
-	return _logic.phase() == BattleLogic.Phase.ENEMY_ACT and _logic.target_member() == at
-
-
-func _hero_mp_caption() -> String:
-	if _logic.member_count() != 1 or _logic.member_max_mp(0) <= 0:
-		return ""
-	return "MP %d/%d" % [_logic.member_mp(0), _logic.member_max_mp(0)]
-
-
-## What one foe is worth. At ONE foe this is character-for-character the line that shipped, left
-## anchored where it always was; at two or more it right-aligns like the party's and carries the
-## marker, so the thing the cursor is on and the thing about to swing both say so.
 ##
-## That the number is here AT ALL is this template's loudest divergence from its own sources -
-## no reference game shows enemy health, and Super Mario RPG charges a whole turn to read it.
-## The bar shipped in M13 and has been played ever since; extending it is the consistent answer
-## rather than the genre's one. See docs/DECISIONS.md.
-func _foe_caption(at: int) -> String:
-	var line := "%s  %d/%d" % [_logic.enemy_name(at), _logic.enemy_hp(at),
-		_logic.enemy_max_hp(at)]
-	if _logic.foe_count() > 1:
-		line = ("> " if _foe_marked(at) else "  ") + line
-	line += _tag_suffix(_logic.foe_tag(at))
-	return line
+## Published because it is what the layout audit asks. It used to be readable only by looking for
+## a "> " on the front of a caption, which made the marker part of a STRING - so a test that
+## wanted to know who was marked had to parse text, and the text moved sideways to hold it.
+func marked_member() -> int:
+	var commander := _logic.commander()
+	if commander >= 0:
+		return commander
+	if _logic.phase() == BattleLogic.Phase.ENEMY_ACT:
+		return _logic.target_member()
+	return -1
 
 
-## Whether this foe is the one the screen should point at: the one the cursor is over, or the one
-## a swing is already on its way to. The member marker's rule mirrored - it holds through the
-## blow rather than blinking off when the cursor closes, because the aim is the thing the player
-## just chose and the wind-up is when they want to see it.
-func _foe_marked(at: int) -> bool:
-	if _logic.phase() == BattleLogic.Phase.FOE:
-		var rows := _logic.foe_rows()
-		var row := _logic.index()
-		return row >= 0 and row < rows.size() and rows[row] == at
-	return _logic.struck_foe() == at
+## And which foe, which is the one the banner's bar is about.
+func marked_foe() -> int:
+	return _shown_foe()
 
 
-## What the fight is called. One foe names itself, which is what every screenshot before
-## formations shows; several are joined, because a title that named only the first would be
-## wrong about the fight the moment it mattered.
-func _foes_title() -> String:
-	var names: Array[String] = []
-	for at in _logic.foe_count():
-		names.append(_logic.enemy_name(at))
-	return " & ".join(names)
-
-
-func _paint_bar(back: ColorRect, fill: ColorRect, label: Label, dim: Color, text: Color,
-		value: int, most: int, caption: String) -> void:
-	back.color = dim
-	fill.color = text
-	fill.size = Vector2(BAR_WIDTH * (float(maxi(value, 0)) / float(maxi(most, 1))), BAR_HEIGHT)
-	label.add_theme_color_override("font_color", text)
-	label.text = caption
+## The row the cursor is on, or null when the page has nothing to press. What replaced reading
+## a "> " off the front of a row's text.
+func selected_row() -> Label:
+	if not _is_choosing():
+		return null
+	var at := _logic.index() - _first_visible()
+	if at < 0 or at >= _rows.size() or not _rows[at].visible:
+		return null
+	return _rows[at]
 
 
 ## Where the fighters stand this frame, derived entirely from the countdown. No tween, no timer
@@ -566,6 +607,11 @@ func _is_choosing() -> bool:
 func _paint_rows(text: Color, dim: Color) -> void:
 	var choosing := _is_choosing()
 	var first := _first_visible()
+	# The window is headed with whoever is choosing, so the menu is a question addressed to
+	# somebody rather than a list floating beside three people.
+	_commands.panel.visible = choosing
+	_commands.title.text = _page_title().to_upper()
+	_commands.title.add_theme_color_override("font_color", text)
 	for i in _rows.size():
 		var row := _rows[i]
 		var at := first + i
@@ -575,14 +621,40 @@ func _paint_rows(text: Color, dim: Color) -> void:
 		if not row.visible:
 			continue
 		var selected := at == _logic.index()
-		row.text = ("> " if selected else "  ") + _label_for(at)
+		row.text = _label_for(at)
 		# A spell out of reach of the purse is drawn dim even under the cursor, so the answer
 		# to "can I cast this" is on screen BEFORE the press rather than only in the refusal.
 		# Affordability is asked of the logic, never recomputed here, or the screen and the
 		# rule could disagree about the same spell.
 		var reachable := _logic.phase() != BattleLogic.Phase.SPELLS \
 			or _logic.can_afford(_logic.spell_row(at))
-		row.add_theme_color_override("font_color", text if selected and reachable else dim)
+		row.add_theme_color_override("font_color", text if reachable else dim)
+	# The cursor is a BAR under the selected row, not a ">" on the front of its text. Placed
+	# after the rows are laid out, so it covers whichever one the cursor actually reached.
+	var picked := selected_row()
+	_select.visible = picked != null
+	if picked != null:
+		UiChrome.place(_select, picked, _commands.inner().size.x, ROW_PITCH)
+
+
+## What the command window is headed with: whoever is choosing, or what they are choosing FROM.
+## With one member the name is still theirs - the world synthesizes a solo leader called "You",
+## so there is no branch here for a party of one.
+func _page_title() -> String:
+	match _logic.phase():
+		BattleLogic.Phase.SPELLS:
+			return "Magic"
+		BattleLogic.Phase.ITEMS:
+			return "Items"
+		BattleLogic.Phase.ALLY:
+			return "Who"
+		BattleLogic.Phase.FOE:
+			return "Which"
+		_:
+			var commander := _logic.commander()
+			if commander >= 0:
+				return _logic.member_name(commander)
+			return "Battle"
 
 
 ## Which entry the top slot shows. A pure function of the cursor and the page's length, with

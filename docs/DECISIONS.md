@@ -865,8 +865,23 @@ multi-target versions are real genre nouns and neither is needed to ship a crowd
   since M13 and has been played that way ever since, so the choice was between extending a
   shipped divergence consistently and removing something the player already reads. Extending
   it also mirrors the party's own blocks, which is one visual language rather than two.
-- *Names and a living count* (DQ2's answer, and the genre's). `deferred — worth trying`, and
-  the hook is small on purpose: it lives in `_foe_caption` and one `_build` branch.
+- *Names and a living count* (DQ2's answer, and the genre's). ~~`deferred — worth trying`~~ —
+  **superseded by M42**, which took a third answer.
+
+**The fork again, M42, and the person this is built for chose differently the second time.** The
+question was put after they rejected the battle screen on sight, with three modern references
+looked at rather than recalled: Sea of Stars draws no enemy health at all, Persona 5 draws a name
+banner only, and Clair Obscur draws exactly ONE bar, top centre, for the enemy being aimed at.
+
+- **One bar, for the target.** *Chosen.* Clair Obscur's shape. The banner names the whole
+  formation and lights whichever the bar is about, so nothing is lost about who is in front of
+  you - only the four numbers nobody was reading are.
+- *A bar per foe* (M28's answer, above). Rejected on evidence it did not have in M28: the reason
+  it had to go is not that eight references disagree, it is that three bars and three captions in
+  a corner had nowhere to go but on top of the sprites they described. The layout audit could not
+  see it because it measured `ColorRect`s and `Label`s and a fighter is neither.
+- *No enemy health at all* (Sea of Stars, Persona 5, and the 2D era). `deferred — worth trying`,
+  and the hook is now one function: `BattleScreen._shown_foe` and the bar it feeds.
 
 ## A party is a list even when it is one, and membership is a flag — *M27*
 

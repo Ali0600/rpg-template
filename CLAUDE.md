@@ -396,11 +396,32 @@ an ATTACK only. Groups and multi-target magic arrive together in the genre - DQ1
 spells because it has no groups, and DQ2 introduces both in one game - so the field arrived with
 formations rather than before them.
 
-**The foe bars are a stated divergence.** No reference game shows enemy health at all: FF1 lists
-names in their own box, DQ2 shows names and a living count, Super Mario RPG charges a whole turn
-to peek. This screen has drawn a numeric bar for its single foe since M13 and been played that
-way ever since, so it extends per foe rather than being removed. `docs/DECISIONS.md` carries the
-fork and the genre's own answer as the deferred alternative.
+**ONE foe bar, for the one you are aiming at.** The banner names the whole formation and lights
+the foe the bar is about; `_shown_foe` is the one place that choice is made - the cursor's foe, or
+the one a blow is travelling to, or the first still standing, and never nothing. M28 drew a bar
+and a number PER foe, which is what put a readout on top of every sprite it belonged to, and no
+gate could see it because the layout audit measured two node classes and a fighter is neither.
+Eight references across S7b and S16 and not one draws a bar per enemy: Sea of Stars and Persona 5
+draw none at all, Clair Obscur draws exactly this one. `docs/DECISIONS.md` carries both forks.
+
+**The screen is four windows and a field, and the bands are one budget.** `BANNER_Y`,
+`CAPTION_Y`, `FLOOR_Y`, `PANELS_Y` and the heights beside them are written together because they
+share 180 pixels, and the tightest of them is the field: a dusk16 fighter draws 48 design pixels
+tall where an lpc32 one draws 32, so the taller one decides where the caption may end and where
+the windows may start. A member's block is TWO LINES of the font - a name, then the bars and their
+figures - and `BLOCK_PITCH` is one more than `BLOCK_HEIGHT` so there is air between one member and
+the next. The solo/party two-shape bargain is gone: a party of one is one block in the same
+window, which retired a second layout that had to be kept true separately.
+
+**THE LAYOUT AUDIT MEASURES FIGHTERS, AND THAT IS WHY THIS SCREEN WAS WRONG.** It collected
+`ColorRect`s and `Label`s; a `SpriteView` is neither, so a bar across a character's chest was a
+collision nothing could see. It measures fighters, portraits and windows now, and it asks three
+different questions rather than one: things that are not related must not INTERSECT; a thing
+inside a window must be ENCLOSED by that window's CONTENT rect - `UiChrome.inner_of`, not its
+outer one, because the border and the header band are part of the window and not part of the room
+in it; and a cursor may cover a whole row but never half of one. Two fighters MAY overlap, because
+a staggered file is what a formation is - the exemption asserts what it is for, that no two of
+them stand on the same spot.
 
 **A fight sized for two must be unreachable by one, and that is a MAP rule.** M29 made every
 ordinary encounter a pair and gave the boss an escort, which quietly turned a declinable
