@@ -730,3 +730,13 @@ scripts/ui/ui_chrome.gd	s|\tout.fill.color = style.ui_color\(role\)|\tout.fill.c
 scripts/ui/ui_chrome.gd	s|\tb.fill.size = Vector2\(floorf\(b.width \* clampf\(span, 0.0, 1.0\)\), float\(BAR_HEIGHT\)\)|\tb.fill.size = Vector2(b.width, float(BAR_HEIGHT))|	tests/unit/test_ui_chrome.gd	every bar is drawn full whatever it is measuring
 scripts/ui/ui_chrome.gd	s|\tbar.visible = true|\tbar.visible = false|	tests/unit/test_ui_chrome.gd	the cursor is never shown, so no list says which row it is on
 scripts/ui/ui_chrome.gd	s|\t\ttop \+= float\(HEADER_HEIGHT\)|\t\tpass|	tests/unit/test_ui_chrome.gd	a window's header band is not counted, so its title covers the first row under it
+
+# -- M42: a sheet carries a face -----------------------------------------------------------
+scripts/spritegen/sprite_compositor.gd	s|\tfor y in img.get_height\(\):|\tfor y in range\(img.get_height\(\) - 1, -1, -1\):|	tests/unit/test_lpc_import.gd	the top of a character is measured from the bottom, so every face is a picture of their feet
+scripts/spritegen/sprite_compositor.gd	s|\treturn Rect2i\(clampi\(anchor_x - size / 2, 0, wide\), clampi\(top, 0, tall\), size, size\)|\treturn Rect2i(0, 0, size, size)|	tests/unit/test_lpc_import.gd	every face is the top-left corner of the cell rather than the character in it
+scripts/spritegen/sheet_builder.gd	s|\t\t\tif dir == Dir.D.DOWN and col == 0:|\t\t\tif dir == Dir.D.DOWN and col == 1:|	tests/unit/test_sprite_contract.gd	a face is cut from a walking frame rather than the standing one
+scripts/spritegen/lpc_import.gd	s|\t\tsheet.get_region\(Rect2i\(0, Dir.ALL.find\(Dir.D.DOWN\) \* cell.y, cell.x, cell.y\)\),|\t\tsheet.get_region(Rect2i(0, cell.y, cell.x, cell.y)),|	tests/unit/test_lpc_import.gd	an imported face is measured off the row beside the one facing you
+scripts/spritegen/sheet_meta.gd	s|^const VERSION := 2$|const VERSION := 1|	tests/unit/test_sprite_contract.gd	the build reads a sheet version that predates the face it needs
+scripts/spritegen/sheet_meta.gd	s|\tif portrait.size.x <= 0 or portrait.size.y <= 0:|\tif false:|	tests/unit/test_sprite_contract.gd	a sheet with no face at all is accepted, and every menu draws an empty square
+scripts/spritegen/sheet_meta.gd	s|\telif anchor.x < portrait.position.x or anchor.x >= portrait.end.x:|\telif false:|	tests/unit/test_sprite_contract.gd	a face measured off some other character's column is accepted
+scripts/data/sprite_style.gd	s|\telif portrait_size > mini\(cell_size.x, cell_size.y\):|\telif false:|	tests/unit/test_ui_chrome.gd	a style may ask for a face larger than the cell it is cut from

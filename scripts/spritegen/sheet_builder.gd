@@ -15,6 +15,10 @@ static func build(rig: Rig, style: SpriteStyle, spec: CharacterSpec) -> Dictiona
 	var sheet := Image.create_empty(cell.x * columns, cell.y * rows, false, Image.FORMAT_RGBA8)
 
 	var ground := -1
+	# The frame a portrait is cut from: facing the camera, standing still. Kept as it goes by
+	# rather than composed again afterwards - a second compose is a second chance to pass
+	# different arguments, and the two would differ silently.
+	var face: Image = null
 	for row in rows:
 		var dir: int = Dir.ALL[row]
 		for col in columns:
@@ -24,6 +28,8 @@ static func build(rig: Rig, style: SpriteStyle, spec: CharacterSpec) -> Dictiona
 			# alpha to erase, and copying a whole cell in one call is exact.
 			sheet.blit_rect(frame, Rect2i(Vector2i.ZERO, cell), Vector2i(col * cell.x, row * cell.y))
 			ground = maxi(ground, SpriteCompositor.ground_row(frame))
+			if dir == Dir.D.DOWN and col == 0:
+				face = frame
 
 	var meta := SheetMeta.new()
 	meta.cell = cell
@@ -33,6 +39,7 @@ static func build(rig: Rig, style: SpriteStyle, spec: CharacterSpec) -> Dictiona
 	# Measured, not declared. Every other system reads the anchor to place the sprite's feet
 	# on the ground, so deriving it from the pixels keeps it true even if the rig moves.
 	meta.anchor = Vector2i(cell.x / 2, ground)
+	meta.portrait = SpriteCompositor.portrait_rect(face, meta.anchor.x, style.portrait_size)
 	meta.animations = {
 		"idle": {"frames": [0], "fps": style.idle_fps, "loop": true},
 		"walk": {"frames": _sequence(columns), "fps": style.walk_fps, "loop": true},

@@ -38,9 +38,15 @@
 		"right",
 		"up"
 	],
+	"portrait": [
+		20,
+		10,
+		24,
+		24
+	],
 	"rows": 4,
 	"seed": 0,
 	"source": "lpc",
 	"style": "lpc32",
-	"version": 1
+	"version": 2
 }

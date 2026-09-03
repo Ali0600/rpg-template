@@ -52,6 +52,15 @@ enum Outline {
 ## which is what a style knows and a screen does not.
 @export var battle_sprite_scale: int = 2
 
+## How big a square the generator cuts off a standing frame for a character's FACE. Twelve on a
+## 16x24 cell, twenty-four on LPC's 64x64 - in both cases about the head and shoulders, which is
+## what a portrait is for; a bigger square is a small picture of the whole character and says
+## less at the same cost.
+##
+## On the style rather than on the rig or the character, because it is a property of the CELL: a
+## square that flatters a 16px cast is a crop of one eye on a 64px one.
+@export var portrait_size: int = 12
+
 ## Which rig (data/rigs/<id>.json) supplies the part shapes.
 @export var rig_id: StringName = &"gb16"
 
@@ -258,6 +267,10 @@ func problems() -> Array[String]:
 		out.append("world_scale must be at least 1, got %d" % world_scale)
 	if battle_sprite_scale < 1:
 		out.append("battle_sprite_scale must be at least 1, got %d" % battle_sprite_scale)
+	if portrait_size < 1:
+		out.append("portrait_size must be at least 1, got %d" % portrait_size)
+	elif portrait_size > mini(cell_size.x, cell_size.y):
+		out.append("portrait_size %d does not fit a %s cell" % [portrait_size, cell_size])
 	for role in UI_ROLES:
 		if not ui_colors.has(role) or not str(ui_colors[role]).begins_with("#"):
 			out.append("ui_colors has no '%s'; every screen in the game asks for it" % role)

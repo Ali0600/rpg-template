@@ -214,3 +214,31 @@ func test_every_piece_of_terrain_is_credited_where_its_style_ships() -> void:
 					).is_true()
 				checked += 1
 	assert_int(checked).override_failure_message("no terrain file was checked").is_greater(0)
+
+
+func test_every_imported_character_has_a_face_with_something_in_it() -> void:
+	# The import arm's half of the same rule, and it is the arm that needs it: these bodies are
+	# four different heights, and the cast wears hats, hoods and a pair of horns. A face measured
+	# once and applied to all of them would be right for whoever it was measured from.
+	var seen := 0
+	for style_id in ArtFixtures.imported_style_ids():
+		var style := ArtFixtures.style(style_id)
+		for character in ArtFixtures.imported_characters_of(style_id):
+			var doc := JsonFile.read("res://assets/generated/%s/%s.sheet.json"
+				% [style_id, character])
+			assert_bool(doc.ok).override_failure_message(doc.error).is_true()
+			var meta := SheetMeta.from_dict(doc.data)
+			assert_int(meta.portrait.size.x).override_failure_message(
+				"%s/%s has no face" % [style_id, character]).is_equal(style.portrait_size)
+			var img := ImageFile.read_png("res://assets/generated/%s/%s.png"
+				% [style_id, character])
+			assert_object(img).is_not_null()
+			img.convert(Image.FORMAT_RGBA8)
+			var cut := img.get_region(Rect2i(meta.portrait.position
+				+ Vector2i(0, meta.row_of(Dir.D.DOWN) * meta.cell.y), meta.portrait.size))
+			assert_int(SpriteCompositor.top_row(cut)).override_failure_message(
+				"%s/%s: the face is a square of nothing, or starts below the top of its square"
+				% [style_id, character]).is_equal(0)
+			seen += 1
+	assert_int(seen).override_failure_message(
+		"no imported character was measured, so this proved nothing").is_greater(3)

@@ -26,6 +26,7 @@ cell_size = Vector2i(64, 64)
 tile_size = 32
 world_scale = 2
 battle_sprite_scale = 1
+portrait_size = 24
 rig_id = &""
 tile_bank_id = &"lpc32"
 sheets_from = &"lpc"

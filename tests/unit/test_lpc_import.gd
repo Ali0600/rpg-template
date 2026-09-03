@@ -35,6 +35,9 @@ func _style(licenses: Array = ["CC0", "CC-BY", "OGA-BY", "CC-BY-SA"]) -> SpriteS
 	s.rig_id = &""
 	s.licenses = JsonFile.to_string_array(licenses)
 	s.ramps = {"x": ["#000000", "#777777", "#ffffff"]}
+	s.portrait_size = 24
+	for role in SpriteStyle.UI_ROLES:
+		s.ui_colors[role] = "#ffffff"
 	return s
 
 func _recipe(licenses: Array = ["OGA-BY 3.0", "CC-BY-SA 3.0"], file := "body/bodies/male/walk.png") -> Dictionary:
@@ -173,3 +176,57 @@ func test_a_style_that_does_not_import_or_has_the_wrong_cell_is_refused() -> voi
 	var small := _style()
 	small.cell_size = Vector2i(16, 24)
 	assert_str(str(LpcImport.problems(_sheet(), _recipe(), small))).contains("64x64")
+
+
+## The fixture with the DOWN block's standing frame drawn from `top` downward, which is where a
+## face is measured from. LPC's down block is row 10 and the standing pose is its column 0.
+func _sheet_with_head_at(top: int) -> Image:
+	var img := _sheet()
+	for col in 13:
+		img.set_pixel(col * FRAME + 32, 10 * FRAME + top, Color(1, 1, 1, 1))
+	return img
+
+
+func test_a_face_is_measured_off_the_frame_this_character_faces_you_on() -> void:
+	# It starts at the top of the drawn pixels, and it straddles the column the character stands
+	# in - anything else is a square with somebody's ear in the middle of it.
+	var style := _style()
+	var built := LpcImport.build(_sheet_with_head_at(20), _recipe(), style, "hero")
+	var meta: SheetMeta = built["meta"]
+	assert_int(meta.portrait.position.y).override_failure_message(
+		"the face starts at y=%d where this character's drawn pixels start at 20"
+		% meta.portrait.position.y).is_equal(20)
+	assert_int(meta.portrait.size.x).is_equal(style.portrait_size)
+	assert_int(meta.portrait.size.y).is_equal(style.portrait_size)
+	assert_int(meta.portrait.position.x).is_less_equal(meta.anchor.x)
+	assert_int(meta.portrait.end.x).is_greater(meta.anchor.x)
+	assert_array(meta.problems(Vector2i(FRAME * 9, FRAME * 4))).is_empty()
+
+func test_a_face_follows_the_head_it_was_measured_from() -> void:
+	# The half that makes the one above an assertion rather than a coincidence. A fixed offset
+	# would pass that test on every character and be wrong for the one wearing a hat - so the
+	# head moves and the face has to come with it. The shipped cast measures from 10 to 25
+	# depending on what is on their heads and how tall the body is, which is the spread this
+	# would be wrong across.
+	var style := _style()
+	var low: SheetMeta = LpcImport.build(_sheet_with_head_at(20), _recipe(), style, "x")["meta"]
+	var high: SheetMeta = LpcImport.build(_sheet_with_head_at(8), _recipe(), style, "x")["meta"]
+	assert_int(high.portrait.position.y).override_failure_message(
+		"a character whose head is drawn higher gets the same face rectangle as one who is not"
+	).is_equal(8)
+	assert_int(low.portrait.position.y).is_equal(20)
+
+func test_a_character_drawn_low_in_its_cell_still_gets_a_face_inside_it() -> void:
+	# The degenerate end, and a real one: a small creature drawn near its own feet has no
+	# `portrait_size` of cell left below the top of its head. The square SLIDES UP to the lowest
+	# place it still fits rather than running off the bottom, because a rect outside the cell is
+	# an atlas region that samples whatever is drawn under it - the next row of the sheet.
+	var style := _style()
+	var meta: SheetMeta = LpcImport.build(_sheet(), _recipe(), style, "x")["meta"]
+	assert_int(meta.portrait.position.y).override_failure_message(
+		"a face measured at y=%d in a %dpx cell holding a %dpx square"
+		% [meta.portrait.position.y, FRAME, style.portrait_size]).is_equal(
+		FRAME - style.portrait_size)
+	assert_bool(Rect2i(Vector2i.ZERO, Vector2i(FRAME, FRAME)).encloses(meta.portrait)) \
+		.override_failure_message("the face runs outside the cell it was cut from").is_true()
+	assert_array(meta.problems(Vector2i(FRAME * 9, FRAME * 4))).is_empty()
