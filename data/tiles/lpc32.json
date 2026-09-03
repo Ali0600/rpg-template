@@ -12,10 +12,15 @@
 		"are the artists' and the style does not recolour them - that is the whole difference",
 		"between this bank and an authored one.",
 		"",
-		"Only the plain fill cells are used. LPC's ground sheets are laid out for an editor's",
-		"terrain tool - a 3x3 block of edges and corners around a centre - and this template",
-		"paints one id per cell with no transitions, so the edge cells have nothing to say here.",
-		"Transitions are a milestone of their own; see docs/DECISIONS.md.",
+		"Water and path also name a RING: the twelve transition pieces LPC draws around each of",
+		"these sheets, and the ground each is an edge against. The generator composes the 47 shapes",
+		"a cell can take out of QUARTERS of those pieces and appends them to the atlas; the world",
+		"picks one per cell from its eight neighbours. A map still spells one tile id per cell, so",
+		"nothing about the map format, the editor round trips or the play sessions changed.",
+		"",
+		"Water is an edge against grass AND against path, in that order: the village and hollow",
+		"ponds sit in grass and the cave's sits in dirt. Path is an edge against grass only - where",
+		"a path meets water it is the WATER that draws the boundary, so it is drawn once.",
 		"",
 		"The files block travels in the pack, which is about two kilobytes of names and URLs. It",
 		"is left there rather than filtered out: credits.json is the file a credits screen reads,",
@@ -215,7 +220,87 @@
 				5
 			],
 			"solid": false,
-			"decor": false
+			"decor": false,
+			"ring": {
+				"n": {
+					"cell": [
+						1,
+						2
+					]
+				},
+				"e": {
+					"cell": [
+						2,
+						3
+					]
+				},
+				"s": {
+					"cell": [
+						1,
+						4
+					]
+				},
+				"w": {
+					"cell": [
+						0,
+						3
+					]
+				},
+				"ne": {
+					"cell": [
+						2,
+						2
+					]
+				},
+				"nw": {
+					"cell": [
+						0,
+						2
+					]
+				},
+				"se": {
+					"cell": [
+						2,
+						4
+					]
+				},
+				"sw": {
+					"cell": [
+						0,
+						4
+					]
+				},
+				"ne_in": {
+					"cell": [
+						1,
+						1
+					]
+				},
+				"nw_in": {
+					"cell": [
+						2,
+						1
+					]
+				},
+				"se_in": {
+					"cell": [
+						1,
+						0
+					]
+				},
+				"sw_in": {
+					"cell": [
+						2,
+						0
+					]
+				}
+			},
+			"over": [
+				[
+					"grass",
+					"grass_alt"
+				]
+			]
 		},
 		{
 			"id": "water",
@@ -225,7 +310,90 @@
 				5
 			],
 			"solid": true,
-			"decor": false
+			"decor": false,
+			"ring": {
+				"n": {
+					"cell": [
+						1,
+						2
+					]
+				},
+				"e": {
+					"cell": [
+						2,
+						3
+					]
+				},
+				"s": {
+					"cell": [
+						1,
+						4
+					]
+				},
+				"w": {
+					"cell": [
+						0,
+						3
+					]
+				},
+				"ne": {
+					"cell": [
+						2,
+						2
+					]
+				},
+				"nw": {
+					"cell": [
+						0,
+						2
+					]
+				},
+				"se": {
+					"cell": [
+						2,
+						4
+					]
+				},
+				"sw": {
+					"cell": [
+						0,
+						4
+					]
+				},
+				"ne_in": {
+					"cell": [
+						1,
+						1
+					]
+				},
+				"nw_in": {
+					"cell": [
+						2,
+						1
+					]
+				},
+				"se_in": {
+					"cell": [
+						1,
+						0
+					]
+				},
+				"sw_in": {
+					"cell": [
+						2,
+						0
+					]
+				}
+			},
+			"over": [
+				[
+					"grass",
+					"grass_alt"
+				],
+				[
+					"path"
+				]
+			]
 		},
 		{
 			"id": "wall",

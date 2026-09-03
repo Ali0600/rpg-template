@@ -1347,6 +1347,16 @@ one tile id.
   the drift gate compares one file per style, and 47 shapes is a few kilobytes.
 - *A `transitions` key on the STYLE* — rejected for M40d's own reason: a bank owns pixels, and a
   style that also described a bank's contents would be two places to disagree.
+- **Two ponds were deepened rather than the shoreline thinned.** *The user's call, 2026-09-03,
+  offered against leaving water hard-edged and against shipping it as it was.* LPC's water bank
+  is about ten pixels of transparency plus six of mud per edge, so at 32px a pond ONE tile tall
+  has no water left in it - both banks meet in the middle and it reads as a mound of earth. The
+  village and hollow ponds were one tall. The bank is the artist's drawing and the pond is ours,
+  so the maps moved: one row each, and every scripted session still passes byte-identically
+  because the rows added were a dead-end corridor against a wall and a strip of grass nothing
+  walked. The first attempt deepened the hollow SOUTHWARD, which blocked the map's only
+  north-south thoroughfare and failed twelve sessions - the direction was chosen by measuring,
+  not by looking at the picture.
 - **`c` defaults to the tile's own plain art**, so the shape with nothing open is pixel-for-pixel
   the flat tile. That is what makes the whole thing additive rather than a migration — and
   getting it wrong once produced a pond made entirely of grass, which every structural test
