@@ -38,9 +38,9 @@ signal member_selected(member: StringName)
 
 const LAYER := 15
 const MARGIN := 8
-const TITLE_SIZE := 9
-const ROW_SIZE := 8
-const HELP_SIZE := 7
+const TITLE_SIZE := UiChrome.FONT_SIZE
+const ROW_SIZE := UiChrome.FONT_SIZE
+const HELP_SIZE := UiChrome.FONT_SIZE
 const ROW_PITCH := 11
 
 ## The world is still there behind this, and being able to see where you stood is most of what

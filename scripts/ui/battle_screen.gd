@@ -25,8 +25,8 @@ signal finished(outcome: int, effects: Array)
 
 const LAYER := 12
 const MARGIN := 8
-const TITLE_SIZE := 9
-const ROW_SIZE := 8
+const TITLE_SIZE := UiChrome.FONT_SIZE
+const ROW_SIZE := UiChrome.FONT_SIZE
 
 ## How many lines the caption may take, and a DECLARED capacity in `MAX_PARTY`'s sense: the
 ## layout audit measures against it, so it is a promise the view has to keep rather than a note.
@@ -42,7 +42,7 @@ const ROW_SIZE := 8
 ## screen's divergence, and M36 closed it. `DialogBox` still draws two, which is a different
 ## surface with a different budget rather than a number these two must share.
 const MESSAGE_LINES := 3
-const HELP_SIZE := 7
+const HELP_SIZE := UiChrome.FONT_SIZE
 const ROW_PITCH := 11
 
 ## The bottom band, as two columns: the list on the LEFT growing DOWN from ROWS_Y in a fixed
@@ -229,17 +229,21 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	_align_right(_hero_mp, right)
 	add_child(_hero_mp)
 	# The formation's blocks, in the corner the single foe's bar has always been in. At ONE foe
-	# the block sits exactly where it shipped and the caption stays left-anchored, which is the
-	# `_member_block_y` bargain: a fight of one is pixel-identical to every screenshot taken
-	# before formations existed, and the audit pins that.
+	# the block still sits exactly where it shipped - the `_member_block_y` bargain - but the
+	# caption is right-anchored like every other, which it was not until M42.
+	#
+	# It was left-anchored at the bar's own x, and that only ever fitted by luck: the text ran
+	# rightward out of a box with 72px left in it. The pixel font is wider per character than the
+	# engine's default was, and "Test Foe  99/99" promptly ran to x=341 in a 320px window - the
+	# containment audit caught it, which is the half of that audit M36 added. Anchoring it to the
+	# same edge as the party's makes the width the caption grows into a bounded one.
 	for at in foes:
 		var foe_bar := ColorRect.new()
 		var foe_fill := ColorRect.new()
 		var foe_label := Label.new()
 		_build_bar(foe_bar, foe_fill, foe_label,
 			Vector2(right - BAR_WIDTH, _foe_block_y(at, foes)))
-		if foes > 1:
-			_align_right(foe_label, right)
+		_align_right(foe_label, right)
 		_foe_bars.append(foe_bar)
 		_foe_fills.append(foe_fill)
 		_foe_labels.append(foe_label)

@@ -23,7 +23,7 @@ signal sound_wanted(id: StringName)
 signal finished
 
 const LAYER := 25
-const TEXT_SIZE := 8
+const TEXT_SIZE := UiChrome.FONT_SIZE
 
 ## Counted in FRAMES, handed in by the world from the config. Never seconds: a night measured
 ## on the wall clock is a night whose length depends on how busy the machine is, and every

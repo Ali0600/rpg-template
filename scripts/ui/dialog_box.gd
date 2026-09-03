@@ -29,30 +29,47 @@ signal closed(effects: Array)
 ## reported: RichTextLabel with scroll_active off simply CLIPS it, so a fact written into the
 ## data never reaches the player and nothing anywhere says so.
 const MARGIN := 6
-const FONT_SIZE := 8
-## The fallback font's height at FONT_SIZE. Pinned as a constant so the layout arithmetic is
-## readable, and asserted against the real font in the fit gate - if a project theme ever
-## changes the font, that assertion fails rather than the box quietly shrinking.
-const LINE_HEIGHT := 12
-## How many lines of text one node may use. Two is a deliberate ceiling on the WRITING as much
-## as on the box: a conversation that needs more is a conversation with another node in it,
-## and chaining `next` is this format's own pagination.
-const TEXT_LINES := 2
+const FONT_SIZE := UiChrome.FONT_SIZE
+## The project font's height at FONT_SIZE, and the unit a line is COUNTED in. Pinned as a
+## constant so the layout arithmetic is readable, and asserted against the real font in the fit
+## gate - if the font ever changes, that assertion fails rather than the box quietly shrinking.
+##
+## EIGHT since M42, where it was twelve: Pixel Operator 8 is drawn for this size, so a line is
+## exactly as tall as the glyphs in it. That is also why the line count went UP - see TEXT_LINES.
+const LINE_HEIGHT := 8
+## The air between two drawn lines. A pixel font has no built-in leading: at LINE_HEIGHT alone a
+## descender sits on the next line's capitals. Counting and DRAWING are therefore different
+## numbers, and each is used for exactly one thing - LINE_HEIGHT to ask "how many lines is this
+## text", LINE_PITCH to place anything.
+const LINE_SPACING := 2
+const LINE_PITCH := LINE_HEIGHT + LINE_SPACING
+## How many lines of text one node may use. A deliberate ceiling on the WRITING as much as on
+## the box: a conversation that needs more is a conversation with another node in it, and
+## chaining `next` is this format's own pagination.
+##
+## THREE since M42, and the box did not grow to buy it: three 8px lines with leading is 30px
+## where two 12px lines were 24. It is also the genre's own middle - Pokemon shows two,
+## EarthBound three, Dragon Warrior eight - and the pixel font is WIDER per character than the
+## engine's default was at the same size, so two would have cut fifteen shipped lines in half.
+const TEXT_LINES := 3
 const MAX_CHOICES := 4
 
 const SPEAKER_Y := 2
-const TEXT_Y := 15
+const TEXT_Y := SPEAKER_Y + LINE_PITCH + 1
 const PADDING := 4
 ## Choices get their OWN band, below every line of text rather than below where the text
 ## happened to end. Placing them relative to the rendered text is what put a choice on top of
 ## a second line in the shipped build: the position was computed for one-line text and the
 ## data grew past it.
-const CHOICE_Y := TEXT_Y + TEXT_LINES * LINE_HEIGHT + 2
-const CHOICE_PITCH := 12
+const CHOICE_Y := TEXT_Y + TEXT_LINES * LINE_PITCH + 2
+const CHOICE_PITCH := LINE_PITCH
+## How far a choice sits inside the text column. The fit gate spends it out of the width it
+## measures a choice against, so the two read ONE number rather than each keeping a 4.
+const CHOICE_INSET := 2
 const PAD_BOTTOM := 5
 
-## The box with nothing to answer: speaker, two lines, done.
-const BOX_HEIGHT := TEXT_Y + TEXT_LINES * LINE_HEIGHT + PAD_BOTTOM
+## The box with nothing to answer: speaker, its lines, done.
+const BOX_HEIGHT := TEXT_Y + TEXT_LINES * LINE_PITCH + PAD_BOTTOM
 
 const CHARACTERS_PER_SECOND := 45.0
 
@@ -114,16 +131,20 @@ func setup(style: SpriteStyle, viewport_size: Vector2i) -> void:
 	_text.position = Vector2(PADDING, TEXT_Y)
 	# The full TEXT_LINES tall. It used to be 22px against a 12px line, so even two lines were
 	# clipped - the box could really only ever show one.
-	_text.size = Vector2(text_width(_viewport.x), TEXT_LINES * LINE_HEIGHT)
+	_text.size = Vector2(text_width(_viewport.x), TEXT_LINES * LINE_PITCH)
 	_text.bbcode_enabled = false
 	_text.scroll_active = false
+	# Set rather than left to the theme: the drawn advance has to be LINE_PITCH for the box's
+	# arithmetic to describe what a reader sees, and a default nobody chose is a number that
+	# can move under it.
+	_text.add_theme_constant_override("line_separation", LINE_SPACING)
 	_text.add_theme_font_size_override("normal_font_size", FONT_SIZE)
 	_text.add_theme_color_override("default_color", style.ui_color("text"))
 	_panel.add_child(_text)
 
 	for i in MAX_CHOICES:
 		var label := Label.new()
-		label.position = Vector2(PADDING + 4, CHOICE_Y + i * CHOICE_PITCH)
+		label.position = Vector2(PADDING + CHOICE_INSET, CHOICE_Y + i * CHOICE_PITCH)
 		label.add_theme_font_size_override("font_size", FONT_SIZE)
 		label.visible = false
 		_panel.add_child(label)

@@ -50,6 +50,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
 | [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path carry a ring; two ringed materials meeting is the [named divergence](DECISIONS.md) |
+| [Interface chrome](#16-interface-chrome-and-the-anatomy-of-a-battle-screen) | Framed windows with header bands, a highlight cursor, coloured HP/MP, portraits | A pixel font everywhere (M42); frames, bars and portraits are landing | **partial** — rebuilt over M42; the enemy-bar divergence is [recorded](DECISIONS.md) |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -1062,6 +1063,94 @@ no clock for it) and multi-tile objects like a whole tree, which need a record r
 
 ---
 
+## 16. Interface chrome, and the anatomy of a battle screen
+
+The one surface this file had never covered: not what a screen SAYS, but what it is made OF.
+Every section above asks where a feature lives and what sits beside it; this asks what a window,
+a cursor and a readout look like, which is the question a player answers in the first second and
+no gate can ask at all.
+
+**Researched from pictures, 2026-09-03**, because a description of an interface is worth very
+little - the claims below were read off screenshots on the Game UI Database (Sea of Stars, id
+2196; Persona 5 Royal, id 618; Clair Obscur: Expedition 33, id 2060), with written sources cited
+separately where a picture cannot carry the claim. What could not be reached is named at the end
+rather than filled in from recall.
+
+**The convention.** Four things, and every reference in this file has all four.
+
+1. **A window is a FRAME, not a rectangle.** A filled panel with a border a shade or two lighter
+   than its fill, and hard corners. Final Fantasy and Dragon Quest draw a literal blue box with a
+   white rule; Chrono Trigger and EarthBound let the player choose the fill; Sea of Stars draws a
+   dark navy panel with a one-pixel lighter border. Nobody draws text straight onto the world.
+2. **A window has a HEADER.** A band across its top in a second fill, carrying the page's name or
+   the acting character's, in capitals or a heavier face. It is what tells a player which
+   question a list is answering - Sea of Stars heads its shop list "ITEM NAME / OWNED / PRICE"
+   and its command window with the character's own name.
+3. **The cursor is a HIGHLIGHT, or a hand.** The selected row is drawn on a lighter bar (Sea of
+   Stars, Persona 5, Clair Obscur) or pointed at by a hand or triangle glyph (Final Fantasy,
+   Dragon Quest, EarthBound). What no reference does is what this template did: prefix the row's
+   own text with `>`, which shifts the text sideways and makes the marker part of the string.
+4. **HP and MP are COLOURED, and they are the only coloured things.** Persona 5's rule is
+   explicit and stated by its own designers - the game "did not use sub-colors other than in
+   HP/MP elements, in order to keep the distinctive red color" - with HP turquoise and SP pink.
+   Sea of Stars: HP gold, MP violet, bottom-left, one block per member. Clair Obscur: a thin bar
+   per member down the left edge. A bar drawn in the same grey as the help text, which is what
+   this template drew until M42, is a readout a player has to stop and parse.
+
+**Where the party lives, and where the enemy's health does.** The party's readout is a fixed
+block: bottom-left in Sea of Stars, bottom strip in Persona 5, a column down the left in Clair
+Obscur - each with a **face portrait** beside the numbers. The enemy side is the interesting
+divergence, and the three references disagree in a way worth recording:
+
+| Game | Enemy health, on screen |
+| --- | --- |
+| Sea of Stars | none. Above an enemy sit damage-type "locks" and a turn counter; no bar, no number |
+| Persona 5 | none. A name banner only |
+| Clair Obscur | ONE long thin bar, top centre, for the targeted enemy alone; the rest show nothing |
+
+That is the same finding S7b recorded from the 2D era (FF1 names only, DQ2 names and a living
+count, EarthBound and Chrono Trigger nothing, Super Mario RPG charging a turn to peek) - eight
+references now, and not one draws a bar per enemy. **The template's own answer since M28 was a
+bar and a number per foe**, which put a readout on top of every sprite it belonged to. M42 takes
+Clair Obscur's shape instead: one bar for the foe being aimed at. See `DECISIONS.md`.
+
+**The command menu sits BESIDE the actor.** Sea of Stars opens a small framed window next to the
+character whose turn it is, headed with their name. Persona 5 fans its commands out of the acting
+character as angled tiles - "all buttons point to the character that is in the turn", and "the
+character is placed on the left, the monster is on the right, which allows players observe the
+scene without being disturbed by the menu". At 320x180 the fan is not available, but the rule
+behind it is: the menu belongs where the eye already is, and it must not cover the fight.
+
+**One banner names what is happening.** Sea of Stars runs a wide framed banner across the top
+carrying the action ("Attack", "Spike Shower"); Clair Obscur names the targeted enemy above its
+bar. It is the same job as this template's caption line and confirms the shape.
+
+**This template, before M42.** Every screen was a bare `ColorRect` and a set of `Label`s: no
+border, no header, no highlight, no portrait, three colours (`panel`, `text`, `dim`) with the HP
+bar drawn in two of them, and a `>` prefix for a cursor. It had none of the four. The person this
+is built for looked at the battle screen and said it "looks so low quality", which is the same
+sentence M18's shop and M19's equipment screen earned, for the same reason: the surface was built
+from this repo's idioms rather than from the genre's.
+
+**Sources.** Screens read on gameuidatabase.com (game pages 2196, 618, 2060). Persona 5's colour
+rule and team structure from Siliconera's write-up of the Atlus design interview; the command-tile
+geometry from Jiaxin Wen's "The UI Design of Persona 5" (2017) and p5ui.tumblr.com. Sea of Stars'
+HUD vocabulary (HP bottom-left, the MP meter beside it, the locks and turn counters over enemies)
+from Game Voyagers' combat guide. Clair Obscur's minimalism from its producer in TweakTown, and
+its combat vocabulary from the Wikipedia article's Gameplay section, which cites the developers'
+own Sekiro and Final Fantasy VIII-X influences.
+
+**Not reached, and therefore not cited:** seaofstars.fandom.com (402), interfaceingame.com's
+Clair Obscur page and the ArtStation HUD-concept galleries (403), the Medium UX write-up (403),
+and the itch.io Persona 5 study (403). Nothing above rests on them.
+
+**Gap, named:** no window in this game is player-recolourable, which EarthBound and Pokemon both
+offer and which is the one convention in this section the template does not follow. It is a
+settings surface rather than a chrome one - the mechanism (`ui_colors` on the style) already
+exists, and what is missing is a place to choose from and somewhere per-player to keep it.
+
+---
+
 ## Sources
 
 Convergent-anatomy claims above are drawn from these, plus the reference games directly:
@@ -1106,6 +1195,30 @@ they come from the two tools that implement the schemes rather than from a descr
   base tileset by reading their alpha, not from a description of the sheets
   — Pokémon Gen I checksums the save and says "The file data is destroyed!" rather than
   presenting a blank slot
+
+Interface-chrome research (§16, added in M42). Read from SCREENSHOTS rather than descriptions,
+because a claim about what a window looks like cannot be carried by prose:
+
+- [Game UI Database](https://www.gameuidatabase.com/) — the screens themselves: Sea of Stars
+  (`gameData.php?id=2196`), Persona 5 Royal (`id=618`), Clair Obscur: Expedition 33 (`id=2060`).
+  Every claim about frames, header bands, highlight bars, portrait blocks and what does or does
+  not appear over an enemy was read off those captures
+- [Siliconera — Atlus reveals the design secrets behind Persona 5's distinctive UI](https://www.siliconera.com/atlus-reveals-design-secrets-behind-persona-5s-distinctive-ui/)
+  — the sub-colour rule ("did not use sub-colors other than in HP/MP elements, in order to keep
+  the distinctive red color") and that menu and battle UI had separate designers
+- [Jiaxin Wen — The UI Design of Persona 5](https://jiaxinwen.wordpress.com/2017/04/27/the-ui-design-of-persona-5/)
+  — the command tiles as long triangles that "point to the character that is in the turn", and
+  the left-character / right-enemy split that keeps the menu off the fight
+- [Game Voyagers — Sea of Stars: ultimate guide to combat](https://gamevoyagers.com/sea-of-stars-ultimate-guide-to-combat/)
+  — HP bottom-left with the MP meter beside it, and the locks and turn counters drawn over
+  enemies in place of a health bar
+- [TweakTown — Clair Obscur: Expedition 33's stripped-back UI puts immersion first](https://www.tweaktown.com/news/104172/clair-obscur-expedition-33s-stripped-back-ui-puts-immersion-first/index.html)
+  and [Wikipedia — Clair Obscur: Expedition 33](https://en.wikipedia.org/wiki/Clair_Obscur:_Expedition_33)
+  — the minimalism the producer states, and the combat vocabulary its Gameplay section cites
+
+Bot-blocked or paywalled on 2026-09-03 and therefore NOT cited anywhere above: the Sea of Stars
+wiki (402), interfaceingame.com's Clair Obscur page, the ArtStation HUD-concept galleries and the
+Medium UX write-up (403 each), and the itch.io Persona 5 study (403).
 
 Element research (§13b, added in M33). The Final Fantasy and Pokémon numbers come from
 disassemblies of the shipped ROMs, because the wikis were bot-blocked and the Archive was down;

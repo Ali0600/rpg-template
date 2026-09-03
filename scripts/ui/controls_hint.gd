@@ -19,7 +19,7 @@ func setup(style: SpriteStyle, viewport_size: Vector2i, text: String) -> void:
 	layer = 5
 	_label.text = text
 	_label.position = Vector2(6, viewport_size.y - 14)
-	_label.add_theme_font_size_override("font_size", 7)
+	_label.add_theme_font_size_override("font_size", UiChrome.FONT_SIZE)
 	_label.add_theme_color_override("font_color", style.ui_color("dim"))
 	add_child(_label)
 
