@@ -81,25 +81,6 @@ func _screen(level := 1, mp := 8, spells: Array = [], items: Array = [],
 	return screen
 
 
-## A full party under the 32px style, for the shape assertion. Every member is the wanderer,
-## who is the only character drawn in lpc32 that a party could be made of - this measures where
-## they STAND, not who they are.
-func _wide_party_screen() -> BattleScreen:
-	var screen := BattleScreen.new()
-	var style := load("res://data/styles/lpc32.tres") as SpriteStyle
-	UiScale.mount(screen, self, style)
-	var combat := _combat(true)
-	var members: Array = []
-	for i in BattleScreen.MAX_PARTY:
-		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
-			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
-			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, []))
-	var enemy := _enemy()
-	enemy.character = &"quest_slink"
-	var logic := BattleLogic.of(combat, [enemy], members, [], "map/foe", 7)
-	screen.setup(logic, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(&"lpc32"))
-	_screens.append(screen)
-	return screen
 
 
 ## How wide one fighter draws on this screen, in its own layout units.
@@ -129,30 +110,56 @@ func _drawn_height(screen: BattleScreen, view: SpriteView) -> float:
 	return float(view.cell_size().y) * view.scale.y * screen.scale.y
 
 
-func test_a_fighter_is_drawn_at_the_same_size_whatever_the_world_is() -> void:
-	# The screen is a CanvasLayer already drawn at the world's scale, so a bare SPRITE_SCALE
-	# would draw a 64px cell 128 screen pixels tall in the 180 this layout was measured for.
-	# Divided, both styles put a fighter on the same FRACTION of the screen - which is what
-	# "the battle screen looks the same at every scale" actually means.
+func test_a_fighter_is_drawn_at_the_size_its_style_asks_for() -> void:
+	# The screen is a CanvasLayer already drawn at the world's scale, so the multiple the style
+	# names is divided by that scale here and what lands on the glass is the number the style
+	# asked for. A style asking for 2 without the division would draw a 64px cell 128 screen
+	# pixels tall in the 180 this layout was measured for.
 	var narrow := _screen()
 	var wide := _wide_screen()
 	var small := _drawn_height(narrow, narrow._foe_views[0])
 	var big := _drawn_height(wide, wide._foe_views[0])
 	assert_float(small).override_failure_message(
 		"a 16x24 fighter is not being drawn at twice its size").is_equal(48.0)
+	# 64, not 128: lpc32 asks for world size since M42. At twice size one fighter took a third
+	# of the screen, which is why the readouts had nowhere to go but on top of the sprites.
 	assert_float(big).override_failure_message(
 		"a 64x64 fighter is drawn %spx tall in a 360px world, where the layout holds three"
-		% big).is_equal(128.0)
-	# The rule both obey, stated once: a fighter is drawn at twice the size it is in the world.
-	# NOT at the same fraction of the screen - the two cells are different shapes, 24 rows on a
-	# 16px tile against 64 on a 32px one, and asserting a shared fraction would be asserting
-	# that every style must draw its characters at the same proportion, which is a design
-	# decision the template leaves to whoever draws them.
+		% big).is_equal(64.0)
+	# The rule both obey, stated once and read from the DATA rather than from a constant here:
+	# a fighter is drawn at its style's own multiple of the size it is in the world. NOT at the
+	# same fraction of the screen - the two cells are different shapes, 24 rows on a 16px tile
+	# against 64 on a 32px one, and asserting a shared fraction would be asserting that every
+	# style must draw its characters at the same proportion, which is a design decision the
+	# template leaves to whoever draws them.
 	for pair: Array in [[narrow, small], [wide, big]]:
 		var screen: BattleScreen = pair[0]
+		var wanted := float(screen._style.battle_sprite_scale)
 		assert_float(float(pair[1]) / float(screen._foe_views[0].cell_size().y)) \
 			.override_failure_message("a fighter is not drawn at %sx its world size on '%s'"
-			% [BattleScreen.SPRITE_SCALE, screen._style.id]).is_equal(BattleScreen.SPRITE_SCALE)
+			% [wanted, screen._style.id]).is_equal(wanted)
+
+
+## A full party under a style asking for a given fighter size. Built by hand rather than taken
+## off disk because the rule below is about how the file RESPONDS to a fighter's width, and every
+## shipped style now happens to draw one 32 design pixels wide - see the test.
+func _party_screen_at(fighter_scale: int) -> BattleScreen:
+	var screen := BattleScreen.new()
+	var style := (load("res://data/styles/lpc32.tres") as SpriteStyle).duplicate() as SpriteStyle
+	style.battle_sprite_scale = fighter_scale
+	UiScale.mount(screen, self, style)
+	var combat := _combat(true)
+	var members: Array = []
+	for i in BattleScreen.MAX_PARTY:
+		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
+			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
+			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, []))
+	var enemy := _enemy()
+	enemy.character = &"quest_slink"
+	var logic := BattleLogic.of(combat, [enemy], members, [], "map/foe", 7)
+	screen.setup(logic, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(&"lpc32"))
+	_screens.append(screen)
+	return screen
 
 
 func test_the_party_stands_in_the_same_file_however_wide_its_fighters_are() -> void:
@@ -160,17 +167,27 @@ func test_the_party_stands_in_the_same_file_however_wide_its_fighters_are() -> v
 	# size. A flat number of pixels put two 64px LPC characters 18 apart - one standing in front
 	# of the other with a face showing over a shoulder, which reads as a drawing mistake rather
 	# than as a formation.
-	var narrow := _full_party_screen()
-	var wide := _wide_party_screen()
+	#
+	# Measured against SYNTHETIC styles, and that is the point of this version. It used to compare
+	# the two on disk, and since M42 those draw fighters the same width in design pixels - a 16px
+	# cell at twice size and a 64px cell at world size are both 32 - so the ratio was 1 on both
+	# sides and deleting the whole calculation changed nothing. The mutant survived and said so.
+	# Two widths that actually differ is what makes this an assertion.
 	var pairs: Array = []
-	for screen: BattleScreen in [narrow, wide]:
+	var widths: Array = []
+	for fighter_scale in [1, 2]:
+		var screen := _party_screen_at(fighter_scale)
 		var homes: Array = screen._member_homes
 		assert_int(homes.size()).is_greater(1)
 		var apart: float = absf((homes[1] as Vector2).x - (homes[0] as Vector2).x)
+		widths.append(_fighter_width(screen))
 		pairs.append(apart / _fighter_width(screen))
+	assert_float(widths[1]).override_failure_message(
+		"both fixtures draw a fighter %spx wide, so this compares a number with itself"
+		% widths[0]).is_not_equal(widths[0])
 	assert_float(pairs[1]).override_failure_message(
-		"a 64px fighter is stepped %.3f of its own width where a 32px one is stepped %.3f"
-		% [pairs[1], pairs[0]]).is_equal_approx(pairs[0], 0.001)
+		"a %spx fighter is stepped %.3f of its own width where a %spx one is stepped %.3f"
+		% [widths[1], pairs[1], widths[0], pairs[0]]).is_equal_approx(pairs[0], 0.001)
 
 
 func test_the_wide_screen_still_draws_nothing_over_anything() -> void:
@@ -181,18 +198,31 @@ func test_the_wide_screen_still_draws_nothing_over_anything() -> void:
 	_assert_nothing_overlaps(screen, "command at 32px")
 
 
-func test_every_style_draws_its_fighters_on_whole_pixels() -> void:
-	# SPRITE_SCALE divided by a world scale that does not divide it is a fighter drawn on
-	# fractional pixels, which in a nearest-filtered pixel game is a row of the sprite silently
-	# doubled or dropped. The styles on disk are the population, so a style added later with an
-	# awkward scale fails here rather than in somebody's screenshot.
+func test_every_style_draws_its_fighters_at_the_size_it_asked_for() -> void:
+	# Over the styles on disk, so one added later fails here rather than in somebody's screenshot.
+	#
+	# What lands on the glass is `battle_sprite_scale` exactly: the screen divides by world_scale
+	# and the layer multiplies by it again, and that cancelling IS the design - the style says how
+	# big a fighter is and the world's scale cannot move it.
+	#
+	# The intermediate is allowed to be fractional, and this is the one place that is worth
+	# stating. lpc32 asks for world size on a 2x layer, so the sprite's OWN scale is 0.5 - which
+	# looks like half-resolution art and is not. A CanvasLayer's scale is a transform rather than
+	# a render target, so the two compose before anything is rasterised: measured, a 0.5 sprite on
+	# a 2x layer has a canvas transform of exactly identity and the texture is drawn 1:1. What
+	# would cost pixels is a COMPOSED scale that is not whole, and the style declares that as an
+	# int, so it cannot be.
 	for id in ArtFixtures.style_ids():
 		var style := ArtFixtures.style(id)
-		var drawn := BattleScreen.SPRITE_SCALE / float(UiScale.scale_of(style))
-		assert_float(drawn).override_failure_message(
-			"style '%s' draws its fighters at %sx, which is not a whole number of pixels"
-			% [id, drawn]).is_equal(floorf(drawn))
-		assert_float(drawn).is_greater(0.0)
+		var sprite := float(style.battle_sprite_scale) / float(UiScale.scale_of(style))
+		var on_screen := sprite * float(UiScale.scale_of(style))
+		assert_float(on_screen).override_failure_message(
+			"style '%s' draws a fighter at %sx world size where it asks for %d"
+			% [id, on_screen, style.battle_sprite_scale]).is_equal(float(style.battle_sprite_scale))
+		assert_float(on_screen).override_failure_message(
+			"style '%s' draws a fighter at %sx, which is not a whole number of pixels"
+			% [id, on_screen]).is_equal(floorf(on_screen))
+		assert_float(on_screen).is_greater(0.0)
 
 
 ## A screen with a FULL party on it - as many members as the view says it can draw. The

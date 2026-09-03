@@ -96,16 +96,11 @@ const FOE_PITCH := 13.0
 
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
-## How many times its world size a fighter is drawn at. DIVIDED by the style's world_scale
-## where it is used, because this screen is a CanvasLayer already drawn at that scale: a
-## 64x64 cell under a 2x layer at a bare 2.0 would fill 128 of the 180 design pixels this
-## layout was measured for. Derived rather than a field on the style, because it is a property
-## of THIS SCREEN's bands - the capacity MAX_PARTY and MAX_FOES are declared against - and a
-## second copy in data is a second opinion about a layout only one gate measures.
-const SPRITE_SCALE := 2.0
-## The drawn width the file's 18/14 stagger was chosen against - a 16px cell at SPRITE_SCALE.
+## The drawn width the file's 18/14 stagger was chosen against - a 16px cell at twice size.
 ## Everything about the group's shape is stated as a fraction of this, so a style with wider
-## fighters keeps the file rather than stacking them on top of one another.
+## fighters keeps the file rather than stacking them on top of one another. A historical fact
+## about these numbers rather than a multiple anything is drawn at, which is why it stayed here
+## when the multiple itself moved into the style.
 const STAGGER_WIDTH := 32.0
 const BAR_WIDTH := 64.0
 const BAR_HEIGHT := 4.0
@@ -289,14 +284,26 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 
 ## How wide one fighter draws, in the units this screen lays out in.
 func _drawn_width() -> float:
-	return float(_style.cell_size.x) * SPRITE_SCALE / float(UiScale.scale_of(_style))
+	return float(_style.cell_size.x) * _fighter_scale()
+
+
+## How many of THIS SCREEN's pixels one of a fighter's own pixels covers. The style says how
+## many times world size a fighter is drawn at; the division is because this screen is a
+## CanvasLayer already drawn at the world's scale, so a bare 2.0 under a 2x layer would put a
+## 64px cell across 128 of the 180 design pixels this layout was measured for.
+##
+## The numerator moved into the style in M42 and the divisor stayed, which is exactly the hook
+## DECISIONS named when it deferred this. lpc32 asks for 1 and gets world size: the size that
+## character is when you walk around as them.
+func _fighter_scale() -> float:
+	return float(_style.battle_sprite_scale) / float(UiScale.scale_of(_style))
 
 
 func _make_fighter(source: SpriteSource, character: StringName, at: Vector2, facing: int) -> SpriteView:
 	var view := SpriteView.new()
 	add_child(view)
 	view.position = at
-	var drawn := SPRITE_SCALE / float(UiScale.scale_of(_style))
+	var drawn := _fighter_scale()
 	view.scale = Vector2(drawn, drawn)
 	# A fighter whose art is missing still gets a view: the fight is playable without it, and a
 	# battle that refused to open would turn a missing PNG into an unreachable quest.
