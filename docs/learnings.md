@@ -2054,3 +2054,18 @@ have stopped checking the composites, which really can have holes.
 **Takeaway:** when a validator grows a second kind of input, pass the EXEMPTION in as an argument
 and keep the check where it is — and check the thing the exempt input ends up inside, so the rule
 is moved rather than dropped.
+
+## A border drawn for a large shape has a minimum size the shape must exceed
+
+Artwork that draws the boundary of a material — a shoreline, an outline, a bevel — occupies a
+fixed number of pixels on each side. Two of those borders in one tile leave nothing between
+them, so the material simply vanishes at its smallest instances.
+
+**Why it came up:** hand-drawn water tiles carry about ten pixels of transparency plus six of
+bank per edge. A pond one tile tall got its north bank and its south bank in the same 32 pixels
+and rendered as a mound of earth with two three-pixel slivers of blue. Every automated check
+passed: the shapes were correct, the collision was right, the atlas matched the generator.
+
+**Takeaway:** when adopting artwork that draws borders, measure the border and treat twice it as
+a MINIMUM SIZE for the thing it borders — then check the smallest instance in your content
+against it, because that is the one that degenerates and the one no test can describe.
