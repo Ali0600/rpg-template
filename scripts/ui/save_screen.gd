@@ -30,9 +30,9 @@ signal left
 const LAYER := 14
 const MARGIN := 6
 const PADDING := 4
-const TITLE_SIZE := 8
-const ROW_SIZE := 8
-const HELP_SIZE := 7
+const TITLE_SIZE := UiChrome.FONT_SIZE
+const ROW_SIZE := UiChrome.FONT_SIZE
+const HELP_SIZE := UiChrome.FONT_SIZE
 const ROW_PITCH := 10
 const PANEL_WIDTH := 150
 

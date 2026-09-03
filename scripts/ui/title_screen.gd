@@ -24,9 +24,9 @@ signal new_game_requested
 const LAYER := 30
 const MARGIN := 8
 ## The one screen in this game with a big word on it. A title is mostly its own name.
-const HEADING_SIZE := 16
-const ROW_SIZE := 8
-const HELP_SIZE := 7
+const HEADING_SIZE := UiChrome.HEADING_SIZE
+const ROW_SIZE := UiChrome.FONT_SIZE
+const HELP_SIZE := UiChrome.FONT_SIZE
 const ROW_PITCH := 11
 ## The rows sit in the lower half, under the name.
 const ROWS_Y := 96

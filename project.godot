@@ -47,7 +47,35 @@ window/size/window_height_override=720
 window/stretch/mode="viewport"
 window/stretch/scale_mode="integer"
 
+[gui]
+
+; EVERY Control in the game draws in this font, from one setting. Godot loads it into
+; ThemeDB.fallback_font and the default theme, so a screen never names a font - and the screen
+; that forgot to would draw in the engine's own face and look almost right, which is the class
+; of bug this project spends its gates on. tools/smoke_boot.gd pins this value.
+;
+; Pixel Operator 8 by Jayvee Enaguas, CC0 1.0 (assets/fonts/LICENSE.txt). The "8" face is drawn
+; FOR 8 pixels, which is the size every screen here lays out against; the plain family is drawn
+; for 16 and asked for 8 is a scaled bitmap, which is the blur it was brought in to remove.
+theme/custom_font="res://assets/fonts/pixel_operator_8.ttf"
+
 [importer_defaults]
+
+; A pixel font is drawn at one size and must land on whole pixels. Godot's own defaults are
+; grayscale antialiasing, hinting 3 and subpixel positioning 4 (auto) - all three of which
+; smear an 8px glyph across two pixels, which is exactly the blur the font replaced. Read off
+; the sidecar the engine wrote on the first import rather than recalled, the way the wav block
+; above was, and pinned HERE rather than per file for its reason: a per-file setting is a list
+; kept by hand, and the next font added comes back with the default nobody re-reads.
+;
+; Nothing else in the build can see this. A blurred font passes every gate there is, so
+; tests/unit/test_ui_chrome.gd asserts these three off the loaded FontFile.
+font_data_dynamic={
+"antialiasing": 0,
+"hinting": 0,
+"multichannel_signed_distance_field": false,
+"subpixel_positioning": 0
+}
 
 ; Generated cues are committed as lossless 16-bit PCM and the drift gate compares those
 ; samples. Godot's WAV importer defaults to compress/mode=2, which is QOA - LOSSY - so the

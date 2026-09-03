@@ -250,9 +250,9 @@ games/quest/quest_hooks.gd	s|ctx.say\(DIALOG_ASKS\)|pass|	tests/unit/test_quest_
 games/quest/quest_hooks.gd	s|if ctx.map_id != START_MAP or ctx.has_flag\(FLAG_MET\):|if false:|	tests/unit/test_quest_hooks.gd	the opening conversation replays on every walk back into the village
 
 # --- M13.3: the box states its capacity ---
-scripts/ui/dialog_box.gd	s|const CHOICE_Y := TEXT_Y \+ TEXT_LINES \* LINE_HEIGHT \+ 2|const CHOICE_Y := TEXT_Y + 11|	tests/integration/test_dialog_box_layout.gd	choices are drawn back on top of the second line of text
-scripts/ui/dialog_box.gd	s|_text.size = Vector2\(text_width\(_viewport.x\), TEXT_LINES \* LINE_HEIGHT\)|_text.size = Vector2(text_width(_viewport.x), LINE_HEIGHT)|	tests/integration/test_dialog_box_layout.gd	the text area shows one line of the two the writing is allowed
-scripts/ui/dialog_box.gd	s|const TEXT_LINES := 2|const TEXT_LINES := 9|	tests/unit/test_dialog_fit.gd	the fit gate is told the box is nine lines tall and stops catching overflow
+scripts/ui/dialog_box.gd	s|const CHOICE_Y := TEXT_Y \+ TEXT_LINES \* LINE_PITCH \+ 2|const CHOICE_Y := TEXT_Y + 11|	tests/integration/test_dialog_box_layout.gd	choices are drawn back on top of the last line of text
+scripts/ui/dialog_box.gd	s|_text.size = Vector2\(text_width\(_viewport.x\), TEXT_LINES \* LINE_PITCH\)|_text.size = Vector2(text_width(_viewport.x), LINE_PITCH)|	tests/integration/test_dialog_box_layout.gd	the text area shows one line of the three the writing is allowed
+scripts/ui/dialog_box.gd	s|const TEXT_LINES := 3|const TEXT_LINES := 9|	tests/unit/test_dialog_fit.gd	the fit gate is told the box is nine lines tall and stops catching overflow
 scripts/ui/dialog_box.gd	s|return CHOICE_Y \+ count \* CHOICE_PITCH \+ PAD_BOTTOM|return BOX_HEIGHT|	tests/integration/test_dialog_box_layout.gd	the box never grows, so the choices fall off the bottom of it
 
 # --- M13.4: reading art without the import system ---
@@ -714,3 +714,10 @@ scripts/spritegen/tile_set_factory.gd	s|\t\t\tif not blocks_movement:|\t\t\tif f
 scripts/spritegen/tile_set_factory.gd	s|\t\t\tif not blocks_movement:|\t\t\tif true:|	tests/integration/test_map_edges.gd	a shoreline cell stops blocking, so a pond keeps its middle and opens all the way round its rim
 scripts/world/map_builder.gd	s|\t\t\t\t\tedges.get\(ground_tile, \[\]\) as Array, _around\(data, at\), plain.x\), 0\)\)|\t\t\t\t\t[] as Array, _around(data, at), plain.x), 0))|	tests/integration/test_map_edges.gd	every cell is painted with its plain tile, so no edge a bank composes is ever put on a map
 scripts/world/map_builder.gd	s|\t\tout.append\(data.ground_at\(at \+ offset\)\)|\t\tout.append(data.ground_at(at))|	tests/integration/test_map_edges.gd	a cell reads itself as all eight of its neighbours, so every cell comes out as interior
+
+# -- M42: the interface is drawn in one font ---------------------------------------------
+# The whole chain in one row: the project setting is what puts our font in ThemeDB, which is
+# what a Label falls back to, which is what the fit gate measures every shipped line against.
+# Unset it and the game draws in the engine's own face - at the right size, in the right place,
+# looking almost right - so the gate has to be aimed at the OUTCOME rather than at the setting.
+project.godot	s|theme/custom_font=\"res://assets/fonts/pixel_operator_8.ttf\"|theme/custom_font=\"\"|	tests/unit/test_dialog_fit.gd	the game draws in the engine's own font and every measured line is about a font nobody sees

@@ -17,6 +17,7 @@ extends GdUnitTestSuite
 const DIALOG_DIR := "res://data/dialog"
 
 
+
 func _font() -> Font:
 	return ThemeDB.fallback_font
 
@@ -41,13 +42,21 @@ func test_there_is_something_to_check() -> void:
 
 
 func test_the_font_is_the_one_the_box_was_measured_against() -> void:
-	# The whole gate rests on this. If a project theme ever replaces the default font, every
-	# measurement below becomes a statement about a font nobody sees - so it is asserted here
-	# rather than assumed, and this is the test that fails first when it changes.
+	# The whole gate rests on this. Every measurement below is a statement about ONE font, so if
+	# the game were drawn in another one they would all be statements about a font nobody sees.
+	#
+	# Both halves are needed and neither implies the other. A bare Label reports whatever the
+	# fallback is, so comparing the two alone was nearly vacuous - it passed just as happily when
+	# the fallback was the engine's own face. Naming the FILE is what makes it an assertion: the
+	# project setting is the only thing that puts our font there, and this fails the moment it
+	# stops being set. tools/smoke_boot.gd pins the setting itself.
 	var label := Label.new()
 	add_child(label)
 	assert_object(label.get_theme_font(&"font")).override_failure_message(
 		"the box is drawn in a font this gate does not measure").is_equal(_font())
+	assert_str(_font().resource_path).override_failure_message(
+		"the game draws in '%s', not the project font" % _font().resource_path
+	).is_equal(UiChrome.FONT_PATH)
 	assert_int(int(_font().get_height(DialogBox.FONT_SIZE))).override_failure_message(
 		"DialogBox.LINE_HEIGHT no longer matches the font it describes"
 	).is_equal(DialogBox.LINE_HEIGHT)
@@ -74,7 +83,7 @@ func test_every_shipped_choice_fits_its_row() -> void:
 	# A choice is one Label on one row - it cannot wrap at all, so an over-long one is cut
 	# mid-word with no ellipsis. The cursor and its padding eat into the width, so they are
 	# measured as part of the string rather than hand-waved.
-	var width := DialogBox.text_width(_viewport_width()) - 4.0
+	var width := DialogBox.text_width(_viewport_width()) - float(DialogBox.CHOICE_INSET)
 	var faults: Array[String] = []
 	for path in ContentScan.files(DIALOG_DIR, ["json"]):
 		var file := JsonFile.read(path)

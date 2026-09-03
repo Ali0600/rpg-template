@@ -26,9 +26,9 @@ signal title_requested
 
 const LAYER := 20
 const MARGIN := 8
-const TITLE_SIZE := 9
-const ROW_SIZE := 8
-const HELP_SIZE := 7
+const TITLE_SIZE := UiChrome.FONT_SIZE
+const ROW_SIZE := UiChrome.FONT_SIZE
+const HELP_SIZE := UiChrome.FONT_SIZE
 const ROW_PITCH := 11
 
 var _menu: GameOverMenu = null
