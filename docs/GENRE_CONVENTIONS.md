@@ -49,7 +49,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
-| [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px, **one id per cell and no edge tiles** | **diverges deliberately** — [transitions are their own milestone](DECISIONS.md) |
+| [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path carry a ring; two ringed materials meeting is the [named divergence](DECISIONS.md) |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -1019,16 +1019,43 @@ it is reachable only through disassemblies this pass did not open, and the secon
 are about compression and metatiles rather than about edges. So the convention above is stated
 from artwork that can be counted rather than from prose about games.
 
-**This template.** One tile id per cell, and no edge pieces at all. `MapData` is a legend and a
-grid of characters, `TileSetFactory` builds a single atlas source with one collision polygon per
-solid tile, and nothing anywhere knows that grass and water are neighbours. So a shoreline is a
-hard edge, and the demo's ponds and paths are rectangles.
+**How many pieces it takes.** Two numbers settle the shape of any implementation, and both are
+Tiled's own, from its terrain documentation. A CORNER set or an EDGE set over two terrains is
+sixteen tiles; a MIXED set - matching corners AND sides, which is what a shoreline needs - is
+256, "but reduced sets like the 47-tile Blob tileset can be used with this type as well". Godot
+carries the same three modes and says they "correspond to the previous bitmask modes autotiles
+used in Godot 3.x: 2x2, 3x3 or 3x3 minimal"; its documentation states no rule for what the
+engine picks when no tile matches exactly, which is one reason this template does not use it.
 
-**Divergence, deliberate.** The alternative is real and is a milestone of its own: Godot's TileSet
-carries terrain sets, and the LPC sheets already hold the pieces. It is deferred rather than
-rejected - see `docs/DECISIONS.md` - because it reaches past the art into the map format (a cell
-would stop being one id), and because the flat version is what a template needs first: a game
-that adds its own tiles gets a working world without authoring nine pieces per material.
+Thirteen pieces to forty-seven shapes is the gap every implementation has to close. The answer
+in wide use is to compose each of a cell's four QUARTERS from the same pieces - RPG Maker's
+autotile format, named here from the format rather than from a source, so treat the attribution
+as secondhand while the arithmetic is not.
+
+**This template.** A tile in a bank may carry a `ring` - LPC's twelve pieces - and an `over` list
+naming the ground it is an edge against. The generator composes all 47 shapes from quarters of
+those pieces and appends them to the atlas; the world picks one per cell from that cell's eight
+neighbours. **A cell is still one tile id**: the shapes live in columns past the paintable tiles,
+which no map can spell, so the map format, both editor translators and every map file are exactly
+what they were. `map_io` crops the atlas it hands an editor down to those paintable tiles.
+
+Water is an edge against grass and against dirt; a path is an edge against grass. Everything
+else - walls, floors, doors, decor - is a hard edge, which is what the references do too: an
+interior wall meets a floor at a line, not a fringe.
+
+**Measured against the art, twice.** The quarter scheme is not a preference here, it is what the
+demo's own geometry requires: the village and hollow ponds were ONE tile tall and half the paths
+are ONE tile wide, and no whole piece is drawn for a cell that stops to the north AND the south.
+And the art has a scale of its own - LPC's water bank is about ten pixels of transparency plus
+six of mud per edge, so at 32px a pond one tile tall has no water left in it at all: both banks
+meet in the middle and it reads as a mound of earth. Both ponds were deepened by one row rather
+than the shoreline being thinned, because the bank is the artist's drawing and the pond is ours.
+Every scripted session still passes byte-identically; the rows added were a dead-end corridor
+against a wall and a strip of grass nothing walked.
+
+**Divergence, named:** an edge between two materials that BOTH carry a ring is drawn once, by
+whichever the bank names first, rather than as a true blend of the two. No reference needs more
+than that at this scale, and the alternative is recorded with its hook.
 
 **Gap, named:** animated water (LPC ships the frames; the atlas has one row and the runtime has
 no clock for it) and multi-tile objects like a whole tree, which need a record rather than a cell.
@@ -1061,6 +1088,22 @@ Music and save-integrity research (§14 and §8, added in M32):
   eight melodies (Opening, Castle, Town, Field, Dungeon, Battle, Final Battle, Ending), the
   soundtrack shape the genre copied, with a boss theme in it before Final Fantasy existed
 - [Glitch City Wiki — damaged save data error messages](https://glitchcity.wiki/wiki/Damaged_save_data_error_messages)
+
+Terrain-transition research (§15, added in M41). The tile counts here are the whole argument, so
+they come from the two tools that implement the schemes rather than from a description of them:
+
+- [Tiled — Terrain sets](https://doc.mapeditor.org/en/stable/manual/terrain/) — a corner set and
+  an edge set over two terrains are sixteen tiles each; a mixed set is 256, "but reduced sets
+  like the 47-tile Blob tileset can be used with this type as well"
+- [Godot 4.7 — Using TileSets](https://docs.godotengine.org/en/4.7/tutorials/2d/using_tilesets.html)
+  — the three modes "correspond to the previous bitmask modes autotiles used in Godot 3.x: 2×2,
+  3×3 or 3×3 minimal". The page gives no rule for what the engine picks when no tile matches
+  exactly, which is one of the reasons this template composes its own shapes instead
+- The quarter-composition scheme is RPG Maker's autotile format. Named here from the FORMAT
+  rather than from a source that documents it, so it is marked secondhand — the arithmetic
+  (thirteen pieces, four quarters, 47 shapes) is derived and checked, the attribution is not
+- The piece layout in §15 is measured from `grass.png`, `dirt.png` and `water.png` in the LPC
+  base tileset by reading their alpha, not from a description of the sheets
   — Pokémon Gen I checksums the save and says "The file data is destroyed!" rather than
   presenting a blank slot
 

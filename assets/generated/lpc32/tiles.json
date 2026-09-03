@@ -1,6 +1,33 @@
 {
-	"columns": 12,
-	"edges": [],
+	"columns": 153,
+	"edges": [
+		{
+			"count": 47,
+			"first": 12,
+			"over": [
+				"grass",
+				"grass_alt"
+			],
+			"tile": "path"
+		},
+		{
+			"count": 47,
+			"first": 59,
+			"over": [
+				"grass",
+				"grass_alt"
+			],
+			"tile": "water"
+		},
+		{
+			"count": 47,
+			"first": 106,
+			"over": [
+				"path"
+			],
+			"tile": "water"
+		}
+	],
 	"rows": 1,
 	"style": "lpc32",
 	"tile_size": 32,

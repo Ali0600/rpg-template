@@ -143,6 +143,7 @@ tools/fetch_tiles.sh data/tiles/lpc32.json
 | New body parts | `data/rigs/*.json` | no |
 | New terrain — a floor, a door, a cliff | `data/tiles/*.json` | no |
 | Hand-drawn terrain | a sheet in `data/imports/tiles/<bank>/`, a cell per tile in the bank | no |
+| Shorelines and verges | a `ring` of twelve transition pieces plus an `over` list, on the tile | no |
 
 If changing any of these needs a code edit, that's a bug in the template.
 
@@ -268,6 +269,7 @@ judged before the world is rebuilt around it.
 - [x] **M37** — a spell that hits everything now reports one foe at a time, with the caster and the spell held still above it, the way the games it borrows from do
 - [x] **M38** — maps can be authored in a visual editor: Tiled AND LDtk, both directions, round-tripped over every shipped map through real files by `tools/map_io.sh`
 - [x] **M39** — where a game may be saved is now the game's own decision: save anywhere from the menu, or only at a save point, chosen in data with both sides gated. The village gained a chronicler who writes your journey down
+- [x] **M41** — the edge between two materials is drawn: a tile may name a `ring` of twelve transition pieces and the ground it lies `over`, and the generator composes all 47 shapes a cell can take out of QUARTERS of them. A cell is still one tile id — the shapes sit in atlas columns no map can spell — so the map format, both editor translators and every map file were untouched, and a bank with no ring produces a byte-identical atlas
 - [x] **M40d** — the ground is hand-drawn too: a tile bank says whether its pixels are authored rows or a CELL cut from art somebody drew, licence-gated and credited per file beside the cast. The demo's twelve tiles come out of the LPC base tileset with their ids, order and solid flags unchanged, so every map and all 23 sessions carried on untouched
 - [x] **M40c** — the demo is hand-drawn: twelve characters composed from text recipes, creatures included (LPC has no non-human body, so a Slink is a child body wearing a lizard head), every map at 32px tiles, and all 23 play sessions unchanged
 - [x] **M40b** — the world at 32px: a style states its `world_scale`, the window grows and every interface layer is drawn at it, so a 64x64 cast plays in a 640x360 world while every screen, font and layout gate keeps measuring against 320x180. Saves moved to tile units (v10) so a change of art cannot move a saved player
@@ -523,6 +525,21 @@ judged before the world is rebuilt around it.
   added code can silently re-target an existing, untouched mutation onto the wrong function;
   the check runs unconditionally in seconds where the full suite takes twenty minutes, moving
   detection from post-push CI to pre-commit.
+
+- Implemented deterministic sub-tile autotiling from first principles — reducing 256 neighbour
+  readings to the 47 distinct shapes a cell can take, composing each from four quarters of a
+  twelve-piece artwork set, and blending in fixed-point integer arithmetic so the generated
+  output is byte-identical across macOS and Linux CI runners. Delivered as an additive change:
+  every existing asset, data file and end-to-end test remained bit-for-bit unchanged, proven by
+  a build-artifact drift gate rather than asserted.
+- Designed the feature to avoid a schema migration that three previous attempts had treated as
+  unavoidable, by locating the generated data in a region the existing consumers structurally
+  cannot address — leaving the file format, two third-party editor integrations and 23
+  end-to-end regression tests untouched, and reducing the change's blast radius to one function.
+- Validated a rendering feature by inspection as well as by test, catching a defect no automated
+  check could express: the artwork's border was thick enough that the smallest instances of the
+  feature degenerated to solid fill. Quantified the threshold, corrected the source data rather
+  than the renderer, and confirmed the full regression suite still passed unchanged.
 
 ---
 
