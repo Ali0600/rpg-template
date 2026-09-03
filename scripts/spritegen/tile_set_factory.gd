@@ -38,16 +38,35 @@ static func build(texture: Texture2D, meta: Dictionary) -> TileSet:
 		Vector2(-size / 2.0, size / 2.0),
 	])
 
+	var solid_by_id := {}
 	for entry: Variant in meta.get("tiles", []) as Array:
 		var e: Dictionary = entry
 		var coords := Vector2i(int(e.get("index", 0)), 0)
 		source.create_tile(coords)
+		solid_by_id[str(e.get("id", ""))] = bool(e.get("solid", false))
 		if not bool(e.get("solid", false)):
 			continue
 		var data := source.get_tile_data(coords, 0)
 		data.add_collision_polygon(PHYSICS_LAYER)
 		# Tile collision polygons are expressed around the tile's centre, not its corner.
 		data.set_collision_polygon_points(PHYSICS_LAYER, 0, full)
+
+	# Every shape in an edge block IS its block's tile - water with a grass bank drawn along one
+	# side is still water - so it blocks exactly what that tile blocks. Without this the pond
+	# keeps its middle and opens up all the way round its rim, which reads as the collision
+	# being broken rather than as the edges being new.
+	for entry: Variant in meta.get("edges", []) as Array:
+		var block: Dictionary = entry
+		var blocks_movement := bool(solid_by_id.get(str(block.get("tile", "")), false))
+		var first := int(block.get("first", 0))
+		for i in int(block.get("count", 0)):
+			var shape_at := Vector2i(first + i, 0)
+			source.create_tile(shape_at)
+			if not blocks_movement:
+				continue
+			var shape_data := source.get_tile_data(shape_at, 0)
+			shape_data.add_collision_polygon(PHYSICS_LAYER)
+			shape_data.set_collision_polygon_points(PHYSICS_LAYER, 0, full)
 	return tileset
 
 
@@ -57,6 +76,19 @@ static func coords_by_id(meta: Dictionary) -> Dictionary:
 	for entry: Variant in meta.get("tiles", []) as Array:
 		var e: Dictionary = entry
 		out[str(e.get("id", ""))] = Vector2i(int(e.get("index", 0)), 0)
+	return out
+
+
+## The edge blocks each tile owns, by tile id - empty for a tile with hard edges, which is what
+## lets MapBuilder ask the same question of every cell and get the old answer for most of them.
+static func edges_by_id(meta: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for entry: Variant in meta.get("edges", []) as Array:
+		var block: Dictionary = entry
+		var id := str(block.get("tile", ""))
+		if not out.has(id):
+			out[id] = []
+		(out[id] as Array).append(block)
 	return out
 
 

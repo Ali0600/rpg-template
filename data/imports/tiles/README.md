@@ -36,6 +36,45 @@ It downloads every file whose entry carries a `url`, skips what is already there
 rather than fails — a file that has none. `plants.png` is that case: it ships as a zip from its
 OpenGameArt page, so its one sheet is extracted and put in place by hand.
 
+## Authoring an edge
+
+A tile may say what its boundary with other ground looks like, and then the generator composes
+every shape that boundary can take:
+
+    { "id": "water", "from": "water.png", "cell": [1, 5], "solid": true,
+      "ring": { "n": {"cell": [1, 2]}, "e": {"cell": [2, 3]}, ... },
+      "over": [["grass", "grass_alt"], ["path"]] }
+
+`ring` is twelve pieces - `n e s w` for the four edges, `ne nw se sw` for the outer corners, and
+`ne_in nw_in se_in sw_in` for the inner notches. A piece is a cell like a tile is, and its `from`
+defaults to the tile's own sheet. An optional thirteenth, `c`, says what fills a quarter with no
+edge in it; leave it out and the tile's own plain art is used, which is what makes an interior
+cell identical to the flat tile.
+
+LPC's ground sheets are laid out for exactly this. Measured from `grass.png`, `dirt.png` and
+`water.png`, which are each 3 cells by 6 at 32px:
+
+| row | cells |
+|---|---|
+| 0 | a one-wide north cap, then `se_in`, then `sw_in` |
+| 1 | a one-wide south cap, then `ne_in`, then `nw_in` |
+| 2 | `nw` `n` `ne` |
+| 3 | `w`, the plain centre, `e` |
+| 4 | `sw` `s` `se` |
+| 5 | three plain fill variants |
+
+The two one-wide caps go unused: a shape is composed from four QUARTERS of the pieces above, so
+a strip one tile wide gets its north and south edges from the `n` and `s` pieces at once.
+
+`over` is a list of GROUPS. A group is the ground this edge is drawn against - grass and its
+tufted variant are one material to a shoreline - and the FIRST id in it is the tile whose plain
+art the edge is composed over. A cell touching two groups takes the one more of its sides face,
+then the one more of its corners, then the group the file names first.
+
+Everything is refused by name: a ring without an `over` and an `over` without a ring, a missing
+or misspelt piece, a ring on a decor tile, an `over` naming the tile itself or something the bank
+has no tile for, and an atlas the rings have made too wide for a texture.
+
 ## Choosing cells
 
 Look at the sheet, then look at the RESULT. LPC's ground sheets are laid out for an editor's

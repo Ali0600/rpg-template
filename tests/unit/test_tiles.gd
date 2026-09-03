@@ -19,7 +19,12 @@ func test_the_generator_draws_every_tile_it_declares() -> void:
 	var image: Image = built["image"]
 	var meta: Dictionary = built["meta"]
 	assert_int((meta["tiles"] as Array).size()).is_equal(_bank(&"gb16").ids().size())
-	assert_int(image.get_width()).is_equal(style.tile_size * _bank(&"gb16").ids().size())
+	# Three readings of one answer, pinned against each other: the strip's width, the number the
+	# meta declares, and the layout function both are supposed to come from. A bank with rings
+	# grows past its id count, so the id count on its own stopped being the whole statement.
+	var columns := TileGen.cell_count(_bank(&"gb16"))
+	assert_int(image.get_width()).is_equal(style.tile_size * columns)
+	assert_int(int(meta["columns"])).is_equal(columns)
 	assert_int(image.get_height()).is_equal(style.tile_size)
 
 func test_no_tile_is_a_flat_block_of_one_colour() -> void:
@@ -101,6 +106,63 @@ func test_the_tileset_gives_collision_to_exactly_the_solid_tiles() -> void:
 		else:
 			assert_int(polygons).override_failure_message(
 				"walkable tile '%s' blocks movement" % e["id"]).is_equal(0)
+
+func test_an_edge_shape_blocks_exactly_what_its_own_tile_blocks() -> void:
+	# Every shape in a block IS its block's tile, so it blocks what that tile blocks. Vacuous
+	# over the shipped banks until the demo's ground grows a ring, so the meta is written here
+	# by hand: one solid tile with a block of shapes, and one walkable tile with another.
+	var texture := load("res://assets/generated/gb16/tiles.png") as Texture2D
+	var meta := {
+		"tile_size": 16,
+		"tiles": [
+			{"id": "water", "index": 0, "solid": true},
+			{"id": "path", "index": 1, "solid": false},
+		],
+		"edges": [
+			{"tile": "water", "over": ["grass"], "first": 2, "count": 3},
+			{"tile": "path", "over": ["grass"], "first": 5, "count": 3},
+		],
+	}
+	var source := TileSetFactory.build(texture, meta).get_source(0) as TileSetAtlasSource
+	for i in 3:
+		var shore := source.get_tile_data(Vector2i(2 + i, 0), 0)
+		assert_object(shore).override_failure_message(
+			"shape %d of the water block was never created, so a shoreline cell is empty" % i) \
+				.is_not_null()
+		assert_int(shore.get_collision_polygons_count(TileSetFactory.PHYSICS_LAYER)) \
+			.override_failure_message("a water shore cell lets the player walk into the pond") \
+			.is_equal(1)
+		var verge := source.get_tile_data(Vector2i(5 + i, 0), 0)
+		assert_object(verge).is_not_null()
+		assert_int(verge.get_collision_polygons_count(TileSetFactory.PHYSICS_LAYER)) \
+			.override_failure_message("the edge of a path blocks movement").is_equal(0)
+
+func test_the_edge_blocks_are_looked_up_by_the_tile_that_owns_them() -> void:
+	var by_id := TileSetFactory.edges_by_id({"edges": [
+		{"tile": "water", "over": ["grass"], "first": 12, "count": 47},
+		{"tile": "water", "over": ["path"], "first": 59, "count": 47},
+		{"tile": "path", "over": ["grass"], "first": 106, "count": 47},
+	]})
+	assert_int((by_id["water"] as Array).size()).override_failure_message(
+		"a tile with two edges kept one; the other material would never be drawn against") \
+			.is_equal(2)
+	assert_int((by_id["path"] as Array).size()).is_equal(1)
+	assert_bool(by_id.has("grass")).override_failure_message(
+		"a tile that owns no block was given one").is_false()
+	assert_dict(TileSetFactory.edges_by_id({})).is_empty()
+
+func test_every_shipped_style_declares_its_edge_blocks() -> void:
+	# Always present, even as an empty list: a reader that has to tell "no edges" from "an older
+	# table that predates them" is a branch nobody writes, and the drift gate would not see it.
+	for style_id in ArtFixtures.style_ids():
+		var meta := _tiles_meta(style_id)
+		assert_bool(meta.has("edges")).override_failure_message(
+			"%s/tiles.json names no edges at all" % style_id).is_true()
+		var declared := TileGen.edge_blocks(ArtFixtures.tile_bank_for(ArtFixtures.style(style_id)))
+		assert_int((meta["edges"] as Array).size()).override_failure_message(
+			"%s declares %d edge blocks and its bank asks for %d"
+			% [style_id, (meta["edges"] as Array).size(), declared.size()]) \
+				.is_equal(declared.size())
 
 func test_tiles_can_be_looked_up_by_name() -> void:
 	# Map files name tiles, never column numbers: inserting a tile must not renumber a map.

@@ -160,12 +160,26 @@ func _copy_atlas_to(into: String, style: String) -> bool:
 	if not FileAccess.file_exists(from):
 		_fail("no generated tile sheet for '%s' - run gen_sprites.gd first" % style)
 		return false
-	var bytes := FileAccess.get_file_as_bytes(from)
+	var table := _tile_table(style)
+	if table.is_empty():
+		return false
+	var atlas := ImageFile.read_png(from)
+	if atlas == null:
+		_fail("could not read the tile sheet for '%s'" % style)
+		return false
+	# Only the PAINTABLE tiles travel to an editor. Any column past them is a transition shape
+	# the world composes for itself out of a cell's neighbours, so an editor that could paint one
+	# would be painting a decision the game makes - and both translators declare `tilecount` as
+	# the id list, which stays a true statement about this image only if it is cropped to match.
+	var ids: PackedStringArray = table["ids"]
+	var wide := ids.size() * int(table["tile_size"])
+	if wide > 0 and wide < atlas.get_width():
+		atlas = atlas.get_region(Rect2i(0, 0, wide, atlas.get_height()))
 	var file := FileAccess.open(to, FileAccess.WRITE)
 	if file == null:
 		_fail("could not write '%s'" % to)
 		return false
-	file.store_buffer(bytes)
+	file.store_buffer(atlas.save_png_to_buffer())
 	file.close()
 	return true
 

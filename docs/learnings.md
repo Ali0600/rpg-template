@@ -2006,3 +2006,51 @@ ordered on ext4, so the same suite set runs in a different sequence on the runne
 **Takeaway:** before blaming a platform for an intermittent test, try reordering the suites on
 one machine. And make failures name themselves — this cost two CI cycles only because the gate
 printed a count and threw the name away.
+
+## An opaque image has no alpha, so a transparency check over it is vacuous
+
+An image decoded from a PNG with no transparent pixel comes back in a three-channel format.
+Every alpha read on it answers 1.0, so a rule phrased as "this must not be transparent" is true
+before it is tested, and a rule phrased as "convert, then blend" is doing work no assertion is
+watching.
+
+**Why it came up:** cutting tiles out of hand-drawn ground sheets. The reader returns RGB8 for a
+fully opaque sheet, and the engine's `blit_rect` refuses to copy between mismatched formats — so
+a one-line conversion to RGBA8 was the difference between the cut landing and silently not
+landing. The mutant that deleted that line SURVIVED: the test asserted the finished tile's
+FORMAT, which is RGBA8 either way because the destination canvas was created that way. Asserting
+one cut pixel's colour killed it immediately.
+
+**Takeaway:** assert what a conversion MOVES, not a property the surrounding code sets anyway —
+and when a rule is about transparency, check that the fixture can actually be transparent.
+
+## Thirteen edge pieces draw thirteen shapes; four quarters draw forty-seven
+
+A tileset's transition ring — four edges, four outer corners, four inner notches — has one piece
+per situation a whole tile can be in. Choosing each QUARTER of the cell separately instead, from
+the same pieces, covers every situation a cell can be in: 47 of them, the "blob" set.
+
+**Why it came up:** the shipped maps have ponds one tile tall and paths one tile wide. Those
+cells are open to the north AND the south at once, and no whole piece is drawn for that — so a
+thirteen-piece scheme would have left exactly the features a player walks past most as hard
+edges, or forced every map to be widened.
+
+**Takeaway:** before adopting an art format's own tile set, check it against the SHAPES your
+content actually contains — a set that covers the general case can miss the thin one, and thin
+is what hand-authored content is full of.
+
+
+## An overlay's transparency is the feature, so a hole check has to know which it is looking at
+
+A rule like "ground may not be transparent" is correct for a tile and exactly backwards for a
+piece drawn ON a tile. The same validator has to answer differently depending on what it was
+handed.
+
+**Why it came up:** transition pieces are clear outside their material — that clear half is what
+lets an edge compose over the ground beside it rather than replace it. Running the existing
+ground rule over them would have refused every correctly drawn ring; skipping it entirely would
+have stopped checking the composites, which really can have holes.
+
+**Takeaway:** when a validator grows a second kind of input, pass the EXEMPTION in as an argument
+and keep the check where it is — and check the thing the exempt input ends up inside, so the rule
+is moved rather than dropped.
