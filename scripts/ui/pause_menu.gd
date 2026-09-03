@@ -248,6 +248,14 @@ func has_members() -> bool:
 	return _members.size() > 1
 
 
+## The rows themselves, for a VIEW that wants to draw a party rather than list one. The menu
+## keeps them verbatim and reads only `id` and `name` out of them; whatever else the world put
+## there travels through untouched, which is what lets the screen draw a face and two bars
+## without this class learning what a level is.
+func members() -> Array:
+	return _members
+
+
 ## Which row put the member step up, so the page can say what it is asking for.
 func member_opens_equipment() -> bool:
 	return _member_opens == Page.EQUIP

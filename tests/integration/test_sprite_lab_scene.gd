@@ -85,3 +85,18 @@ func test_cycling_past_the_imported_style_returns_to_a_rig_one() -> void:
 	await _press(&"move_down", lab._title)
 	assert_str(String(lab._title.text)).starts_with("nes16 / ")
 	assert_str(String(lab._views[0].current_animation())).is_equal("walk_down")
+
+
+func test_the_lab_draws_its_backdrop_in_the_style_it_is_showing() -> void:
+	# It did not until M42: the colour was a literal in sprite_lab.tscn - gb16's own panel - so
+	# every style was previewed on a gb16 backdrop, and the file's class comment claiming no
+	# colour is typed here was true only because the literal had moved somewhere the lint cannot
+	# look. tools/lint_rules.gd walks `.gd` files and nothing else.
+	var lab := await _lab()
+	var background := lab.get_node_or_null("Background") as ColorRect
+	assert_object(background).override_failure_message(
+		"the lab has no backdrop, so this measured nothing").is_not_null()
+	assert_that(background.color).override_failure_message(
+		"the lab draws %s behind a style whose panel is %s"
+		% [background.color, lab._style.ui_color("panel")]).is_equal(
+		lab._style.ui_color("panel"))

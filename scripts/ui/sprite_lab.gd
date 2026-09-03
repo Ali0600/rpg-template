@@ -81,11 +81,11 @@ func _build_chrome() -> void:
 	layer.name = "Chrome"
 	_chrome = layer
 	UiScale.mount(layer, self, _style)
-	_title = _label(layer, Vector2(6, 2), 9, text_color)
-	_detail = _label(layer, Vector2(6, 14), 7, dim_color)
-	_help = _label(layer, Vector2(6, 168), 7, dim_color)
+	_title = _label(layer, Vector2(6, 2), UiChrome.FONT_SIZE, text_color)
+	_detail = _label(layer, Vector2(6, 14), UiChrome.FONT_SIZE, dim_color)
+	_help = _label(layer, Vector2(6, 168), UiChrome.FONT_SIZE, dim_color)
 	_help.text = "A/D character	 W/S style	E walk/idle	 TAB reroll"
-	_label(layer, CAST_ORIGIN - Vector2(0, 12), 7, dim_color).text = "the cast"
+	_label(layer, CAST_ORIGIN - Vector2(0, 12), UiChrome.FONT_SIZE, dim_color).text = "the cast"
 
 	# One view per direction, so a change is judged from every angle at once - a part that
 	# only looks wrong from behind is exactly what a single front-facing preview misses.
@@ -99,7 +99,7 @@ func _build_chrome() -> void:
 		view.name = "View%d" % i
 		strip.add_child(view)
 		_views.append(view)
-		var label := _label(layer, DIRECTION_ORIGIN, 7, dim_color)
+		var label := _label(layer, DIRECTION_ORIGIN, UiChrome.FONT_SIZE, dim_color)
 		label.text = String(Dir.name_of(Dir.ALL[i]))
 		_direction_labels.append(label)
 	_layout_strip()
@@ -123,6 +123,12 @@ func _rescale_chrome() -> void:
 	var background := get_node_or_null("Background") as ColorRect
 	if background != null:
 		background.size = Vector2(UiScale.window_size(_style))
+		# PAINTED from the style, which it was not until M42. The colour lived in the .tscn as a
+		# literal `#1a1c2c` - gb16's panel - so the lab drew every style on a gb16 backdrop, and
+		# this file's own class comment claiming no colour is typed here was true only because
+		# the literal had moved somewhere the lint cannot see: tools/lint_rules.gd walks `.gd`
+		# files and nothing else.
+		background.color = _style.ui_color("panel")
 	if _strip != null:
 		_strip.position = DIRECTION_ORIGIN * world
 	if _contact != null:

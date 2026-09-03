@@ -323,11 +323,15 @@ func test_the_sound_row_is_drawn_with_the_current_setting_on_it() -> void:
 
 
 ## Every non-empty label the pause screen is currently showing.
+##
+## RECURSIVE since M42, and it has to be: the rows live inside the menu's own window now, so a
+## walk of the screen's direct children finds the backdrop and the help line and reports that the
+## menu drew nothing at all.
 func _drawn_rows() -> Array[String]:
 	var out: Array[String] = []
-	for child in _world.pause_screen().get_children():
-		var label := child as Label
-		if label != null and label.visible and not label.text.strip_edges().is_empty():
+	for node in SceneHelpers.find_all_by_class(_world.pause_screen(), "Label"):
+		var label := node as Label
+		if label.visible and not label.text.strip_edges().is_empty():
 			out.append(label.text)
 	return out
 

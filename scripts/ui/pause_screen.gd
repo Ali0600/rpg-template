@@ -53,19 +53,30 @@ const BACKDROP_ALPHA := 0.85
 ## file, and every suite that depends on it, out of the per-file parse gate.
 const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Status", "Save", "Load", ""]
 
-## Where the stats readout sits on the title line, to the right of the purse. A constant for
-## the reason MARGIN is: it is a layout fact, and a number written into a position call is a
-## number nobody can find again.
-const STATS_X := 96
+## Where the party panel starts, and how tall one member's block is inside it - a face, a name,
+## and two bars stacked beside it. Constants for the reason MARGIN is: they are layout facts, and
+## a number written into a position call is a number nobody can find again.
+const PARTY_X := 208.0
+const BLOCK_PITCH := 26.0
+const BAR_WIDTH := 40.0
 
 var _menu: PauseMenu = null
 var _style: SpriteStyle = null
 var _backdrop := ColorRect.new()
-var _title := Label.new()
-var _help := Label.new()
+var _frame: UiChrome.Frame = null
+var _select: ColorRect = null
+var _help: Label = null
 var _rows: Array[Label] = []
-var _purse := Label.new()
-var _stats := Label.new()
+var _purse: Label = null
+var _stats: Label = null
+## The party, drawn beside the commands - a face, a name and two bars each. All three modern
+## references put the cast in the menu; this one listed commands and nothing else, and who you
+## are was a status page one press away.
+var _party: UiChrome.Frame = null
+var _faces: Array[TextureRect] = []
+var _member_names: Array[Label] = []
+var _hp_bars: Array[UiChrome.Bar] = []
+var _mp_bars: Array[UiChrome.Bar] = []
 
 ## The duplicate-event guard every view here has: this TOGGLES a screen, and acting twice on
 ## one press puts it back where it started, which reads as a dead key.
@@ -81,10 +92,14 @@ func _ready() -> void:
 	layer = LAYER
 
 
-func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i) -> void:
+## `source` is the world's own, and it is optional: a game with no party draws no faces and the
+## screen lays out exactly as it did. It arrives at SETUP rather than at open, because unlike the
+## dialog box this screen is rebuilt every time it is opened.
+func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i,
+		source: SpriteSource = null) -> void:
 	_menu = menu
 	_style = style
-	_build(viewport_size)
+	_build(viewport_size, source)
 	_paint()
 
 
@@ -100,43 +115,94 @@ func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
 	_paint()
 
 
-func _build(viewport_size: Vector2i) -> void:
+func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	_backdrop.position = Vector2.ZERO
 	_backdrop.size = viewport_size
 	add_child(_backdrop)
 
-	_title.position = Vector2(MARGIN, MARGIN)
-	_title.add_theme_font_size_override("font_size", TITLE_SIZE)
-	add_child(_title)
-
 	# Enough rows for the widest page, built once. A page change repaints them rather than
-	# rebuilding the tree, so there is no frame on which the screen is half-built.
-	# The candidate page is the widest a bag can make it - every carried thing plus the row
-	# that takes the current one off - so it is what the pool is sized against.
-	for i in maxi(TOP_LABELS.size(),
-			maxi(_menu.status_count(), maxi(_menu.slot_count(), _menu.item_count() + 1))):
-		var row := Label.new()
-		row.position = Vector2(MARGIN, MARGIN + 22 + i * ROW_PITCH)
-		row.add_theme_font_size_override("font_size", ROW_SIZE)
-		add_child(row)
+	# rebuilding the tree, so there is no frame on which the screen is half-built. The candidate
+	# page is the widest a bag can make it - every carried thing plus the row that takes the
+	# current one off - so it is what the pool is sized against.
+	var count := maxi(TOP_LABELS.size(),
+		maxi(_menu.status_count(), maxi(_menu.slot_count(), _menu.item_count() + 1)))
+	var width := PARTY_X - MARGIN * 2.0 if _menu.has_members() else float(viewport_size.x) - MARGIN * 2.0
+	var height := float(UiChrome.HEADER_HEIGHT + UiChrome.BORDER * 2 + UiChrome.PAD * 2) \
+		+ count * ROW_PITCH
+	_frame = UiChrome.frame(_style, Rect2(MARGIN, MARGIN, width,
+		minf(height, float(viewport_size.y) - MARGIN * 2.0 - 12.0)), " ")
+	add_child(_frame.panel)
+	var inner := _frame.inner()
+
+	# The purse and the gear readout sit in the window's BAND rather than on rows of their own:
+	# the cursor must not be able to land on either, and every test that names a row by its enum
+	# stays aimed at the same row. What a delta is a delta OF, beside what it costs.
+	_purse = UiChrome.label(_style, "dim")
+	_purse.position = Vector2(width - 108.0, 0.0)
+	_frame.header.add_child(_purse)
+	_stats = UiChrome.label(_style, "dim")
+	_stats.position = Vector2(width - 60.0, 0.0)
+	_frame.header.add_child(_stats)
+
+	_select = UiChrome.select(_style)
+	_frame.panel.add_child(_select)
+	for i in count:
+		var row := UiChrome.label(_style, "text")
+		row.position = Vector2(inner.position.x + float(UiChrome.ROW_INSET),
+			inner.position.y + i * ROW_PITCH)
+		_frame.panel.add_child(row)
 		_rows.append(row)
 
-	# The purse sits on the title line rather than in the row list, because it is a READOUT:
-	# the cursor must not be able to land on it, and every test that names a row by its enum
-	# stays aimed at the same row.
-	_purse.position = Vector2(MARGIN, MARGIN + 10)
-	_purse.add_theme_font_size_override("font_size", HELP_SIZE)
-	add_child(_purse)
+	if _menu.has_members():
+		_build_party(viewport_size, source)
 
-	# What the gear is worth, beside the purse and on the same terms: a readout, not a row.
-	# It is what makes a preview a preview - a delta needs a number to be a delta of.
-	_stats.position = Vector2(MARGIN + STATS_X, MARGIN + 10)
-	_stats.add_theme_font_size_override("font_size", HELP_SIZE)
-	add_child(_stats)
-
-	_help.position = Vector2(MARGIN, viewport_size.y - 14)
-	_help.add_theme_font_size_override("font_size", HELP_SIZE)
+	_help = UiChrome.label(_style, "dim")
+	_help.position = Vector2(MARGIN, viewport_size.y - 12)
 	add_child(_help)
+
+
+## The party panel: one block per member, the shape the battle screen already uses. Built only
+## when there IS a party - a game with one character has nobody to list, and a window holding one
+## face is a window asking a question it already knows the answer to.
+func _build_party(viewport_size: Vector2i, source: SpriteSource) -> void:
+	var rows := _menu.members()
+	var height := float(UiChrome.HEADER_HEIGHT + UiChrome.BORDER * 2 + UiChrome.PAD * 2) \
+		+ rows.size() * BLOCK_PITCH
+	_party = UiChrome.frame(_style, Rect2(PARTY_X, MARGIN,
+		float(viewport_size.x) - PARTY_X - MARGIN, height), "party")
+	add_child(_party.panel)
+	var inner := _party.inner()
+	var face_span := UiChrome.portrait_span(_style)
+	var text_x := inner.position.x + face_span + 3.0
+	for i in rows.size():
+		var row: Dictionary = rows[i]
+		var top := inner.position.y + i * BLOCK_PITCH
+		# Hidden rather than absent when there is no source: a block still lays out, and the
+		# panel is not two shapes depending on whether art happens to be loaded.
+		var face := UiChrome.portrait(_style, source, StringName(str(row.get("character", "")))) \
+			if source != null else TextureRect.new()
+		face.position = Vector2(inner.position.x, top + 2.0)
+		_party.panel.add_child(face)
+		_faces.append(face)
+		var name_label := UiChrome.label(_style, "text")
+		name_label.position = Vector2(text_x, top)
+		# BOUNDED to the room left beside the face, and trimmed past it. A Label with no width
+		# does not clip or complain - it draws straight out of the window, which is what
+		# "Companion2  Lv12" did at x=333 in a 320px screen. The demo's own names are "You" and
+		# "Rook", so nothing would ever have shown it.
+		name_label.size = Vector2(inner.position.x + inner.size.x - text_x, ROW_PITCH)
+		name_label.clip_text = true
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_party.panel.add_child(name_label)
+		_member_names.append(name_label)
+		var hp := UiChrome.bar(_style, "hp", BAR_WIDTH)
+		hp.root.position = Vector2(text_x, top + 10.0)
+		_party.panel.add_child(hp.root)
+		_hp_bars.append(hp)
+		var mp := UiChrome.bar(_style, "mp", BAR_WIDTH)
+		mp.root.position = Vector2(text_x, top + 18.0)
+		_party.panel.add_child(mp.root)
+		_mp_bars.append(mp)
 
 
 func _paint() -> void:
@@ -150,12 +216,13 @@ func _paint() -> void:
 	# purpose: this is a pause over a place, not a different screen.
 	panel.a = BACKDROP_ALPHA
 	_backdrop.color = panel
-	_title.add_theme_color_override("font_color", text)
 	_help.add_theme_color_override("font_color", dim)
 
-	_title.text = _title_for(_menu.page())
+	_frame.title.text = _title_for(_menu.page()).to_upper()
+	_frame.title.add_theme_color_override("font_color", text)
 	_help.text = _help_for(_menu.page())
 
+	_select.visible = false
 	for i in _rows.size():
 		var row := _rows[i]
 		# Rows past the current page's list are hidden rather than blanked: an empty label
@@ -163,16 +230,17 @@ func _paint() -> void:
 		row.visible = i < _menu.size()
 		if not row.visible:
 			continue
-		var label := _label_for(i)
-		# The status page is a readout, so no row is "chosen" - a cursor on a page with
-		# nothing to press points at a verb that does not exist.
+		row.text = _label_for(i)
+		# The status page is a readout, so no row is "chosen" - a cursor on a page with nothing
+		# to press points at a verb that does not exist.
 		if _menu.page() == PauseMenu.Page.STATUS:
-			row.text = "  " + label
 			row.add_theme_color_override("font_color", text)
 			continue
 		var selected := i == _menu.index()
-		row.text = ("> " if selected else "  ") + label
 		row.add_theme_color_override("font_color", text if selected else dim)
+		if selected:
+			UiChrome.place(_select, row, _frame.inner().size.x, ROW_PITCH)
+
 	_purse.text = _menu.gold_label()
 	_purse.add_theme_color_override("font_color", dim)
 	# Only where a delta means something, and only when there is one to show. A game with no
@@ -183,6 +251,40 @@ func _paint() -> void:
 	_stats.text = _menu.stats_label() if equipping else ""
 	_stats.visible = equipping and not _menu.stats_label().is_empty()
 	_stats.add_theme_color_override("font_color", dim)
+	_paint_party(text, dim)
+
+
+## The party's blocks. Their numbers come from the world with the member rows - the menu carries
+## them through and never reads them, which is what keeps "what a level is" a Registry question.
+func _paint_party(text: Color, dim: Color) -> void:
+	if _party == null:
+		return
+	var rows := _menu.members()
+	for i in _member_names.size():
+		if i >= rows.size():
+			continue
+		var row: Dictionary = rows[i]
+		_member_names[i].text = "%s  Lv%d" % [str(row.get("name", "")), int(row.get("level", 1))]
+		_member_names[i].add_theme_color_override("font_color", text)
+		UiChrome.fill(_hp_bars[i], int(row.get("hp", 0)), int(row.get("max_hp", 1)))
+		_hp_bars[i].numbers.add_theme_color_override("font_color", text)
+		# The magic bar only exists for a member who HAS magic, the battle screen's rule: an
+		# empty one on somebody with no spells is a system they are told about and cannot find.
+		var casts := int(row.get("max_mp", 0)) > 0
+		_mp_bars[i].root.visible = casts
+		if casts:
+			UiChrome.fill(_mp_bars[i], int(row.get("mp", 0)), int(row.get("max_mp", 1)))
+			_mp_bars[i].numbers.add_theme_color_override("font_color", text)
+
+
+## The row the cursor is on, or null on a page with nothing to press.
+func selected_row() -> Label:
+	if _menu.page() == PauseMenu.Page.STATUS:
+		return null
+	var at := _menu.index()
+	if at < 0 or at >= _rows.size() or not _rows[at].visible:
+		return null
+	return _rows[at]
 
 
 ## The row's text on whichever page is up. One function, so the three sources cannot drift

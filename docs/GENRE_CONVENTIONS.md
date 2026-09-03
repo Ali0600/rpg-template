@@ -39,7 +39,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Equip screen](#2-the-equip-screen) | Slot list → candidates → preview the delta | Slot list, candidates, take-off row, swap preview, Atk/Def readout | **met** (M20) |
 | [Status screen](#3-the-status-screen) | Level, HP, XP-to-next, stats, worn gear | A page of world-worded lines | **met** (M20) |
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
-| [Shop](#5-shops) | Windows over the world, keeper, quantity, prices | All of it | **met** (M18.1) |
+| [Shop](#5-shops) | Windows over the world, keeper, quantity, prices, a headed list | All of it, and the columns are named since M42 | **met** (M18.1, chrome M42) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices, a named speaker, a portrait | Framed box, speaker in its header, the speaker's face, reveal, choice band, size-gated | **met** (M42) — no advance indicator, [named](#6-dialog) |
 | [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
@@ -50,7 +50,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
 | [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path carry a ring; two ringed materials meeting is the [named divergence](DECISIONS.md) |
-| [Interface chrome](#16-interface-chrome-and-the-anatomy-of-a-battle-screen) | Framed windows with header bands, a highlight cursor, coloured HP/MP, portraits | A pixel font everywhere (M42); frames, bars and portraits are landing | **partial** — rebuilt over M42; the enemy-bar divergence is [recorded](DECISIONS.md) |
+| [Interface chrome](#16-interface-chrome-and-the-anatomy-of-a-battle-screen) | Framed windows with header bands, a highlight cursor, coloured HP/MP, portraits | All of it, on every screen: one pixel font, framed windows with bands, a cursor bar, gold HP and violet MP, and faces in the fight, the menu and the conversation | **met** (M42) — the enemy-bar and save-slot divergences are [recorded](DECISIONS.md) |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -182,6 +182,12 @@ running total visible while you size the deal. Selling mirrors it at a reduced p
 **This template.** All of it (M18.1). `ShopDef` names the stock, the price lives on the
 `ItemDef` so two keepers cannot disagree, `price = 0` means not for sale and is the default —
 which keeps quest items off both counters by construction.
+
+**Two things M42 fixed that eighteen milestones of gates could not see**, because the counter had
+no layout audit at all until then. Its help line told the player to press **Z**, which this game
+binds to nothing — `interact` is Space, Enter and E. And the price column was drawn across the
+whole row at the same position as the name, so a long enough item name ran underneath its own
+price; the demo's own wares are short words, which is why nobody ever saw it.
 
 **Gap:** none for a template. Rotating stock, synthesis and deal boards are *game* patterns
 (the user's own `jrpg-design-codex` covers those) and deliberately not template scope.

@@ -233,16 +233,14 @@ func _show_line() -> void:
 ## Puts this speaker's face in the box, or takes the last one out. The text column moves with it:
 ## a line nobody is credited with gets the whole width, which is what a sign and a chest want.
 func _show_face(character: StringName) -> void:
-	if _face.get_parent() != null and is_instance_valid(_face):
+	# The old face goes before the new one is made - one node at a time, and never a placeholder
+	# built only to be replaced, which is a leak the orphan baseline catches.
+	if is_instance_valid(_face):
 		_face.queue_free()
-	_face = TextureRect.new()
-	_face.visible = false
-	_panel.add_child(_face)
+		_face = null
 	var span := 0.0
 	if _source != null and not String(character).is_empty():
-		var built := UiChrome.portrait(_style, _source, character)
-		_face.queue_free()
-		_face = built
+		_face = UiChrome.portrait(_style, _source, character)
 		_face.position = Vector2(PADDING, TEXT_Y)
 		_panel.add_child(_face)
 		if _face.visible:

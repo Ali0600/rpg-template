@@ -257,6 +257,21 @@ transform, not a render target, so the two compose before anything is rasterised
 canvas transform comes out exactly identity and the texture is drawn 1:1. What would cost pixels
 is a COMPOSED scale that is not whole, and that is what `test_battle_layout` asserts.
 
+**EVERY screen is a window now, and the audits are what keep them honest.** `test_battle_layout`,
+`test_pause_layout`, `test_shop_layout`, `test_slot_layout` and `test_dialog_box_layout` all ask
+the same three questions - unrelated things must not INTERSECT, a thing inside a window must be
+enclosed by that window's CONTENT rect (`UiChrome.inner_of`, never its outer one), and a cursor
+covers a whole row or none of one. The shop and the pause menu had NO layout gate before M42, and
+each grew one the day it was rebuilt - written first, against the version that shipped, so it is
+proven to measure something before the screen moves underneath it. Both found real defects that
+way: a shop help line naming a key nothing binds, and a price column drawn across its own name.
+
+**A Label with no width does not clip, wrap or complain - it draws straight out of the window.**
+Two screens shipped that: an item name ran under its price, and a member's name ran off the
+screen. Both are bounded and `OVERRUN_TRIM_ELLIPSIS` now. A trimmed name still reads; a name with
+a number printed through it does not. The audits measure the DRAWN width, so a clipping label is
+measured at its box rather than at the string it would have been.
+
 **Everything a screen is drawn WITH lives in `UiChrome`, and every colour it uses is a ROLE.**
 One font (Pixel Operator 8, CC0, named by `gui/theme/custom_font` so no screen has to ask and
 none can forget), at one size, because a pixel font is drawn for one and a heading that scales it
