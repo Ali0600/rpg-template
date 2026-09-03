@@ -46,7 +46,9 @@ func _first_map() -> Dictionary:
 		"name": maps[0].get_file().get_basename(),
 		"style": style,
 		"tile_size": int(table.data.get("tile_size", 0)),
-		"tiles": int(table.data.get("columns", 0)),
+		# The PAINTABLE tiles, not `columns` - the atlas grew a block of composed transition
+		# shapes after them, and an editor is shown only the ids a map may name.
+		"tiles": (table.data.get("tiles", []) as Array).size(),
 	}
 
 func after_test() -> void:
@@ -100,3 +102,19 @@ func test_the_atlas_lands_beside_the_exported_maps() -> void:
 	var beside := "%s/%s" % [SCRATCH, TiledMap.atlas_name(str(map["style"]))]
 	assert_bool(FileAccess.file_exists(beside)).override_failure_message(
 		"no tile sheet landed at %s; every tile would open blank" % beside).is_true()
+
+func test_the_atlas_that_travels_holds_only_the_tiles_a_map_may_name() -> void:
+	# The generated sheet carries the composed transition shapes after the paintable tiles, and
+	# both translators tell the editor there are exactly `tilecount` of them. A sheet wider than
+	# that opens as a tileset full of shapes a map cannot legally spell - and the round trip
+	# never reads the image, so only this can see it.
+	var map := _first_map()
+	_run(["--out=tiled", "--dir=%s" % SCRATCH])
+	var beside := ImageFile.read_png("%s/%s" % [SCRATCH, TiledMap.atlas_name(str(map["style"]))])
+	assert_object(beside).is_not_null()
+	assert_int(beside.get_width()).override_failure_message(
+		"the exported sheet is %d wide; %d tiles at %dpx is %d"
+		% [beside.get_width(), int(map["tiles"]), int(map["tile_size"]),
+			int(map["tiles"]) * int(map["tile_size"])]) \
+		.is_equal(int(map["tiles"]) * int(map["tile_size"]))
+	assert_int(beside.get_height()).is_equal(int(map["tile_size"]))

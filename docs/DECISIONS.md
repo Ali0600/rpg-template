@@ -13,12 +13,12 @@ one-glance menu of things still worth trying.
   64×64 cells on 32px tiles, imported rather than rigged, and since M40d its ground is imported
   too — `plain32`, the gb16 shapes doubled, was the stand-in and is gone. The world at that size
   — viewport, UI scale, the demo's config — was M40 phase B.
-- **Terrain transitions** (an edge tile where grass meets water, placed by a rule). The art
-  already holds the pieces and Godot's TileSet already has terrain sets; what stops it being a
-  small change is that a cell would stop being one tile id, which is what every map file, both
-  editor translators and `MapData.problems` are built on. `deferred — worth trying`; revisit hook:
-  `TileSetFactory.build` plus a `terrain` key on a bank, with `MapData` untouched for as long as
-  that can hold.
+- ~~**Terrain transitions**~~ (an edge tile where grass meets water, placed by a rule). **Taken
+  up by M41**, and the constraint this entry named — that a cell would stop being one tile id —
+  turned out to be avoidable rather than a price: the shapes live in atlas columns no map may
+  name, so `MapData`, both editor translators and every map file were untouched. What is still
+  out is an edge between two materials that BOTH carry a ring, and a Wang-set export so an
+  editor draws the transitions too; see the entry below for both hooks.
 - ~~**Tiled / LDtk map import.**~~ **Finished and VERIFIED for Tiled, 2026-09-01.** Both editors,
   both directions, `tools/map_io.gd` as the command. Tiled was installed and a generated map
   opened in it: 352 cells over both layers matching the source exactly, all five object layers
@@ -1314,6 +1314,52 @@ outcome — shipping nothing — is the part most likely to be re-litigated.
   offline, licence-free arm every gate runs on. See "Hand-drawn art enters through an import".
 - **Expected quality tier, stated up front:** clean GB/SNES-era chibi with a strict
   palette. Not hand-painted. Higher fidelity is a source swap, not a rewrite.
+
+## An edge is composed from QUARTERS at generation time — *M41*
+
+The demo's ground has been hand-drawn LPC art since M40d and every shoreline was a hard edge.
+The art ships the pieces for a soft one; the question was what to build them into, and the
+constraint that had deferred this twice was that an edge seems to need a cell to be more than
+one tile id.
+
+- **Chosen: a `ring` on a tile, composed into extra atlas columns at generation time.** A tile
+  names twelve transition pieces and the ground they lie `over`; `TileGen` appends a block of
+  the 47 blob shapes per group, and `MapBuilder` picks one from a cell's eight neighbours. A
+  cell is still one tile id — the shapes sit in columns past the paintable tiles, which no map
+  can spell. So the map format, both editor translators, `MapData.problems`, every map file and
+  all 23 play sessions were untouched, and a bank with no ring produces a byte-identical atlas.
+- **Quarters, not whole pieces.** *Chosen by the user, 2026-09-03, offered against the
+  alternative.* LPC's thirteen shapes cannot draw a strip ONE tile wide — it needs a north edge
+  and a south edge in the same cell — and the village and hollow ponds and half the demo's paths
+  are exactly that. The alternative was widening the maps, which moves the walls and water the
+  play sessions are anchored against. Composing each of a cell's four quarters independently is
+  RPG Maker's autotile format (named secondhand, from the format rather than a source) and
+  yields the 47-tile "blob" set Tiled's own terrain documentation names.
+- *Godot's TileSet terrain sets* — rejected. Three reasons, in order of weight: the matching is
+  engine-internal, so a partial set is scored by rules the docs do not state and a gate could
+  only assert what it observed; it is a runtime API, so testing it needs a scene where the whole
+  scheme is otherwise a pure function; and Match Corners and Sides over thirteen pieces has the
+  same one-tile-wide hole, so it would not have solved the problem that made this milestone.
+- *A second layer drawing the fringe over the ground* — rejected. It trades the atlas for a
+  transparency the ground rule forbids, and it does not remove the which-material-is-beneath
+  question, it just moves it to draw time.
+- *Composing per MAP rather than per style* — rejected. The atlas is a property of the style,
+  the drift gate compares one file per style, and 47 shapes is a few kilobytes.
+- *A `transitions` key on the STYLE* — rejected for M40d's own reason: a bank owns pixels, and a
+  style that also described a bank's contents would be two places to disagree.
+- **`c` defaults to the tile's own plain art**, so the shape with nothing open is pixel-for-pixel
+  the flat tile. That is what makes the whole thing additive rather than a migration — and
+  getting it wrong once produced a pond made entirely of grass, which every structural test
+  passed.
+- **DEFERRED — worth trying:** an edge between two materials that BOTH carry a ring (today the
+  second one wins by group order and draws over the first). Hook: `TerrainEdges.pick_group`,
+  which already ranks them. **Also deferred:** exporting a Tiled Wang set so an editor draws the
+  transitions as the game does — hook is `TiledMap`'s tileset entry plus the crop in
+  `map_io._copy_atlas_to`, which today hides the composed columns from the editor on purpose.
+- **Still gaps rather than forks:** animated water (needs a clock the tile runtime has not) and
+  multi-tile objects (need a map record rather than a cell).
+
+---
 
 ## Terrain pixels are named by the BANK, not by the style — *M40d*
 

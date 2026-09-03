@@ -157,10 +157,58 @@ func source_of(index: int) -> String:
 ## The nth tile's cell in that file, in CELLS - column then row, the way an atlas is addressed
 ## everywhere else here.
 func cell_of(index: int) -> Vector2i:
-	var raw := JsonFile.to_int_array(at(index).get("cell", []))
+	return cell_in(at(index))
+
+
+## The same, for any record that carries a `cell` - a tile or one piece of a ring. Shared so a
+## ring piece is addressed by exactly the arithmetic a tile is, rather than by a second copy of
+## it that could disagree about which number is the column.
+static func cell_in(record: Dictionary) -> Vector2i:
+	var raw := JsonFile.to_int_array(record.get("cell", []))
 	if raw.size() != 2:
 		return Vector2i(-1, -1)
 	return Vector2i(raw[0], raw[1])
+
+
+## The transition pieces this tile is drawn with where it MEETS something else, or an empty
+## Dictionary for a tile with hard edges. Twelve pieces keyed by TerrainEdges.RING_KEYS, plus
+## an optional `c` saying what fills a quarter with no edge in it - which defaults to the tile's
+## own plain art, so an interior cell comes out exactly as it did before any of this existed.
+func ring_of(index: int) -> Dictionary:
+	var raw: Variant = at(index).get("ring", {})
+	return raw as Dictionary if raw is Dictionary else {}
+
+
+func has_ring(index: int) -> bool:
+	return not ring_of(index).is_empty()
+
+
+## One piece of a tile's ring, in whichever shape this bank's arm uses. `from` defaults to the
+## tile's own art, because a ring is drawn on the sheet its material came from - naming it
+## twelve times per tile would be twelve chances to name it differently once.
+func piece_of(index: int, key: String) -> Dictionary:
+	# Defaulted to NULL, never to an empty Dictionary. An empty one is still a Dictionary, so it
+	# survives the test below and then has `from` stamped on it - and every tile with no ring at
+	# all starts answering with a whole ring cut from cell (-1, -1). Measured: it refused all
+	# four shipped banks at once, which is the only reason it was cheap to find.
+	var raw: Variant = ring_of(index).get(key, null)
+	if not (raw is Dictionary):
+		return {}
+	var piece: Dictionary = (raw as Dictionary).duplicate()
+	if imports() and str(piece.get("from", "")).is_empty():
+		piece["from"] = source_of(index)
+	return piece
+
+
+## The groups of ground this tile draws an edge against, in the bank's own order. A group is a
+## list because grass and its tufted variant are one material to a shoreline; the FIRST id is
+## the one whose plain tile the edge is composed over, and the order is what settles a cell
+## that touches two of them.
+func over_of(index: int) -> Array[PackedStringArray]:
+	var out: Array[PackedStringArray] = []
+	for group: Variant in at(index).get("over", []) as Array:
+		out.append(PackedStringArray(JsonFile.to_string_array(group)))
+	return out
 
 
 ## The ramp this tile is drawn in: the style's override if it names one, otherwise the
@@ -210,60 +258,138 @@ func problems() -> Array[String]:
 		else:
 			seen.append(tile_id)
 		if imports():
-			_file_problems(entry, tile_id, out)
+			_file_problems(entry, "tile '%s'" % tile_id, out)
 		else:
-			_row_problems(entry, tile_id, out)
+			_row_problems(entry, "tile '%s'" % tile_id, out)
+		_ring_problems(index, entry, tile_id, out)
 	return out
 
 
 ## What a bank that draws its own pixels can get wrong. Unchanged from the day the rows arrived,
 ## and lifted out whole so the two arms read as a pair rather than as a nest.
-func _row_problems(entry: Dictionary, tile_id: String, out: Array[String]) -> void:
+func _row_problems(entry: Dictionary, label: String, out: Array[String],
+		overlay := false) -> void:
 	if entry.has("from"):
-		out.append("tile '%s' names a file to cut from, but this bank draws its own rows"
-			% tile_id)
+		out.append("%s names a file to cut from, but this bank draws its own rows"
+			% label)
 	var rows := JsonFile.to_string_array(entry.get("rows", []))
 	if rows.is_empty():
-		out.append("tile '%s' has no rows" % tile_id)
+		out.append("%s has no rows" % label)
 		return
 	if rows.size() != tile:
-		out.append("tile '%s' is %d rows tall, expected %d" % [tile_id, rows.size(), tile])
+		out.append("%s is %d rows tall, expected %d" % [label, rows.size(), tile])
 	var known_chars := TONE_CHARS + TRANSPARENT_CHAR + OUTLINE_CHAR
-	var is_decor := bool(entry.get("decor", false))
+	# An OVERLAY - a piece of a transition ring - is clear outside its material by design; that
+	# clear half is the whole reason an edge composes rather than replaces. So it is exempt from
+	# the hole rule on the same terms decor is, and the composite it ends up in is checked
+	# instead. Spelled into this one variable rather than into the test below it, because that
+	# test is the line a mutant is aimed at.
+	var is_decor := overlay or bool(entry.get("decor", false))
 	for ri in rows.size():
 		var row := rows[ri]
 		if row.length() != tile:
-			out.append("tile '%s' row %d is %d wide, expected %d"
-				% [tile_id, ri, row.length(), tile])
+			out.append("%s row %d is %d wide, expected %d"
+				% [label, ri, row.length(), tile])
 		for ci in row.length():
 			var ch := row[ci]
 			if not known_chars.contains(ch):
-				out.append("tile '%s' row %d has unknown pixel '%s'" % [tile_id, ri, ch])
+				out.append("%s row %d has unknown pixel '%s'" % [label, ri, ch])
 			elif ch == TRANSPARENT_CHAR and not is_decor:
 				# A hole in the ground shows the window's background through the world.
 				# It is invisible while authoring, because the tile looks right on its own.
-				out.append("tile '%s' row %d column %d is transparent, but only a decor tile may be"
-					% [tile_id, ri, ci])
+				out.append("%s row %d column %d is transparent, but only a decor tile may be"
+					% [label, ri, ci])
 
 
 ## What a bank that CUTS its pixels can get wrong on its own terms. Whether the cut has a hole
 ## in it, or lands outside the image, needs the art itself and lives in TileGen.problems() -
 ## the CharacterSpec split, one noun along.
-func _file_problems(entry: Dictionary, tile_id: String, out: Array[String]) -> void:
+func _file_problems(entry: Dictionary, label: String, out: Array[String]) -> void:
 	if entry.has("rows"):
-		out.append("tile '%s' is authored in rows, but this bank cuts its pixels from files"
-			% tile_id)
+		out.append("%s is authored in rows, but this bank cuts its pixels from files"
+			% label)
 	var from := str(entry.get("from", ""))
 	if from.is_empty():
-		out.append("tile '%s' names no file to cut from" % tile_id)
+		out.append("%s names no file to cut from" % label)
 	elif not file_names().has(from):
 		# The credit list is the licence gate's whole input, so a file cut from and not listed is
 		# art shipping with nobody named - the one failure that cannot be fixed after release.
-		out.append("tile '%s' is cut from '%s', which this bank does not credit" % [tile_id, from])
+		out.append("%s is cut from '%s', which this bank does not credit" % [label, from])
 	var cell := JsonFile.to_int_array(entry.get("cell", []))
 	if cell.size() != 2 or cell[0] < 0 or cell[1] < 0:
-		out.append("tile '%s' has cell %s; it wants a column and a row, both at least nought"
-			% [tile_id, str(cell)])
+		out.append("%s has cell %s; it wants a column and a row, both at least nought"
+			% [label, str(cell)])
+
+
+## What a tile's transition ring can get wrong on its own terms. Whether a piece's cut lands
+## inside its sheet needs the art, and lives in TileGen.problems() with the rest of that split.
+##
+## The two fields are stated as a PAIR in both directions, because either one alone is a tile
+## that looks finished and draws nothing: a ring with nothing to draw against is never reached,
+## and an `over` with no ring names a neighbour and has no pixels for the boundary.
+func _ring_problems(index: int, entry: Dictionary, tile_id: String, out: Array[String]) -> void:
+	var ring := ring_of(index)
+	var over := over_of(index)
+	if ring.is_empty():
+		if not over.is_empty():
+			out.append("tile '%s' says what it lies over and names no ring to draw there"
+				% tile_id)
+		return
+	if over.is_empty():
+		out.append("tile '%s' has a ring and names nothing for it to be an edge against"
+			% tile_id)
+	if bool(entry.get("decor", false)):
+		# Decor stands ON the ground and keeps its own transparency, so it has no boundary with
+		# anything - a bush does not need a shoreline.
+		out.append("tile '%s' is decor and carries a ring; decor sits on the ground rather than "
+			% tile_id + "being it, so it has no edge to draw")
+	var known_keys := TerrainEdges.all_keys()
+	for key: Variant in ring.keys():
+		if not known_keys.has(str(key)):
+			# By name, because a typo'd key is a piece that is simply never drawn: the quarter
+			# falls back to fill, the cell looks like ground, and nothing else complains.
+			out.append("tile '%s' ring names '%s', which is not one of %s"
+				% [tile_id, str(key), known_keys])
+	for key in known_keys:
+		if not ring.has(key):
+			if key != TerrainEdges.CENTRE_KEY:
+				out.append("tile '%s' ring has no '%s' piece" % [tile_id, key])
+			continue
+		var label := "tile '%s' ring '%s'" % [tile_id, key]
+		if imports():
+			_file_problems(piece_of(index, key), label, out)
+		else:
+			_row_problems(piece_of(index, key), label, out, true)
+	_over_problems(index, tile_id, out)
+
+
+## The ground a ring is drawn against. Every id has to be a tile of this bank's own, because the
+## edge is COMPOSED over that tile's plain art at generation time - an id from somewhere else has
+## no pixels here to lie on.
+func _over_problems(index: int, tile_id: String, out: Array[String]) -> void:
+	var known := ids()
+	var decor := decor_ids()
+	var claimed: Array[String] = []
+	for group: PackedStringArray in over_of(index):
+		if group.is_empty():
+			out.append("tile '%s' has an empty group in its over list" % tile_id)
+			continue
+		for other in group:
+			if other == tile_id:
+				# It would ask for an edge against itself, so every interior cell would read as
+				# a shoreline and the whole material would come out as fringe.
+				out.append("tile '%s' is listed among the tiles it draws an edge against"
+					% tile_id)
+			elif not known.has(other):
+				out.append("tile '%s' draws an edge against '%s', which this bank has no tile for"
+					% [tile_id, other])
+			elif decor.has(other):
+				out.append("tile '%s' draws an edge against '%s', which is decor and has no "
+					% [tile_id, other] + "ground of its own to lie on")
+			if claimed.has(other):
+				out.append("tile '%s' lists '%s' in more than one group, so which edge a cell "
+					% [tile_id, other] + "draws would depend on which group was read first")
+			claimed.append(other)
 
 
 ## The credit list itself. Every entry names a file and at least one licence; the licence is

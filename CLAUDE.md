@@ -125,12 +125,40 @@ one flat colour" runs over every style, because the usual way to get a flat tile
 pick the middle of a transition block - LPC's ground sheets have exactly one, and it is one
 colour.
 
-**Terrain has no transitions, and that is a stated divergence.** Every reference draws the edge
-between two materials as its own tile, and LPC ships the 3x3 ring for it; this template paints
-one id per cell, so a shoreline is a hard edge. Deferred rather than rejected, because a cell
-would stop being one tile id and that is what every map file, both editor translators and
-`MapData.problems` are built on. See `docs/GENRE_CONVENTIONS.md` §15, which is measured from the
-artwork rather than recalled.
+**A cell stays ONE tile id, and the edge between two materials is composed for it.** A tile in
+a bank may carry a `ring` - LPC's twelve transition pieces - and an `over` list saying which
+ground it is an edge against; `TileGen` then appends a block of the 47 blob shapes per group to
+the atlas, and `MapBuilder` picks one per cell from that cell's eight neighbours. So a map file,
+both editor translators and `MapData.problems` are all untouched: they still see one character
+per cell, and the shapes live in atlas columns no map may name.
+
+**The shapes are built from QUARTERS of those twelve pieces**, which is RPG Maker's autotile
+scheme and the reason this is possible at all. Thirteen whole pieces draw thirteen shapes, and
+the demo's ponds are ONE tile tall and its paths often ONE tile wide - cells needing a north
+edge AND a south edge at once, which no whole piece has. Widening the maps instead would move
+the walls and water twenty-three play sessions are anchored against.
+
+`TerrainEdges` is the whole scheme, pure and integer: `normalise` drops a diagonal that an edge
+already covers (256 readings collapse to 47), `quarter_source` is the five-case table per
+quarter, and `compose` lays the pieces over the OTHER material's plain tile - which is why a
+piece's clear half is a feature and the ground hole rule is off for it and on for the composite.
+No float arithmetic anywhere in it: the drift gate compares the committed PNG byte for byte on
+two operating systems. **A line an anchored mutant needs cannot contain `|`** - it is
+`mutants.tsv`'s delimiter - which is why `FLANKS` and `SIDES_MASK` add their bits.
+
+**The interior shape is the plain tile, and that is what makes this additive.** `c` defaults to
+the tile's own art, so the shape at `first` is pixel-for-pixel what shipped before the ring
+existed; a bank with no ring produces the atlas it always did, byte-identical. Feature off is
+the old behaviour exactly, which is how gb16, nes16 and dusk16 carried on unchanged.
+
+**Every shape in a block IS its block's tile**, so `TileSetFactory` gives it that tile's
+collision - without which a pond keeps its middle and opens up all the way round its rim.
+`map_io` CROPS the atlas it sends to an editor down to the paintable tiles, because both
+translators declare `tilecount` as the id list and that stays true only if the image matches.
+
+**Terrain transitions between two RINGED materials are still not drawn.** Water meets grass and
+water meets dirt, each against its own block; water meeting a wall is a hard edge, as is
+anything a bank gives no ring. See `docs/GENRE_CONVENTIONS.md` §15.
 
 **A tile names a ramp, never a colour, and `solid` is art data.** `TileBank.problems()`
 refuses a ragged row, a typo'd pixel, a duplicated id, a tile that is not the bank's declared
