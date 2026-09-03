@@ -2069,3 +2069,69 @@ passed: the shapes were correct, the collision was right, the atlas matched the 
 **Takeaway:** when adopting artwork that draws borders, measure the border and treat twice it as
 a MINIMUM SIZE for the thing it borders — then check the smallest instance in your content
 against it, because that is the one that degenerates and the one no test can describe.
+
+## An audit's POPULATION is part of its claim, and it is blind to every type it does not name
+
+A layout audit that collects `ColorRect` and `Label` cannot see a `SpriteView`, so a health bar
+drawn across a character's chest collides with nothing it measures.
+
+**Why it came up.** M42. The battle screen shipped with the foe readouts sitting on top of the
+foes, green through every gate for four milestones — and the first thing the audit said once
+sprites were peers was the bug, verbatim: *"child 3 (Node2D) (a fighter) is drawn over child 10
+(Label) 'Test Foe 99/99'"*. The same pass found the audit had never collected `Panel` either, so
+"a thing stays inside its window" was a rule that had been written down and never evaluated.
+
+**Takeaway.** When an audit enumerates what it measures BY TYPE, write the list of types it does
+not measure beside it and ask what each could hide. A rule stated in a comment but absent from
+the collection is not a rule.
+
+## A CanvasLayer's scale is a transform, not a render target
+
+A sprite scaled 0.5 on a layer scaled 2 is drawn 1:1, not rasterised twice — the transforms
+compose before anything is sampled.
+
+**Why it came up.** M42 drew LPC fighters at world size, which needs a sprite scale of 0.5 on the
+2x interface layer. That looks exactly like half-resolution art, and the first test written for it
+asserted the wrong property. Measured instead of reasoned: the composed canvas transform comes out
+as exactly identity.
+
+**Takeaway.** Assert the COMPOSED scale — what lands on the glass — never an intermediate. A
+fractional intermediate costs nothing; a fractional composite costs a row of pixels.
+
+## A Label with no width does not clip, wrap or complain
+
+It draws straight out of its box, and past the window, where the text is not truncated — it is
+simply somewhere the player cannot see.
+
+**Why it came up.** Three times in one milestone: a shop item name drawn underneath its own price,
+a party member's name reaching x=333 in a 320px window, and a foe caption at x=341. All three were
+invisible because the shipped data is short — "Tonic", "Rook", "Slink" — and all three would have
+appeared the first time a game on this template used a longer word.
+
+**Takeaway.** Any Label that draws data rather than a constant gets a width and an overrun
+behaviour at the moment it is created. And measure gates at names LONGER than the demo's: a screen
+proven with "You" is a screen proven for one game.
+
+## A gate cannot be judged by mutating its own assertion
+
+Deleting the check makes the suite pass, so the mutant survives and says nothing about whether the
+rule was ever enforced.
+
+**Why it came up.** M42 added a content gate refusing a dialog portrait naming a character with no
+art, and the first mutant aimed at the assertion inside it. The honest proof is to break the DATA
+the gate reads — a shipped file given a bad portrait — which is the shape M30's data mutants use.
+
+**Takeaway.** A mutant for a content gate goes in the CONTENT. If the only way to make a gate fail
+is to edit the gate, it is not being tested — it is being restated.
+
+## Two writers for one value means one of them silently repairs the other
+
+A height set in `setup` and set again per line looks correct and is untestable: break the first and
+the second puts it back.
+
+**Why it came up.** M42's dialog box set the text area's size in both places. A mutant that shrank
+it to one line SURVIVED, because the per-line face placement rewrote the size a frame later.
+
+**Takeaway.** When a mutant survives on a line that is obviously load-bearing, grep for a second
+writer of the same field before doubting the test. Then give the value one owner — the fix is not
+a better assertion, it is fewer assignments.
