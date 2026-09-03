@@ -240,13 +240,35 @@ the 1.5 every shipped session was recorded against. `Qa._assert_position` reads
 `GameState.tile_size` rather than a literal, and the `tile_size` step key is GONE: a session
 stating its own would keep passing after a map changed style, reporting on a tile that has moved.
 
-**A fighter is drawn at `SPRITE_SCALE / world_scale`.** `BattleScreen` is a CanvasLayer already
-drawn at the world's scale, so a bare 2.0 would put a 64px cell 128 pixels into the 180 the
-layout was measured for. Derived rather than a field on the style, because it is a property of
-THIS SCREEN's bands - the capacity `MAX_PARTY` and `MAX_FOES` are declared against. Do NOT assert
-that two styles put a fighter on the same FRACTION of the screen: the cells are different shapes
-(24 rows on a 16px tile, 64 on a 32px one), and that would be the template deciding a proportion
-that belongs to whoever draws the characters.
+**A fighter is drawn at `SpriteStyle.battle_sprite_scale / world_scale`.** `BattleScreen` is a
+CanvasLayer already drawn at the world's scale, so the two cancel and what lands on the glass is
+the number the STYLE asked for: `1` is world size, the size that character is when you walk
+around as them. M40 derived this and M42 moved the numerator into data at the hook that entry
+named - how big a character is drawn is a property of how big the character IS, which a style
+knows and a screen does not. lpc32 asks for 1 because at 2 a 64px cell filled 128 of the 180
+design pixels the layout has, and that is why the readouts had nowhere to go but on top of the
+sprites. Do NOT assert that two styles put a fighter on the same FRACTION of the screen: the
+cells are different shapes (24 rows on a 16px tile, 64 on a 32px one), and that would be the
+template deciding a proportion that belongs to whoever draws the characters.
+
+**A fractional sprite scale is not fractional pixels.** lpc32 at world size means a sprite scaled
+`0.5` on a 2x layer, which reads like half-resolution art and is not: a `CanvasLayer`'s scale is a
+transform, not a render target, so the two compose before anything is rasterised - measured, the
+canvas transform comes out exactly identity and the texture is drawn 1:1. What would cost pixels
+is a COMPOSED scale that is not whole, and that is what `test_battle_layout` asserts.
+
+**Everything a screen is drawn WITH lives in `UiChrome`, and every colour it uses is a ROLE.**
+One font (Pixel Operator 8, CC0, named by `gui/theme/custom_font` so no screen has to ask and
+none can forget), at one size, because a pixel font is drawn for one and a heading that scales it
+is the blur the font replaced - a title is told apart by a header band and capitals instead. A
+window is a `frame()`: fill, a one-pixel rule, square corners, an optional band carrying its name.
+The cursor is a `select()` bar drawn UNDER the row, which replaced a `"> "` glued to the front of
+the row's own text - a marker inside the string is one every reader has to parse back out, and it
+shifted the text sideways to hold itself. `SpriteStyle.UI_ROLES` is the eight names a style must
+define and `problems()` refuses a style missing one; `test_ui_chrome` reads every
+`ui_color("...")` out of `scripts/ui/` and requires it to be on that list, because a role is a
+STRING and a typo draws a colour nobody chose. **`hp` and `mp` are the only colours on a screen**,
+which is Persona 5's own stated rule and what makes a bar read at a glance rather than parse.
 
 **A game's maps must agree about `world_scale`, and `test_map_content` refuses it.** Two scales in
 one game is a window that resizes under the player as they walk through a door, and every screen

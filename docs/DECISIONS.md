@@ -1446,9 +1446,19 @@ the battle sprite scale is **DERIVED** (`SPRITE_SCALE / world_scale`) rather tha
 style. It is a property of the battle screen's own bands — the capacity `MAX_PARTY` and `MAX_FOES`
 are declared against and the layout audit measures at — so a second copy in data would be a second
 opinion about a layout only one gate measures, and the two would drift the first time the bands
-moved. *A `battle_sprite_scale` field* stays `deferred — worth trying`, and the hook is
-`BattleScreen._make_fighter`: the day a game wants its fighters drawn at some other multiple, the
-divisor stays and the numerator comes from data.
+moved. ~~*A `battle_sprite_scale` field* stays `deferred — worth trying`~~ — **taken up by M42**,
+at exactly the hook this entry named: the divisor stayed and the numerator came from data. The
+reasoning above is what M42 reversed, and the counter-argument is short. The multiple is not a
+property of the screen's bands, it is a property of the ART: how big a character is drawn is a
+consequence of how big the character IS, which a style knows and a screen cannot ask. The drift
+this entry feared is closed the other way instead — `test_battle_layout` reads the field and
+asserts what lands on the glass, so the layout audit and the data are the same statement rather
+than two.
+
+The concrete cost of deriving it: lpc32 drew a 64px cell at twice size, 128 of the 180 design
+pixels the layout has, a third of the screen for one fighter — and the readouts had nowhere left
+to go but on top of the sprites they belonged to, which is the screen the person this is built
+for rejected on sight.
 
 *Keep 320×180 with 32px tiles* (ten tiles wide) is the alternative the user can still look at.
 *A SubViewport for the world, with the UI outside it* — rejected: it moves every screen into a
