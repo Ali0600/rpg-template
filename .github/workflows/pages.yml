@@ -17,15 +17,6 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-env:
-  GODOT_VERSION: 4.7.1-stable
-  # Both pinned in the repo rather than fetched alongside the download: a checksum served by
-  # the same host as the file it describes cannot detect that host serving a different file.
-  # To update, bump GODOT_VERSION and paste the new sums from
-  # https://github.com/godotengine/godot-builds/releases/download/<version>/SHA512-SUMS.txt
-  GODOT_SHA512: 4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
-  TEMPLATES_SHA512: afcc83d8d3d298038f19c58744a0d660fa75dd4baa33cb55d1011bb2565a2a8c2381728924564cb909e37c205a23f21b521b23bd057993afd43ae4da0b2f9d47
-
 jobs:
   build:
     # Never deploy off a red build. workflow_dispatch has no upstream run to inspect, so it is
@@ -50,6 +41,18 @@ jobs:
           # necessarily the commit that was tested. Pin it to the one that went green.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
+      # Read from the script that pins it - and note this now travels with the COMMIT being
+      # deployed rather than with main's copy of this file. `workflow_run` takes the workflow
+      # from the default branch but checks out head_sha, so the engine and the tree it packs
+      # are the same commit's, which is the more correct of the two.
+      - name: Read the pinned engine version
+        id: godot
+        run: |
+          set -euo pipefail
+          version="$(tools/fetch_godot.sh --print-version)"
+          [ -n "$version" ] || { echo "fetch_godot.sh printed no version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Cache the engine and export templates
         id: godot-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -61,38 +64,15 @@ jobs:
           # key, so trimming what goes into it does nothing until the key moves. The old one
           # held every platform's templates - 1.3GB restored on every deploy to export one web
           # build.
-          key: godot-web-only-${{ env.GODOT_VERSION }}
+          # hashFiles is part of it too, so a change to WHAT gets installed - a corrected
+          # sum, a different templates glob - moves the key even when the version has not.
+          key: godot-web-only-${{ steps.godot.outputs.version }}-${{ hashFiles('tools/fetch_godot.sh') }}
 
+      # No --dest: the script's default IS the contract, and the steps below hardcode
+      # ~/godot-bin to match it.
       - name: Download and verify Godot and its templates
         if: steps.godot-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-          tpz="Godot_v${GODOT_VERSION}_export_templates.tpz"
-          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}"
-          curl -fsSL --retry 3 --retry-delay 5 -o "$zip" "$base/$zip"
-          curl -fsSL --retry 3 --retry-delay 5 -o "$tpz" "$base/$tpz"
-          echo "${GODOT_SHA512}  ${zip}" | sha512sum --check --strict
-          echo "${TEMPLATES_SHA512}  ${tpz}" | sha512sum --check --strict
-
-          mkdir -p ~/godot-bin
-          unzip -q "$zip" -d ~/godot-bin
-          mv ~/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot-bin/godot
-          chmod +x ~/godot-bin/godot
-
-          # The engine looks for templates under a directory named for its own version, in
-          # the form it reports: "4.7.1.stable", not the release tag "4.7.1-stable".
-          dest=~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
-          mkdir -p "$dest"
-          # Only the web templates. The engine finds a template by looking for one file by
-          # name (export_templates/<version>/<name>), so the other platforms' are 1.3GB of
-          # cache this workflow can never use. The glob rather than the exact name because
-          # which of the eight it wants depends on the preset - this one has thread support
-          # off, so it needs web_nothreads_release.zip rather than web_release.zip, and that
-          # is the preset's decision to change.
-          unzip -q "$tpz" 'templates/web_*' -d /tmp/templates
-          mv /tmp/templates/templates/* "$dest"/
-          ls -la "$dest"
+        run: tools/fetch_godot.sh --templates
 
       - name: Export the web build
         run: |

@@ -17,6 +17,20 @@ cd "$(dirname "$0")/.." || exit 1
 require_godot
 echo "engine: $GODOT ($("$GODOT" --version 2>/dev/null | head -1))"
 
+# THE ENGINE EXITS 0 WHEN -s NAMES A SCRIPT THAT IS NOT THERE. Measured 2026-09-04: it prints
+# two ERROR lines to stderr and returns success. So every `-s tools/x.gd` step below is
+# fail-open on a renamed or deleted tool - it reports PASS having run nothing.
+#
+# This gate used to make that worse rather than better: four steps carried
+# `if [ -f tools/x.gd ]; ... else echo "SKIP  x.gd does not exist yet"`, and a SKIP touches
+# neither result() nor fail, so the silence looked deliberate. The guards are gone, but deleting
+# them is not the fix - the exit code still cannot be trusted.
+#
+# What closes it is tests/unit/test_ci_paths.gd, which reads THIS FILE, derives every
+# tools/*.gd and tools/*.sh it names, and fails by name if one is not on disk. It runs at step
+# 4/9 below, so check.sh as a whole goes red. Deliberately ONE implementation of that rule and
+# not a second copy here: two paths answering one question drift, and the copy that loses is
+# whichever runs second.
 fail=0
 step() { printf '\n=== %s ===\n' "$1"; }
 result() { # $1 = exit code, $2 = label
@@ -134,12 +148,8 @@ result $? "autoloads boot, input map present, pixel settings intact"
 step "6/9 generated art is in sync"
 # The committed PNGs under assets/generated are build output. Regenerating must not change
 # them; if it does, someone edited a rig or a style and shipped the old sprites.
-if [ -f tools/gen_sprites.gd ]; then
-  "$GODOT" --headless --path . -s tools/gen_sprites.gd --verify
-  result $? "committed sprites match the generator"
-else
-  echo "SKIP  gen_sprites.gd does not exist yet (M1)"
-fi
+"$GODOT" --headless --path . -s tools/gen_sprites.gd --verify
+result $? "committed sprites match the generator"
 
 step "6b/9 generated sound is in sync"
 # The committed WAVs under assets/generated are build output too. This compares the SAMPLES
@@ -147,12 +157,8 @@ step "6b/9 generated sound is in sync"
 # what load() returns, because the importer is free to transcode on the way to the game and
 # its default for WAV is lossy. A file that matches while the imported stream does not is a
 # game whose every player hears something the gate never checked.
-if [ -f tools/gen_sounds.gd ]; then
-  "$GODOT" --headless --path . -s tools/gen_sounds.gd --verify
-  result $? "committed sounds match the generator"
-else
-  echo "SKIP  gen_sounds.gd does not exist yet (M14)"
-fi
+"$GODOT" --headless --path . -s tools/gen_sounds.gd --verify
+result $? "committed sounds match the generator"
 
 step "6c/9 the flow diagram matches the model"
 # docs/FLOW.md is drawn from tools/flow_model.json, so it is build output like the sprites and
@@ -160,12 +166,8 @@ step "6c/9 the flow diagram matches the model"
 # checked BEFORE the play loop so a stale diagram is reported in a second rather than after
 # twenty of them. The model itself is checked against the running game by
 # tests/integration/test_flow_model.gd in step 4.
-if [ -f tools/gen_flow_doc.gd ]; then
-  "$GODOT" --headless --path . -s tools/gen_flow_doc.gd --verify
-  result $? "the flow diagram matches the model"
-else
-  echo "SKIP  gen_flow_doc.gd does not exist yet (M23)"
-fi
+"$GODOT" --headless --path . -s tools/gen_flow_doc.gd --verify
+result $? "the flow diagram matches the model"
 
 step "6d/9 maps survive a trip through an editor"
 # The only gate that runs the CONVERSION COMMAND rather than the translators behind it. The
@@ -176,12 +178,8 @@ step "6d/9 maps survive a trip through an editor"
 #
 # Nothing it writes is committed: the editor file is a working file, and the map that ships is
 # still the hand-readable JSON. It sweeps its scratch directory either way.
-if [ -f tools/map_io.gd ]; then
-  "$GODOT" --headless --path . -s tools/map_io.gd --verify
-  result $? "maps survive a trip through an editor"
-else
-  echo "SKIP  map_io.gd does not exist yet (M38)"
-fi
+"$GODOT" --headless --path . -s tools/map_io.gd --verify
+result $? "maps survive a trip through an editor"
 
 step "7/9 play the game"
 # The gate that needs the whole thing at once: the real physics server, the real input map,

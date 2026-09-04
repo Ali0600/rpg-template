@@ -1331,7 +1331,28 @@ tools/mutate_check.sh --list   # what each mutant claims to cover
 tools/mutants_scope.sh         # the mutants THIS branch's diff could have broken
 tools/ci_changed.sh            # would this change run the gate? (the docs rule, runnable)
 tools/pack_check.sh            # export the .pck and PLAY it - the artifact, not the source tree
+tools/fetch_godot.sh           # the pinned engine, checksummed - what all three CI jobs run
 ```
+
+**The engine version and its checksums live in `tools/fetch_godot.sh` and nowhere else.** They
+used to be duplicated VERBATIM in `ci.yml` and `pages.yml` with nothing gating that the two
+copies agreed, so a bump that edited one file would gate on one engine and deploy from another -
+a difference with no symptom. Bumping Godot is now one edit to that script; the workflows ask it
+for the version (`--print-version`) to build their cache keys, and `hashFiles` on the script is
+in those keys too, so a CORRECTED CHECKSUM with the version unchanged cannot restore the binary
+the old sum let through. `test_ci_paths.gd` refuses a workflow that names `GODOT_VERSION`,
+carries a 128-hex string, or reaches `godot-builds` itself, which is what stops the duplication
+coming back. A composite action was the alternative and is rejected on the CI audit's own
+principle: a rule written in YAML cannot be run.
+
+**The engine exits 0 when `-s` names a script that is not there.** Measured 2026-09-04: two
+`ERROR` lines to stderr, exit 0. So every `-s tools/x.gd` step in `check.sh` is fail-open on a
+renamed tool, and four of them used to make that worse by printing `SKIP  <tool> does not exist
+yet` - a third verdict, touching neither `result` nor `fail`, so the run still ended
+`ALL GATES PASS`. Those guards are gone, and deleting them is NOT the fix, because the exit code
+still cannot be trusted: `test_ci_paths.gd` reads `check.sh`, derives every tool it names, and
+fails by name if one is missing. One implementation of that rule, in the suite, never a second
+copy in the shell.
 
 Both scoping scripts carry a `--selftest` and `test_ci_paths.gd` runs them, because a rule whose
 only witness is a step inside `check.sh` has no suite for a mutant to be judged by.

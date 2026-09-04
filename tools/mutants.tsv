@@ -767,3 +767,19 @@ scripts/ui/credits_menu.gd	s|const CHARS_PER_ROW := 43|const CHARS_PER_ROW := 60
 scripts/ui/credits_screen.gd	s|\t\trow.size = Vector2\(inner.size.x - float\(UiChrome.ROW_INSET\) \* 2.0, ROW_PITCH\)|\t\tpass|	tests/integration/test_credits_layout.gd	the rows get no width, so the fit gate is measuring against a zero and a Label cannot clip
 scripts/ui/title_screen.gd	s|\t\t\tcredits_requested.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/read_the_credits.json	Credits is pressed at the title and the screen just sits there
 scripts/world/world_scene.gd	s|credits.json\" % style.id|credits.json\" % \"gb16\"|	tests/fixtures/qa/quest/read_the_credits.json	the credits are read from a style the running game is not drawn in
+
+# --- Plan G: the engine pin, and the gate's third verdict -------------------------------
+# NOTE: mutants_scope.sh's HARNESS_RE line cannot be anchored here - it is a regex alternation
+# carrying seven `|`, which is this file's delimiter. Its rule (fetch_godot.sh IS the harness)
+# is gated by the scoper's own selftest instead, which test_ci_paths.gd runs, and was proven
+# fail-first by hand.
+# NOTE: the two tools/check.sh rows rewrite check.sh while it may itself be running, under
+# `MUTANTS=1 tools/check.sh` step 9/9. It is safe because the parent shell is blocked inside
+# mutate_check.sh for the whole window and the restore is a byte copy with the checksum
+# re-verified before the parent reads another line; CI never nests them at all (the sweep job
+# calls mutate_check.sh directly). Worth knowing before adding a third.
+tools/fetch_godot.sh	s|  if \[ "\$got" = "\$2" \]; then return 0; fi|  return 0|	tests/unit/test_ci_paths.gd	every checksum is accepted, so a substituted download installs and the pin is decoration
+tools/fetch_godot.sh	s|  if ! verify_sha512 "\$2" "\$3"; then rm -f "\$2"; return 1; fi|  verify_sha512 "$2" "$3"|	tests/unit/test_ci_paths.gd	the verdict is computed and discarded, so a REFUSED download is left where the installer picks it up
+tools/fetch_godot.sh	s|  printf .%s. "\$\{GODOT_VERSION/-/\.\}"|  printf "%s" "$GODOT_VERSION"|	tests/unit/test_ci_paths.gd	the templates land under the release tag rather than the version the engine reports, so the web export finds none
+tools/check.sh	s|-s tools/gen_sprites\.gd --verify|-s tools/gen_sprite.gd --verify|	tests/unit/test_ci_paths.gd	a generator is renamed and the gate that verifies it silently runs nothing
+tools/check.sh	s|^result \$\? "committed sprites match the generator"|echo "SKIP  committed sprites"|	tests/unit/test_ci_paths.gd	a step reports a verdict touching neither result nor fail, so the gate is green having checked nothing

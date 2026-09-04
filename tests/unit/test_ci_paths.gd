@@ -13,6 +13,8 @@ extends GdUnitTestSuite
 ## green check that tested it.
 
 const REAL := "res://.github/workflows/ci.yml"
+const PAGES := "res://.github/workflows/pages.yml"
+const GATE := "res://tools/check.sh"
 const PREDICATE := "res://tools/ci_changed.sh"
 
 
@@ -79,8 +81,19 @@ func _drift_gated_docs() -> Array[String]:
 	return out
 
 
-func test_the_two_ci_scripts_prove_themselves() -> void:
-	# Both carry a selftest and check.sh runs the scoper's at step 8b, which is enough to catch
+## Every tools/*.sh carrying a --selftest, DERIVED rather than listed here. A literal list is a
+## hand-maintained "do this for each" whose newest member is the one that gets forgotten - and
+## the whole point of a selftest is that somebody else runs it.
+func _selftesting_scripts() -> Array[String]:
+	var out: Array[String] = []
+	for path in ContentScan.files("res://tools", ["sh"] as Array[String]):
+		if FileAccess.get_file_as_string(path).contains("--selftest)"):
+			out.append(path)
+	return out
+
+
+func test_the_ci_scripts_prove_themselves() -> void:
+	# Each carries a selftest and check.sh runs the scoper's at step 8b, which is enough to catch
 	# a break and NOT enough to prove the rules are tested: a mutant needs a SUITE to judge it,
 	# and a rule whose only witness is a step in a shell script has none. So they run here too.
 	#
@@ -88,12 +101,93 @@ func test_the_two_ci_scripts_prove_themselves() -> void:
 	# any change under tools/ - including tools/mutants.tsv, which this project's contract
 	# requires every new rule to touch - so the pull request lane was the full sweep wearing a
 	# fast name for nine of its last ten runs, and nothing said so.
-	for script in [PREDICATE, "res://tools/mutants_scope.sh"]:
+	var scripts := _selftesting_scripts()
+	assert_int(scripts.size()).override_failure_message(
+		"no tools/*.sh carries a --selftest any more, so this ran nothing").is_greater(2)
+	for expected in ["ci_changed.sh", "mutants_scope.sh", "fetch_godot.sh"]:
+		var found := false
+		for script in scripts:
+			if script.ends_with(expected):
+				found = true
+		assert_bool(found).override_failure_message(
+			"%s carries no --selftest, so nothing here proves its rules" % expected).is_true()
+	for script in scripts:
 		var out: Array = []
 		var code := OS.execute("bash",
 			[ProjectSettings.globalize_path(script), "--selftest"], out, true)
 		assert_int(code).override_failure_message(
 			"%s --selftest failed:\n%s" % [script, "\n".join(PackedStringArray(out))]).is_equal(0)
+
+
+## Every tool check.sh runs, read out of its own text. Derived so a step added later is covered
+## without anybody remembering to come back here.
+func _tools_the_gate_runs() -> Array[String]:
+	var re := RegEx.create_from_string("tools/[A-Za-z0-9_]+\\.(gd|sh)")
+	var out: Array[String] = []
+	for line in FileAccess.get_file_as_string(GATE).split("\n"):
+		if line.strip_edges().begins_with("#"):
+			continue
+		for hit: RegExMatch in re.search_all(line):
+			var named := hit.get_string()
+			if not out.has(named):
+				out.append(named)
+	return out
+
+
+func test_every_tool_the_gate_runs_is_actually_there() -> void:
+	# check.sh used to guard four of these with `if [ -f ... ]` and print SKIP when the file was
+	# missing. A SKIP touches neither result() nor fail, so renaming a generator turned its gate
+	# green having compared nothing - and the run still ended "ALL GATES PASS". The guards are
+	# gone; this is what now says so by NAME, in a second, instead of in a silence.
+	var tools := _tools_the_gate_runs()
+	assert_int(tools.size()).override_failure_message(
+		"only %d tools were read out of check.sh - the shape changed and this measured nothing"
+		% tools.size()).is_greater(9)
+	for named in tools:
+		assert_bool(FileAccess.file_exists("res://" + named)).override_failure_message(
+			"check.sh runs %s, which is not on disk - that step can only fail, or worse, be "
+			% named + "skipped").is_true()
+
+
+func test_the_gate_has_no_verdict_that_moves_nothing() -> void:
+	# check.sh has exactly TWO verdicts and result() produces both of them. A third word in its
+	# output that touches neither `result` nor `fail` is a hole by construction, whatever it is
+	# guarded on - which is why this bans the VERDICT rather than the `if [ -f ... ]` spelling.
+	# The gdUnit4 guard at check.sh:94 is the same shape and is correct: its else sets fail=1.
+	#
+	# Comment lines are skipped, and that is the rule rather than an exemption: what is banned is
+	# a verdict the gate PRINTS, and a comment prints nothing. check.sh's own header explains
+	# this history and has to be able to name the thing it is explaining.
+	var printed: Array[String] = []
+	for line in FileAccess.get_file_as_string(GATE).split("\n"):
+		if line.strip_edges().begins_with("#"):
+			continue
+		if line.contains("SKIP"):
+			printed.append(line.strip_edges())
+	assert_array(printed).override_failure_message(
+		"check.sh prints a SKIP:\n  " + "\n  ".join(printed)
+		+ "\nA SKIP touches neither result nor fail, so that step reports green having checked "
+		+ "nothing, and the run still ends ALL GATES PASS").is_empty()
+
+
+func test_the_engine_pin_lives_in_exactly_one_place() -> void:
+	# It used to live in two: GODOT_VERSION and GODOT_SHA512 were duplicated VERBATIM across
+	# ci.yml and pages.yml with nothing gating that they agreed, so a bump that edited one file
+	# would gate on one engine and deploy from another. Centralising fixed today; this is what
+	# stops it coming back, and it is the only check that would have caught the original.
+	var hex := RegEx.create_from_string("[0-9a-f]{128}")
+	for path in [REAL, PAGES]:
+		var text := FileAccess.get_file_as_string(path)
+		assert_bool(text.contains("tools/fetch_godot.sh")).override_failure_message(
+			"%s does not go through tools/fetch_godot.sh, so it carries its own engine" % path
+			).is_true()
+		assert_bool(hex.search(text) == null).override_failure_message(
+			"%s contains a 128-hex string - a checksum has come back into a workflow file, and "
+			% path + "the two copies can now disagree").is_true()
+		for banned in ["GODOT_VERSION", "GODOT_SHA512", "godot-builds"]:
+			assert_bool(text.contains(banned)).override_failure_message(
+				"%s names %s again - the pin belongs in tools/fetch_godot.sh, once"
+				% [path, banned]).is_false()
 
 
 func test_the_predicate_answers_for_the_things_that_can_break_the_gate() -> void:

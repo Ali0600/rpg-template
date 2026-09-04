@@ -101,12 +101,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GODOT_VERSION: 4.7.1-stable
-  # Pinned here rather than fetched from the release's own SHA512-SUMS.txt: a checksum
-  # served by the same host as the file it describes cannot detect that host serving a
-  # different file. To update, bump GODOT_VERSION and paste the new sum from
-  # https://github.com/godotengine/godot-builds/releases/download/<version>/SHA512-SUMS.txt
-  GODOT_SHA512: 4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+  # The engine version and its checksum are NOT here. They live in tools/fetch_godot.sh, which
+  # every download site in this file and in pages.yml runs - they used to be duplicated verbatim
+  # across the two files with nothing gating that the copies agreed, so a bump that edited one
+  # would gate on one engine and deploy from another.
+  #
   # Four is measured rather than chosen: the mutants take about 1.6 seconds each, so a shard of
   # a full sweep is roughly four and a half minutes - long enough that the ~20 seconds of
   # checkout and import it pays are noise, short enough that nobody waits on it.
@@ -202,25 +201,31 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The pin lives in the script, so the cache key ASKS the script for it rather than
+      # carrying a second copy that can drift from the one the download uses.
+      - name: Read the pinned engine version
+        id: godot
+        run: |
+          set -euo pipefail
+          # A plain assignment, because ITS exit status is the substitution's. Written as
+          # `echo "version=$(...)"` the status is echo's, so a script that failed yields an
+          # empty key, a cold download on every run, and nothing red to say why.
+          version="$(tools/fetch_godot.sh --print-version)"
+          [ -n "$version" ] || { echo "fetch_godot.sh printed no version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Cache the Godot binary
         id: godot-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/godot-bin
-          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+          key: godot-${{ steps.godot.outputs.version }}-${{ hashFiles('tools/fetch_godot.sh') }}-linux-x86_64
 
       - name: Download and verify Godot
         if: steps.godot-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/${zip}"
-          curl -fsSL --retry 3 --retry-delay 5 -o "$zip" "$url"
-          echo "${GODOT_SHA512}  ${zip}" | sha512sum --check --strict
-          mkdir -p ~/godot-bin
-          unzip -q "$zip" -d ~/godot-bin
-          mv ~/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot-bin/godot
-          chmod +x ~/godot-bin/godot
+        # No --dest: the script's default is ~/godot-bin, which is what GODOT_BIN below and
+        # the step above already name. Passing it here would be a second place to keep true.
+        run: tools/fetch_godot.sh
 
       - name: Report the engine version
         run: ~/godot-bin/godot --version
@@ -261,27 +266,33 @@ jobs:
         with:
           name: mutants
 
+      # The pin lives in the script, so the cache key ASKS the script for it rather than
+      # carrying a second copy that can drift from the one the download uses.
+      - name: Read the pinned engine version
+        id: godot
+        run: |
+          set -euo pipefail
+          # A plain assignment, because ITS exit status is the substitution's. Written as
+          # `echo "version=$(...)"` the status is echo's, so a script that failed yields an
+          # empty key, a cold download on every run, and nothing red to say why.
+          version="$(tools/fetch_godot.sh --print-version)"
+          [ -n "$version" ] || { echo "fetch_godot.sh printed no version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Cache the Godot binary
         id: godot-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/godot-bin
-          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+          key: godot-${{ steps.godot.outputs.version }}-${{ hashFiles('tools/fetch_godot.sh') }}-linux-x86_64
 
       # Kept rather than assumed: a cache entry can be evicted between two jobs of one run, and
       # a shard that answered "no binary" would be a mutation verdict nobody got.
       - name: Download and verify Godot
         if: steps.godot-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          zip="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/${zip}"
-          curl -fsSL --retry 3 --retry-delay 5 -o "$zip" "$url"
-          echo "${GODOT_SHA512}  ${zip}" | sha512sum --check --strict
-          mkdir -p ~/godot-bin
-          unzip -q "$zip" -d ~/godot-bin
-          mv ~/godot-bin/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot-bin/godot
-          chmod +x ~/godot-bin/godot
+        # No --dest: the script's default is ~/godot-bin, which is what GODOT_BIN below and
+        # the step above already name. Passing it here would be a second place to keep true.
+        run: tools/fetch_godot.sh
 
       - name: Prove this shard's mutants
         env:
