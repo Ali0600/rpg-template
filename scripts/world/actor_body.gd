@@ -26,18 +26,37 @@ var _walker: GridWalker
 
 
 func _init() -> void:
-	# No actor is ever a moving platform. The engine DEFAULT is that every layer is one
-	# (platform_floor_layers is all bits), which is a platformer contract: a body touching
-	# another from above reports on_floor, and a body on a MOVING floor inherits its velocity.
-	# That made an NPC walking down into the player ride along wherever he strafed - measured
-	# at 0.8px a frame, exactly his walk speed, until she was two tiles off her route - while
-	# an NPC walking UP into him was untouched, because from below he is a ceiling and
-	# ceilings carry nobody.
+	# THIS GAME IS TOP-DOWN, AND HAS NO UP. The engine's default motion mode is GROUNDED, which
+	# is a platformer contract: it classifies a surface by the direction you touched it FROM -
+	# above is a floor, below a ceiling, the side a wall - so a platformer can ask whether it
+	# may jump. Here screen-up is NORTH, so that classification is about the compass while
+	# calling itself gravity.
 	#
-	# This is deliberately narrower than MOTION_MODE_FLOATING, which would ALSO be defensible
-	# and is what Godot recommends for top-down. Floating changes how every body slides along
-	# every wall, which is movement feel nobody has played yet - see docs/DECISIONS.md.
-	platform_floor_layers = 0
+	# It shipped a bug. A body standing on a MOVING floor inherits its velocity - the moving
+	# platform feature - and in a top-down game every actor is a "floor" to anything touching it
+	# from above. So an NPC walking down into the player rode along wherever he strafed, measured
+	# at 0.8px a frame, exactly his walk speed, until she was two tiles off her route; one
+	# walking UP into him was untouched, because from below he was a ceiling and ceilings carry
+	# nobody.
+	#
+	# That was first fixed narrowly, by clearing platform_floor_layers - switching off the one
+	# feature rather than the concept it hangs off. FLOATING removes the concept: every contact
+	# is a wall, there is no floor to stand on, and the carry is impossible by construction
+	# rather than opted out of. THE CLEAR IS THEREFORE GONE: kept beside this it would be a line
+	# no test could ever watch fail, which is a guard that has stopped being one.
+	#
+	# Measured before switching rather than assumed, and the measurement is the argument. Along a
+	# VERTICAL wall the two modes slide identically: a 60-frame diagonal held into a side edge
+	# moves the player the same -67.9px under both. Along a HORIZONTAL one they do not - pressed
+	# diagonally into a north wall a body covers 11.31px in 20 frames under GROUNDED and 14.96
+	# under FLOATING - because GROUNDED calls that surface a CEILING and handles it differently
+	# from a wall.
+	#
+	# THAT ASYMMETRY IS THE POINT. In a game with no gravity, north walls and east walls behaving
+	# differently is not a feature anybody chose; it is the compass being mistaken for gravity,
+	# and the NPC carry was the same mistake wearing a different face. Where a body comes to rest
+	# also moves, by 0.073px. See docs/DECISIONS.md.
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 
 
 func _ready() -> void:

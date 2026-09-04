@@ -942,19 +942,16 @@
 		},
 		{
 			"op": "note",
-			"text": "the cave: south wall, east wall, then north until something in the dark stops us"
+			"text": "the cave, re-anchored. A hold that crosses a warp carries its remaining frames into the next map, so the leg that got us here cannot say where it left the player - and the two bushes beside the south wall make row 7 a trap: one arrival slides east along it and is stopped short by the eastern bush, another is wedged against the western one and walks the clear row above instead. Two tiles apart, and every later leg inherits it. So drive to a CORNER first and trust nothing before it."
+		},
+		{
+			"op": "note",
+			"text": "south-east until the bush beside the south wall stops it. ONE leg, and it brings every arrival onto the same tile - measured identical to a thousandth of a pixel from both of the places the warp can drop you."
 		},
 		{
 			"op": "hold",
 			"action": "move_down",
-			"frames": 200
-		},
-		{
-			"op": "release_all"
-		},
-		{
-			"op": "wait",
-			"frames": 3
+			"frames": 1
 		},
 		{
 			"op": "hold",
@@ -969,9 +966,18 @@
 			"frames": 3
 		},
 		{
+			"op": "note",
+			"text": "then north-east, hugging the east wall past the bush that gates row 7, until the thing in the dark stops us"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 1
+		},
+		{
 			"op": "hold",
 			"action": "move_up",
-			"frames": 200
+			"frames": 240
 		},
 		{
 			"op": "release_all"
@@ -1088,6 +1094,22 @@
 			"op": "assert_item",
 			"id": "tonic",
 			"count": 1
+		},
+		{
+			"op": "note",
+			"text": "a fight stops you where you stood, and this one stopped us mid-slide with the body straddling two columns - so square up against the east wall first, or the hermit is walked past on his western side"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
 		},
 		{
 			"op": "note",

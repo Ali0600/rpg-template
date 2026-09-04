@@ -1215,14 +1215,13 @@ outcome — shipping nothing — is the part most likely to be re-litigated.
   cause is the moving-platform feature: `on_floor` against a moving body inherits its
   velocity, measured at 0.8px a frame (exactly walk speed) until the NPC was two tiles off
   her route. Clearing the layers opts out of exactly that and changes nothing else.
-- *`MOTION_MODE_FLOATING`* — **deferred, worth trying**: it is what Godot recommends for
-  top-down and it removes the floor/ceiling concept the bug is built on, rather than one
-  feature that hangs off it. Rejected for now because it is not a bug fix, it is a movement
-  change: floating alters how every body slides along every wall, and all eleven play
-  sessions are calibrated against the current sliding. Switching it diverged
-  `finish_the_quest` at the hermit and cascaded into 16 failures - none of them about NPCs.
-  Whether the resulting slide feels better is a question for someone who has played it.
-  Revisit hook: one line in `ActorBody._init`, plus re-deriving the affected legs.
+- *`MOTION_MODE_FLOATING`* — **deferred, worth trying** — **TAKEN UP BY M45, see below.** It is
+  what Godot recommends for top-down and it removes the floor/ceiling concept the bug is built
+  on, rather than one feature that hangs off it. Rejected at the time because it is not a bug
+  fix, it is a movement change: floating alters how a body slides along a horizontal wall, and
+  all eleven play sessions then were calibrated against the current sliding. Switching it
+  diverged `finish_the_quest` at the hermit and cascaded into 16 failures - none of them about
+  NPCs. Revisit hook: one line in `ActorBody._init`, plus re-deriving the affected legs.
 - *Collision layers, so actors never touch* — rejected: the player would walk through NPCs,
   and seven QA sessions use NPC bodies as walls. It also deletes a real interaction rather
   than fixing it.
@@ -2941,3 +2940,50 @@ none of the six and inherits, which is the most legible proof the change worked.
 `camera_tiles_per_second` got its first test ever in the same change: it had no suite and no
 mutant, and it is the one value that converts BACK to pixels, because
 `Camera2D.position_smoothing_speed` is engine-native px/s (checked against the Godot 4.7 docs).
+
+## The game stopped running a platformer's rulebook — *M45*
+
+**The fork:** `ActorBody` never set `motion_mode`, so every body ran the engine default,
+`MOTION_MODE_GROUNDED`. That mode classifies a surface by the direction you touched it FROM -
+above a floor, below a ceiling, the side a wall - so a platformer can ask whether it may jump.
+In a top-down game screen-up is NORTH, so the classification is about the compass while calling
+itself gravity. M13.4 had already paid for that once: a body on a moving *floor* inherits its
+velocity, so an NPC walking down into the player was dragged two tiles off her route.
+
+- **Chosen: `MOTION_MODE_FLOATING`, and `platform_floor_layers = 0` deleted with it.** Every
+  contact is a wall; there is no floor to stand on, so the NPC carry is impossible by
+  construction rather than opted out of. The clear could not stay beside it - under FLOATING it
+  is a line no test could ever watch fail, and a guard that cannot fail has stopped being one.
+  Its mutant went with the rule, which is not the "never delete a row" case: that is about a
+  stale pattern over live code.
+- *Keeping the narrow opt-out* — **rejected now, correct in M13.4.** It switches off one feature
+  of a concept that does not belong here at all, and leaves every other consequence of that
+  concept in place.
+- *Making motion mode DATA* (a `GameConfig` field, the `save_policy`/`grid_step` shape) —
+  **deferred, worth trying.** It is the right answer the day a game built on this template wants
+  a real side-view section. Revisit hook: `GameConfig`, a StringName checked against a list, and
+  `ActorBody.setup()` already receives the config. Not now: one game ships, it is top-down, and
+  an axis nobody varies is a concept with no second instance to keep it honest.
+
+**What the measurement changed.** The deferred entry above records "16 cascading failures", and
+that figure was true of eleven sessions in M13.4. Re-measured against 24: **23 pass untouched and
+one diverges.** The sessions had grown more robust in between, because "held against geometry,
+never counted in tiles" became the house rule. *A deferred decision should be re-measured before
+it is re-argued - the number in the record is a fact about the day it was written.*
+
+**The one divergence was not a physics problem, and fixing it made the session better.** It was
+`finish_the_quest`'s cave entry: a hold that crosses a warp carries its remaining frames into the
+next map, so a 0.073px difference in where a body rests decided which frame the warp fired on and
+landed the player a tile apart. The cave's two bushes then amplified it - one arrival slides east
+along row 7 and is stopped short, the other is wedged against the western bush and walks the clear
+row above. `CLAUDE.md` already forbids exactly this ("a leg that follows a warp must re-anchor
+against geometry"), so the leg was fragile by the contract's own standard and had been passing on
+an accident. The fix is a south-east diagonal that brings every arrival onto the same tile -
+measured identical to a thousandth of a pixel from both - and **it passes under BOTH motion
+modes**, which is what makes it a robustness fix rather than a re-tune.
+
+**And the slide test could not see any of this.** It asserted the body slid AT ALL
+(`is_greater`), which is true under both modes. It now pins the DISTANCE: 11.31px in 20 frames
+under GROUNDED, 14.96 under FLOATING. That difference is the asymmetry being removed - along a
+VERTICAL wall the modes are identical, and only a horizontal one diverges, because only a
+horizontal one is a "ceiling".

@@ -127,13 +127,40 @@ func test_a_wall_does_not_trap_the_player() -> void:
 	await _tick(body, Vector2(-1.0, 0.0), 10)
 	assert_float(body.global_position.x).is_less(blocked.x)
 
+## How far a body pressed diagonally into a wall slides along it, and over how many frames.
+## A MEASURED literal, and the reason it exists is below.
+## 20 frames of a normalised diagonal at the template's own 48px/s. GROUNDED covers 11.31px
+## here and FLOATING 14.96, because GROUNDED calls a north wall a CEILING and handles it
+## differently from a wall - so this literal is also the fail-first proof that the pin can tell
+## the two motion modes apart, which `is_greater` could not.
+const SLIDE_FRAMES := 20
+const SLIDE_PX := 14.96
+
+
 func test_walking_into_a_wall_diagonally_slides_along_it() -> void:
 	# Axis-separated resolution is what makes a top-down game feel good: pressing into a
 	# corner should still move you along the wall rather than stopping you dead.
+	#
+	# The DISTANCE is pinned, not just the direction, and that is what this test was missing.
+	# `is_greater` passes under BOTH of the engine's motion modes - they both slide - so a
+	# setting governing how every body in the game meets every wall sat unexamined for eleven
+	# milestones behind the one test written to watch it. A test that cannot tell two answers
+	# apart is not watching the thing it names.
+	#
+	# Driven by PHYSICS frames rather than await_millis: move_and_slide picks its own delta -
+	# the idle one outside a physics frame - so a distance measured against the idle clock is a
+	# fact about how busy the machine is, not about the game.
 	var body := _spawn_player()
 	await await_idle_frame()
 	var against_top: Vector2 = await _walk_until_blocked(body, Vector2(0.0, -1.0))
-	await _tick(body, Vector2(1.0, -1.0), 20)
+	var from := body.global_position.x
+	for i in SLIDE_FRAMES:
+		body.apply(Vector2(1.0, -1.0))
+		await get_tree().physics_frame
+	var slid := body.global_position.x - from
+	assert_float(slid).override_failure_message(
+		"pressed into the top wall, the body slid %.2fpx in %d physics frames rather than %.2f"
+		% [slid, SLIDE_FRAMES, SLIDE_PX]).is_equal_approx(SLIDE_PX, 0.5)
 	assert_float(body.global_position.x).override_failure_message(
 		"pressing into the top wall stopped all movement instead of sliding").is_greater(against_top.x)
 

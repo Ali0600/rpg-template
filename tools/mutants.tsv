@@ -317,7 +317,6 @@ scripts/world/npc_brain.gd	s|_index = \(_index \+ 1\) % _path.size\(\)|_index = 
 scripts/world/map_data.gd	s|if kind < 0:|if false:|	tests/unit/test_map_data.gd	a typo'd behavior stands still instead of failing the build
 scripts/world/map_data.gd	s|if solid_tiles.has\(ground_at\(point\)\) or solid_tiles.has\(decor_at\(point\)\):|if false:|	tests/unit/test_map_data.gd	a patrol waypoint inside a wall is accepted and the NPC walks into it forever
 scripts/world/world_scene.gd	s|\t_drive_npcs\(\)|\tpass|	tests/integration/test_world_npcs.gd	behaviour is read from the map and then nothing ever moves
-scripts/world/actor_body.gd	s|platform_floor_layers = 0|platform_floor_layers = 0xFFFFFFFF|	tests/integration/test_world_npcs.gd	an NPC walking into the player from the north is dragged wherever the player strafes
 scripts/autoload/game_state.gd	s|if n <= 0 or n > gold:|if false:|	tests/unit/test_saves.gd	a player buys what they cannot afford and the purse goes negative
 scripts/autoload/game_state.gd	s|gold -= n|pass|	tests/unit/test_saves.gd	spending pays for nothing and money is infinite
 scripts/data/migrations.gd	s|d\["gold"\] = 0|pass|	tests/unit/test_saves.gd	an old save loads with no purse at all
@@ -785,3 +784,4 @@ tools/check.sh	s|^result \$\? "committed sprites match the generator"|echo "SKIP
 # --- Plan E: the config is in tile units, and at() is the one binder ------------------------
 scripts/data/game_config.gd	s|return float\(_tile_size\)|return 16.0|	tests/unit/test_game_config.gd	every distance is computed at 16px whatever the map draws, so a 32px game walks at half speed
 scripts/data/game_config.gd	s|return int\(_tiles\(\)\) if grid_step else 0|return int(_tiles())|	tests/integration/test_grid_movement.gd	grid stepping engages for a game that never asked for it, so free movement becomes tile-by-tile
+scripts/world/actor_body.gd	s|motion_mode = CharacterBody2D\.MOTION_MODE_FLOATING|motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED|	tests/integration/test_world_npcs.gd	the engine calls a north wall a ceiling again, so an NPC touching the player from above rides along with him
