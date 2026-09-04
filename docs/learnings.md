@@ -862,13 +862,19 @@ climbing in steps of exactly 0.8px per frame; walk speed is 48px/s at 60fps, so 
 *was* the player's speed - which is what turns "something drags her" into "she inherits his
 velocity". After the fix, 896 of 896 frames at exactly her column.
 
-**Fix the feature, not the family.** The obvious fix was `MOTION_MODE_FLOATING`, which Godot
-recommends for top-down and which deletes floors and ceilings outright. It also silently
-changed how every body slides along every wall: eleven scripted play sessions were calibrated
-against the old sliding, and one diverged into 16 cascading failures, none of them about NPCs.
-The narrow opt-out (`platform_floor_layers = 0`) fixed the reported bug and changed nothing
-else; the broader change became a recorded decision for someone who can *play* it. A fix whose
-blast radius exceeds the bug is a redesign wearing a fix's clothes.
+**Fix the feature, not the family - and then come back when the family is cheap.** The obvious
+fix was `MOTION_MODE_FLOATING`, which Godot recommends for top-down and which deletes floors and
+ceilings outright. It also changed how a body slides along a horizontal wall: eleven scripted
+play sessions were calibrated against the old sliding, and one diverged into 16 cascading
+failures, none of them about NPCs. The narrow opt-out (`platform_floor_layers = 0`) fixed the
+reported bug and changed nothing else. A fix whose blast radius exceeds the bug is a redesign
+wearing a fix's clothes.
+
+**M45 then made the redesign, and the deferral is what made it cheap.** Re-measured against 24
+sessions rather than eleven, only ONE still diverged - the sessions had grown more robust in the
+meantime, because "held against geometry, never counted in tiles" had become the house rule. The
+lesson is not that the first call was wrong; it is that a deferred change should be re-measured
+before it is re-argued, because the number in the record is a fact about the day it was written.
 
 **Takeaway:** when behaviour differs by direction, orientation or side, suspect a
 default-configured engine concept that is itself directional before suspecting your own logic.

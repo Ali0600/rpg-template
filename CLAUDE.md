@@ -183,19 +183,30 @@ being shown; on a line with choices the box routes input to the choice list inst
 the point of a choice is that one gets picked. So a conversation that loops back THROUGH a
 choice node has no way out of it - both branches of a choice must eventually end the talk.
 
-**No actor is a moving platform, and the default says otherwise.** `platform_floor_layers`
-defaults to every layer, which is a platformer contract: a body touching another from above
-reports `on_floor`, and a body on a MOVING floor inherits its velocity. Top-down, every actor
-is a "floor" to anything touching it from above - so an NPC walking down into the player rode
-along wherever he strafed, at exactly his walk speed, while one walking UP into him was
-untouched (from below he is a ceiling, and ceilings carry nobody). `ActorBody._init` clears it.
-An unset engine property is not a neutral one; it is whatever genre the engine assumed.
+**This game has no UP, and `ActorBody._init` says so.** `motion_mode = MOTION_MODE_FLOATING`,
+which Godot recommends for top-down. The engine's default is GROUNDED, a platformer contract: it
+classifies a surface by the direction you touched it FROM - above a floor, below a ceiling, the
+side a wall - so a platformer can ask whether it may jump. Here screen-up is NORTH, so that
+classification is about the compass while calling itself gravity. **An unset engine property is
+not a neutral one; it is whatever genre the engine assumed.**
 
-Deliberately NOT `MOTION_MODE_FLOATING`, which Godot recommends for top-down and which would
-also fix this: floating changes how every body slides along every wall, and the eleven play
-sessions are calibrated against the current sliding - switching it diverged
-`finish_the_quest` at the hermit into 16 cascading failures. That is a movement-feel decision
-for a person who has played the game, not a side effect of a bug fix. See `docs/DECISIONS.md`.
+It shipped a bug: a body on a MOVING floor inherits its velocity, and top-down every actor is a
+"floor" to anything touching it from above - so an NPC walking down into the player rode along
+wherever he strafed at exactly his walk speed, while one walking UP into him was untouched,
+because from below he was a ceiling and ceilings carry nobody. M13.4 fixed that narrowly by
+clearing `platform_floor_layers`, switching off the one feature rather than the concept it hangs
+off. **That clear is now GONE** - under FLOATING there is no floor to detect, so kept beside it
+the line would be one no test could ever watch fail.
+
+**The asymmetry is the argument, and it was measured rather than argued.** Along a VERTICAL wall
+the modes slide identically (a 60-frame diagonal into a side edge moves the player the same
+-67.9px under both). Along a HORIZONTAL one they do not: pressed diagonally into a north wall a
+body covers 11.31px in 20 frames under GROUNDED and 14.96 under FLOATING, because GROUNDED calls
+that surface a ceiling. North walls and east walls behaving differently in a game with no gravity
+is the compass mistaken for gravity - the same mistake the NPC carry was. Where a body comes to
+REST also moves, by 0.073px. `test_world_movement` pins that distance, because the test that
+guarded this asserted only that the body slid AT ALL - true under both modes, which is how a
+setting governing every wall in the game sat unexamined for eleven milestones.
 
 **The WORLD grows and the INTERFACE does not.** `SpriteStyle.world_scale` says how many world
 pixels one interface pixel is; the window becomes `UiScale.DESIGN_SIZE` (320x180, pinned against
