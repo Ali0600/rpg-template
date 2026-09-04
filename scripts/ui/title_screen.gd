@@ -20,6 +20,7 @@ signal sound_wanted(id: StringName)
 
 signal load_requested(slot: int)
 signal new_game_requested
+signal credits_requested
 
 const LAYER := 30
 const MARGIN := 8
@@ -195,5 +196,9 @@ func _act(pick: SlotMenu.Pick) -> void:
 		TitleMenu.Kind.NEW_GAME:
 			_committed = true
 			new_game_requested.emit()
+		TitleMenu.Kind.CREDITS:
+			# NOT committed: the credits screen is closed back to this one, and a title that had
+			# latched an answer would be deaf when the player returned to it.
+			credits_requested.emit()
 		_:
 			_paint()

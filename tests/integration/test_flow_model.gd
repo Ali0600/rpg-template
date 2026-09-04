@@ -134,6 +134,14 @@ func _arrive_at(state: String, adapter := "") -> void:
 		# say and the greeting keeps its own suite.
 		_world._offered = _quiet_manifest()
 		return
+	if state == "credits":
+		# Above start_game rather than in the match below it, because this is the only overlay
+		# whose base state has no game behind it. _ready already opened the title, so there is
+		# one to open this over.
+		_world._offered = _quiet_manifest()
+		assert_bool(_world.open_credits()).is_true()
+		await _steps(1)
+		return
 	assert_bool(_world.start_game(_quiet_manifest())).is_true()
 	await _steps(1)
 	match state:
@@ -216,6 +224,15 @@ func _drive(adapter: String, next_adapter := "") -> void:
 		"close_save":
 			_world._close_save()
 			await _steps(1)
+		"open_credits":
+			# Through the title's own signal rather than open_credits(), so what is driven is the
+			# row a player presses: a screen that opens only when a test calls its opener is a
+			# screen no player can reach.
+			_world._title.credits_requested.emit()
+			await _steps(1)
+		"close_credits":
+			_world._close_credits()
+			await _steps(1)
 		"open_battle":
 			var ring := _foe(999, 99) if next_adapter == "lose_battle" else _foe()
 			assert_bool(_world.open_battle_with([ring], "flow/foe")).is_true()
@@ -277,6 +294,8 @@ func _invariant_holds(name: String) -> bool:
 			return _world.rest_screen() != null
 		"save_screen_up":
 			return _world.save_screen() != null
+		"credits_screen_up":
+			return _world.credits_screen() != null
 		"game_over_screen_up":
 			var over: GameOverScreen = _world.game_over_screen()
 			return over != null
@@ -288,7 +307,7 @@ func _known_invariant(name: String) -> bool:
 		"title_screen_up", "no_game_running", "game_running", "player_exists", "map_is_named",
 		"player_can_move", "player_cannot_move", "no_overlay_up", "dialog_box_open",
 		"pause_screen_up", "battle_screen_up", "shop_screen_up", "rest_screen_up",
-		"save_screen_up", "game_over_screen_up",
+		"save_screen_up", "credits_screen_up", "game_over_screen_up",
 	].has(name)
 
 
