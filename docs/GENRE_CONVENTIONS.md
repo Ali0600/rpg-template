@@ -77,16 +77,17 @@ first, then gear, then the character read-out, then system rows (save, config). 
 has played one of these games can find Save in a game they have never seen.
 
 **This template.** `PauseMenu`/`PauseScreen`, opened with Escape from the world only:
-Resume, Items, Save, Load, Sound. Rows are an enum the view indexes its labels by, so the
+Resume, Items, Equipment, Status, Save, Load, Options. Rows are an enum the view indexes its labels by, so the
 order lives in one place. Save and Load are separate rows rather than one page with a mode,
-which is the DQ/FF slot-select shape flattened by one level. Sound sits at the bottom where
+which is the DQ/FF slot-select shape flattened by one level. Options sits at the bottom where
 Config does, and `Resume` is explicit rather than Escape-only because this game boots straight
 into the world and has no title screen to retreat to.
 
 **Gap:** none. Equipment and Status both moved here in M20 (§2, §3). Equipment had been folded
 into the bag, which is the one place the reference games never put it — and it was there
 because the menu had no row for it, which is what makes a missing command more than a cosmetic
-gap. Sound sits at the bottom where Config does.
+gap. Options sits at the bottom where Config does - it was a Sound row that WAS the volume until
+M46, and it opens a page now, which is what the references do.
 
 ---
 

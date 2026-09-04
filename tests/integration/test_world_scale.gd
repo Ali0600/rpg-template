@@ -166,6 +166,7 @@ func test_every_screen_the_world_opens_is_drawn_at_the_world_s_scale() -> void:
 		func() -> bool: return world.open_rest(),
 		func() -> bool: return world.open_shop(&"smith_shop"),
 		func() -> bool: return world.open_game_over(),
+		func() -> bool: return world.open_options(true),
 	]:
 		assert_bool(opener.call()).is_true()
 		await _steps(1)

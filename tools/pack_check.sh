@@ -103,11 +103,15 @@ echo "pack: $PACK ($bytes bytes)"
 
 fail=0
 ran=0
+# change_the_options is here for read_the_credits' reason: its Window row cycles the palettes in
+# data/palettes/, which are .tres resources that have to be packed, and "they did not get packed"
+# is invisible to every gate running against res://.
 # read_the_credits is here for a reason the others are not: it opens a screen that READS a
 # generated file out of the pack. Every other gate in this project runs against res://, where
 # assets/generated is simply a directory - so "credits.json did not get packed" is a defect only
 # this can see, and it is the shape M14 shipped in the audio seam.
-for name in the_game_makes_noise talk_to_npc warp_between_maps save_and_load read_the_credits; do
+for name in the_game_makes_noise talk_to_npc warp_between_maps save_and_load read_the_credits \
+    change_the_options; do
   script="$ROOT/tests/fixtures/qa/quest/$name.json"
   [ -f "$script" ] || { echo "FAIL  no such play script: $script"; fail=1; continue; }
   ran=$((ran + 1))

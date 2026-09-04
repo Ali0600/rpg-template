@@ -134,6 +134,13 @@ func _arrive_at(state: String, adapter := "") -> void:
 		# say and the greeting keeps its own suite.
 		_world._offered = _quiet_manifest()
 		return
+	if state == "options_at_title":
+		# Above start_game, like the credits: this is the page over the TITLE, and there is no
+		# game behind it. Its twin one state along is the same screen over the world.
+		_world._offered = _quiet_manifest()
+		assert_bool(_world.open_options()).is_true()
+		await _steps(1)
+		return
 	if state == "credits":
 		# Above start_game rather than in the match below it, because this is the only overlay
 		# whose base state has no game behind it. _ready already opened the title, so there is
@@ -151,6 +158,8 @@ func _arrive_at(state: String, adapter := "") -> void:
 			_world._apply_effects([{"op": GameContext.OP_DIALOG, "dialog": "elder"}])
 		"paused":
 			assert_bool(_world.open_pause()).is_true()
+		"options":
+			assert_bool(_world.open_options(true)).is_true()
 		"shop":
 			assert_bool(_world.open_shop(&"smith_shop")).is_true()
 		"resting":
@@ -233,6 +242,23 @@ func _drive(adapter: String, next_adapter := "") -> void:
 		"close_credits":
 			_world._close_credits()
 			await _steps(1)
+		"open_options_from_title":
+			# Through the title's own signal rather than open_options(), so what is driven is the
+			# row a player presses.
+			_world._title.options_requested.emit()
+			await _steps(1)
+		"close_options_to_title":
+			_world._close_options()
+			await _steps(1)
+		"open_options":
+			# Through the pause screen's own signal, which is what makes the TWO hops real: the
+			# handler closes the menu and defers the open, so the recording sees paused -> world
+			# and then world -> options. Two frames, because the open is deferred.
+			_world._pause.options_requested.emit()
+			await _steps(2)
+		"close_options":
+			_world._close_options()
+			await _steps(1)
 		"open_battle":
 			var ring := _foe(999, 99) if next_adapter == "lose_battle" else _foe()
 			assert_bool(_world.open_battle_with([ring], "flow/foe")).is_true()
@@ -296,6 +322,8 @@ func _invariant_holds(name: String) -> bool:
 			return _world.save_screen() != null
 		"credits_screen_up":
 			return _world.credits_screen() != null
+		"options_screen_up":
+			return _world.options_screen() != null
 		"game_over_screen_up":
 			var over: GameOverScreen = _world.game_over_screen()
 			return over != null
@@ -307,7 +335,7 @@ func _known_invariant(name: String) -> bool:
 		"title_screen_up", "no_game_running", "game_running", "player_exists", "map_is_named",
 		"player_can_move", "player_cannot_move", "no_overlay_up", "dialog_box_open",
 		"pause_screen_up", "battle_screen_up", "shop_screen_up", "rest_screen_up",
-		"save_screen_up", "credits_screen_up", "game_over_screen_up",
+		"save_screen_up", "credits_screen_up", "options_screen_up", "game_over_screen_up",
 	].has(name)
 
 

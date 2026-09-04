@@ -48,7 +48,7 @@ func _screen(members := 3) -> PauseScreen:
 		rows.append(_member("m%d" % i, names[i], art[i]))
 	var screen := PauseScreen.new()
 	add_child(screen)
-	screen.setup(PauseMenu.of(_slots(GameConfig.MAX_SAVE_SLOTS), [], "Sound: Normal",
+	screen.setup(PauseMenu.of(_slots(GameConfig.MAX_SAVE_SLOTS), [],
 		"Gold: 9999", [], "Atk 18+4   Def 12+3", ["Level 12", "HP 188/188"], rows, true),
 		_style(), VIEWPORT, FileSpriteSource.create(&"lpc32"))
 	_screens.append(screen)

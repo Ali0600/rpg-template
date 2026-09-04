@@ -187,6 +187,31 @@ func test_the_title_is_drawn_in_the_palette_too() -> void:
 		).is_equal(Color(str(_palette(MINT).colors["panel"])))
 
 
+func test_the_window_row_changes_the_palette_and_what_is_drawn_behind_it() -> void:
+	# Driven through the screen's own signal, which is the front door for the world handler under
+	# test: the row emits, the world cycles, writes, rebinds and repaints. A scripted session can
+	# see the page survive the press and nothing more - no QA op reads a colour - so the press
+	# doing NOTHING was invisible until this existed.
+	var world := await _boot()
+	assert_bool(world.open_options(true)).is_true()
+	await _steps(1)
+	var screen: OptionsScreen = world.options_screen()
+	assert_object(screen).is_not_null()
+	var before := Settings.palette()
+	screen.window_requested.emit()
+	await _steps(1)
+	assert_str(String(Settings.palette())).override_failure_message(
+		"pressing the Window row left the chosen palette exactly as it was").is_not_equal(
+			String(before))
+	# The store moving is half of it. The other half is that the world it will be seen in moved
+	# too - a setting written and never applied is the failure this whole feature is about.
+	var chosen := Registry.get_resource(&"UiPalette", Settings.palette()) as UiPalette
+	assert_object(chosen).is_not_null()
+	assert_that(_panel_color(world)).override_failure_message(
+		"the palette changed and the window behind the page kept its old fill").is_equal(
+			Color(str(chosen.colors["panel"])))
+
+
 func test_recolouring_does_not_bring_back_a_hint_the_player_has_dismissed() -> void:
 	# The reason the hint is restyled where the dialog box is rebuilt. It teaches which keys move
 	# you and goes away once you have moved; a fresh one would put that back on the screen of

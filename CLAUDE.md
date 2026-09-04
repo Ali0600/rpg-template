@@ -283,6 +283,43 @@ screen. Both are bounded and `OVERRUN_TRIM_ELLIPSIS` now. A trimmed name still r
 a number printed through it does not. The audits measure the DRAWN width, so a clipping label is
 measured at its box rather than at the string it would have been.
 
+**A PALETTE is the player's half of that, and `_bind_style` is the only place it is laid on.**
+A `UiPalette` under `data/palettes/` is a named set of all eight roles, and
+`SpriteStyle.with_ui_colors` returns a DUPLICATE wearing it - never in place, or recolouring one
+style would recolour it for the Sprite Lab and every suite in the process. `_style_source` is kept
+beside `_style` because a palette composes over the STYLE: composing over the last composed result
+works once and never gets back. The eight move together or they do not move - FF6 offers three
+colour bars because its window is one colour, and here `text` has to stay legible on `panel`;
+*Parchment* inverts the value order and only reads because all eight went with it. `Settings`
+stores the ID ONLY and the world resolves it, so "a palette this build no longer ships" falls back
+in exactly one place.
+
+**A recolour REBUILDS the dialog box and RESTYLES the controls hint, and the asymmetry is the
+rule.** The box holds its colours in a StyleBox and half a dozen theme overrides made once in
+`setup()`, so a second way of applying them is a second thing to keep in step - and no
+conversation can be open when a recolour is asked for, since the pause menu opens from `WORLD`
+only. The hint carries STATE: a fresh one puts "use the arrow keys" back on the screen of somebody
+an hour into the game, and every colour assertion still passes. **`open_title` must hand the
+screen `_style` and never the style that came in** - it did the latter until M46, so all four
+palettes drew a byte-identical title, and only a photograph found it.
+
+**OPTIONS IS ONE SCREEN AND TWO STATES, and the walks are what proved it has to be.** The page is
+reached from a title row and a pause-menu row; the pause menu is CLOSED on the way through,
+because no overlay in this game opens over another - so the trace is `paused -> world -> options`,
+the `lose_battle` two-hop, and the open is deferred, the `OP_SHOP` rule. `Router.State` therefore
+carries `OPTIONS` **and** `OPTIONS_AT_TITLE`: a game runs behind one and not the other, and leaving
+them goes to different places. It shipped as one state with two exits and the seeded walks
+minimised it to five steps on the first run that reached it. **A state whose legal exit depends on
+something nobody wrote down is not one state** - and the tell was already in the model file, whose
+entry declared neither `game_running` nor `no_game_running` because neither was always true.
+
+**A row that carries a VALUE and a row that opens a PAGE are different rows.** `PauseMenu.Row.SOUND`
+was the volume, so the menu had to be handed the word "Normal" and `PauseScreen` needed a special
+case in `_label_for` to draw it. It is `Row.OPTIONS` now, the label table has a word for every row,
+and `of()`/`refresh()` lost an argument - which is the v10 rename lesson again: the compile gate
+enumerated all five call sites, and a positional argument removed from a nine-argument list is not
+something to find by eye.
+
 **Everything a screen is drawn WITH lives in `UiChrome`, and every colour it uses is a ROLE.**
 One font (Pixel Operator 8, CC0, named by `gui/theme/custom_font` so no screen has to ask and
 none can forget), at one size, because a pixel font is drawn for one and a heading that scales it

@@ -285,37 +285,36 @@ func test_refreshing_keeps_the_bag_and_the_cursor() -> void:
 
 
 
-func test_confirming_the_sound_row_asks_for_the_next_step() -> void:
-	var menu := PauseMenu.of(_slots([]), [], "Normal")
-	menu.move(PauseMenu.Row.SOUND)
-	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.SOUND)
+func test_confirming_the_options_row_asks_for_the_page() -> void:
+	var menu := PauseMenu.of(_slots([]))
+	menu.move(PauseMenu.Row.OPTIONS)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.OPTIONS)
 
 
-func test_the_sound_row_works_in_a_game_with_no_save_slots() -> void:
+func test_the_options_row_works_in_a_game_with_no_save_slots() -> void:
 	# The row has nothing to do with saves, and a game configured without them must still be
-	# able to turn the sound down. It is exempt from the empty-slot guard the way Items is -
+	# able to reach its options. It is exempt from the empty-slot guard the way Items is -
 	# and that exemption is the whole reason this test exists, because the guard sits between
 	# the cursor and every row below Resume.
 	# Zero slots, not three empty ones: the guard fires on the LIST being empty.
-	var menu := PauseMenu.of(_slots([], 0), [], "Loud")
-	menu.move(PauseMenu.Row.SOUND)
-	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.SOUND)
+	var menu := PauseMenu.of(_slots([], 0))
+	menu.move(PauseMenu.Row.OPTIONS)
+	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.OPTIONS)
 	# The control: a slot row in the same menu still refuses, so this is not just "nothing is
 	# guarded any more".
-	menu.move(PauseMenu.Row.SAVE - PauseMenu.Row.SOUND)
+	menu.move(PauseMenu.Row.SAVE - PauseMenu.Row.OPTIONS)
 	assert_int(menu.index()).is_equal(PauseMenu.Row.SAVE)
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
 
 
-func test_the_sound_row_says_what_the_setting_is() -> void:
-	# Carried as text rather than read: the menu may not ask an autoload, so the world hands it
-	# the words the way it hands over slot summaries.
-	assert_str(PauseMenu.of(_slots([]), [], "Quiet").sound_label()).is_equal("Sound: Quiet")
-
-
-func test_a_menu_told_nothing_about_sound_still_draws_the_row() -> void:
-	# A blank label would render as an empty line, which reads as a menu that failed to draw.
-	assert_str(PauseMenu.of(_slots([])).sound_label()).is_not_empty()
+func test_the_options_row_carries_no_words_of_its_own() -> void:
+	# It used to. The row WAS the volume, so the menu was handed "Normal" and said "Sound: Normal"
+	# - and that text was the one thing on this page a view could not label from its own table.
+	# Now it opens a page, so the label is as fixed as every other row's, and the argument that
+	# carried it is gone from of() and refresh() entirely. Asserted as the ABSENCE of the method,
+	# because a caller that kept passing the word would otherwise be silently ignored.
+	assert_bool(PauseMenu.of(_slots([])).has_method("sound_label")).override_failure_message(
+		"PauseMenu still words a row it no longer owns").is_false()
 
 
 # --- the equipment pages ------------------------------------------------------------------
@@ -340,7 +339,7 @@ func _dressed() -> PauseMenu:
 			PauseMenu.ItemRow.of(&"sword", "Sword", 1, "", &"weapon", true),
 			PauseMenu.ItemRow.of(&"vest", "Vest", 1, "", &"armor"),
 			PauseMenu.ItemRow.of(&"gate_key", "Gate key", 1),
-		], "", "", _gear([
+		], "", _gear([
 			[&"weapon", "Weapon", "Sword", "Take off: Atk -3  (now Atk +0 Def +0)"],
 			[&"armor", "Armor"],
 		]), "Atk 5+3  Def 1+0")
@@ -359,7 +358,7 @@ func test_confirming_the_equipment_row_opens_the_slot_list() -> void:
 func test_the_equipment_page_opens_in_a_game_with_no_save_slots() -> void:
 	# The Items and Sound exemption, for the same reason: dressing yourself has nothing to do
 	# with saves. Its control is below - Save still refuses.
-	var menu := PauseMenu.of([], [], "", "", _gear([[&"weapon", "Weapon"]]))
+	var menu := PauseMenu.of([], [], "", _gear([[&"weapon", "Weapon"]]))
 	menu.move(PauseMenu.Row.EQUIP)
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
 	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP)
@@ -367,7 +366,7 @@ func test_the_equipment_page_opens_in_a_game_with_no_save_slots() -> void:
 
 func test_a_game_with_no_save_slots_still_cannot_save() -> void:
 	# The control for the test above: the exemption is for three named rows, not a hole.
-	var menu := PauseMenu.of([], [], "", "", _gear([[&"weapon", "Weapon"]]))
+	var menu := PauseMenu.of([], [], "", _gear([[&"weapon", "Weapon"]]))
 	menu.move(PauseMenu.Row.SAVE)
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
 	assert_int(menu.page()).is_equal(PauseMenu.Page.TOP)
@@ -489,7 +488,7 @@ func test_refreshing_keeps_the_equipment_page_and_clamps_a_shrunken_list() -> vo
 	menu.confirm()
 	menu.confirm()
 	menu.move(1)
-	menu.refresh(_slots([]), [], "", "", _gear([[&"weapon", "Weapon"]]), "Atk 5+0  Def 1+0")
+	menu.refresh(_slots([]), [], "", _gear([[&"weapon", "Weapon"]]), "Atk 5+0  Def 1+0")
 	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP_PICK)
 	assert_int(menu.size()).is_equal(1)
 	assert_int(menu.index()).override_failure_message(
@@ -504,7 +503,7 @@ func test_refreshing_keeps_the_equipment_page_and_clamps_a_shrunken_list() -> vo
 
 
 func test_confirming_the_status_row_opens_the_page() -> void:
-	var menu := PauseMenu.of(_slots([]), [], "", "", [], "",
+	var menu := PauseMenu.of(_slots([]), [], "", [], "",
 		["Level 3", "HP 12/24", "XP 40  (next in 10)"] as Array[String])
 	menu.move(PauseMenu.Row.STATUS)
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
@@ -516,7 +515,7 @@ func test_confirming_the_status_row_opens_the_page() -> void:
 func test_the_status_page_opens_in_a_game_with_no_save_slots() -> void:
 	# The Items, Equipment and Sound exemption, for the same reason: asking how you are has
 	# nothing to do with saves.
-	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"] as Array[String])
+	var menu := PauseMenu.of([], [], "", [], "", ["Level 1"] as Array[String])
 	menu.move(PauseMenu.Row.STATUS)
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
 	assert_int(menu.page()).is_equal(PauseMenu.Page.STATUS)
@@ -525,7 +524,7 @@ func test_the_status_page_opens_in_a_game_with_no_save_slots() -> void:
 func test_there_is_nothing_on_the_status_page_to_press() -> void:
 	# A readout. A page that DID something on confirm would be a different screen, and a menu
 	# that accepts a press and does nothing reads as one that broke.
-	var menu := PauseMenu.of(_slots([]), [], "", "", [], "", ["Level 3"] as Array[String])
+	var menu := PauseMenu.of(_slots([]), [], "", [], "", ["Level 3"] as Array[String])
 	menu.move(PauseMenu.Row.STATUS)
 	menu.confirm()
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
@@ -536,7 +535,7 @@ func test_there_is_nothing_on_the_status_page_to_press() -> void:
 func test_a_status_with_nothing_to_say_still_says_so() -> void:
 	# The empty-bag rule: a page of blanks reads as a page that failed to draw. A game with no
 	# fighting in it has no level and no HP, and that is a fact rather than an error.
-	var menu := PauseMenu.of(_slots([]), [], "", "", [], "", [] as Array[String])
+	var menu := PauseMenu.of(_slots([]), [], "", [], "", [] as Array[String])
 	menu.move(PauseMenu.Row.STATUS)
 	menu.confirm()
 	assert_int(menu.size()).is_equal(1)
@@ -544,7 +543,7 @@ func test_a_status_with_nothing_to_say_still_says_so() -> void:
 
 
 func test_cancel_on_the_status_page_returns_to_the_status_row() -> void:
-	var menu := PauseMenu.of(_slots([]), [], "", "", [], "", ["Level 3"] as Array[String])
+	var menu := PauseMenu.of(_slots([]), [], "", [], "", ["Level 3"] as Array[String])
 	menu.move(PauseMenu.Row.STATUS)
 	menu.confirm()
 	assert_int(menu.cancel().kind).is_equal(PauseMenu.Kind.NONE)
@@ -561,13 +560,13 @@ func _members() -> Array:
 func test_with_one_member_equipment_opens_its_page_directly() -> void:
 	# The control every counting session depends on: with nobody else in the party, the flow is
 	# exactly the one that shipped and the presses are the presses those files recorded.
-	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")])
+	var menu := PauseMenu.of([], [], "", [PauseMenu.GearRow.of(&"weapon", "Weapon")])
 	menu.move(PauseMenu.Row.EQUIP)
 	menu.confirm()
 	assert_int(menu.page()).is_equal(PauseMenu.Page.EQUIP)
 
 func test_with_a_party_equipment_asks_whose_first() -> void:
-	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
+	var menu := PauseMenu.of([], [], "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
 		[], _members())
 	menu.move(PauseMenu.Row.EQUIP)
 	menu.confirm()
@@ -576,14 +575,14 @@ func test_with_a_party_equipment_asks_whose_first() -> void:
 	assert_int(menu.size()).is_equal(2)
 
 func test_with_a_party_status_asks_whose_first() -> void:
-	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"], _members())
+	var menu := PauseMenu.of([], [], "", [], "", ["Level 1"], _members())
 	menu.move(PauseMenu.Row.STATUS)
 	menu.confirm()
 	assert_int(menu.page()).is_equal(PauseMenu.Page.MEMBER)
 
 func test_choosing_a_member_asks_the_world_to_word_their_page() -> void:
 	# The menu decides WHO and never learns what a level is - the _status and _stats shape.
-	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
+	var menu := PauseMenu.of([], [], "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
 		[], _members())
 	menu.move(PauseMenu.Row.EQUIP)
 	menu.confirm()
@@ -597,7 +596,7 @@ func test_choosing_a_member_asks_the_world_to_word_their_page() -> void:
 		.is_equal(PauseMenu.Page.EQUIP)
 
 func test_the_member_page_names_who_it_is_asking_about() -> void:
-	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"], _members())
+	var menu := PauseMenu.of([], [], "", [], "", ["Level 1"], _members())
 	menu.move(PauseMenu.Row.STATUS)
 	menu.confirm()
 	assert_str(menu.member_label(0)).is_equal("You")
@@ -605,7 +604,7 @@ func test_the_member_page_names_who_it_is_asking_about() -> void:
 
 func test_backing_out_of_a_members_page_returns_to_the_member_list() -> void:
 	# The player is changing their mind about WHOSE page they wanted, not about wanting one.
-	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
+	var menu := PauseMenu.of([], [], "", [PauseMenu.GearRow.of(&"weapon", "Weapon")], "",
 		[], _members())
 	menu.move(PauseMenu.Row.EQUIP)
 	menu.confirm()
@@ -618,7 +617,7 @@ func test_backing_out_of_a_members_page_returns_to_the_member_list() -> void:
 		"the member list came back with the cursor somewhere else").is_equal(1)
 
 func test_backing_out_of_the_member_list_returns_to_the_row_that_opened_it() -> void:
-	var menu := PauseMenu.of([], [], "", "", [], "", ["Level 1"], _members())
+	var menu := PauseMenu.of([], [], "", [], "", ["Level 1"], _members())
 	menu.move(PauseMenu.Row.STATUS)
 	menu.confirm()
 	menu.cancel()
@@ -629,7 +628,7 @@ func test_backing_out_of_the_member_list_returns_to_the_row_that_opened_it() -> 
 func test_with_one_member_backing_out_of_equipment_still_leaves_it() -> void:
 	# The other half of the control: no member step means nothing to come back to, so cancel
 	# behaves exactly as it always did.
-	var menu := PauseMenu.of([], [], "", "", [PauseMenu.GearRow.of(&"weapon", "Weapon")])
+	var menu := PauseMenu.of([], [], "", [PauseMenu.GearRow.of(&"weapon", "Weapon")])
 	menu.move(PauseMenu.Row.EQUIP)
 	menu.confirm()
 	menu.cancel()
@@ -641,7 +640,7 @@ func test_a_game_that_saves_at_a_point_has_no_save_row() -> void:
 	# The axis, from the menu's side. The row is ABSENT rather than refused: a capability the
 	# game does not have is hidden, the requires_item rule, where a price the player cannot
 	# meet is quoted and refused.
-	var menu := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+	var menu := PauseMenu.of(_slots([0]), [], "", [], "", [], [], false)
 	assert_int(menu.size()).is_equal(PauseMenu.Row.size() - 1)
 	var offered: Array = []
 	for i in menu.size():
@@ -651,7 +650,7 @@ func test_a_game_that_saves_at_a_point_has_no_save_row() -> void:
 	# Everything else survives, which is the half a "the row is gone" assertion cannot see:
 	# hiding one row must not hide its neighbours.
 	for row: int in [PauseMenu.Row.RESUME, PauseMenu.Row.ITEMS, PauseMenu.Row.EQUIP,
-			PauseMenu.Row.STATUS, PauseMenu.Row.LOAD, PauseMenu.Row.SOUND]:
+			PauseMenu.Row.STATUS, PauseMenu.Row.LOAD, PauseMenu.Row.OPTIONS]:
 		assert_bool(offered.has(row)).override_failure_message(
 			"hiding Save also took row %d with it" % row).is_true()
 
@@ -668,7 +667,7 @@ func test_a_game_that_saves_anywhere_offers_every_row_at_its_own_index() -> void
 func test_the_row_after_status_opens_LOAD_when_saving_is_off() -> void:
 	# The mapping doing its job: at that index the enum says SAVE and this game says Load, and
 	# a confirm has to answer for the row that is DRAWN there.
-	var menu := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+	var menu := PauseMenu.of(_slots([0]), [], "", [], "", [], [], false)
 	menu.move(PauseMenu.Row.SAVE)
 	assert_int(menu.top_row(menu.index())).is_equal(PauseMenu.Row.LOAD)
 	assert_int(menu.confirm().kind).is_equal(PauseMenu.Kind.NONE)
@@ -686,9 +685,9 @@ func test_no_press_on_a_save_at_point_menu_can_reach_the_save_page() -> void:
 	# The whole-set assertion the per-row check cannot make: walk every row this menu offers,
 	# confirm on each, and require the save page never to open. "The row is not in the list" is
 	# one direction; "no press reaches the page" is the one that matters.
-	var menu := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+	var menu := PauseMenu.of(_slots([0]), [], "", [], "", [], [], false)
 	for i in menu.size():
-		var fresh := PauseMenu.of(_slots([0]), [], "", "", [], "", [], [], false)
+		var fresh := PauseMenu.of(_slots([0]), [], "", [], "", [], [], false)
 		fresh.move(i)
 		fresh.confirm()
 		assert_int(fresh.page()).override_failure_message(

@@ -22,6 +22,9 @@ signal load_requested(slot: int)
 signal new_game_requested
 signal credits_requested
 
+## The player asked for the options page. Not committed either, and for the same reason.
+signal options_requested
+
 const LAYER := 30
 const MARGIN := 8
 ## The one screen in this game with a big word on it. A title is mostly its own name.
@@ -200,5 +203,8 @@ func _act(pick: SlotMenu.Pick) -> void:
 			# NOT committed: the credits screen is closed back to this one, and a title that had
 			# latched an answer would be deaf when the player returned to it.
 			credits_requested.emit()
+		TitleMenu.Kind.OPTIONS:
+			# Not committed, for the credits' reason exactly - the options page comes back here.
+			options_requested.emit()
 		_:
 			_paint()

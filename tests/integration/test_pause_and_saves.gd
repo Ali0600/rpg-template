@@ -302,24 +302,20 @@ func _dismiss_opening() -> void:
 	fail("the opening conversation would not close")
 
 
-func test_the_sound_row_is_drawn_with_the_current_setting_on_it() -> void:
-	# Asserted on the RENDERED text, not on the menu's answer. The menu returning the right
-	# label proves nothing about the screen putting it on screen: the row could draw the
-	# static blank that sits in its place in the label table, which renders as an empty line
-	# and reads as a menu that failed to draw.
+func test_the_options_row_is_drawn_with_a_word_on_it() -> void:
+	# Asserted on the RENDERED text, not on the menu's answer. Until M46 this row said what the
+	# VOLUME was, and the assertion was that it carried a colon; the row opens a page now, so the
+	# only thing left to prove here is that it is drawn at all - the label table has a slot per
+	# row and an empty one renders as a blank line that reads as a menu which failed to draw.
+	# What the setting IS has moved with it, to test_options_layout and the options page's own
+	# scripted session.
 	await _boot()
 	assert_bool(_world.open_pause()).is_true()
 	await _steps(2)
 	var drawn := _drawn_rows()
 	assert_array(drawn).override_failure_message("the pause screen drew nothing").is_not_empty()
-	var found := ""
-	for text in drawn:
-		if text.contains("Sound"):
-			found = text
-	assert_str(found).override_failure_message(
-		"no row said anything about sound; the screen drew %s" % [drawn]).is_not_empty()
-	assert_str(found).override_failure_message(
-		"the sound row does not say what the setting IS: '%s'" % found).contains(":")
+	assert_bool(drawn.has("Options")).override_failure_message(
+		"no row said Options; the screen drew %s" % [drawn]).is_true()
 
 
 ## Every non-empty label the pause screen is currently showing.
@@ -570,7 +566,7 @@ func test_a_save_at_point_game_can_still_load() -> void:
 	# CURSOR reaches: the menu's own answer is already pinned in test_pause_menu, and this is
 	# the layer where the screen's labels and the menu's mapping have to agree.
 	#
-	# Resume, Items, Equipment, Status, Load, Sound - FOUR down lands on Load, because this
+	# Resume, Items, Equipment, Status, Load, Options - FOUR down lands on Load, because this
 	# game has no Save row between Status and it. That count is written out rather than looped
 	# for the reason _to_the_third_slot's is: inserting a row moves it deliberately.
 	await _boot_at_point()

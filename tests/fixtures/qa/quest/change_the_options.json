@@ -1,0 +1,96 @@
+{
+	"_readme": [
+		"The options page, driven by real keys, from both rows a player can press to reach it.",
+		"",
+		"It is in tools/pack_check.sh's list as well as check.sh's, and that is the point of it.",
+		"The Window row cycles the palettes in data/palettes/, which are .tres resources that",
+		"have to be PACKED - and 'the palettes did not get packed' is a defect every gate running",
+		"against res:// is structurally blind to. It is the shape M14 shipped in the audio seam",
+		"and M43 guarded for credits.json.",
+		"",
+		"The sound step is asserted by its CUE rather than by reading a row: the blip is played",
+		"after the change so it is heard at the volume just chosen, and it is the only thing a",
+		"session can see. The window step is asserted by the state surviving it - a recolour",
+		"rebuilds the page it is chosen on, and a rebuild that went wrong would leave no screen."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits, Options - so Options is the LAST row, and two move_ups get there: one onto Continue and one that wraps round the top. Counted up rather than down because wrapping is one deliberate press per row rather than a walk past every row between."
+		},
+		{ "op": "assert_state", "state": "title" },
+		{ "op": "press", "action": "move_up" },
+		{ "op": "wait", "frames": 4 },
+		{ "op": "press", "action": "move_up" },
+		{ "op": "wait", "frames": 4 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{
+			"op": "note",
+			"text": "the page is up over the title, with no game behind it - its own flow state, because leaving it goes somewhere different from leaving the one over the world"
+		},
+		{ "op": "assert_state", "state": "options_at_title" },
+		{
+			"op": "note",
+			"text": "the cursor opens on Sound. Confirm turns the volume one step and the blip is played AFTER the change, so it is heard at the level just chosen."
+		},
+		{ "op": "sound_mark" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_sound", "id": "menu_confirm" },
+		{
+			"op": "note",
+			"text": "down onto Window and change it. The page repaints itself in the colours just chosen, which is the whole point of the row - and a repaint that dropped the screen would fail the state assertion below rather than looking merely wrong."
+		},
+		{ "op": "press", "action": "move_down" },
+		{ "op": "wait", "frames": 4 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "options_at_title" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{
+			"op": "note",
+			"text": "leave. The title is still behind it and still answers, which is what a screen that latched its answer on the way out would fail."
+		},
+		{ "op": "press", "action": "cancel" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "title" },
+		{
+			"op": "note",
+			"text": "down onto New game from Options - one press, wrapping the other way - and the run begins"
+		},
+		{ "op": "press", "action": "move_down" },
+		{ "op": "wait", "frames": 4 },
+		{ "op": "press", "action": "move_down" },
+		{ "op": "wait", "frames": 4 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 30 },
+		{ "op": "press_until_state", "action": "interact", "state": "world", "limit": 600 },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "world" },
+		{
+			"op": "note",
+			"text": "the other way in. Pause, then Options - the LAST row again: Resume, Items, Equipment, Status, Save, Load, Options - so one move_up wraps onto it."
+		},
+		{ "op": "press", "action": "cancel" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "paused" },
+		{ "op": "press", "action": "move_up" },
+		{ "op": "wait", "frames": 4 },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{
+			"op": "note",
+			"text": "the pause menu CLOSED on the way through, because no overlay here opens over another - so this is the world's options state, not the title's, and leaving goes back to the world rather than to a menu that is already gone."
+		},
+		{ "op": "assert_state", "state": "options" },
+		{ "op": "sound_mark" },
+		{ "op": "press", "action": "interact" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_sound", "id": "menu_confirm" },
+		{ "op": "press", "action": "cancel" },
+		{ "op": "wait", "frames": 10 },
+		{ "op": "assert_state", "state": "world" }
+	]
+}

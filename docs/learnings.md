@@ -2231,3 +2231,37 @@ in the type or bind it at construction, and convert at ONE seam. A rule that exi
 mismatch between two numbers is a rule you can often delete by making the mismatch
 unrepresentable — and deleting a rule legitimately deletes its test, which is a different thing
 from a test going stale.
+
+### A state machine's states are told apart by what is LEGAL in them, not by what is on screen
+
+Two situations that look identical - the same screen, the same nodes, the same input handler - are
+two different states if a different set of moves is legal from each. The giveaway is a property
+you cannot write down as always-true or always-false.
+
+**Why it came up.** M46's options page is opened from the title and from the pause menu, and it
+was modelled as ONE state on the grounds that it is one screen. Writing its entry in
+`tools/flow_model.json` needed a list of invariants, and it could name neither `game_running` nor
+`no_game_running` - a game is running behind one and not the other. That was the answer, and it
+was written down and rationalised away in the same sentence. The seeded walks then found it on the
+first journey that reached it, minimised to five steps: open the page from the title, leave it into
+a world that was not there.
+
+**Takeaway.** When declaring a state, list what is always true in it; if a property has to be
+omitted because it is *sometimes* true, that is two states wearing one name - and its exits will
+be the thing that eventually disagrees.
+
+### A gate that DRIVES the system can only see effects it has an instrument for
+
+A scripted end-to-end run is not automatically stronger than a unit test. It can only assert what
+its own vocabulary reaches, and an effect outside that vocabulary is invisible to it however
+faithfully it presses the keys.
+
+**Why it came up.** The scripted session for the options page presses the Window row, which
+recolours every window in the game. The session's assertions are states, positions, maps and sound
+cues - none of which reads a colour. So the mutant that made the row do nothing at all SURVIVED
+against a session that pressed it, and it was killed only by an integration test that could read
+the colour back off the thing that draws it.
+
+**Takeaway.** Before pointing a mutant at an end-to-end driver, ask which of that driver's
+assertions could go red - and if the honest answer is none, the rule needs a gate with an
+instrument for it rather than a more thorough script.
