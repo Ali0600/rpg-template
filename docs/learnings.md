@@ -2135,3 +2135,55 @@ it to one line SURVIVED, because the per-line face placement rewrote the size a 
 **Takeaway.** When a mutant survives on a line that is obviously load-bearing, grep for a second
 writer of the same field before doubting the test. Then give the value one owner — the fix is not
 a better assertion, it is fewer assignments.
+
+## A containment gate measures geometry, and a sentence is meaning
+
+Every layout audit here asks whether a thing is inside a box, distinct from its neighbours and in
+order. A paragraph broken across a page boundary satisfies all three.
+
+**Why it came up.** M43's credits screen paged its notice by line, so page one ended on "Some
+layers are share-alike, so the" and page two picked the sentence up. 1,396 tests, a fit gate
+measuring every line with the real font, and a layout audit measuring every rect — all green. It
+was found by opening the screenshot and reading it.
+
+**Takeaway.** Geometric gates cannot see whether content still MEANS anything after you have
+arranged it. When a screen carries prose, one human read of every page is a step, not a nicety —
+and the fix is usually to make the layout unit the unit of meaning (a block, not a line).
+
+## A licence is a functional requirement with no test to remind you
+
+`credits.json` was generated, sorted, drift-gated and shipped inside the pack from M40. Nothing
+read it, and nothing could notice that.
+
+**Why it came up.** The demo's art is CC-BY-SA and the terms require the credits be reachable from
+inside the game. The producer had a gate; the CONSUMER did not exist, and the only trace of the
+obligation was the word "owed" in a paragraph of CLAUDE.md. Three milestones passed.
+
+**Takeaway.** When an obligation is discharged by a surface rather than by a file, write the gate
+that drives the surface at the same time as the file — otherwise the debt lives in prose, and prose
+does not go red.
+
+## A test that asserts a count is asserting a proxy
+
+`test_the_title_has_no_third_way_on` asserted `row_count() == 2`. The rule it stood for was "a
+title cannot offer a route to itself".
+
+**Why it came up.** M43 added a Credits row, the count became 3, and the test failed — while the
+rule it was protecting was untouched. A failure that tells you nothing about the rule is a failure
+you learn to edit rather than read.
+
+**Takeaway.** Assert the rule over the members, not the size of the set: walk the rows and require
+that none answers the forbidden thing. It survives the next legitimate addition, and it fails for
+the reason its name gives.
+
+## A wrap width guessed from an average character width is a guess
+
+A pure class has no font, so it wraps at a character count. That count is a hypothesis about pixels.
+
+**Why it came up.** `CHARS_PER_ROW := 46` was picked from a measured ~6.3px average. The two source
+URLs came out at 296 and 301 pixels in a 292 pixel row, because URL characters are not average.
+
+**Takeaway.** A character-count wrap is fine as long as something downstream measures the OUTCOME
+with the real font and fails the build. Set the constant from what that gate reports, and say in the
+comment that it was measured — the next reader will otherwise round it back up.
+

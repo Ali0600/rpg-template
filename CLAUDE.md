@@ -1141,7 +1141,39 @@ drift gate can compare it; it is a resource, so it ships in the pack for a credi
 read) and `LICENSE.txt` (repository-facing; a `.txt` is not packed). One CC-BY-SA layer makes the
 composed sheets CC-BY-SA and the notice says so. **The demo's `lpc32` accepts both buckets** -
 CC0/CC-BY/OGA-BY and CC-BY-SA, the user's call with the terms explained - so its sheets ship
-share-alike and an in-game credits surface is owed (M40 phase C).
+share-alike and an in-game credits surface is owed - **paid by M43**, below.
+
+**The credits are a SCREEN, because the licence says so and the genre does not.** The references
+put no credits option on a title at all and roll staff after an ending, which a template with no
+ending cannot do; what decides it is the LPC generator's own README, which requires the credits be
+"accessible from within your game or app and can be reasonably discovered by users ... shown on the
+'Credits' screen directly, or provide a visible link". So a Credits row sits on the title, and
+`CreditsMenu` (pure) pages the notice and then every artist by name while `CreditsScreen` paints.
+The world reads `assets/generated/<style>/credits.json` and hands it in, because knowing where a
+style's art lives is a question about the running game and a view may not ask one; a style that
+draws its own art has no such file, and the notice SAYS that rather than erroring. No cursor at
+all - there is no verb on the page, which is the status page's rule.
+
+**Artists in full, never one row per work.** The payload is 43 artists over 42 works and the LPC
+character layers carry up to eleven authors each, so a per-work row would ellipsise exactly the
+entries with the most people to attribute. Paged rather than scrolled for a harder reason than
+room: every layout audit here collects four node classes by EXACT class, so a list inside a scroll
+container is a screen no gate can see.
+
+**A page never splits a paragraph, and only looking found that.** The first build broke page one
+in the middle of "Some layers are share-alike, so the" - inside every bound, distinct, in order,
+correctly wrapped, and green everywhere. `_paginate` takes BLOCKS now, and a name and a sentence
+are the same shape to it: a run of rows that means nothing in halves.
+
+**`CHARS_PER_ROW` is set from a measurement and kept honest by one.** The wrap is a character
+count because a pure class has no font; at 46 it put the two source URLs at 296 and 301 pixels in a
+292 pixel row. `test_credits_layout` measures EVERY line the menu can produce with the real font,
+so a name trimmed to "William Thomps..." fails the build - a truncated artist is a failed
+attribution, not a cosmetic loss, and no other gate here can see it.
+
+**`read_the_credits.json` is in `pack_check.sh`'s list**, and that is the point of it. The whole
+failure mode of this feature is "credits.json did not get packed", which every gate running against
+`res://` is structurally blind to - the shape M14 shipped in the audio seam.
 
 **An imported style leaves the rig gates and enters its own, and membership is asserted as a
 SET.** `ArtFixtures.rig_style_ids()` and `imported_style_ids()` together must equal every style
