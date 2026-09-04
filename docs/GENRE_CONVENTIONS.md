@@ -47,6 +47,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
 | [World structure](#11-world-structure) | Overworld → towns → dungeons, gated | Maps and warps, gated by items and flags | **met** in shape |
 | [Title & game over](#12-title-and-game-over) | Title screen with Continue; death → menu | Title with Continue / New game; game-over routes back to it | **met** (M22) |
+| [Credits](#12a-credits-and-what-a-game-owes-the-people-who-drew-it) | A staff roll after the ending; a Credits screen where a licence requires one | A Credits row on the title, opening the composed list the generator writes | **met** (M43) — [rolled at the title rather than after an ending](DECISIONS.md), which is the licence's own instruction |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
 | [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path carry a ring; two ringed materials meeting is the [named divergence](DECISIONS.md) |
@@ -762,6 +763,78 @@ scripted session found that one.
 
 **Gap:** none. There is still no quit — a game that wants one ships it.
 
+### 12a. Credits, and what a game owes the people who drew it
+
+**The convention, and why it does not decide this one.** The 16-bit references put no credits
+option on the title at all: a staff roll plays after the ending, as the last thing a finished run
+shows you. That route is not available to a template — it ships a vertical slice with no ending —
+and it is the weaker route anyway for the thing credits are actually *for*, since a player who
+never finishes never sees them.
+
+**What decides it is an obligation, not a taste.** The demo is drawn in Liberated Pixel Cup art
+and 38 of its 42 files carry CC-BY-SA 3.0, so the terms are a requirement rather than a courtesy.
+The Universal LPC Spritesheet Character Generator's own README states them, and this is quoted
+from the source rather than summarised:
+
+> Make sure this credits file is accessible from within your game or app and can be reasonably
+> discovered by users (for instance, show the information on the "Credits" screen directly, or
+> provide a visible link).
+
+and, on what may be shipped:
+
+> Distribute the entire CREDITS.csv file along with your project **or** Distribute a composed list
+> containing the credits for the assets you use in your project.
+
+and, on the floor:
+
+> If you generate a sprite using this tool, or use individual images taken directly from the
+> `spritesheets` subdirectory from this repo, you must at least credit all the authors (except for
+> CC0 licensed artwork).
+
+Its own example statement names four things: the artists, the source (the LPC project on
+OpenGameArt, as a URL), the licence with its URL, and a pointer to the detailed credits. So a
+**"Credits" screen reachable from the title** is not this template inventing a placement — it is
+the placement the licence's own instructions name first.
+
+**This template.** `tools/gen_sprites.gd` has written `assets/generated/<style>/credits.json` since
+M40 — the composed list, every file with its artists, licences and URLs, merged and sorted so the
+drift gate can compare it — and it is a resource, so it ships in the pack. `LICENSE.txt` beside it
+carries the share-alike sentence and is a `.txt`, so it does **not** ship. Between M40 and M43 the
+composed list therefore existed and no player could reach it, which is the gap M43 closes.
+
+**The shape, and the two things that forced it.** The screen is a notice page and then every
+artist named in full, one per row, paged. Both halves were decided by measurement rather than by
+preference:
+
+- **Artists rather than one row per work.** The payload is 43 artists over 42 works. A work's row
+  would read *title — artists — licence*, which fits comfortably for the nine terrain files (one
+  or two artists each) and not at all for the LPC character layers, which carry up to eleven. The
+  rows that would be trimmed are exactly the ones with the most people to attribute, and a
+  truncated artist is a failed attribution rather than a cosmetic loss. Naming every artist in
+  full and pointing at `credits.json` for the per-work mapping is what the README's own example
+  statement does.
+- **Paged rather than scrolled.** A 320x180 window at one font size holds about fourteen rows, so
+  43 names is four pages however it is presented. Scrolling is not available here for a harder
+  reason than room: every layout audit in this project collects `Panel`, `Label`, `ColorRect` and
+  `TextureRect` by exact class, so a list inside a scroll container is a screen no gate can see —
+  the M42 failure exactly, where an audit that measured two node classes could not see a readout
+  drawn across the sprite it described. Chaining is this format's own pagination already, in
+  `DialogBox`'s `next`.
+
+**Divergence, stated:** the genre rolls credits after an ending and this template puts them behind
+a title row. The reason is above, and it is the licence's.
+
+**Gap:** the template's own font (Pixel Operator 8, CC0) asks for nothing and is named anyway, on
+the notice page. Nothing else in the tree carries an attribution obligation: the audio, maps,
+dialog and rigs are authored or generated here.
+
+**Could not be reached on 2026-09-04, and therefore not cited above:** the Final Fantasy wiki's
+Title screen page (HTTP 402) and the Game UI Database's category pages (403). A search index
+summarised the former as saying that mobile and current-console re-releases of the early Final
+Fantasy games add a staff-roll or "Additional Credits" option to the title menu where the
+originals had none — which would support the placement chosen here, and is recorded as
+**secondhand** rather than cited, because the page itself could not be opened.
+
 ---
 
 ## 13. Magic and skills
@@ -1286,6 +1359,18 @@ because a claim about what a window looks like cannot be carried by prose:
 Bot-blocked or paywalled on 2026-09-03 and therefore NOT cited anywhere above: the Sea of Stars
 wiki (402), interfaceingame.com's Clair Obscur page, the ArtStation HUD-concept galleries and the
 Medium UX write-up (403 each), and the itch.io Persona 5 study (403).
+
+Credits research (§12a, added in M43). The obligation is quoted from the tool that produced the
+art rather than from a description of the licence:
+
+- [Universal LPC Spritesheet Character Generator — README](https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/master/README.md)
+  — the credits file must be "accessible from within your game or app and can be reasonably
+  discovered by users"; either CREDITS.csv or a composed list may be shipped; every author must be
+  credited except for CC0 work; and the example statement names artists, source URL, licence URL
+  and a pointer to the detailed credits
+- [OpenGameArt — Properly licensing your Liberated Pixel Cup game entry](https://opengameart.org/content/properly-licensing-your-liberated-pixel-cup-game-entry)
+  — the dual CC-BY-SA 3.0 / GPL licensing of LPC non-software assets. Read, and thinner than the
+  README on attribution mechanics, which is why the README carries the quotes above
 
 §6's appearance half and §16a were added the same way, from these screens:
 
