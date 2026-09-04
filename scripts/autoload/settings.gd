@@ -9,6 +9,12 @@ extends Node
 ## Redirected under a --qa-script run for the same reason saves are. A suite that writes the
 ## real file would leave a player's volume wherever the last test left it - and a harness that
 ## runs the suite with things deliberately broken would do it while they were broken.
+##
+## It carries a PALETTE id beside the volume now, and still no version: an id this build does not
+## know falls back the way an out-of-range volume does. Deliberately just the id - which palettes
+## exist is a content question, so the WORLD resolves it and the one place "unknown falls back to
+## the style's own" is written is there. This file would otherwise be a second opinion about what
+## a palette is, held by the one class that may not ask the Registry.
 
 const DEFAULT_PATH := "user://settings.json"
 const QA_PATH := "user://qa_settings.json"
@@ -35,8 +41,15 @@ const NAMES: Dictionary = {
 
 const DEFAULT_LEVEL := Level.NORMAL
 
+## No palette chosen: the running style's own chrome, which is what every game shipped on this
+## template looked like before there was a choice. Empty rather than a named "default" palette,
+## because the style's colours are not a file and cannot be one - a game with no palettes at all
+## still has to have an answer here.
+const NO_PALETTE := &""
+
 var _path := DEFAULT_PATH
 var _level: Level = DEFAULT_LEVEL
+var _palette: StringName = NO_PALETTE
 
 
 func _ready() -> void:
@@ -80,6 +93,31 @@ func cycle_sound() -> Level:
 	return _level
 
 
+func palette() -> StringName:
+	return _palette
+
+
+## The next palette round, applied and written. `ids` is what the world found in the Registry, in
+## its own order, and NO_PALETTE is the first stop - so the cycle always offers a way back to the
+## style's own chrome, including from a palette this build no longer ships.
+##
+## A current id that is not in `ids` counts as the default rather than as a member: it is what a
+## file naming a deleted palette holds, and treating it as a member would make `find` answer -1
+## and the next press land on the second entry.
+func cycle_palette(ids: Array[StringName]) -> StringName:
+	var ring: Array[StringName] = [NO_PALETTE]
+	ring.append_array(ids)
+	var at := ring.find(_palette)
+	_palette = ring[(maxi(at, 0) + 1) % ring.size()]
+	_write()
+	return _palette
+
+
+## Used by tests to put the setting back without going through the file, like set_sound_level.
+func set_palette(id: StringName) -> void:
+	_palette = id
+
+
 ## Points this at another file and re-reads it.
 ##
 ## Exists so a suite can redirect the autoload away from the player's real settings before it
@@ -90,6 +128,7 @@ func cycle_sound() -> Level:
 func use_path(new_path: String) -> void:
 	_path = new_path
 	_level = DEFAULT_LEVEL
+	_palette = NO_PALETTE
 	_read()
 	_apply()
 
@@ -110,6 +149,9 @@ func _read() -> void:
 		# Absent is the normal case on a first run, and unreadable is not worth a fuss for one
 		# number: either way the default is right and the next write repairs the file.
 		return
+	# The palette FIRST, so a file with an impossible volume still gives up its chrome. The two
+	# fields are independent choices and one being unreadable says nothing about the other.
+	_palette = StringName(str(file.data.get("palette", NO_PALETTE)))
 	var raw := int(file.data.get("sound_level", DEFAULT_LEVEL))
 	if raw < 0 or raw >= Level.size():
 		push_warning("Settings: '%s' has an unknown sound level %d" % [_path, raw])
@@ -118,7 +160,7 @@ func _read() -> void:
 
 
 func _write() -> void:
-	var err := JsonFile.write(_path, {"sound_level": int(_level)})
+	var err := JsonFile.write(_path, {"sound_level": int(_level), "palette": String(_palette)})
 	if err != OK:
 		# Said out loud rather than swallowed: a setting that silently fails to persist looks
 		# exactly like one that was never changed, and the player will change it again.

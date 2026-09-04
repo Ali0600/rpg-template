@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="UiPalette" load_steps=2 format=3]
+
+; Green glass. EarthBound's window flavours are palette swaps over one set of window graphics -
+; the tiles are shared and only the colours differ - which is exactly the shape of this file, and
+; is why the flavour names are all about colour and never about shape.
+;
+; mp is deliberately NOT green: it is the one role that would vanish into a green window, and two
+; readouts a player cannot tell apart is the whole reason the roles are named rather than counted.
+
+[ext_resource type="Script" path="res://scripts/data/ui_palette.gd" id="1_palette"]
+
+[resource]
+script = ExtResource("1_palette")
+id = &"mint"
+name = "Mint"
+colors = {
+"border": "#4e7a63",
+"dim": "#7fa392",
+"header": "#16352a",
+"hp": "#d98a4a",
+"mp": "#7ea8e0",
+"panel": "#0c1a14",
+"select": "#2e5c46",
+"text": "#e2f0e0"
+}

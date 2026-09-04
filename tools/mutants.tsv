@@ -294,7 +294,7 @@ scripts/world/world_scene.gd	s|\t\tAudioBus.play\(Sfx.Cue.LOCKED\)|\t\tpass|	tes
 scripts/autoload/settings.gd	s|\t_level = \(\(_level \+ 1\) % Level.size\(\)\) as Level|\t_level = Level.NORMAL|	tests/unit/test_settings.gd	the volume row stops changing anything
 scripts/autoload/settings.gd	s|\tAudioBus.set_volume\(sound_gain\(\)\)|\tpass|	tests/unit/test_settings.gd	the menu says Quiet while nothing gets any quieter
 scripts/autoload/settings.gd	s|\tif raw < 0 or raw >= Level.size\(\):|\tif false:|	tests/unit/test_settings.gd	a settings file from the future silences the game with no way to find out why
-scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, \{"sound_level": int\(_level\)\}\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
+scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, \{"sound_level": int\(_level\), "palette": String\(_palette\)\}\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
 scripts/autoload/settings.gd	s|\t\treturn QA_PATH|\t\treturn DEFAULT_PATH|	tests/unit/test_settings.gd	a scripted play session writes the player's real settings
 scripts/ui/pause_menu.gd	s|\t\tif row == Row.SOUND:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot turn the sound down
 scripts/ui/pause_screen.gd	s|\t\t\treturn _menu.sound_label\(\) if row == PauseMenu.Row.SOUND else TOP_LABELS\[row\]|\t\t\treturn TOP_LABELS[row]|	tests/integration/test_pause_and_saves.gd	the sound row draws as an empty line
@@ -384,7 +384,7 @@ scripts/ui/game_over_menu.gd	s|\treturn ROW_TITLE \+ 1|\treturn Row.size()|	test
 scripts/ui/title_screen.gd	s|\t\t\tload_requested.emit\(pick.slot\)|\t\t\tpass|	tests/integration/test_title.gd	Continue is pressed at the title and no save is ever loaded
 scripts/ui/title_screen.gd	s|\t\t\tnew_game_requested.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/the_title_screen.json	New game is pressed and the title just sits there
 scripts/world/world_scene.gd	s|\tif not open_title\(\):|\tif true:|	tests/integration/test_title.gd	the game boots straight into a map and the title is never seen
-scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), style, _ui_size\(\),|\t_title.setup(TitleMenu.of([] as Array[SaveData]), style, _ui_size(),|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
+scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), _style, _ui_size\(\),|\t_title.setup(TitleMenu.of([] as Array[SaveData]), _style, _ui_size(),|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
 scripts/world/world_scene.gd	s|^\topen_title\(\)$|\tpass|	tests/integration/test_title.gd	the game-over screen's Title row leads nowhere
 scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game.start_map, _game.start_spawn)|	tests/integration/test_title.gd	Continue starts a new game wearing the save's name
 scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/test_router.gd	a run starts and the state machine tells nobody, the way it did before M23
@@ -785,3 +785,11 @@ tools/check.sh	s|^result \$\? "committed sprites match the generator"|echo "SKIP
 scripts/data/game_config.gd	s|return float\(_tile_size\)|return 16.0|	tests/unit/test_game_config.gd	every distance is computed at 16px whatever the map draws, so a 32px game walks at half speed
 scripts/data/game_config.gd	s|return int\(_tiles\(\)\) if grid_step else 0|return int(_tiles())|	tests/integration/test_grid_movement.gd	grid stepping engages for a game that never asked for it, so free movement becomes tile-by-tile
 scripts/world/actor_body.gd	s|motion_mode = CharacterBody2D\.MOTION_MODE_FLOATING|motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED|	tests/integration/test_world_npcs.gd	the engine calls a north wall a ceiling again, so an NPC touching the player from above rides along with him
+scripts/data/sprite_style.gd	s|\tout\.ui_colors = colors\.duplicate\(\)|\tout.ui_colors = colors|	tests/unit/test_ui_palette.gd	two styles wearing one palette share its colours, so editing either edits both
+scripts/world/world_scene.gd	s|\t_style = style if chosen == null else style\.with_ui_colors\(chosen\.colors\)|\t_style = style|	tests/integration/test_options_palette.gd	the palette the player chose is never laid over the style, so nothing they pick changes anything
+scripts/world/world_scene.gd	s|\t_bind_style\(_style_source\)|\t_bind_style(_style)|	tests/integration/test_options_palette.gd	a palette is composed over the last palette rather than over the style, so there is no way back
+scripts/data/ui_palette.gd	s|\tout\.append_array\(SpriteStyle\.role_problems\(colors.*$|\tpass|	tests/unit/test_ui_palette.gd	a palette missing a role ships, and whatever it left out draws in a colour nobody chose
+scripts/autoload/settings.gd	s|"palette": String\(_palette\)|"palette": String(NO_PALETTE)|	tests/unit/test_settings.gd	the chosen window colours never survive a restart
+scripts/autoload/settings.gd	s|\t_palette = ring\[\(maxi\(at, 0\) \+ 1\) % ring\.size\(\)\]|\t_palette = ring[mini(maxi(at, 0) + 1, ring.size() - 1)]|	tests/unit/test_settings.gd	the palette row stops at the last one, so a player who cycles past cannot get back
+scripts/autoload/settings.gd	s|maxi\(at, 0\) \+ 1|at + 1|	tests/unit/test_settings.gd	a settings file naming a deleted palette makes the next press land one row short
+scripts/world/world_scene.gd	s|\t_title\.setup\(TitleMenu\.of\(_slot_summaries_for\(_offered\)\), _style, _ui_size\(\),|\t_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), _style_source, _ui_size(),|	tests/integration/test_options_palette.gd	the title is drawn in the style's own colours rather than the palette the player chose

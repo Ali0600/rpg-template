@@ -27,6 +27,9 @@ var _dialog: DialogBox
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
 var _hint: ControlsHint
+## The style the running game asked for, BEFORE the player's palette was laid over it. _style is
+## what everything is drawn with; this is what a re-choice starts from.
+var _style_source: SpriteStyle = null
 ## The pause menu, when it is up. It belongs to the running game - its slot list is that
 ## game's - so _teardown_game frees it.
 var _pause: PauseScreen
@@ -151,9 +154,7 @@ func _build_game(manifest: GameManifest) -> bool:
 	# then resolves only whatever a game dropped in data/audio, which may be nothing at all.
 	AudioBus.use_style(_game.sound_style)
 	_camera = Camera2D.new()
-	_dialog = _new_dialog()
-	_hint = ControlsHint.new()
-	_mount_ui(_hint)
+	_build_chrome()
 	return true
 
 
@@ -190,8 +191,17 @@ func _on_sound_changed() -> void:
 ## rescale() is the pair to _mount_ui: the dialog box and the controls hint are built in
 ## _build_game, BEFORE any map has said which style is running, so mounting alone cannot know
 ## their scale. They are brought to it here, along with anything left over from another style.
+##
+## It is also the ONE place the player's chosen palette is laid over the style, for the reason
+## there is one binder at all: a screen that composed its own colours would be a second answer to
+## "what does this game look like", and the one that ran second would win by accident.
 func _bind_style(style: SpriteStyle) -> void:
-	_style = style
+	# What the GAME asked for, kept beside what is being drawn with: a palette is laid OVER a
+	# style, so re-choosing one has to start from the style again rather than from the last
+	# composed result, which would layer a palette on a palette and never get back.
+	_style_source = style
+	var chosen := _palette_of()
+	_style = style if chosen == null else style.with_ui_colors(chosen.colors)
 	# Anything outside the map - the letterbox on a map smaller than the viewport - is painted
 	# with the style's own panel colour rather than the engine's default grey, so a small area
 	# reads as framed rather than as unfinished. Style-driven, like every other colour.
@@ -211,6 +221,49 @@ func _exit_tree() -> void:
 	UiScale.apply(get_window(), null)
 
 
+## The palette the player chose, or nothing. The one place an id becomes colours.
+##
+## Resolved HERE rather than in the settings singleton because which palettes exist is a content
+## question and that file may not ask the Registry - and because an id naming a palette this build
+## does not ship must fall back in exactly one place. A game that ships no palettes at all reaches
+## this and gets null, which is the same answer as "the player has not chosen one".
+func _palette_of() -> UiPalette:
+	var chosen := Settings.palette()
+	if String(chosen).is_empty():
+		return null
+	var found := Registry.get_resource(&"UiPalette", chosen) as UiPalette
+	if found == null:
+		# Said out loud rather than swallowed: a save file naming a deleted palette draws in the
+		# style's own colours, which is correct and looks exactly like the player never chose one.
+		push_warning("World: no palette '%s'; drawing the style's own chrome" % chosen)
+	return found
+
+
+## The style bound again, after the player changed what the windows look like.
+##
+## _bind_style recomposes the colours, and then the two layers that OUTLIVE a map have to be
+## brought to them by hand: every other screen is built fresh when it opens and takes the new
+## colours for free. The dialog box is rebuilt because it holds its colours in a StyleBox and half
+## a dozen theme overrides made once in setup(), and a second way of applying them would be a
+## second thing to keep in step; the hint is restyled in place because rebuilding it would put a
+## dismissed hint back on screen.
+##
+## A recolour can only be asked for from the world or the title, and no conversation can be open
+## in either - the pause menu opens from WORLD only - so rebuilding the box cannot destroy one
+## mid-sentence.
+func _rebind_style() -> void:
+	if _style_source == null:
+		return
+	_bind_style(_style_source)
+	if _dialog != null and is_instance_valid(_dialog):
+		_dialog.closed.disconnect(_on_dialog_closed)
+		_dialog.free()
+		_dialog = _new_dialog()
+		_dialog.setup(_style, _ui_size())
+	if _hint != null and is_instance_valid(_hint):
+		_hint.restyle(_style)
+
+
 ## The size every screen lays itself out against: the design size, at every world scale, NEVER
 ## the live viewport. A screen that measured the viewport would space its rows twice as far
 ## apart in a 640x360 world and land its help line off the bottom - and every layout gate,
@@ -223,6 +276,25 @@ func _ui_size() -> Vector2i:
 ## one that forgets the scale, and what it produces is a quarter-size menu in the corner.
 func _mount_ui(layer: CanvasLayer) -> void:
 	UiScale.mount(layer, self, _style)
+
+
+## The two interface layers that OUTLIVE a map: the dialog box and the controls hint. Built here
+## rather than inline in _build_game because they are also rebuilt when the player recolours the
+## windows - both take their colours in setup() and hold them in StyleBoxes and theme overrides
+## built once, so a recolour is a rebuild rather than a repaint.
+##
+## Every other screen is built fresh when it opens and needs none of this. These two are the
+## exception because they are made before any map has said which style is running - which is also
+## why UiScale.rescale exists.
+func _build_chrome() -> void:
+	if _dialog != null and is_instance_valid(_dialog):
+		_dialog.closed.disconnect(_on_dialog_closed)
+		_dialog.free()
+	_dialog = _new_dialog()
+	if _hint != null and is_instance_valid(_hint):
+		_hint.free()
+	_hint = ControlsHint.new()
+	_mount_ui(_hint)
 
 
 func _new_dialog() -> DialogBox:
@@ -1709,7 +1781,11 @@ func open_title() -> bool:
 	_title.new_game_requested.connect(_on_title_new_game)
 	_title.credits_requested.connect(_on_title_credits)
 	_mount_ui(_title)
-	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), style, _ui_size(),
+	# _style, never the `style` argument: _bind_style has just laid the player's palette over it,
+	# and handing the screen what came IN would draw the one surface a recolour is chosen from in
+	# the colours it is being changed away from. Every other screen here already reads _style;
+	# this line was the odd one out, and only a photograph of the title found it.
+	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), _style, _ui_size(),
 		_offered.title)
 	if not String(_offered.title_music).is_empty():
 		AudioBus.play_music(_offered.title_music)

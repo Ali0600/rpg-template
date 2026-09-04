@@ -52,6 +52,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
 | [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path carry a ring; two ringed materials meeting is the [named divergence](DECISIONS.md) |
 | [Interface chrome](#16-interface-chrome-and-the-anatomy-of-a-battle-screen) | Framed windows with header bands, a highlight cursor, coloured HP/MP, portraits | All of it, on every screen: one pixel font, framed windows with bands, a cursor bar, gold HP and violet MP, and faces in the fight, the menu and the conversation | **met** (M42) — the enemy-bar and save-slot divergences are [recorded](DECISIONS.md) |
+| [Options](#16b-options-where-a-player-changes-the-game-and-what-they-may-change) | A settings surface, on the title or in the field menu, with text speed and often the window's own look | An Options screen reached from both, carrying Sound and a named window palette | **met** (M46) — [palettes rather than colour bars, and a cycling row rather than an axis](DECISIONS.md); no text speed |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -199,8 +200,11 @@ price; the demo's own wares are short words, which is why nobody ever saw it.
 
 **The convention.** A window at the **bottom** of the screen, text **revealed** rather than
 appearing at once (with a blip per character in most), advanced by the confirm button, and
-choices presented as a cursor list. EarthBound and Pokémon both let the player recolour the
-box and set text speed. Portraits are common but far from universal in the 2D era.
+choices presented as a cursor list. Text speed is a setting in EarthBound, Pokémon and Final
+Fantasy alike; the box's own colour is offered by EarthBound (window *flavours*, which are
+palette swaps) and by Final Fantasy VI (R/G/B bars), while Pokémon Gen I offers no window
+customisation at all and Gen II offers a numbered border STYLE rather than a colour - see 16b,
+which is disassembly-derived. Portraits are common but far from universal in the 2D era.
 
 **This template.** `DialogRunner`/`DialogBox`: two lines at the bottom, revealed, choices in a
 band below that appears only when there are choices, `cancel` closes a plain line but not a
@@ -1284,10 +1288,69 @@ around a title's rows; what they share is that the name is the largest thing on 
 rows sit under it in the lower half. That is what this template already does, so the title's
 rebuild is chrome on the rows and nothing more.
 
-**Gap, named:** no window in this game is player-recolourable, which EarthBound and Pokemon both
-offer and which is the one convention in this section the template does not follow. It is a
-settings surface rather than a chrome one - the mechanism (`ui_colors` on the style) already
-exists, and what is missing is a place to choose from and somewhere per-player to keep it.
+**Gap, named:** no window in this game is player-recolourable, which is the one convention in
+this section the template does not follow. It is an options surface rather than a chrome one -
+the mechanism (`ui_colors` on the style) already exists, and what is missing is a place to choose
+from and somewhere per-player to keep it. Which references actually offer it, and in what form,
+is 16b below.
+
+---
+
+### 16b. Options: where a player changes the game, and what they may change
+
+**Where it lives is not settled, and the split is not arbitrary.** The two shapes in the
+references are *a row in the field menu* and *a row on the title*, and which one a game picks
+follows from whether its settings need a save file to belong to.
+
+- **Final Fantasy VI: the field menu only.** Config is a state of the field menu
+  (`MENU_STATE::CONFIG_INIT`, `src/menu/field_menu.asm:384`), so it is reached from the same list
+  as Item, Skills, Equip and Status. There is no options entry on its title.
+- **Pokémon Red/Blue: both, and the same routine.** The title menu is `CONTINUE` / `NEW GAME` /
+  `OPTION` (`engine/menus/main_menu.asm:344-350`), and `OPTION` calls `DisplayOptionMenu`
+  (`:443`); the in-game start menu carries `OPTION` too (`home/start_menu.asm:76`,
+  `jp z, StartMenu_Option`). A player who wants to slow the text down before naming their rival
+  can, and so can one who is already three towns in.
+- **EarthBound: neither — it asks at the start of the run.** Text speed, sound and the window
+  *flavour* are chosen during new-game setup, before the character is named
+  (Legends of Localization, *EarthBound / MOTHER 2 Translation Comparison: New Game*).
+- **Sea of Stars: both, and the accessibility settings are somewhere else again** — they are
+  collectible **Relics** toggled from the Status page rather than options rows.
+
+**What they let a player change, and the one that matters here is the window.**
+
+Final Fantasy VI's Config offers a window **pattern** and a window **colour**, and they are two
+different settings: `"Window"` sits above the row `"1 2 3 4 5 6 7 8"` (eight patterns), and
+`"Color"` below it edits **R**, **G** and **B** on three gauge bars, aimed at either the `"Font"`
+or the `"Window"` by a toggle, with a `"Reset"` beside them (`src/menu/menu_text.en.inc:363-381`).
+So the genre's window customisation at its most generous is *free per-channel colour on two
+components*, not a menu of themes.
+
+Pokémon Gen I offers **no** window customisation at all: `DisplayOptionMenu` draws exactly three
+settings and a cancel — `TEXT SPEED` (`FAST`/`MEDIUM`/`SLOW`), `BATTLE ANIMATION` (`ON`/`OFF`),
+`BATTLE STYLE` (`SHIFT`/`SET`) (`engine/menus/main_menu.asm:443-470, 599-610`). Gen II adds one:
+`FRAME`, cycling a numbered `:TYPE` (`pokecrystal`, `engine/menus/options_menu.asm`) — a border
+**style**, not a colour. EarthBound's flavours (Plain, Mint, Strawberry, Banana, Peanut) are
+palette swaps over one set of window graphics: the tiles are shared and only the palette differs,
+which is why the flavour names are about colour and nothing about shape.
+
+**What this template does, and the two places it diverges.**
+
+An `Options` row on the title **and** in the pause menu, opening one screen — Pokémon's placement,
+because this template has a title screen that FF6 does not and a player should not have to start a
+run to turn the sound down. Its rows are **Sound** (four named steps) and **Window** (a named
+palette).
+
+- **Divergence 1: named palettes, not three colour bars.** FF6 edits one window's RGB, and this
+  template's window is not one colour: `SpriteStyle.UI_ROLES` is eight roles, and a screen reads
+  `panel`, `border`, `header`, `select`, `text`, `dim`, `hp` and `mp` separately. Three sliders
+  would either recolour one role and leave seven behind, or need twenty-four. A named palette
+  changes all eight at once and keeps every one of them a decision somebody made.
+- **Divergence 2: a cycling row, not an axis.** Confirm advances the value, which is the M14
+  decision for Sound and holds for the same reason — no menu view here reads `move_left`/
+  `move_right`, so an axis would be a second input contract for one row.
+
+**Gap:** text speed, which EarthBound, Pokémon and FF6 all offer and this template does not.
+Recorded with its hook rather than built: `DialogBox` reveals one character per frame.
 
 ---
 
@@ -1302,6 +1365,26 @@ Convergent-anatomy claims above are drawn from these, plus the reference games d
   [Optimize](https://finalfantasy.fandom.com/wiki/Optimize)
 - [Realm of Darkness — DQ NES vs SNES differences](https://www.realmofdarkness.net/dq/snes-dq2-differences/)
 - [Wikipedia — random encounter](https://en.wikipedia.org/wiki/Random_encounter)
+
+Options and window customisation (16b, added in M46). The two wikis that would ordinarily carry
+this were unreachable on 2026-09-04 — `finalfantasy.fandom.com/wiki/Config` answered **402
+Payment Required** and `wikibound.info` **403 Forbidden** — so the placement and contents claims
+are taken from the disassemblies instead, which is the better source for how a shipped program
+behaves anyway:
+
+- [pret/pokered](https://github.com/pret/pokered) — `engine/menus/main_menu.asm` (the title's
+  `OPTION` row and `DisplayOptionMenu`), `home/start_menu.asm` (the in-game `OPTION`)
+- [pret/pokecrystal](https://github.com/pret/pokecrystal) — `engine/menus/options_menu.asm`
+  (Gen II's numbered `FRAME`)
+- [everything8215/ff6](https://github.com/everything8215/ff6) — `src/menu/config.asm`,
+  `src/menu/field_menu.asm`, `src/menu/menu_text.en.inc` (Config as a field-menu state; the
+  `Window` pattern list, the `Color` R/G/B bars, the `Font`/`Window` target toggle and `Reset`)
+- [Legends of Localization — EarthBound / MOTHER 2: New Game](https://legendsoflocalization.com/comparisons/earthbound/new-game/)
+  — the window *flavour* chosen during new-game setup (prose, secondhand for the claim that it
+  cannot be changed afterwards, which is **not** asserted here because no reachable source
+  settled it)
+- [Can I Play That — Sea of Stars accessibility review](https://caniplaythat.com/2023/11/01/sea-of-stars-accessibility-review/)
+  — accessibility as collectible Relics rather than options rows (prose)
 
 Music and save-integrity research (§14 and §8, added in M32):
 

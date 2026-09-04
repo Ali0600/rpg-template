@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="UiPalette" load_steps=2 format=3]
+
+; The hardest contrast this game offers: white on black, which is the NES's own answer and is
+; nes16's shipped chrome verbatim rather than eight colours invented for the occasion. They have
+; been reviewed, they are known to read at 8px, and a palette whose colours already ship is one
+; fewer set of numbers nobody has looked at.
+
+[ext_resource type="Script" path="res://scripts/data/ui_palette.gd" id="1_palette"]
+
+[resource]
+script = ExtResource("1_palette")
+id = &"charcoal"
+name = "Charcoal"
+colors = {
+"border": "#bcbcbc",
+"dim": "#787878",
+"header": "#101010",
+"hp": "#fcbc3c",
+"mp": "#3cbcfc",
+"panel": "#000000",
+"select": "#3c3c3c",
+"text": "#fcfcfc"
+}

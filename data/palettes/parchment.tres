@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="UiPalette" load_steps=2 format=3]
+
+; Dark ink on warm paper - the one palette here that inverts the value order, and the reason a
+; palette is a whole set of eight rather than a tint. Every shipped style draws light text on a
+; dark panel; this draws the other way round, which is only legible because `text` and `dim`
+; moved with `panel` rather than being left behind.
+;
+; hp and mp keep their JOBS rather than their hues: they are still the only two colours on a
+; screen, and they are darkened here because a bar that reads at a glance against near-black
+; disappears against cream.
+
+[ext_resource type="Script" path="res://scripts/data/ui_palette.gd" id="1_palette"]
+
+[resource]
+script = ExtResource("1_palette")
+id = &"parchment"
+name = "Parchment"
+colors = {
+"border": "#7a6a4f",
+"dim": "#6b5c44",
+"header": "#d8c49a",
+"hp": "#a8402a",
+"mp": "#3a5aa8",
+"panel": "#efe4c8",
+"select": "#c8b184",
+"text": "#2b2317"
+}

@@ -25,6 +25,19 @@ func setup(style: SpriteStyle, viewport_size: Vector2i, text: String) -> void:
 	add_child(_label)
 
 
+## New colours on the label already there, for when the player recolours the windows mid-run.
+##
+## Restyled rather than rebuilt, which is the opposite of what the dialog box does and is the
+## whole point: this view carries STATE - whether it has been dismissed and how far through its
+## fade it is - and a fresh one would put "use the arrow keys" back on the screen of somebody who
+## has been playing for an hour. One colour is little enough to re-apply by hand; anything with
+## more than that is rebuilt instead, so the two paths cannot drift.
+func restyle(style: SpriteStyle) -> void:
+	if _label == null:
+		return
+	_label.add_theme_color_override("font_color", style.ui_color("dim"))
+
+
 ## Call when the player does the thing the hint was teaching.
 func dismiss() -> void:
 	if _dismissed:
