@@ -13,7 +13,7 @@
 	"steps": [
 		{
 			"op": "note",
-			"text": "the title, through the real input map. Continue is refused with nothing saved, and the cursor knows it - it opens on New game rather than on a row a press would bounce off. Rows: Continue, New game."
+			"text": "the title, through the real input map. Continue is refused with nothing saved, and the cursor knows it - it opens on New game rather than on a row a press would bounce off. Rows: Continue, New game, Credits - and this session never goes below New game, so the row M43 appended moved nothing here."
 		},
 		{
 			"op": "assert_state",

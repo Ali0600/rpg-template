@@ -1,0 +1,128 @@
+{
+	"_readme": [
+		"The credits screen, driven by real keys, from the title row a player presses.",
+		"",
+		"It is in tools/pack_check.sh's list as well as check.sh's, and that is the point of it.",
+		"credits.json is generated art metadata that ships inside the .pck, and the whole class of",
+		"defect this feature can have is 'the file did not get packed' - which every gate running",
+		"against res:// is structurally blind to. M14 shipped exactly that: the audio seam's",
+		"drop-in half was broken in exports for milestones with every gate green.",
+		"",
+		"Paging is asserted by the SOUND, not by a page number: the cue is the only thing a",
+		"session can see, and it is emitted only when the page actually turned."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits - so Credits is one move_down."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "assert_state",
+			"state": "credits"
+		},
+		{
+			"op": "note",
+			"text": "turn a page. The move cue is what proves it turned: the screen is silent when there is nowhere to turn to, so a one-page screen would fail here rather than pass quietly."
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "assert_sound",
+			"id": "menu_move"
+		},
+		{
+			"op": "note",
+			"text": "and back, which is the same cue in the other direction - the artists are several pages deep and a player must be able to return to the notice that says what they are a list of"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "assert_sound",
+			"id": "menu_move"
+		},
+		{
+			"op": "note",
+			"text": "leave. The title is still behind it and still answers, which is what a screen that latched its answer on the way out would fail."
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "up onto New game from Credits, and the run begins - the title was not left deaf by the visit"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 14
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		}
+	]
+}

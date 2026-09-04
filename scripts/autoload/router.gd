@@ -25,6 +25,10 @@ enum State {
 	## rather than the pause menu at a page, because what a save point offers is one question
 	## and the pause menu offers six.
 	SAVING,
+	## Who drew the art, over the title. The only overlay whose base state has no game behind
+	## it, which is why the model names no_game_running for it where every other overlay names
+	## game_running. It exists because a licence requires it, not because a menu wanted a row.
+	CREDITS,
 }
 
 var _state: State = State.TITLE

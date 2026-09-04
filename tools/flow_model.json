@@ -108,6 +108,14 @@
 				"player_cannot_move"
 			]
 		},
+		"credits": {
+			"about": "Who drew the art, over the title. An overlay on the one state with no game behind it, which is why it names no_game_running rather than game_running: it is reached from the title and returns there. It exists because the demo's art is CC-BY-SA and the licence requires the credits to be reachable from inside the game - see GENRE_CONVENTIONS 12a.",
+			"invariants": [
+				"credits_screen_up",
+				"no_game_running",
+				"player_cannot_move"
+			]
+		},
 		"game_over": {
 			"about": "The run ended. The ways on are a save, a fresh start, or the title.",
 			"invariants": [
@@ -274,6 +282,31 @@
 				]
 			],
 			"adapter": "close_save"
+		},
+		{
+			"action": "open_credits",
+			"from": "title",
+			"to": "credits",
+			"trace": [
+				[
+					"title",
+					"credits"
+				]
+			],
+			"adapter": "open_credits",
+			"note": "Opened INLINE, unlike the save point: nothing pops an overlay behind this one, because the title is a base state rather than a dialog."
+		},
+		{
+			"action": "close_credits",
+			"from": "credits",
+			"to": "title",
+			"trace": [
+				[
+					"credits",
+					"title"
+				]
+			],
+			"adapter": "close_credits"
 		},
 		{
 			"action": "open_battle",

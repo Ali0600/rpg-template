@@ -108,8 +108,40 @@ func test_cancel_on_the_title_does_nothing_at_all() -> void:
 	assert_int(menu.page()).is_equal(TitleMenu.Page.TOP)
 
 
-func test_the_title_has_no_third_way_on() -> void:
-	# The game over has a Title row; a title cannot offer a route to itself. Asserted rather
-	# than assumed, because the row count is what the view builds its labels from.
-	assert_int(TitleMenu.of(_slots([])).row_count()).is_equal(2)
-	assert_int(GameOverMenu.of(_slots([])).row_count()).is_equal(3)
+func test_the_title_offers_no_route_to_itself() -> void:
+	# The game over has a Title row and the title cannot: there is nothing to go back to.
+	#
+	# Asserted over EVERY row rather than through the row count, which is what this test used to
+	# do. A count is a proxy - it was 2, M43 made it 3 by adding Credits, and the count changing
+	# said nothing about whether the rule had broken. The rule is about what a row ANSWERS, so
+	# that is what is read, and the next row to arrive is covered without an edit.
+	# top_pick answers null for the Continue row - "that one is not mine" - so a null is a row
+	# that is definitionally not a route to the title, and skipping it is reading the contract
+	# rather than working around it.
+	var title := TitleMenu.of(_slots([]))
+	for at in title.row_count():
+		var pick := title.top_pick(at)
+		if pick == null:
+			continue
+		assert_int(pick.kind).override_failure_message(
+			"title row %d answers TITLE, which is a route to the screen it is on" % at
+			).is_not_equal(TitleMenu.Kind.TITLE)
+	var over := GameOverMenu.of(_slots([]))
+	var routes := 0
+	for at in over.row_count():
+		var pick := over.top_pick(at)
+		if pick != null and pick.kind == GameOverMenu.Kind.TITLE:
+			routes += 1
+	assert_int(routes).override_failure_message(
+		"the game over offers no way back to the title").is_equal(1)
+
+
+func test_each_screen_builds_labels_for_every_row_it_has() -> void:
+	# The count is still worth pinning, for the reason the old test named: the view sizes its
+	# label pool from it, so a row past the pool is a row drawn nowhere. Pinned as "every row is
+	# worded" rather than as a literal, which is the same fact and does not go stale.
+	for menu: SlotMenu in [TitleMenu.of(_slots([])), GameOverMenu.of(_slots([]))]:
+		assert_int(menu.row_count()).is_greater(1)
+		for at in menu.row_count():
+			assert_str(menu.top_label(at)).override_failure_message(
+				"row %d of %s has no words on it" % [at, menu]).is_not_empty()

@@ -43,6 +43,9 @@ var _saving: SaveScreen
 ## belongs to the game being torn down, but because the thing tearing one down is about to
 ## build another over the top of it.
 var _title: TitleScreen
+## The credits, when they are up. Over the title rather than over a game, so it is torn down
+## with the title for the same reason: the thing about to build a game frees what is on screen.
+var _credits: CreditsScreen
 ## The game the title offers. Written at boot by the resolver AND by start_game, so a title
 ## reached back from a game-over offers the game that was actually RUNNING - which is the same
 ## thing as the resolved one for a player, and is not the same thing for the integration
@@ -279,6 +282,9 @@ func _teardown_game() -> void:
 	# saying so rather than implying a bug: a freed reference compares EQUAL to null in this
 	# engine, so the guarded version was harmless - measured, and pinned in
 	# test_engine_assumptions.gd so the next reader does not have to re-derive it.
+	if _credits != null and is_instance_valid(_credits):
+		_credits.free()
+	_credits = null
 	if _title != null and is_instance_valid(_title):
 		_title.free()
 	_title = null
@@ -1697,6 +1703,7 @@ func open_title() -> bool:
 	_title.sound_wanted.connect(_on_sound_wanted)
 	_title.load_requested.connect(_on_title_load)
 	_title.new_game_requested.connect(_on_title_new_game)
+	_title.credits_requested.connect(_on_title_credits)
 	_mount_ui(_title)
 	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), style, _ui_size(),
 		_offered.title)
@@ -1711,6 +1718,50 @@ func _close_title() -> void:
 		return
 	_title.queue_free()
 	_title = null
+
+
+## Who drew the art. Opened INLINE, unlike the save point and the counter: those are reached
+## through a conversation, whose close pops an overlay and would take a screen opened before it
+## with it. Nothing pops anything here - the title is a base state, not an overlay.
+func _on_title_credits() -> void:
+	open_credits()
+
+
+## Public for the reason open_save() and open_shop() are: a test must be able to stage this
+## without pressing through a menu, and a game's hook may want a route to it of its own.
+##
+## The credits are read HERE rather than by the screen, because knowing where a style's generated
+## art lives is a question about the running game and a view may not ask one. A style that draws
+## its own art has no such file, and that is not an error: JsonFile.read answers an empty
+## Dictionary and CreditsMenu says so on its notice page, which is a true and complete answer to
+## "who drew this".
+func open_credits() -> bool:
+	if _credits != null or _title == null or _style == null:
+		return false
+	_credits = CreditsScreen.new()
+	# Constructed and connected in one function, the open_battle_with rule.
+	_credits.sound_wanted.connect(_on_sound_wanted)
+	_credits.left.connect(_close_credits)
+	_mount_ui(_credits)
+	_credits.setup(CreditsMenu.of(_credits_for(_style)), _style, _ui_size())
+	Router.open_overlay(Router.State.CREDITS)
+	return true
+
+
+func _close_credits() -> void:
+	if _credits == null:
+		return
+	_credits.queue_free()
+	_credits = null
+	Router.close_overlay()
+
+
+## The composed attribution list the sprite generator writes beside a style's art, or nothing.
+## `assets/generated/<style>/credits.json` is a resource and ships in the pack, which is the whole
+## reason a screen can read it at all - LICENSE.txt beside it is a .txt and does not.
+func _credits_for(style: SpriteStyle) -> Dictionary:
+	var file := JsonFile.read("res://assets/generated/%s/credits.json" % style.id)
+	return file.data if file.ok else {}
 
 
 func _on_title_load(slot: int) -> void:
@@ -1930,6 +1981,11 @@ func rest_screen() -> RestScreen:
 
 func save_screen() -> SaveScreen:
 	return _saving
+
+
+## The credits, for the flow model's gate and the layout audit.
+func credits_screen() -> CreditsScreen:
+	return _credits
 
 
 ## Whether a game is built behind whatever is on screen. The title is the one state where the
