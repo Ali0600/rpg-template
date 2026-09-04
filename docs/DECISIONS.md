@@ -78,14 +78,14 @@ one-glance menu of things still worth trying.
 - ~~**A casting policy for `BattleDriver`.**~~ **Taken up by M34**, and the feared cost did not
   arrive: a casting party wins every shipped fight on every seed, so nothing needed retuning.
   What it did find was two pairings the player could never learn. **The item half was taken up by
-  M35**, which found the same two layers and a guard with no test behind them. Still deferred
-  here: **a driver that FLEES** — the fourth row, and the only one no policy has ever pressed.
-  Revisit hook: `Policy`, plus a report field for the attempt, and note that a boss refuses every
-  escape so the assertion has two halves.
+  M35**, which found the same two layers and a guard with no test behind them. ~~A driver that
+  FLEES~~ **was taken up by M36** as `Policy.RUNNER`, and the assertion did turn out to have the
+  two halves this entry predicted: a boss refuses every escape. Nothing is left deferred here.
 - ~~**A width gate for the battle caption.**~~ **Taken up by M36**, at the hook this entry named,
   and the research turned "make it fit" into a correction: a ONE-LINE caption was the divergence,
-  since every reference message area holds more than one. What is still out is the multi-target
-  half — see the M36 entry below, and the FF1 persistent-frame alternative recorded there.
+  since every reference message area holds more than one. ~~What is still out is the multi-target
+  half~~ — **closed by M37**, which took FF1's persistent frame whole and deleted a special case
+  rather than adding one. Nothing is left deferred here.
 - ~~**Buffs, debuffs, and status effects on the PLAYER.**~~ **Taken up by M30** — `BOOST` and
   `SAP` aim either way, enemy moves can afflict the party, and durations count in turns. What
   is still out is **persistent affliction**: a status cannot outlive the fight it was inflicted
@@ -343,13 +343,15 @@ the rare case where the references genuinely disagree.
 - **Wrap to a second line (chosen)** — Dragon Warrior's answer, and the one the evidence made
   obvious once gathered: every reference message area holds more than one line (Pokémon 2,
   EarthBound 3, DW 8), so a one-line caption was this screen's divergence rather than its design.
-  `MESSAGE_LINES = 2` is declared the way `MAX_PARTY` is, and is the number `DialogBox` already
-  draws and size-gates against, so the two surfaces agree.
+  `MESSAGE_LINES` is declared the way `MAX_PARTY` is, and is the number `DialogBox` already
+  draws and size-gates against, so the two surfaces agree. It was 2 here and **M37 raised it to
+  3**, because M37's own change made two insufficient.
 
-**Kept as a stated divergence:** the sweep caption still names every foe's damage on one line,
-which §7c says the genre does not do. The numbers side by side are what let a player compare a
-weakness against its neighbours — M33's argument for announcing at all — so it stays until the
-sequencing alternative above is built.
+~~**Kept as a stated divergence:** the sweep caption names every foe's damage on one line.~~
+**M37 built the sequencing alternative**, so this is no longer a divergence: every clause now sits
+in a line that names its own foe, and the caller-and-spell half of the frame holds still while the
+target half cycles beneath it. The comparison M33 argued for survives, because the caption still
+puts the numbers side by side within one telling.
 
 **Not a fork, but the finding.** Containment alone is not enough, and the mutation run proved it
 rather than a reading: with no width to wrap against a Label falls back to ONE PIXEL, and the
@@ -1656,9 +1658,10 @@ between two games?
   bug; it presents as the game you meant to run behaving strangely, and you go and debug
   that. Refusing costs one line of config and is unmistakable.
 - *A title screen that lists the games* — `deferred — worth trying`. It is the friendly
-  version of the same choice and needs `Router.State.TITLE` to actually be entered, which
-  nothing does yet. Revisit hook: `scripts/data/game_select.gd::ids()` already returns
-  exactly the menu such a screen would show.
+  version of the same choice. **Its stated blocker is gone: M22 shipped `TitleScreen` and
+  `Router.State.TITLE` is entered on every boot** — what is left is the picker itself. Revisit
+  hook: `scripts/data/game_select.gd::ids()` already returns exactly the menu such a screen would
+  show, and `world_scene._ready()` is where a picker would consume `choose()`'s empty answer.
 
 ## Game code lives in `games/`, is reached through `GameHooks`, and never names an autoload
 
@@ -1900,10 +1903,11 @@ unreadable slot is drawn as *empty*, which is why `save()` parks whatever it is 
 overwrite — otherwise the menu, which refuses to load an "empty" slot, could never park a
 damaged one but could silently save over it.
 
-- *Distinguishing empty / unreadable / another game's in the list* — `deferred — worth trying`:
-  a row reading "Slot 2: unreadable" is more honest than one reading "empty". It needs a
-  tri-state return where there is currently a nullable one. Revisit hook: `SaveManager._read`
-  already computes exactly that distinction and throws it away at the boundary.
+- ~~*Distinguishing empty / unreadable / another game's in the list*~~ — **taken up by M32**, at
+  exactly the hook this entry named: `peek()` returns a `SlotSummary` instead of discarding what
+  `_read` already knew, and the row reads *damaged* rather than *empty*. One object rather than a
+  second parallel array, because two paths answering one question pair one slot's data with
+  another slot's verdict.
 
 ## The pause menu is Resume / Save / Load, and Escape is what opens it — *Items added in M12*
 
