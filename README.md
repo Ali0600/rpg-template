@@ -157,14 +157,15 @@ guessing, because a guessed game presents as the game you meant to run behaving 
   saves — is data plus one 96-line hooks file, with every gameplay system swappable behind a
   single seam.
 - Designed a deterministic asset pipeline: procedural sprite generation from ASCII rigs and
-  palettes, a build-time importer for hand-drawn art with per-file licence gating and generated
-  attribution, and sub-tile autotiling that composes 47 edge shapes from 12 pieces — all in
-  integer arithmetic so output is byte-identical on macOS and Linux, and drift-gated in CI.
-- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,325
-  unit and integration tests → boot → artifact drift → 23 scripted end-to-end play sessions →
+  palettes, a build-time importer for hand-drawn art that gates every layer's licence by family
+  and composes the attribution the game then displays in-game to satisfy it, and sub-tile
+  autotiling that composes 47 edge shapes from 12 pieces — all in integer arithmetic so output is
+  byte-identical on macOS and Linux, and drift-gated in CI.
+- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,397
+  unit and integration tests → boot → artifact drift → 24 scripted end-to-end play sessions →
   the exported package played; SHA-pinned actions, least-privilege tokens, a checksum-verified
   toolchain, and a Pages deploy gated on the green run of the exact commit it ships.
-- Implemented mutation testing over the project's own quality gates — 629 mutants, each proving
+- Implemented mutation testing over the project's own quality gates — 668 mutants, each proving
   a rule fails when broken — sharded four ways with a change-scoped fast lane (pull-request runs
   18 → 3 min) and a sub-second static check that every mutant still targets one line.
 - Built model-based testing of the application's state machine: transitions declared as data

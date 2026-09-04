@@ -2808,3 +2808,54 @@ every docs pull request waits forever on a check that never comes.
   which works because sed edits text. `mutants_aim.sh` immediately caught the first one
   matching both copies of the mirrored list; fixed by making the copies differ textually (a
   trailing comment) rather than by loosening the pattern.
+
+## The credits are a screen on the title, and it names artists rather than works — *M43*
+
+The fork: the demo ships CC-BY-SA art and the licence requires the credits be reachable from
+inside the game. `credits.json` had been in the pack since M40 with no reader. What surface, and
+what does it show?
+
+**Where it lives.**
+
+- **Chosen: a Credits row on the title.** It is the placement the LPC generator's own README names
+  first — "shown on the 'Credits' screen directly, or provide a visible link" — and attribution
+  guidance says outright that a main-menu option beats an end-of-game scroll.
+- *A staff roll after the ending* — `rejected — unavailable`. It is what the 16-bit references
+  actually do, and a template that ships a vertical slice has no ending to roll after. It is also
+  the weaker route for the thing credits are for: a player who never finishes never sees them.
+- *A row on the pause menu* — `rejected — no reference puts it there`, and the pause menu answers
+  "what do you want to do while you are here", which reading a document is not.
+
+**What it shows.**
+
+- **Chosen: a notice, then every artist by name, in full.** 43 names, twelve to a page.
+- *One row per work* — `rejected — it trims the wrong thing`. A row would read *title — artists —
+  licence*, which fits the nine terrain files and not the LPC character layers, which carry up to
+  eleven authors. The rows an ellipsis would cut are precisely the ones with the most people to
+  attribute, and a truncated artist is a failed attribution rather than a cosmetic loss.
+- *Both lists* — `deferred — worth trying`. The most complete answer and about eleven pages to
+  turn. Revisit hook: `CreditsMenu.of` already has the `files` array in hand — it reads `authors`
+  and ignores it — so a second block of pages is a second `_paginate` call.
+
+**How it pages.**
+
+- **Chosen: pages, and a paragraph is never split.** `_paginate` takes blocks; a name and a
+  sentence are the same shape to it.
+- *A scrolling crawl* — `rejected — no gate could see it`. Every layout audit here collects
+  `Panel`, `Label`, `ColorRect` and `TextureRect` by EXACT class, so rows inside a scroll container
+  are invisible to the audit and rows scrolled out of view measure as drawn off the window. That is
+  M42's own failure — an audit that measured two node classes could not see a bar drawn across the
+  sprite it described. Revisit hook: the collector in `test_credits_layout._rects`, which would
+  have to learn about the container and its clip rect before the screen could use one.
+
+**Not shown, and deliberately.** `LpcImport.credits_of` drops each layer's `notes` string (the
+"original by wulax, edited for v3 base by bluecarrot16" prose), so the screen cannot show it — the
+normalised entry is `file`/`authors`/`licenses`/`urls` and nothing else. `deferred`; revisit hook is
+`credits_of`, which would keep the field, and the drift gate would then compare it.
+
+**Not a fork, but the finding.** The first build of the screen broke page one in the middle of the
+sentence "Some layers are share-alike, so the". Every gate passed it: a split paragraph is inside
+every bound, distinct, in order, and correctly wrapped. Containment gates measure GEOMETRY and a
+sentence is MEANING, and nothing headless was ever going to notice. It was found by looking at the
+screenshot, which is the third time on this arc.
+
