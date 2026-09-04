@@ -134,8 +134,10 @@ func test_a_body_put_down_somewhere_starts_its_stride_over() -> void:
 ## A body with nothing around it, so it can walk as far as a test needs - the village stops the
 ## player against geometry inside one tile.
 func _loose_body(stride: float) -> ActorBody:
-	var config := (load("res://data/game_config.tres") as GameConfig).duplicate() as GameConfig
-	config.footstep_pixels = stride
+	# Bound at the 16px tile the dusk16 art is drawn at, so the stride stays the PIXEL distance
+	# every assertion below is written in.
+	var config := (load("res://data/game_config.tres") as GameConfig).at(16)
+	config.footstep_tiles = stride / 16.0
 	var body := ActorBody.new()
 	assert_bool(body.setup(config, FileSpriteSource.create(&"dusk16"), &"quest_wanderer")).is_true()
 	add_child(body)

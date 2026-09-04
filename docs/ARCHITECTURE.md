@@ -115,8 +115,9 @@ has proven is tested — and three times during this build a mutant proved a tes
   a lock wants one with `requires_item`, a lantern drinks one with `take_item`, and a dialog
   choice can do any of the three.
 - **Feel** → `data/game_config.tres`, including which of the two movement modes runs:
-  `grid_step_pixels` at zero is free pixel movement, or set to the map's tile size for one
-  press = one tile. A game *may* bring its own config, and should only do so
+  `grid_step` false is free pixel movement, true is one press = one tile. It is a flag rather
+  than a distance because the config is bound to a tile size, so a step that is not a tile
+  cannot be written down. A game *may* bring its own config, and should only do so
   when its design demands it: a game that varies a knob for no reason turns every difference
   a player feels into a suspected defect.
 - **New mechanics** → a `GameHooks` subclass under `games/<id>/`, named by the manifest.

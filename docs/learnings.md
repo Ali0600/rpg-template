@@ -2187,3 +2187,41 @@ URLs came out at 296 and 301 pixels in a 292 pixel row, because URL characters a
 with the real font and fails the build. Set the constant from what that gate reports, and say in the
 comment that it was measured — the next reader will otherwise round it back up.
 
+
+## An accessor that keeps the old field's name throws away the rename
+
+Renaming a field so the compiler finds every reader only works if the *replacement* has a
+different name. In GDScript, `config.walk_speed` where `walk_speed` is now a **method** does not
+fail to compile — it evaluates to a `Callable`. The multiply downstream then fails at runtime, in
+whichever scene happened to touch it first.
+
+**Why it came up.** M44 moved every distance in `GameConfig` into tile units. The plan said
+"pixel-valued methods replace the fields", which reads as `walk_speed()`. Under that shape a
+missed reader is a runtime bug in a play session; under `walk_tiles_per_second` (data) +
+`walk_speed_px()` (accessor) it is `Invalid access to property 'walk_speed'` from
+`compile_all.gd`, before anything runs. The save v10 migration had already learned the first half
+of this — rename with the unit — and this is the half it did not have to face, because a field
+became a field there rather than a method.
+
+**Takeaway.** When you rename to make the compiler enumerate readers, make sure the OLD name
+resolves to nothing at all: a same-named method, a property alias or a `_get` fallback quietly
+converts your build failure into a runtime one.
+
+## A unit is a fact about data, and code that multiplies it needs one owner
+
+`walk_speed = 48` is not a speed; it is a speed *at 16px tiles*. The demo doubled six of those
+numbers by hand to stay the same distance in tiles, and nothing anywhere could tell that the
+doubling had drifted — the only witness would have been frame-counted play sessions failing
+somewhere unrelated.
+
+**Why it came up.** Stating the fields in tiles and binding a tile size into the config
+(`at(tile_size)`, one caller, on every map entry) made the demo's six overrides unnecessary: it
+now states none of them. The same move deleted a whole validation rule — `GameManifest` used to
+cross-check that a grid step equalled the map's tile size, and once the config knows its own
+scale, a step that is not a tile cannot be written down.
+
+**Takeaway.** Where a number is only meaningful relative to something else, put that something
+in the type or bind it at construction, and convert at ONE seam. A rule that exists to catch a
+mismatch between two numbers is a rule you can often delete by making the mismatch
+unrepresentable — and deleting a rule legitimately deletes its test, which is a different thing
+from a test going stale.

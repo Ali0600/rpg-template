@@ -99,29 +99,6 @@ func test_a_script_that_is_not_a_gamehooks_is_reported() -> void:
 	assert_str("\n".join(manifest.problems())).contains("GameHooks")
 
 
-func test_a_grid_step_that_is_not_the_maps_tile_size_is_reported() -> void:
-	# The one genuinely wrong value this mode can be given, and it is invisible from either
-	# side alone: the config knows the step and the map knows the tile, and only a manifest
-	# holds both. Left unchecked it lands the player between tiles, increasingly, forever.
-	var manifest := _valid()
-	var config := (manifest.config as GameConfig).duplicate() as GameConfig
-	config.grid_step_pixels = 24
-	manifest.config = config
-	assert_str("\n".join(manifest.problems())).contains("lands the player between them")
-
-func test_a_grid_step_matching_the_maps_tiles_is_accepted() -> void:
-	# The control: without it, a check that complained about every grid step would pass above.
-	var manifest := _valid()
-	var config := (manifest.config as GameConfig).duplicate() as GameConfig
-	# The START MAP's own tile size, which is what the check compares against - a number written
-	# here goes stale the day the demo changes the size it is drawn at, and then fails as though
-	# the check were the thing that was wrong.
-	config.grid_step_pixels = ArtFixtures.style(MapData.load_from(
-		MapData.path_of(manifest.start_map)).style_id).tile_size
-	manifest.config = config
-	assert_array(manifest.problems()).is_empty()
-
-
 func test_a_voice_whose_cues_were_never_generated_is_reported() -> void:
 	# The failure this catches is a game that boots perfectly and is silent, which reads as
 	# "sound is not built yet" rather than as a missing file - the same reason the manifest

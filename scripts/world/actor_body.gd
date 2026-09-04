@@ -50,8 +50,8 @@ func _ready() -> void:
 
 func setup(config_value: GameConfig, source: SpriteSource, character_id: StringName) -> bool:
 	config = config_value
-	_walker = GridWalker.new(config) if config.grid_step_pixels > 0 else null
-	_meter = StepMeter.new(config.footstep_pixels) if config.footstep_pixels > 0.0 else null
+	_walker = GridWalker.new(config) if config.grid_step_px() > 0 else null
+	_meter = StepMeter.new(config.footstep_px()) if config.footstep_px() > 0.0 else null
 	if view.get_parent() == null:
 		add_child(view)
 	if _shape.get_parent() == null:
@@ -64,11 +64,11 @@ func _apply_shape() -> void:
 	if config == null:
 		return
 	var rect := RectangleShape2D.new()
-	rect.size = config.body_size
+	rect.size = config.body_size_px()
 	_shape.shape = rect
 	# The box sits just ABOVE the origin, because the origin is the feet: centring it on the
 	# origin would put half the collider below the floor line the character stands on.
-	_shape.position = Vector2(0.0, -config.body_size.y / 2.0)
+	_shape.position = Vector2(0.0, -config.body_size_px().y / 2.0)
 
 
 ## One step of movement from an input vector. Returns the Locomotion step so a caller can

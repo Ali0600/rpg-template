@@ -1302,7 +1302,7 @@ outcome — shipping nothing — is the part most likely to be re-litigated.
   keeper or a discount: the revisit hook is `ShopDef.stock`, which would become an array of
   dictionaries instead of ids. Rejected now because one keeper needs none of it.
 - **`price = 0` means not tradable, and it is the default** — the same "zero is off" shape
-  `ItemDef.battle_heal` and `GameConfig.grid_step_pixels` already use. An item joins the
+  `ItemDef.battle_heal` and `GameConfig.footstep_tiles` already use. An item joins the
   economy by being priced, never by being forgotten, so quest items are safe by construction.
 - *The shop opening inline from the effect list* — rejected because it does not work:
   `_on_dialog_closed` applies effects and THEN closes the dialog overlay, so the counter is
@@ -1506,8 +1506,10 @@ for rejected on sight.
 *Keep 320×180 with 32px tiles* (ten tiles wide) is the alternative the user can still look at.
 *A SubViewport for the world, with the UI outside it* — rejected: it moves every screen into a
 second tree and routes input through a container, where scaling the layers changes one property
-per layer and no screen at all. *`GameConfig` in TILE units rather than pixels* is
-`deferred — worth trying` (hook: `Locomotion.read_input` consumes `walk_speed`).
+per layer and no screen at all. *`GameConfig` in TILE units rather than pixels* was
+`deferred — worth trying` and is **taken up by M44** below. Its hook was wrong, which is worth
+recording: it named `Locomotion.read_input`, which reads no config at all — the consumers are
+`Locomotion.step` and three other pure classes, none of which has a tile size.
 
 **Saves became TILE units in the same phase (v10)**, which was not in the original plan and is the
 part that could not be deferred: a save recording pixels describes a place only while the art does
@@ -1564,7 +1566,8 @@ game loaded it, which is drift no test can reproduce; the divisor is frozen at 1
   slide. It feels better to move around in, and it is the model both of the user's earlier
   2D projects used.
 - *Grid-step* — **shipped in M9** as a mode rather than a replacement: `grid_step_pixels` at
-  zero is free movement, and set to the tile size it is one press per tile. See "Grid stepping
+  zero was free movement, and set to the tile size it was one press per tile. (M44 made it the
+  bool `grid_step`; the distance is now the bound tile size and cannot be anything else.) See "Grid stepping
   is a distance, not a timer" below. (This bullet said "deferred" for eleven milestones after
   the thing it deferred had shipped.)
 
@@ -1813,7 +1816,7 @@ One press = exactly one tile, tweened, instead of free pixel movement. The first
 file's backlog, now built.
 
 - **Chosen: a pure `GridWalker` beside `Locomotion`, one per actor, selected by
-  `GameConfig.grid_step_pixels > 0`.** The direction still comes from `Locomotion.step()`, so
+  `GameConfig.grid_step_pixels > 0`** (M44: `grid_step_px() > 0`, the flag times the bound tile). The direction still comes from `Locomotion.step()`, so
   `allow_diagonal` and the ties-go-horizontal rule have one implementation between the two
   modes rather than two that drift.
 - *A second implementation of `Locomotion.step()`* — which the backlog entry and
@@ -2886,3 +2889,55 @@ every bound, distinct, in order, and correctly wrapped. Containment gates measur
 sentence is MEANING, and nothing headless was ever going to notice. It was found by looking at the
 screenshot, which is the third time on this arc.
 
+
+## `GameConfig` states distances in TILES, and `at()` is the one binder — *M44*
+
+**The fork:** `data/game_config.tres` carried six numbers that were DOUBLE the template's defaults
+— 96 rather than 48, 24 rather than 12 — because the demo is drawn at 32px where the defaults were
+written for 16. Its own header explained the doubling and named the fix. The cost was never the
+doubling; it was that **nothing enforced it**. A game at 24px needed six numbers re-derived by
+hand, and the only witness to a drift was 24 frame-counted play sessions failing somewhere
+unrelated.
+
+- **Chosen: rename every distance with its unit, and bind a tile size into the config.**
+  `walk_tiles_per_second`, `interact_reach_tiles`, `body_tiles`, `idle_tiles_per_second`,
+  `footstep_tiles`, `camera_tiles_per_second`; `GameConfig.at(tile_size)` returns a duplicate that
+  knows its scale, and `walk_speed_px()` and its five siblings are the only way to a pixel. Every
+  shipped value converts exactly — 3.0, 0.75, 0.625, 0.375, 0.0625, 0.875 are all sums of powers
+  of two — so ×16 and ×32 are lossless and all 24 sessions stay byte-identical by construction.
+- **The accessors are deliberately NOT named after the old fields** — `walk_speed_px()`, not
+  `walk_speed()`. In GDScript `config.walk_speed` without parentheses yields a **Callable** rather
+  than a compile error, so an accessor wearing the old name would turn every missed reader into a
+  runtime failure and throw away the entire reason for renaming. The v10 save migration is the
+  precedent: rename with the unit so the compile gate enumerates the readers.
+- *Passing `tile_size` to every accessor* — **rejected.** `Locomotion`, `GridWalker`, `Interactor`
+  and `ActorBody` have no tile size, and two of their suites advertise "no scene at all" as the
+  point. Binding it into the config an actor already holds changes no signature and costs no
+  purity.
+- *Reading `GameState.tile_size` from the pure classes* — **rejected** for the same reason: it
+  would end their purity to save one field.
+- *Defaulting an unbound config to 16 silently* — **rejected.** A fallback that fires quietly is
+  indistinguishable from a missing feature; `_tiles()` `push_error`s and then answers as if 16, so
+  a world that forgot to bind is loud rather than half-speed.
+- *Leaving `grid_step_pixels` a distance* — **rejected**, and this is the deletion that pays for
+  itself. It was a distance because "a flag would still need the tile size from somewhere", which
+  forced `GameManifest` to cross-check the step against the start map's tile size. A bound config
+  already knows, so `grid_step` is a bool and **a step that is not a tile is unrepresentable rather
+  than refused**. The cross-check, the "cannot be negative" refusal and both their mutants went
+  with the rules — which is not the "never delete a row" case, that being about a stale pattern
+  over live code.
+- *`grid_step_tiles: float`* — **rejected as more expressive and less safe.** It keeps the "zero is
+  off" idiom and a negativity check, but re-opens exactly the bug the cross-check existed to close:
+  a 0.5-tile step desyncs the player from the grid the trigger tiles sit on, and nothing would
+  refuse it any more.
+
+**The trap this was built around, and the gate that answers it: Godot silently drops unknown
+`.tres` keys.** No error, no warning, no failed load. A rename that forgot `data/game_config.tres`
+would leave every value at its script default — and here that is *invisible*, because after the
+conversion the defaults ARE the right numbers. So `test_game_config.gd` does not gate the values
+(which pass either way); it gates the FILE naming no removed field. The demo's config now states
+none of the six and inherits, which is the most legible proof the change worked.
+
+`camera_tiles_per_second` got its first test ever in the same change: it had no suite and no
+mutant, and it is the one value that converts BACK to pixels, because
+`Camera2D.position_smoothing_speed` is engine-native px/s (checked against the Godot 4.7 docs).

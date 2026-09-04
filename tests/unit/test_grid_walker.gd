@@ -26,8 +26,10 @@ var _frozen := false
 var _axis_scale := Vector2.ONE
 
 func before_test() -> void:
-	_config = load("res://data/game_config.tres").duplicate() as GameConfig
-	_config.grid_step_pixels = CELL
+	_config = (load("res://data/game_config.tres") as GameConfig).at(CELL)
+	# The one line that turns the mode on. It is a flag now rather than a distance, because a
+	# bound config already knows how big a tile is.
+	_config.grid_step = true
 	_blocked = []
 	_frozen = false
 	_axis_scale = Vector2.ONE
@@ -192,7 +194,7 @@ func test_a_step_crosses_a_cell_at_walk_speed_when_no_duration_is_set() -> void:
 	# Zero means "derive it", so both movement modes cross a tile at the same rate unless a
 	# designer says otherwise.
 	_config.grid_step_seconds = 0.0
-	_assert_takes_about(_config.walk_speed)
+	_assert_takes_about(_config.walk_speed_px())
 
 func test_a_duration_overrides_the_speed() -> void:
 	# 16px in 0.1s is 160px/s, a bit over three times the shipped walk speed.
@@ -241,12 +243,8 @@ func test_a_step_ends_on_the_frame_it_arrives_not_the_one_after() -> void:
 	assert_int(frames).is_equal(2)
 	assert_vector(pos).is_equal(_centre(Vector2i(3, 2)))
 
-func test_a_negative_grid_step_is_reported() -> void:
-	_config.grid_step_pixels = -1
-	assert_str("\n".join(_config.problems())).contains("grid_step_pixels")
-
 func test_the_shipped_config_is_still_free_movement() -> void:
 	# The whole promise of this milestone: nothing anyone can play changes.
 	var shipped := load("res://data/game_config.tres") as GameConfig
-	assert_int(shipped.grid_step_pixels).is_equal(0)
+	assert_bool(shipped.grid_step).is_false()
 	assert_array(shipped.problems()).is_empty()

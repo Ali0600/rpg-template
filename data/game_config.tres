@@ -3,24 +3,18 @@
 ; Every number a designer would want to try three values of. Nothing else belongs here, and
 ; nothing of this kind belongs anywhere else.
 ;
-; The pixel numbers here are DOUBLE the template's defaults, because this game is drawn at 32px
-; tiles (lpc32) where the defaults were written for 16. Every one of them is the same distance
-; in TILES: three tiles a second, half a tile of reach, a footfall every seven eighths of a
-; tile - which is why all 23 scripted sessions, whose legs are counted in frames, play out
-; exactly as they did at 16px. Doubling them is the whole cost of the art being twice the size.
-; A GameConfig stated in tile units would remove even that, and is recorded in DECISIONS.
+; The distances are NOT here any more, and their absence is the point. They used to be doubled
+; against the template's defaults - 96 rather than 48, 24 rather than 12 - because this game is
+; drawn at 32px tiles where the defaults were written for 16, and every one of them was the same
+; distance in TILES. Now that GameConfig states them in tiles, the demo wants exactly what the
+; template already says, so it says nothing and inherits: three tiles a second, three quarters of
+; a tile of reach, a footfall every seven eighths of a tile, at any art size.
 
 [ext_resource type="Script" path="res://scripts/data/game_config.gd" id="1_config"]
 
 [resource]
 script = ExtResource("1_config")
 id = &"default"
-walk_speed = 96.0
 allow_diagonal = true
-interact_reach = 24.0
-body_size = Vector2(20, 12)
-idle_speed_epsilon = 2.0
-camera_smoothing = 0.0
-footstep_pixels = 28.0
 rest_fade_frames = 24
 rest_hold_frames = 30

@@ -49,9 +49,9 @@ static func step(input: Vector2, facing_now: int, config: GameConfig) -> Step:
 		# in hand-rolled movement and it survives playtesting because it feels good.
 		move = move.normalized()
 
-	var velocity := move * config.walk_speed
+	var velocity := move * config.walk_speed_px()
 	var facing := Dir.facing_from_vector(move, facing_now)
-	var moving := velocity.length() > config.idle_speed_epsilon
+	var moving := velocity.length() > config.idle_epsilon_px()
 	return Step.new(velocity, facing, &"walk" if moving else &"idle")
 
 
@@ -66,4 +66,4 @@ static func read_input() -> Vector2:
 ## Where an interaction lands: in front of the character, at arm's length. Derived from the
 ## facing rather than from the velocity, so a character standing still still has a front.
 static func interact_point(origin: Vector2, facing: int, config: GameConfig) -> Vector2:
-	return origin + Dir.vector_of(facing) * config.interact_reach
+	return origin + Dir.vector_of(facing) * config.interact_reach_px()

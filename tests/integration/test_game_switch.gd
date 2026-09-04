@@ -126,3 +126,27 @@ func test_starting_back_and_forth_stays_correct() -> void:
 	var back: ActorBody = _world.player()
 	assert_str(String(back.config.id)).is_equal("default")
 	assert_object(_world.dialog_box()).is_not_null()
+
+func test_camera_smoothing_is_stated_in_tiles_and_reaches_the_engine_in_pixels() -> void:
+	# The one value in GameConfig that converts BACK to pixels, because
+	# Camera2D.position_smoothing_speed is engine-native px/s. Until this milestone it had no
+	# test and no mutant anywhere - its only guard was the compiler, which cannot tell two tiles
+	# a second from two pixels a second.
+	#
+	# The expected figure is derived from the running map's tile size rather than written as 64,
+	# because a suite that spells out the size the demo is drawn at goes stale as a refusal the
+	# day its art changes.
+	var manifest := _other_game()
+	var config := manifest.config as GameConfig
+	config.camera_tiles_per_second = 2.0
+	var scene := load("res://scenes/world/world.tscn") as PackedScene
+	_world = scene.instantiate() as Node2D
+	add_child(_world)
+	assert_bool(_world.start_game(manifest)).is_true()
+	var camera := _world._camera as Camera2D
+	assert_bool(camera.position_smoothing_enabled).override_failure_message(
+		"a non-zero smoothing left the camera snapping").is_true()
+	var want := 2.0 * float(GameState.tile_size)
+	assert_float(camera.position_smoothing_speed).override_failure_message(
+		"the camera smooths at %f px/s, where two tiles of %dpx is %f"
+		% [camera.position_smoothing_speed, GameState.tile_size, want]).is_equal_approx(want, 0.001)

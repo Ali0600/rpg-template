@@ -19,7 +19,8 @@ var _root: Node2D
 
 func before_test() -> void:
 	Router.reset()
-	_config = load("res://data/game_config.tres").duplicate() as GameConfig
+	# Bound to the 16px tile this suite's gb16 world is drawn at - a body's box is in pixels.
+	_config = (load("res://data/game_config.tres") as GameConfig).at(16)
 	_style = load("res://data/styles/gb16.tres") as SpriteStyle
 	var meta := JsonFile.read("res://assets/generated/gb16/tiles.json")
 	assert_bool(meta.ok).override_failure_message(meta.error).is_true()
@@ -86,11 +87,11 @@ func test_the_players_collision_box_sits_on_its_feet() -> void:
 	var shape := SceneHelpers.find_by_class(body, "CollisionShape2D") as CollisionShape2D
 	assert_object(shape).is_not_null()
 	var rect := shape.shape as RectangleShape2D
-	assert_vector(rect.size).is_equal(_config.body_size)
+	assert_vector(rect.size).is_equal(_config.body_size_px())
 	# Above the origin, not centred on it: the origin is the feet, so a centred box would put
 	# half the collider through the floor.
 	assert_float(shape.position.y).is_less(0.0)
-	assert_float(absf(shape.position.y)).is_equal_approx(_config.body_size.y / 2.0, 0.01)
+	assert_float(absf(shape.position.y)).is_equal_approx(_config.body_size_px().y / 2.0, 0.01)
 
 func test_the_player_moves_when_told_to() -> void:
 	var body := _spawn_player()

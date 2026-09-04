@@ -175,7 +175,7 @@ func test_an_npc_walking_into_the_player_is_not_carried_sideways() -> void:
 	# server shoves her aside, and the reading becomes about collision separation rather than
 	# about a moving floor carrying anybody.
 	var player := _world._player as ActorBody
-	var gap := player.config.body_size.y * 5.0 / 3.0
+	var gap := player.config.body_size_px().y * 5.0 / 3.0
 	player.place(body.global_position + Vector2(0.0, gap), Dir.D.UP)
 	await _steps(30)
 
