@@ -2778,9 +2778,36 @@ the other three the moment one reports, and a surviving mutant is exactly when t
 list matters. The list is chosen once and handed down as an artifact rather than recomputed per
 shard. Main goes from ~18 minutes to ~7; a scoped pull request to ~3.
 
-*Deferred — worth trying:* a composite action for the cache-and-download block, which now
-appears three times (gate, sweep, pages). Hook: `.github/actions/godot/action.yml`, and the
-scoper's harness list already says `.github/` rather than `.github/workflows/` so it would count.
+*Taken up 2026-09-04, and NOT as a composite action.* The block appeared three times (gate,
+sweep, pages) and `GODOT_VERSION`/`GODOT_SHA512` were duplicated verbatim across the two files
+with nothing gating that they agreed.
+
+- **`tools/fetch_godot.sh`** — *chosen.* One copy of the version and both sums, with a
+  `--selftest` that proves the checksum refuses AND accepts, and `test_ci_paths.gd` running it
+  the way it runs the other two. The workflows ask it for the version to key their caches.
+- **A composite action** — *rejected, on this entry's own principle two paragraphs up.* It would
+  put the rule back in "a language neither copy could be run in": no selftest, no mutant, no way
+  to try it on a laptop. The measured cost of that shape is already recorded here.
+- **Leaving it** — *rejected.* Nothing gated that the two copies agreed, and the failure has no
+  symptom: you gate on one engine and deploy from another.
+
+Two things came out of doing it that were not the point of it. The plan called for
+`--dest=~/godot-bin`, and **bash does not tilde-expand after `=` in an ordinary argument** - the
+engine would have landed in a directory literally named `~` while `GODOT_BIN` pointed at
+nothing; the script now refuses a `~` path by name rather than expanding it. And **macOS's
+`/sbin/sha512sum` rejects `--check` outright**, so the workflows' own line could never have run
+on the machine that wrote it; the script computes the digest and compares the string instead.
+
+**The four `SKIP  <tool> does not exist yet` branches went with it**, and measuring them changed
+the fix. `check.sh` guarded four steps on the tool existing and printed a `SKIP` otherwise - a
+third verdict touching neither `result` nor `fail`, so a renamed generator turned its gate green
+and the run still said `ALL GATES PASS`. Deleting the guards is not sufficient: **the engine
+exits 0 when `-s` names a missing script** (measured - two `ERROR` lines, exit 0), so the step
+reports PASS either way. What closes it is `test_ci_paths.gd` deriving every tool `check.sh`
+names from `check.sh`'s own text. The rule it asserts is "the gate prints no verdict that moves
+nothing", not "no `if [ -f ]`" - the first draft banned the spelling and would have failed the
+build on `check.sh:94`'s gdUnit4 guard, which is the same shape and correct, because its `else`
+sets `fail=1`.
 
 ## Docs-only changes skip the gate, and a stand-in answers the required check — *M24.1*
 

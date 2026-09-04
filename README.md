@@ -30,8 +30,8 @@ sprites, and composes the shorelines and verges where two grounds meet. Both arm
 regenerated in CI and the build fails if the committed pixels differ.
 
 **The gate.** Every rule the template makes is a test, and every test ships with a mutant
-proving it fails when the rule is broken. `tools/check.sh` runs lint, parse, compile, 1,325
-tests, a boot check, artifact drift, 23 scripted play sessions and the exported package, in
+proving it fails when the rule is broken. `tools/check.sh` runs lint, parse, compile, 1,400
+tests, a boot check, artifact drift, 24 scripted play sessions and the exported package, in
 that order, locally and in CI.
 
 ## The game it ships with
@@ -140,7 +140,7 @@ guessing, because a guessed game presents as the game you meant to run behaving 
 | `games/<id>/` | A game's own code, if it has any. |
 | `assets/generated/` | Build output of `tools/gen_sprites.gd` and `gen_sounds.gd` — never hand-edited. |
 | `tools/` | Headless scripts and the gate. |
-| `tests/` | 89 gdUnit4 suites, fixtures, 23 play sessions, and the mutation harness's targets. |
+| `tests/` | 94 gdUnit4 suites, fixtures, 24 play sessions, and the mutation harness's targets. |
 
 - [CLAUDE.md](CLAUDE.md) — the engineering contract
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the seams, and what each one protects
@@ -161,11 +161,11 @@ guessing, because a guessed game presents as the game you meant to run behaving 
   and composes the attribution the game then displays in-game to satisfy it, and sub-tile
   autotiling that composes 47 edge shapes from 12 pieces — all in integer arithmetic so output is
   byte-identical on macOS and Linux, and drift-gated in CI.
-- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,397
+- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,400
   unit and integration tests → boot → artifact drift → 24 scripted end-to-end play sessions →
   the exported package played; SHA-pinned actions, least-privilege tokens, a checksum-verified
   toolchain, and a Pages deploy gated on the green run of the exact commit it ships.
-- Implemented mutation testing over the project's own quality gates — 668 mutants, each proving
+- Implemented mutation testing over the project's own quality gates — 673 mutants, each proving
   a rule fails when broken — sharded four ways with a change-scoped fast lane (pull-request runs
   18 → 3 min) and a sub-second static check that every mutant still targets one line.
 - Built model-based testing of the application's state machine: transitions declared as data

@@ -27,10 +27,12 @@
 #
 # addons/gdUnit4/ is in the list because it is the runner every suite executes under, and
 # .github/ rather than .github/workflows/ so a composite action put beside them counts too.
+# tools/fetch_godot.sh is in it because it installs the ENGINE every mutant runs under - a
+# version bump is exactly the change that deserves a full sweep rather than a scoped one.
 #
 # Accepted and stated rather than solved: project.godot and tests/helpers/* reach many suites
 # and are still scoped by file. Main's full sweep is the backstop for both.
-HARNESS_RE='^(tools/(check|mutate_check|mutants_scope|mutants_aim|_engine)\.sh|\.github/|addons/gdUnit4/)'
+HARNESS_RE='^(tools/(check|mutate_check|mutants_scope|mutants_aim|_engine|fetch_godot)\.sh|\.github/|addons/gdUnit4/)'
 
 # ONE predicate, used by the dispatch below AND by the selftest. It was two copies of the same
 # regex, so the selftest was proving a duplicate of the rule rather than the rule.
@@ -113,7 +115,8 @@ tests/unit/test_b.gd"
   # through the REAL predicate - is_harness_change - rather than through a copy of its regex.
   harness() { printf '%s\n' "$2" > "$dir/one"; is_harness_change "$dir/one"; }
   for path in tools/check.sh tools/mutate_check.sh tools/mutants_scope.sh tools/mutants_aim.sh \
-      tools/_engine.sh .github/workflows/ci.yml addons/gdUnit4/bin/GdUnitCmdTool.gd; do
+      tools/_engine.sh tools/fetch_godot.sh .github/workflows/ci.yml \
+      addons/gdUnit4/bin/GdUnitCmdTool.gd; do
     if harness "" "$path"; then echo "  ok: $path is the harness"
     else echo "  selftest FAIL: $path is not recognised as the harness"; fail=1; fi
   done
