@@ -8,13 +8,19 @@ extends GdUnitTestSuite
 
 const D := Dir.D
 
+## The template's OWN defaults at its own reference tile, not the demo's file. Two reasons, and
+## the second is the rule: the numbers below were written against a 16px tile, and a suite that
+## named the size the DEMO is drawn at would go stale as a refusal the day its art changes -
+## which is exactly what test_grid_movement already argues at the top of its own before_test.
+const TILE := 16
+
 var _config: GameConfig
 
 func before_test() -> void:
-	_config = load("res://data/game_config.tres").duplicate() as GameConfig
+	_config = GameConfig.new().at(TILE)
 
 func _target(id: String, at: Vector2) -> Interactor.Target:
-	return Interactor.Target.new(StringName(id), at, _config.body_size)
+	return Interactor.Target.new(StringName(id), at, _config.body_size_px())
 
 func test_nothing_in_front_means_nothing_happens() -> void:
 	var targets: Array[Interactor.Target] = []
@@ -57,7 +63,7 @@ func test_the_order_of_the_list_does_not_decide() -> void:
 func test_standing_just_out_of_reach_still_works() -> void:
 	# Without the fallback, being one pixel too far away does nothing at all - and to a
 	# player that is indistinguishable from the button being broken.
-	var just_past := _config.interact_reach + _config.body_size.x - 1.0
+	var just_past := _config.interact_reach_px() + _config.body_size_px().x - 1.0
 	var targets: Array[Interactor.Target] = [_target("ahead", Vector2(just_past, 0.0))]
 	assert_object(Interactor.find(Vector2.ZERO, D.RIGHT, _config, targets)).is_not_null()
 
@@ -78,4 +84,4 @@ func test_a_targets_box_sits_above_its_feet() -> void:
 	# body occupies the space above that point.
 	var target := _target("someone", Vector2(0.0, 0.0))
 	assert_float(target.rect().end.y).is_equal_approx(0.0, 0.01)
-	assert_float(target.rect().position.y).is_equal_approx(-_config.body_size.y, 0.01)
+	assert_float(target.rect().position.y).is_equal_approx(-_config.body_size_px().y, 0.01)

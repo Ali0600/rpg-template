@@ -299,11 +299,41 @@ with the root already moved that boot hunts for the quest's start map in the fix
 fails, and leaves the half-built map it had already made behind. Six orphan nodes, no error, and
 every assertion still passing - caught only because the suite's orphan baseline is zero.
 
-**The demo is drawn in imported LPC art, and its config numbers are DOUBLE the template's.**
-`data/game_config.tres` says 96 px/s, 24px of reach, a 20x12 body and a footfall every 28px -
-each of which is the same distance in TILES as the template's default on a 16px map. That is
-why all 23 scripted sessions, whose legs are counted in frames, play out unchanged. A
-`GameConfig` stated in tile units would remove even that, and is recorded as deferred.
+**`GameConfig` states every distance in TILES, and `at()` is the one binder.** `walk_tiles_per_second`
+is 3.0, `interact_reach_tiles` 0.75, `body_tiles` (0.625, 0.375), `footstep_tiles` 0.875 - the same
+distance at any art size. They used to be pixels, and the demo carried DOUBLE the template's
+numbers (96, 24, 20x12, 28) because it is drawn at 32px where the defaults were written for 16.
+Nothing enforced that doubling: a game at 24px needed six numbers re-derived by hand with no gate
+to say they had drifted. `data/game_config.tres` now states none of them and inherits, which is
+the most legible proof the change worked.
+
+**The fields are renamed with their unit, and the accessors are named differently again.**
+`config.walk_speed` is gone; the data is `walk_tiles_per_second` and the pixels come from
+`walk_speed_px()`. That gap is deliberate and is the v10 lesson: had the accessor kept the old
+name, `config.walk_speed` without parentheses would yield a **Callable** rather than a compile
+error, and a missed reader would surface at runtime instead of failing the build. A rename with
+the unit in it makes the compile gate enumerate every reader.
+
+`GameConfig.at(tile_size)` returns a DUPLICATE with the size bound - never in place, or two maps
+at different scales would fight over one authored resource. `world_scene.enter_map` is the only
+caller, beside `GameState.tile_size` because they are the same fact from the same source, and on
+every map entry because a warp can cross into a map drawn at another scale. An unbound config
+(`_tile_size == 0`) `push_error`s and answers as if 16: a fallback that fires here is a real
+fault, never a mode. This is also what keeps `Locomotion`, `GridWalker`, `Interactor` and
+`ActorBody` pure - they have no tile size and must not acquire one, and binding it into the
+config an actor already holds changes no signature and reaches no autoload.
+
+**`grid_step` is a bool, and a step that is not a tile is now unrepresentable.** It was
+`grid_step_pixels`, a DISTANCE, because "a flag would still need the tile size from somewhere" -
+so `GameManifest` had to cross-check the step against the start map's tile size, since a step that
+is not a tile lands the player between tiles forever. A bound config already knows, so that
+cross-check, the "a negative grid step" refusal and both their mutants are gone: the rules became
+unrepresentable rather than unenforced.
+
+**Godot silently drops unknown `.tres` keys** - no error, no warning, no failed load - so a rename
+that forgot `data/game_config.tres` would leave every value at its script default. Here that is
+invisible, because the defaults are numerically right. `test_game_config.gd` therefore gates the
+FILE naming no removed field, not the values being correct.
 
 The cast is eleven recipes under `docs/lpc_designs/` plus the wanderer. **A creature is a human
 body wearing a beast head**, because LPC has no non-human body at all: the Slink is the CHILD
@@ -338,8 +368,8 @@ of the translator. They read the map's own style now. Same for `test_world_npcs`
 test brain at 16 and worked out its waypoints at 16: the pair cancelled, and the suite was
 passing against a world drawn at neither size.
 
-**Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step_pixels` at
-zero is free pixel movement; set to the map's tile size it is one press = one tile. Both go
+**Two movement modes, and `place()` is the only teleport.** `GameConfig.grid_step` false is free
+pixel movement; true is one press = one tile, and `grid_step_px()` answers the bound tile size. Both go
 through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so nothing
 downstream can tell which is running. `ActorBody.place(at, facing)` is the ONE way an actor is
 teleported — it cancels a step in flight *before* assigning the position, because abandoning
@@ -709,7 +739,7 @@ it becomes a `FadeScreen`.
 **WHERE a game may be saved is an axis, and `save_policy` is the whole switch.**
 `GameConfig.save_policy` is `anywhere` (the pause menu's Save row, Pokemon's shape) or
 `at_point` (that row is gone, and the `open_save` dialog effect is the only way to write one -
-Dragon Quest's king, Final Fantasy's inn). It is the `grid_step_pixels` shape one layer up: a
+Dragon Quest's king, Final Fantasy's inn). It is the `sheets_from` shape one layer up: a
 StringName checked against `SAVE_POLICIES` rather than an enum, because a `.tres` stores an
 enum as the bare int it was written as and a third policy later would re-label every shipped
 config. A typo'd value FAILS THE BUILD - the npc `behavior` rule, and for its reason: a policy

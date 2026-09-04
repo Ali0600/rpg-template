@@ -141,7 +141,7 @@ func _latch(free_velocity: Vector2, at: Vector2, is_free: Callable) -> void:
 		tries.append(Vector2i(want.x, 0))
 		tries.append(Vector2i(0, want.y))
 	for cell: Vector2i in tries:
-		var to := origin + Vector2(cell) * float(_config.grid_step_pixels)
+		var to := origin + Vector2(cell) * float(_config.grid_step_px())
 		if not bool(is_free.call(to - at)):
 			continue
 		_origin = origin
@@ -163,7 +163,7 @@ static func _axis_of(v: float) -> int:
 ## The centre of the cell a position stands in, asked of MapData rather than recomputed, so the
 ## walker and world_to_tile can never disagree about which cell that is.
 func _centre_of(at: Vector2) -> Vector2:
-	var g := _config.grid_step_pixels
+	var g := _config.grid_step_px()
 	return MapData.tile_to_world(MapData.world_to_tile(at, g), g)
 
 
@@ -172,5 +172,5 @@ func _centre_of(at: Vector2) -> Vector2:
 ## alternative is the 41%-faster diagonal Locomotion exists to prevent.
 func _speed() -> float:
 	if _config.grid_step_seconds > 0.0:
-		return float(_config.grid_step_pixels) / _config.grid_step_seconds
-	return _config.walk_speed
+		return float(_config.grid_step_px()) / _config.grid_step_seconds
+	return _config.walk_speed_px()

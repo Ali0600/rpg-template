@@ -54,7 +54,7 @@ static func find(origin: Vector2, facing: int, config: GameConfig, targets: Arra
 		if to_target.dot(forward) <= 0.0:
 			continue
 		var d := to_target.length()
-		if d > config.interact_reach + config.body_size.x:
+		if d > config.interact_reach_px() + config.body_size_px().x:
 			continue
 		if d < best_distance:
 			best = target

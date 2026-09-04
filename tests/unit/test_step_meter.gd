@@ -26,7 +26,7 @@ func test_one_long_frame_still_lands_a_foot() -> void:
 
 
 func test_a_stride_of_zero_switches_footsteps_off() -> void:
-	# Zero is a MODE, the way GameConfig.grid_step_pixels at zero means free movement - so a
+	# Zero is a MODE, the way GameConfig.grid_step false means free movement - so a
 	# game with silent feet says so in data rather than needing code.
 	var meter := StepMeter.new(0.0)
 	for i in 100:

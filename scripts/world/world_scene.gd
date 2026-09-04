@@ -369,6 +369,10 @@ func enter_map(map_id: StringName, spawn_id: StringName, at_tile: Vector2 = NO_S
 	# Written here, from the map's own style, and by nobody else: a save records tiles, the
 	# world moves in pixels, and this is the rate between them.
 	GameState.tile_size = _built.tile_size
+	# The ONE place a config learns how big a tile is, beside the state that records the same
+	# fact from the same source. On every map entry rather than once at boot, because a warp can
+	# cross into a map drawn at another scale.
+	_config = _game.config.at(_built.tile_size)
 	_spawn_player(data, spawn_id, at_tile)
 	_spawn_npcs(data)
 	_spawn_enemies(data)
@@ -512,8 +516,8 @@ func _configure_camera(data: MapData) -> void:
 	_camera.enabled = true
 	# Smoothing fights pixel snapping: the camera lands on fractional positions and the whole
 	# world shimmers by a pixel. Off unless a project deliberately turns it on.
-	_camera.position_smoothing_enabled = _config.camera_smoothing > 0.0
-	_camera.position_smoothing_speed = _config.camera_smoothing
+	_camera.position_smoothing_enabled = _config.camera_speed_px() > 0.0
+	_camera.position_smoothing_speed = _config.camera_speed_px()
 
 	var limits := MapBuilder.camera_limits(data, _built.tile_size)
 	var viewport := get_viewport_rect().size
@@ -728,7 +732,7 @@ func _targets() -> Array[Interactor.Target]:
 		# The payload is the RECORD now, not the body. Interactor has always carried one and
 		# nothing ever read it: try_interact looked the target back up by id, which is why an
 		# interaction could only ever be with an NPC.
-		out.append(Interactor.Target.new(npc_id, body.global_position, _config.body_size, record))
+		out.append(Interactor.Target.new(npc_id, body.global_position, _config.body_size_px(), record))
 
 	# Objects are interaction points with no body of their own: what the player sees is the
 	# decor tile they stand on. They join the same list, so a sign and a villager are found
@@ -742,7 +746,7 @@ func _targets() -> Array[Interactor.Target]:
 			var at := MapData.tile_to_world(Vector2i(raw[0], raw[1]), _built.tile_size)
 			var record := object.duplicate()
 			record["id"] = StringName(str(object.get("id", "")))
-			out.append(Interactor.Target.new(record["id"], at, _config.body_size, record))
+			out.append(Interactor.Target.new(record["id"], at, _config.body_size_px(), record))
 	return out
 
 

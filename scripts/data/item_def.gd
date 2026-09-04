@@ -28,7 +28,7 @@ extends Resource
 @export var description: String = ""
 
 ## Hit points restored when this is used from the battle menu. ZERO MEANS NOT USABLE IN A
-## FIGHT, the same "zero is off" shape as GameConfig.grid_step_pixels - so the field is both
+## FIGHT, the same "zero is off" shape as GameConfig.footstep_tiles - so the field is both
 ## the amount and the answer to "does this belong in the battle item list", and the two cannot
 ## disagree.
 ##

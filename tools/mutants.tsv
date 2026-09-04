@@ -44,14 +44,14 @@ scripts/ui/sprite_lab.gd	s|if not _gate.accept\(event\):|if false:|	tests/integr
 # --- M3: movement, maps and game flow ---
 scripts/world/locomotion.gd	s|move = move.normalized\(\)|pass|	tests/unit/test_locomotion.gd	walking diagonally is 41% faster than walking straight
 scripts/world/locomotion.gd	s|if absf\(move.x\) >= absf\(move.y\):|if absf(move.x) > absf(move.y):|	tests/unit/test_locomotion.gd	a four-way tie stops going sideways
-scripts/world/locomotion.gd	s|var moving := velocity.length\(\) > config.idle_speed_epsilon|var moving := velocity.length() > 0.0|	tests/unit/test_locomotion.gd	drift below the idle threshold keeps the walk animation twitching
+scripts/world/locomotion.gd	s|var moving := velocity.length\(\) > config.idle_epsilon_px\(\)|var moving := velocity.length() > 0.0|	tests/unit/test_locomotion.gd	drift below the idle threshold keeps the walk animation twitching
 scripts/autoload/router.gd	s|return _state == State.WORLD|return true|	tests/unit/test_router.gd	the player can move while a dialog is open
 scripts/autoload/router.gd	s|set_state\(_stack.pop_back\(\)\)|set_state(State.WORLD)|	tests/unit/test_router.gd	closing an overlay forgets what it covered
 scripts/autoload/router.gd	s|_stack.clear\(\)|pass|	tests/unit/test_router.gd	reset leaves the overlay stack behind
 scripts/world/map_data.gd	s|if warp_tiles.has\(at\):|if false:|	tests/unit/test_map_data.gd	a declared exit is reported as a hole in the wall
 scripts/world/map_data.gd	s|return Vector2i\(floori\(at.x / tile_size\), floori\(at.y / tile_size\)\)|return Vector2i(int(at.x / tile_size), int(at.y / tile_size))|	tests/unit/test_map_data.gd	a negative coordinate rounds toward zero and lands back on the map
 scripts/world/map_data.gd	s|if solid_tiles.has\(ground_at\(at\)\) or solid_tiles.has\(decor_at\(at\)\):|if true:|	tests/unit/test_map_data.gd	an unwalled map edge stops being reported
-scripts/world/actor_body.gd	s|_shape.position = Vector2\(0.0, -config.body_size.y / 2.0\)|_shape.position = Vector2.ZERO|	tests/integration/test_world_movement.gd	the collision box sinks through the floor line
+scripts/world/actor_body.gd	s|_shape.position = Vector2\(0.0, -config.body_size_px\(\).y / 2.0\)|_shape.position = Vector2.ZERO|	tests/integration/test_world_movement.gd	the collision box sinks through the floor line
 scripts/world/map_builder.gd	s|built.sorted.y_sort_enabled = true|built.sorted.y_sort_enabled = false|	tests/integration/test_world_movement.gd	actors stop sorting against the scenery
 scripts/spritegen/tile_bank.gd	s|elif ch == TRANSPARENT_CHAR and not is_decor:|elif ch == TRANSPARENT_CHAR:|	tests/unit/test_tile_bank.gd	a decor tile is reported as a hole in the ground
 scripts/spritegen/tile_bank.gd	s|elif ch == TRANSPARENT_CHAR and not is_decor:|elif false:|	tests/unit/test_tile_bank.gd	a hole in the ground stops being reported
@@ -64,7 +64,7 @@ scripts/ui/dialog_runner.gd	s|if not flag.is_empty\(\):|if false:|	tests/unit/te
 scripts/ui/dialog_runner.gd	s|if not _visible_choices\(node\).is_empty\(\):|if false:|	tests/unit/test_dialog_runner.gd	a line with choices advances and picks for the player
 scripts/ui/dialog_runner.gd	s|if not requires.is_empty\(\) and not _flag_known\(requires\):|if false:|	tests/unit/test_dialog_runner.gd	a choice the player cannot take is offered anyway
 scripts/world/interactor.gd	s|if to_target.dot\(forward\) <= 0.0:|if false:|	tests/unit/test_interactor.gd	you can talk to someone standing behind you
-scripts/world/interactor.gd	s|if d > config.interact_reach \+ config.body_size.x:|if false:|	tests/unit/test_interactor.gd	interaction reaches across the whole map
+scripts/world/interactor.gd	s|if d > config.interact_reach_px\(\) \+ config.body_size_px\(\).x:|if false:|	tests/unit/test_interactor.gd	interaction reaches across the whole map
 
 # --- M5: saves, migrations and audio ---
 scripts/autoload/save_manager.gd	s|backup.store_string\(text\)|pass|	tests/unit/test_saves.gd	an unreadable save is preserved as an empty file
@@ -120,12 +120,10 @@ scripts/world/grid_walker.gd	s|tries.append\(Vector2i\(0, want.y\)\)|pass|	tests
 scripts/world/grid_walker.gd	s|tries.append\(Vector2i\(want.x, 0\)\)|pass|	tests/unit/test_grid_walker.gd	a blocked diagonal breaks its tie vertically, against the rule Dir sets
 scripts/world/grid_walker.gd	s|if not bool\(is_free.call\(to - at\)\):|if false:|	tests/unit/test_grid_walker.gd	a step is committed into a wall instead of being refused
 scripts/world/grid_walker.gd	s|Dir.facing_from_vector\(residual, facing_now\)|free.facing|	tests/unit/test_grid_walker.gd	a key pressed mid-step turns the character while it walks the other way
-scripts/data/game_config.gd	s|if grid_step_pixels < 0:|if false:|	tests/unit/test_grid_walker.gd	a negative grid step passes the config validator
-scripts/world/actor_body.gd	s|GridWalker.new\(config\) if config.grid_step_pixels > 0 else null|null|	tests/integration/test_grid_movement.gd	grid movement never engages and the config field does nothing
+scripts/world/actor_body.gd	s|GridWalker.new\(config\) if config.grid_step_px\(\) > 0 else null|null|	tests/integration/test_grid_movement.gd	grid movement never engages and the config field does nothing
 scripts/world/actor_body.gd	s|global_position = _walker.settle\(global_position\)|pass|	tests/integration/test_grid_movement.gd	a step never lands, so the actor drifts past every cell centre
 scripts/world/actor_body.gd	s|global_position = _walker.abandon\(global_position\)|pass|	tests/integration/test_grid_movement.gd	a dialog opening mid-step leaves the player standing between tiles
 scripts/world/actor_body.gd	s|_walker.cancel\(\)|pass|	tests/integration/test_grid_movement.gd	a warp mid-step resolves it against the map the player just left
-scripts/data/game_manifest.gd	s|style != null and config.grid_step_pixels != style.tile_size|false|	tests/unit/test_game_manifest.gd	a grid step that is not the map tile size is accepted
 
 # --- M10: saves are per game ---
 scripts/autoload/save_manager.gd	s|if data.game != game:|if false:|	tests/unit/test_saves.gd	a save from another game loads into this one's slot
@@ -783,3 +781,7 @@ tools/fetch_godot.sh	s|  if ! verify_sha512 "\$2" "\$3"; then rm -f "\$2"; retur
 tools/fetch_godot.sh	s|  printf .%s. "\$\{GODOT_VERSION/-/\.\}"|  printf "%s" "$GODOT_VERSION"|	tests/unit/test_ci_paths.gd	the templates land under the release tag rather than the version the engine reports, so the web export finds none
 tools/check.sh	s|-s tools/gen_sprites\.gd --verify|-s tools/gen_sprite.gd --verify|	tests/unit/test_ci_paths.gd	a generator is renamed and the gate that verifies it silently runs nothing
 tools/check.sh	s|^result \$\? "committed sprites match the generator"|echo "SKIP  committed sprites"|	tests/unit/test_ci_paths.gd	a step reports a verdict touching neither result nor fail, so the gate is green having checked nothing
+
+# --- Plan E: the config is in tile units, and at() is the one binder ------------------------
+scripts/data/game_config.gd	s|return float\(_tile_size\)|return 16.0|	tests/unit/test_game_config.gd	every distance is computed at 16px whatever the map draws, so a 32px game walks at half speed
+scripts/data/game_config.gd	s|return int\(_tiles\(\)\) if grid_step else 0|return int(_tiles())|	tests/integration/test_grid_movement.gd	grid stepping engages for a game that never asked for it, so free movement becomes tile-by-tile

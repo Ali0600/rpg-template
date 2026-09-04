@@ -154,15 +154,6 @@ func problems() -> Array[String]:
 	if config == null:
 		out.append("manifest '%s' has no config" % id)
 	else:
-		# A grid step that is not the map's tile size lands the player between tiles, forever
-		# and increasingly. It can only be checked here: an actor holds a GameConfig and never
-		# the map's SpriteStyle, so this is the one place both facts are in scope. Same scope
-		# as the art check above - the START map's style, not every map's.
-		if config.grid_step_pixels > 0:
-			var style := load("res://data/styles/%s.tres" % map.style_id) as SpriteStyle
-			if style != null and config.grid_step_pixels != style.tile_size:
-				out.append("config steps %dpx but map '%s' draws %dpx tiles - a step that is not a tile lands the player between them"
-					% [config.grid_step_pixels, start_map, style.tile_size])
 		for p in config.problems():
 			out.append("config: " + p)
 

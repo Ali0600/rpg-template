@@ -149,8 +149,8 @@ func intent(at: Vector2) -> Vector2:
 		_stalled = 0
 	_last_at = at
 
-	# Normalised, not the raw delta: Locomotion multiplies by walk_speed and treats the input
-	# as a direction. Handing it a 40-pixel vector would ask for 40x the speed.
+	# Normalised, not the raw delta: Locomotion multiplies by walk_speed_px() and treats the
+	# input as a direction. Handing it a 40-pixel vector would ask for 40x the speed.
 	return to_target.normalized()
 
 

@@ -12,8 +12,9 @@ extends RefCounted
 ## rate: a slow frame covering 1.5 strides would drop the second footfall silently, and the
 ## cadence would speed up and slow down with the machine.
 
-## Distance between footfalls, in pixels. Zero switches footsteps off entirely, the way
-## GameConfig.grid_step_pixels at zero means free movement - a mode, not a magic number.
+## Distance between footfalls, in PIXELS - GameConfig states it in tiles and hands this the
+## bound answer, because a meter counting distance travelled counts it in the units the body
+## moves in. Zero switches footsteps off entirely: a mode, not a magic number.
 var _stride := 0.0
 var _carried := 0.0
 

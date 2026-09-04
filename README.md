@@ -30,7 +30,7 @@ sprites, and composes the shorelines and verges where two grounds meet. Both arm
 regenerated in CI and the build fails if the committed pixels differ.
 
 **The gate.** Every rule the template makes is a test, and every test ships with a mutant
-proving it fails when the rule is broken. `tools/check.sh` runs lint, parse, compile, 1,400
+proving it fails when the rule is broken. `tools/check.sh` runs lint, parse, compile, 1,404
 tests, a boot check, artifact drift, 24 scripted play sessions and the exported package, in
 that order, locally and in CI.
 
@@ -161,7 +161,7 @@ guessing, because a guessed game presents as the game you meant to run behaving 
   and composes the attribution the game then displays in-game to satisfy it, and sub-tile
   autotiling that composes 47 edge shapes from 12 pieces — all in integer arithmetic so output is
   byte-identical on macOS and Linux, and drift-gated in CI.
-- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,400
+- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,404
   unit and integration tests → boot → artifact drift → 24 scripted end-to-end play sessions →
   the exported package played; SHA-pinned actions, least-privilege tokens, a checksum-verified
   toolchain, and a Pages deploy gated on the green run of the exact commit it ships.

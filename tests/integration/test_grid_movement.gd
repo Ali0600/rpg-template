@@ -24,9 +24,10 @@ func before_test() -> void:
 	# and the shipped game is drawn at 32px now - its walk speed and its body are sized for
 	# that. A 20px-wide body in a 16px corridor stops a tile early, which reads as the grid
 	# walker refusing a step it should have taken.
-	_config = GameConfig.new()
-	# The one line that turns the mode on.
-	_config.grid_step_pixels = CELL
+	_config = GameConfig.new().at(CELL)
+	# The one line that turns the mode on - a flag now rather than a distance, because a bound
+	# config already knows how big a tile is and cannot be told a step that is not one.
+	_config.grid_step = true
 	_style = load("res://data/styles/gb16.tres") as SpriteStyle
 	var meta := JsonFile.read("res://assets/generated/gb16/tiles.json")
 	assert_bool(meta.ok).override_failure_message(meta.error).is_true()
@@ -162,7 +163,7 @@ func test_free_movement_is_still_what_the_shipped_config_does() -> void:
 	# nothing steps, and moving is the pixel-at-a-time slide it always was.
 	await _settle()
 	var free_config := load("res://data/game_config.tres") as GameConfig
-	assert_int(free_config.grid_step_pixels).is_equal(0)
+	assert_bool(free_config.grid_step).is_false()
 	var body := ActorBody.new()
 	body.setup(free_config, FileSpriteSource.create(&"gb16"), &"hero")
 	_built.sorted.add_child(body)
