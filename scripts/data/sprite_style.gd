@@ -173,6 +173,34 @@ func ui_color(role: String) -> Color:
 	return Color(str(ui_colors[role]))
 
 
+## Whether `colors` is a complete set of interface roles, said in full.
+##
+## Static and shared, because a UiPalette is checked with it too. Two implementations of "what a
+## full set of chrome is" would drift the first time a role was added, and the one that lost
+## would let a palette ship missing a colour every screen asks for.
+static func role_problems(colors: Dictionary, what: String) -> Array[String]:
+	var out: Array[String] = []
+	for role in UI_ROLES:
+		if not colors.has(role) or not str(colors[role]).begins_with("#"):
+			out.append("%s has no ui colour '%s'; every screen in the game asks for it"
+				% [what, role])
+	return out
+
+
+## This style with somebody else's chrome on it. Used when the player has chosen a palette: the
+## art, the cell size and every ramp stay the style's own, and only the eight interface roles
+## move.
+##
+## A DUPLICATE, never in place, for GameConfig.at()'s reason - the styles are authored resources
+## shared by everything that loads them, and recolouring one would recolour it for the Sprite Lab
+## and every suite in the same process. The dictionary is duplicated too, because Resource
+## duplication is shallow and the copy would otherwise share this one's colours.
+func with_ui_colors(colors: Dictionary) -> SpriteStyle:
+	var out := duplicate() as SpriteStyle
+	out.ui_colors = colors.duplicate()
+	return out
+
+
 func ramp_names() -> Array[String]:
 	var out: Array[String] = []
 	for k: Variant in ramps.keys():
@@ -271,9 +299,7 @@ func problems() -> Array[String]:
 		out.append("portrait_size must be at least 1, got %d" % portrait_size)
 	elif portrait_size > mini(cell_size.x, cell_size.y):
 		out.append("portrait_size %d does not fit a %s cell" % [portrait_size, cell_size])
-	for role in UI_ROLES:
-		if not ui_colors.has(role) or not str(ui_colors[role]).begins_with("#"):
-			out.append("ui_colors has no '%s'; every screen in the game asks for it" % role)
+	out.append_array(role_problems(ui_colors, "style '%s'" % id))
 	if not SHEET_SOURCES.has(sheets_from):
 		out.append("sheets_from '%s' is not one of %s" % [sheets_from, SHEET_SOURCES])
 	elif imports():

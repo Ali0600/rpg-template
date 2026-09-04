@@ -2987,3 +2987,67 @@ modes**, which is what makes it a robustness fix rather than a re-tune.
 under GROUNDED, 14.96 under FLOATING. That difference is the asymmetry being removed - along a
 VERTICAL wall the modes are identical, and only a horizontal one diverges, because only a
 horizontal one is a "ceiling".
+
+## The window is the player's to recolour, and a palette is a whole set — *M46*
+
+Every screen in this game reads its colours from the running `SpriteStyle`, and until now that
+was the whole story: a game decided what its windows looked like and the person playing had no
+say. `GENRE_CONVENTIONS.md` §16a had named that as the one convention in the chrome section the
+template did not follow.
+
+**What the references actually offer** (§16b, disassembly-derived because both wikis that would
+carry it were blocked - fandom answered 402 and wikibound 403):
+
+- **Final Fantasy VI** edits a window *pattern* (`"1 2 3 4 5 6 7 8"`) and a window *colour* on
+  three bars, `R`, `G` and `B`, aimed at either the `Font` or the `Window`, with a `Reset`.
+- **Pokémon Gen I** offers no window customisation at all - `DisplayOptionMenu` draws exactly
+  text speed, battle animation and battle style. Gen II adds a numbered `FRAME`, which is a
+  border STYLE and not a colour.
+- **EarthBound** picks a *flavour* during new-game setup; the flavours are palette swaps over one
+  set of window graphics.
+
+- **Chosen: a named `UiPalette` under `data/palettes/`, laid over the style's eight roles.**
+  A player picks *Parchment*, *Mint* or *Charcoal* and every role moves together.
+- *Three colour bars, FF6's own shape* — **rejected, and the reason is this template's chrome
+  rather than taste.** FF6's window is one colour; ours is eight ROLES, and a screen reads
+  `panel`, `border`, `header`, `select`, `text`, `dim`, `hp` and `mp` separately. Three sliders
+  would recolour one role and leave seven behind - and the roles are not independent, because
+  `text` has to stay legible on `panel`. *Parchment* is the proof: it inverts the value order,
+  dark ink on warm paper, which is only readable because all eight moved at once. Twenty-four
+  sliders is the honest version of that offer and nobody wants it. Revisit hook: `UiPalette` is
+  a Resource, so a screen that edited one and saved it is additive.
+- *A tint or a hue rotation over the style's own colours* — **rejected.** It is one number and
+  would have been cheap, and it produces colours nobody chose: `hp` and `mp` are the only two
+  colours on a screen and are picked to be told apart, which a shared rotation does not preserve.
+- *A per-STYLE list of alternative chromes* — **rejected.** The palettes would multiply by the
+  styles and three quarters of them would never be looked at.
+
+**A palette and a style are checked by ONE function**, `SpriteStyle.role_problems`, called by
+both `SpriteStyle.problems()` and `UiPalette.problems()`. Two implementations of "a complete set
+of chrome" drift the day a role is added, and the loser lets its side ship a hole - which does not
+look like a hole. A palette missing `hp` draws the health bar in whatever the style underneath
+said, so it is still the right size, in the right place, in a plausible colour, and every layout
+gate passes.
+
+**`_bind_style` is where the palette is laid on, because it is the ONE binder.** The style, the
+letterbox and the window were already three statements that must not come apart; the palette is a
+fourth. `_style_source` is kept beside `_style` for a reason a single-change test cannot see: a
+palette is composed over the STYLE, and composing over the last composed result would work once
+and never get back.
+
+**The dialog box is rebuilt and the controls hint is restyled, and the asymmetry is deliberate.**
+The box holds its colours in a StyleBox and half a dozen theme overrides made once in `setup()`,
+so a second way of applying them would be a second thing to keep in step - and no conversation can
+be open when a recolour is asked for, because the pause menu opens from `WORLD` only. The hint
+carries STATE: whether it has been dismissed, and how far through its fade it is. A fresh one puts
+"use the arrow keys" back on the screen of somebody an hour into the game, and every colour
+assertion still passes.
+
+**Deferred, with hooks:**
+
+- *Text speed*, which EarthBound, Pokémon and FF6 all offer. Hook: `DialogBox` reveals one
+  character per frame.
+- *A window PATTERN* beside the colour, FF6's other axis. Hook: `UiChrome.frame` builds one
+  `StyleBoxFlat`; a pattern is a second field on `UiPalette` and a branch there.
+- *Per-style default palettes.* Hook: `SpriteStyle` could name one, and `_palette_of` would fall
+  back to it instead of to null.
