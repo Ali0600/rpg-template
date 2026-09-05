@@ -817,3 +817,8 @@ scripts/util/game_scaffold.gd	s|return str\(want\["movement"\]\) == "grid"|retur
 scripts/util/game_scaffold.gd	s|out\["tests/fixtures/qa/%s/boots.json" % id\] = _session_text\(want\)|pass|	tests/unit/test_game_scaffold.gd	a scaffolded game joins no play gate, so nothing ever boots it
 scripts/util/game_scaffold.gd	s|and not cast.has\(who\)|and false|	tests/unit/test_game_scaffold.gd	a character with no art in the chosen style is accepted, and the game starts invisible
 scripts/util/game_scaffold.gd	s|_list\(known, "existing_ids"\).has\(id\)|false|	tests/unit/test_game_scaffold.gd	a game overwrites one that is already there
+
+# --- M47: the wizard as a command ---------------------------------------------------------
+tools/new_game.gd	s|elif VALUES.has\(name\):|elif false:|	tests/unit/test_new_game_tool.gd	a flag written with a space is ignored instead of refused, so the run uses a default nobody chose
+tools/new_game.gd	s|if FileAccess.file_exists\(_at\(str\(path\)\)\):|if false:|	tests/unit/test_new_game_tool.gd	the wizard writes over a game that is already where it is writing
+tools/new_game.gd	s|MapData.root = _at\("data/maps"\)|MapData.root = MapData.MAP_DIR|	tests/unit/test_new_game_tool.gd	the wizard checks its own output against the project's maps rather than the ones it just wrote

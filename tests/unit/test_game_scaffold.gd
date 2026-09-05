@@ -174,6 +174,27 @@ func test_every_planned_path_is_somewhere_this_project_keeps_that_kind_of_file()
 			"%s escapes the directory it was planned into" % path).is_false()
 
 
+func test_a_games_own_files_travel_with_it_and_the_templates_stay_put() -> void:
+	# A .tres names its references absolutely, so where the game is being written changes half of
+	# them and must not change the other half. Its own config, combat and hooks move; the scripts,
+	# the shared tuning and the voice do not, because those are the template's and not this game's.
+	var elsewhere := "user://somewhere"
+	var planned := GameScaffold.plan({"id": "proof", "style": "gb16", "hooks": true,
+		"combat": "turns", "save": "at_point"}, KNOWN, elsewhere)
+	var manifest := str(planned["data/games/proof.tres"])
+	for own in ["data/config/proof.tres", "data/combat/proof.tres", "games/proof/proof_hooks.gd"]:
+		assert_str(manifest).override_failure_message(
+			"%s is named at res:// even though the game was written to %s" % [own, elsewhere]
+			).contains('path="%s/%s"' % [elsewhere, own])
+	for shared in ["res://scripts/data/game_manifest.gd", "res://data/sounds/gb16.tres"]:
+		assert_str(manifest).override_failure_message(
+			"%s followed the game, and it belongs to the template" % shared
+			).contains('path="%s"' % shared)
+	# res:// already ends in a separator, and a root that gained a second one would name res:/data.
+	assert_str(str(GameScaffold.plan(BASE, KNOWN, "res://")["data/games/proof.tres"])
+		).contains('path="res://data/game_config.tres"')
+
+
 func test_the_defaults_name_a_character_the_chosen_style_actually_draws() -> void:
 	var want := GameScaffold.resolved({"id": "proof", "style": "lpc32"}, KNOWN)
 	var cast: Array = KNOWN["characters_by_style"]["lpc32"]

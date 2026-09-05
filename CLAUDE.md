@@ -1504,6 +1504,7 @@ tools/map_io.sh --verify                       # check.sh step 6d
 tools/lpc_compose.sh docs/lpc_designs/the_road.json --preview=build/hero.png
 tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer
 tools/fetch_tiles.sh data/tiles/lpc32.json      # the art an imported bank cuts from
+tools/new_game.sh --id=<name> [--style= --movement=grid --save=at_point --combat=turns --hooks]
 ```
 
 **The atlas travels WITH the maps.** Both editors resolve their tileset image relative to the map
@@ -1531,6 +1532,14 @@ when the app moves. `build/` is gitignored, so an export leaves the tree clean. 
 which is the 2026-08-04 lesson made into a guard: a value written after a space lands in a
 positional slot while the option keeps its default, so the run reports on a configuration nobody
 chose.
+
+**`new_game.sh` writes a game and REFUSES to choose it.** It never edits `project.godot` -
+`ProjectSettings.save()` strips every comment out of that file - so the last thing it prints is the
+`application/config/game="<id>"` line to add by hand, or the `--game=<id>` to run with instead.
+Every path is checked before any file is written, because a refusal half way through leaves a game
+that is neither there nor absent while its id is already taken. And it LOADS the manifest it just
+wrote and runs `problems()` on it, the gate `smoke_boot` applies to every shipped game: a wizard
+whose output the game refuses is worse than no wizard, and the only way to know is to ask the game.
 
 **A hero can be a text recipe.** `tools/lpc_compose.sh <recipe> --out=<dir>` fetches the layers a
 recipe names from the generator's repository into `build/lpc/` (gitignored and `.gdignore`d) and
