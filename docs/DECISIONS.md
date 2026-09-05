@@ -3150,3 +3150,44 @@ listed four ids, `test_quest_hooks` listed two of them, and neither knew about t
 `dialog_ids()` now, and the test compares that list WHOLE against a literal of its own rather than
 counting it — a list read off the thing under test is satisfied by construction, and an empty
 `dialog_ids()` makes a per-item loop run no iterations and pass.
+## A new game is a command, and the planner is pure — M47
+
+`docs/ARCHITECTURE.md` has listed what a new game changes since M11, and `game_config.gd` names
+"the scaffold wizard" by anticipation. The forks worth recording are how it writes and what it
+decides for you.
+
+- **Chosen: `.tres` emitted as TEXT.** `ResourceSaver` would drop the `;` comments and re-order
+  the fields, and a scaffolded manifest that does not read like `data/games/quest.tres` teaches
+  the wrong shape to the first person who opens it. It is the sprite generator's own answer:
+  author in the tool, write the artifact, and let it diff like something a person wrote.
+- *Write it through `ResourceSaver` and accept the loss* — rejected. The manifest is the file a
+  new author reads first; a machine-ordered one with no comments is a worse teacher than the demo.
+- **Chosen: a scaffolded game shares `data/game_config.tres` unless an axis genuinely differs**
+  (`--movement=grid`, `--save=at_point`), and its own config states nothing else. Straight out of
+  the M11 entry above: the demo shipped a config whose only difference was a knob nobody asked to
+  turn, and the first person to play it asked what else was different.
+- **Chosen: the wizard always writes `tests/fixtures/qa/<id>/boots.json`.** `check.sh` runs every
+  `tests/fixtures/qa/<dir>/*.json` with `--game=<dir>`, so the new game is inside the play gate on
+  the day it is made and the gate is not edited. A game nothing boots is a game nothing notices
+  breaking.
+- *Leave the session to the author* — rejected: it is exactly the file nobody writes, and its
+  absence is invisible.
+- **Chosen: a walled room, a spawn, the player, and one greeter who says one line.** The dialog
+  seam gets a worked example in the new game's own files, and the generated session can assert a
+  conversation opens rather than only that a map loaded. *A bare room* — rejected as too little to
+  learn from; *a room with a sign and a chest as well* — rejected as the template starting to
+  design somebody's game.
+- **Chosen: the claim is a gate, not a paragraph.** `test_scaffolded_game_boots.gd` plans into
+  `user://` and starts the game through `world.start_game(manifest)` — the `test_game_switch`
+  seam — with `MapData.root` pointed at the scaffolded room. No second manifest on disk, no engine
+  spawn, and the player is walked to prove the config bound and the body came up.
+- *Prove it by hand once and record it, the way Tiled was verified* — kept as well, for the
+  TWO-GAME case only, which is the one a test cannot stage: a second manifest in `res://data/games`
+  changes what `GameSelect` answers for every other suite in the same process.
+
+**Deferred, with hooks:** *deleting the demo* — the `docs/DECISIONS.md` entry above says the real
+use case is "cloning, renaming, deleting the demo, and finding out what breaks", and the wizard
+does the first two thirds of that. A `--replace` that removes `quest` is a different and more
+dangerous command; hook is `GameScaffold.plan`, which already knows every path a game occupies.
+*A `--style` that does not exist yet*, so a game can be scaffolded alongside new art rather than
+only onto shipped art; hook is `known_from_disk`.
