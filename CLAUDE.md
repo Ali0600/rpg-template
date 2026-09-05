@@ -89,6 +89,27 @@ snapshot and append effects; `world_scene._apply` is the single place any of it 
 state. `on_interact` returning `false` means "not mine" and the data's own behaviour runs — a
 game is additive or it is not using this seam.
 
+**A hook DECLARES the conversations it opens, because nothing can read a branch.** `dialog_ids()`
+is the fourth overridable, and it exists because a content gate finds out what a game owns by
+walking its maps: the warden's map record names `warden_asks`, and the three lines she says once
+you have the key, once the Keeper is down and once the lantern is lit are reached only from
+`on_interact`. Measured 2026-09-05: 19 files in `data/dialog`, 16 named by map records, and
+exactly those three left over. `quest_hooks.problems()` and `test_quest_hooks` both read that one
+list rather than keeping copies — there were three copies, and the oldest of them was two ids
+short.
+
+**A CONTENT GATE IS ABOUT A GAME, NEVER ABOUT THE GAME.** Two rules in `test_map_content.gd` were
+written while one game shipped and were wrong the moment a second one could exist: the map walk
+loaded `data/games/quest.tres` by literal path and demanded its reach equal every map on disk, and
+the portrait check crossed EVERY game with EVERY conversation in the repo — so a second game drawn
+in another style would have demanded this game's whole cast be redrawn in it. They go through
+`ContentReach` now: `reachable_union` over every manifest, and `dialogs_of` per game, with the
+membership rule that every conversation on disk belongs to somebody. **The helpers are pure and
+their suite hands them TWO manifests over three fixture maps**, because with one game shipped
+"the union over every manifest" and "quest.tres, hardcoded" are the same function — the shipped
+data equalises mutant and original, and only a fixture that breaks that property can tell them
+apart.
+
 **A view asks for a sound; it never plays one.** Every screen carries
 `signal sound_wanted(id)` and `world_scene._on_sound_wanted` is the single place that reaches
 the speaker - the `_apply_effects` shape, for audio. Two reasons, and the second is the one

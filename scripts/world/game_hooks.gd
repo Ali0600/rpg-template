@@ -30,6 +30,19 @@ func on_interact(_ctx: GameContext, _target: Interactor.Target) -> bool:
 	return false
 
 
+## The conversations this game opens from its own code, which no map record names.
+##
+## Declared rather than discovered, because a hook says `ctx.say(...)` in a branch and nothing
+## can read a branch. A content gate walks the maps to find out what a game can reach, and every
+## dialog reached only from here is invisible to that walk - so without this the three lines the
+## warden says on later visits are conversations no game owns, and the gate that asks whether
+## every conversation belongs to somebody would refuse the game that ships.
+##
+## The same list `problems()` already checks the existence of. One list, not two.
+func dialog_ids() -> Array[StringName]:
+	return []
+
+
 ## Everything wrong with this game's own content, joined to the same gate that validates
 ## maps and manifests - so a game's problems are reported the way the template's are.
 func problems() -> Array[String]:

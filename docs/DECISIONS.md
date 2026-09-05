@@ -3106,3 +3106,47 @@ bug and was not, measured:* the controls hint under the options page reads "WASD
 cut off; its brightest pixel is 17/255, the hint dimmed by the 85% backdrop exactly as it is under
 the pause menu, and it "ends" where the map begins because a 17-grey vanishes against an 11-grey.
 Left alone.
+
+## The content gates are about A game, not THE game — M47
+
+Building the scaffold wizard meant asking what actually happens when a second `data/games/<id>.tres`
+appears. Most of the answer was reassuring: `GameSelect` refuses rather than guesses, `smoke_boot`
+and `test_game_manifest` already validate every manifest, and `check.sh`'s play loop already derives
+`--game=` from the QA directory name. Two rules in `test_map_content.gd` were not.
+
+`test_the_walk_reaches_every_map_the_game_ships` loaded `res://data/games/quest.tres` **by literal
+path** and required its reach to equal every map on disk; the portrait check crossed **every** game
+with **every** conversation in the repo. So a second game's start map was an orphan, and a second
+game drawn in another style demanded the first game's whole cast be redrawn in it. Neither is a
+wizard bug — both predate it by milestones, and this is the M7 finding again, where the second game
+found "an art gate that walked a different set of directories than the game did".
+
+- **Chosen: a pure `ContentReach` in `tests/helpers/`, beside `WarpGraph`.** `reachable_union` over
+  every manifest, and `dialogs_of(manifest, map_ids)` per game — the dialog ids its maps name, plus
+  the ones its hooks declare. The portrait rule is then scoped to the games that can OPEN each
+  conversation, and a second rule says every conversation on disk belongs to somebody. Scoping
+  alone would have been a weakening; the membership rule is what makes it a generalisation, and it
+  fails in both directions the way the map one does.
+- *Leave both as they are and record coexistence as a limitation* — rejected. The wizard's whole
+  claim is that a game is files added beside the template; a wizard whose output the template's own
+  gates refuse proves the opposite of what it is for.
+- *Give `GameManifest` a `maps` list, so a game says which rooms are its own* — `rejected — a
+  second list to keep in step with the warps`, and the one that drifts is the one nobody reads. The
+  warp graph already answers "where can this game go", and it answers it the way a player does.
+- *Derive the hook-named conversations by reading the hook's source* — `deferred — worth trying`,
+  and probably never: a hook says `ctx.say(...)` inside a branch, and static analysis of a branch is
+  a parser this repo has no reason to own. Revisit hook: `GameHooks.dialog_ids()`, which is the
+  declaration that replaced it.
+
+**The mutants for both rules live in `test_content_reach.gd`, over three fixture maps and two
+manifests, and that is the point of the entry.** With one game shipped, "the union over every
+manifest" and "quest.tres, hardcoded" are the same function — the production data equalises mutant
+and original, so a mutant judged by the shipped content would have SURVIVED while saying nothing
+about the rule. The fixture is a map no game's warps reach, which is the property the shipped
+content cannot have.
+
+**A third copy of the warden's dialog list turned up while doing it.** `quest_hooks.problems()`
+listed four ids, `test_quest_hooks` listed two of them, and neither knew about the other. Both read
+`dialog_ids()` now, and the test compares that list WHOLE against a literal of its own rather than
+counting it — a list read off the thing under test is satisfied by construction, and an empty
+`dialog_ids()` makes a per-item loop run no iterations and pass.

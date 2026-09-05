@@ -73,9 +73,18 @@ func test_the_hooks_ignore_everyone_but_the_warden() -> void:
 
 
 func test_every_line_the_hooks_name_exists() -> void:
-	# The two dialog ids live only in the hooks, so nothing in data can notice them going
-	# missing - a rename would leave the warden silent exactly when she has something to say.
-	for dialog_id in ["warden_has_key", "warden_thanks"]:
+	# The ids live only in the hooks, so nothing in data can notice them going missing - a
+	# rename would leave the warden silent exactly when she has something to say.
+	#
+	# The declared list is compared WHOLE against a literal here rather than counted, because a
+	# list read off the thing under test is satisfied by construction: an empty dialog_ids()
+	# makes the loop below run no iterations and pass. Membership fails in both directions, so
+	# a line added to the hooks and not to data is caught by the same assertion as one removed.
+	assert_array(_hooks().dialog_ids()).override_failure_message(
+		"the warden's conversations are not the four this game is written around"
+		).contains_exactly_in_any_order(
+			[&"warden_asks", &"warden_has_key", &"warden_thanks", &"warden_keeper_down"])
+	for dialog_id in _hooks().dialog_ids():
 		var runner := DialogRunner.load_from("res://data/dialog/%s.json" % dialog_id, {})
 		assert_bool(runner.ok).override_failure_message(runner.error).is_true()
 		assert_array(runner.problems()).is_empty()

@@ -2282,3 +2282,20 @@ change live and then reads every window's fill.
 **Takeaway.** For any setting that can change while things built from it are on screen, write the
 test that changes it live, and assert over every consumer that is up rather than the ones you
 remembered to list.
+
+### A "for each" written while there is only one of something is a "for the one"
+
+When a collection has exactly one member, the code that loops it and the code that names it
+directly are the same function. Every test agrees with both, and so does every mutant.
+
+**Why it came up.** M47 asked what breaks when a second game exists. Two content gates turned out
+to be about *the* game rather than *a* game — one loaded the demo's manifest by literal path and
+required its reach to equal every map on disk. Fixing it to a union over every manifest was easy;
+proving the fix was not, because with one game the union and the hardcoded path return the same
+dictionary, so the mutant reverting it passes against the shipped content. The rule only became
+testable once the helper was pure and its suite could hand it two manifests over a fixture where
+one map is reachable by neither the other's warps.
+
+**Takeaway.** When you generalise a rule from one to many, the gate has to be given a *many* that
+does not exist in production yet — otherwise the mutant survives and the coverage is imaginary.
+The tell is a fix you cannot make fail.
