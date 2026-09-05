@@ -81,9 +81,21 @@ func on_interact(ctx: GameContext, target: Interactor.Target) -> bool:
 ## Content this game is responsible for, checked by the same gate that validates the
 ## template's maps and manifests - a game's own faults should fail the build the way the
 ## template's do, not wait to be noticed in play.
+## Three of these four are named by no map: the warden's map record opens `warden_asks`, and the
+## lines she says once you have the key, once the Keeper is down and once the lantern is lit are
+## reached only from on_interact above. A gate walking the maps to find out which conversations
+## this game owns cannot see them, which is what this is for.
+func dialog_ids() -> Array[StringName]:
+	var out: Array[StringName] = [DIALOG_ASKS, &"warden_has_key", &"warden_thanks",
+		&"warden_keeper_down"]
+	return out
+
+
 func problems() -> Array[String]:
 	var out: Array[String] = []
-	for dialog_id in [DIALOG_ASKS, &"warden_has_key", &"warden_thanks", &"warden_keeper_down"]:
+	# The same list, so a line added to one is checked by the other - two copies would drift and
+	# the one left behind would be a conversation nothing proves exists.
+	for dialog_id in dialog_ids():
 		# These are named HERE and nowhere in data, so nothing else can notice them going
 		# missing: a rename would leave the warden silent exactly when she has something to
 		# say, which reads as the quest not having advanced.

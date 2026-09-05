@@ -7,6 +7,7 @@ extends GdUnitTestSuite
 ## M13 and has never had a companion for the people standing still.
 
 const GAMES := "res://data/games"
+const DIALOG_DIR := "res://data/dialog"
 
 
 func _games() -> Array[GameManifest]:
@@ -58,24 +59,27 @@ func test_every_map_a_game_can_be_played_into_is_drawn_at_one_size() -> void:
 		"no game was checked, so this proved nothing").is_greater(0)
 
 
-func test_the_walk_reaches_every_map_the_game_ships() -> void:
+func test_every_map_on_disk_is_reachable_by_some_game() -> void:
 	# A membership assertion, not a per-map property: the shipped maps all name one style, so
 	# the size check above is satisfied by ANY walk, including one that never leaves the first
 	# room. Comparing the whole set against what is on disk is what makes the walk evidence -
 	# and it fails in both directions, so a map that stops being reachable is caught too.
+	#
+	# The UNION over every manifest, not one game's walk. It used to load quest.tres by literal
+	# path, which is the same function while one game ships and refuses the second the day it
+	# arrives: its start map is a map on disk that the first game's warps do not reach. The
+	# mutant for that lives in test_content_reach.gd, because with one game on disk the union
+	# and the hardcoded path cannot be told apart by anything here.
 	var on_disk := {}
 	for path in ContentScan.files_of(MapData.root, "json"):
 		var map := MapData.load_from(path)
 		if map.ok:
 			on_disk[map.id] = true
 	assert_int(on_disk.size()).is_greater(1)
-	var reached := WarpGraph.reachable(load("res://data/games/quest.tres") as GameManifest)
-	var reached_ids := {}
-	for key: Variant in reached.keys():
-		reached_ids[StringName(str(key))] = true
-	assert_array(reached_ids.keys()).override_failure_message(
-		"the walk reaches %s of the %s maps this game ships"
-		% [reached_ids.size(), on_disk.size()]).contains_exactly_in_any_order(on_disk.keys())
+	var reached := ContentReach.reachable_union(_games())
+	assert_array(reached.keys()).override_failure_message(
+		"the walks reach %s of the %s maps on disk"
+		% [reached.size(), on_disk.size()]).contains_exactly_in_any_order(on_disk.keys())
 
 
 func test_the_size_check_notices_two_maps_that_disagree() -> void:
@@ -119,31 +123,61 @@ func test_the_art_check_notices_a_person_nobody_drew() -> void:
 	assert_bool(_has_art(&"lpc32", &"quest_wanderer")).is_true()
 
 
+## Which styles each conversation has to be drawn in: the games that can open it, by their own
+## start map's style. Built once for the two rules below, which are two claims about it - that
+## every face it names has art, and that no conversation is owned by nobody.
+func _dialog_styles() -> Dictionary:
+	var out := {}
+	for manifest in _games():
+		var style := MapData.load_from(MapData.path_of(manifest.start_map)).style_id
+		for dialog_id in ContentReach.dialogs_of(manifest, WarpGraph.reachable(manifest).keys()):
+			var styles: Array = out.get(dialog_id, [])
+			if not styles.has(style):
+				styles.append(style)
+			out[dialog_id] = styles
+	return out
+
+
 func test_every_face_a_conversation_names_has_art_in_the_game_s_style() -> void:
 	# The dialog half of the same rule, and the same failure: a `portrait` naming a character with
 	# no sheet is not an error a player sees as one - the face is simply absent and the box lays
 	# out as though the line were unattributed. The two halves live in different directories and
 	# are joined by a bare string, which is the shape S13b's element check has: a typo on either
 	# side is a pairing that silently never fires while both files stay individually valid.
+	#
+	# Scoped to the games that can OPEN each conversation, which it was not: it crossed every
+	# game with every dialog file in the repo, so a second game drawn in another style would have
+	# demanded this game's whole cast be redrawn in it before either could pass.
 	var seen := 0
-	for manifest_path in ContentScan.files("res://data/games", ["tres"]):
-		var manifest := load(manifest_path) as GameManifest
-		if manifest == null:
-			continue
-		var style := MapData.load_from(MapData.path_of(manifest.start_map)).style_id
-		for path in ContentScan.files("res://data/dialog", ["json"]):
-			var file := JsonFile.read(path)
-			for node_id: Variant in file.get_dict("nodes").keys():
-				var node: Dictionary = file.get_dict("nodes")[node_id]
-				var face := StringName(str(node.get("portrait", "")))
-				if String(face).is_empty():
-					continue
+	var styles_of := _dialog_styles()
+	for dialog_id: Variant in styles_of.keys():
+		var file := JsonFile.read("%s/%s.json" % [DIALOG_DIR, dialog_id])
+		for node_id: Variant in file.get_dict("nodes").keys():
+			var node: Dictionary = file.get_dict("nodes")[node_id]
+			var face := StringName(str(node.get("portrait", "")))
+			if String(face).is_empty():
+				continue
+			for style: Variant in (styles_of[dialog_id] as Array):
 				seen += 1
-				assert_bool(_has_art(style, face)).override_failure_message(
-					"%s/%s draws '%s', who has no generated art for style '%s'"
-					% [path.get_file(), node_id, face, style]).is_true()
+				assert_bool(_has_art(StringName(str(style)), face)).override_failure_message(
+					"%s.json/%s draws '%s', who has no generated art for style '%s'"
+					% [dialog_id, node_id, face, style]).is_true()
 	assert_int(seen).override_failure_message(
 		"no conversation names a face, so this proved nothing").is_greater(3)
+
+
+func test_every_conversation_on_disk_belongs_to_a_game() -> void:
+	# The other half of scoping the rule above, and the reason scoping it is not a weakening: a
+	# conversation nobody can reach is now a build failure rather than a file checked by everyone.
+	# It is a membership assertion for the reason the map one is - a per-file property is
+	# preserved by a file quietly leaving the set, and this fails in both directions.
+	var on_disk := {}
+	for path in ContentScan.files_of(DIALOG_DIR, "json"):
+		on_disk[StringName(path.get_file().trim_suffix(".json"))] = true
+	assert_int(on_disk.size()).is_greater(3)
+	assert_array(_dialog_styles().keys()).override_failure_message(
+		"a conversation no game names is one nothing can check, and nothing can play"
+		).contains_exactly_in_any_order(on_disk.keys())
 
 func test_the_face_check_notices_a_speaker_nobody_drew() -> void:
 	# The control. Without it the loop above passes on a game whose dialog names nobody.
