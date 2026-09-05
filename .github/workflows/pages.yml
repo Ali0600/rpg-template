@@ -40,6 +40,7 @@ jobs:
           # workflow_run checks out the default branch's HEAD by default, which is not
           # necessarily the commit that was tested. Pin it to the one that went green.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          persist-credentials: false
 
       # Read from the script that pins it - and note this now travels with the COMMIT being
       # deployed rather than with main's copy of this file. `workflow_run` takes the workflow
