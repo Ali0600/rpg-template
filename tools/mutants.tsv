@@ -296,8 +296,7 @@ scripts/autoload/settings.gd	s|\tAudioBus.set_volume\(sound_gain\(\)\)|\tpass|	t
 scripts/autoload/settings.gd	s|\tif raw < 0 or raw >= Level.size\(\):|\tif false:|	tests/unit/test_settings.gd	a settings file from the future silences the game with no way to find out why
 scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, \{"sound_level": int\(_level\), "palette": String\(_palette\)\}\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
 scripts/autoload/settings.gd	s|\t\treturn QA_PATH|\t\treturn DEFAULT_PATH|	tests/unit/test_settings.gd	a scripted play session writes the player's real settings
-scripts/ui/pause_menu.gd	s|\t\tif row == Row.SOUND:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot turn the sound down
-scripts/ui/pause_screen.gd	s|\t\t\treturn _menu.sound_label\(\) if row == PauseMenu.Row.SOUND else TOP_LABELS\[row\]|\t\t\treturn TOP_LABELS[row]|	tests/integration/test_pause_and_saves.gd	the sound row draws as an empty line
+scripts/ui/pause_menu.gd	s|\t\tif row == Row.OPTIONS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot reach its options
 tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]\):|\t\tif true:|	tests/unit/test_compile_all.gd	a singleton whose name ends another identifier drops files out of the compile gate
 
 # --- M15: the played game, and the artifact it ships as ---
@@ -793,3 +792,14 @@ scripts/autoload/settings.gd	s|"palette": String\(_palette\)|"palette": String(N
 scripts/autoload/settings.gd	s|\t_palette = ring\[\(maxi\(at, 0\) \+ 1\) % ring\.size\(\)\]|\t_palette = ring[mini(maxi(at, 0) + 1, ring.size() - 1)]|	tests/unit/test_settings.gd	the palette row stops at the last one, so a player who cycles past cannot get back
 scripts/autoload/settings.gd	s|maxi\(at, 0\) \+ 1|at + 1|	tests/unit/test_settings.gd	a settings file naming a deleted palette makes the next press land one row short
 scripts/world/world_scene.gd	s|\t_title\.setup\(TitleMenu\.of\(_slot_summaries_for\(_offered\)\), _style, _ui_size\(\),|\t_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), _style_source, _ui_size(),|	tests/integration/test_options_palette.gd	the title is drawn in the style's own colours rather than the palette the player chose
+scripts/ui/pause_screen.gd	s|\t\t\toptions_requested\.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/change_the_options.json	the pause menu's Options row is pressed and nothing opens
+scripts/ui/title_screen.gd	s|\t\t\toptions_requested\.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/change_the_options.json	the title's Options row is pressed and nothing opens
+scripts/world/world_scene.gd	s|\t_close_pause\(\)  # first, and the trailing note is load-bearing: see below|\tpass|	tests/integration/test_flow_model.gd	the options page is opened OVER the pause menu, which is the one thing this game's flow forbids
+scripts/world/world_scene.gd	s|\tSettings\.cycle_palette\(Registry\.ids_of\(&\"UiPalette\"\)\)|\tpass|	tests/integration/test_options_palette.gd	the Window row is pressed and the windows never change colour
+scripts/world/world_scene.gd	s|\tRouter\.open_overlay\(Router\.State\.OPTIONS if over_world else Router\.State\.OPTIONS_AT_TITLE\)|\tRouter.open_overlay(Router.State.OPTIONS)|	tests/integration/test_flow_model.gd	the page over the title claims to be the one over the world, so leaving it goes nowhere real
+scripts/ui/title_menu.gd	s|const ROW_OPTIONS := ROW_CREDITS \+ 1|const ROW_OPTIONS := ROW_CREDITS|	tests/unit/test_title_menu.gd	the Options row lands on top of Credits, so one of them cannot be reached
+scripts/ui/options_screen.gd	s|\t\t\tUiChrome\.place\(_select, row, _frame\.inner\(\)\.size\.x, ROW_PITCH\)|\t\t\tpass|	tests/integration/test_options_layout.gd	the options page draws no cursor, on a page where every row has a verb
+scripts/ui/options_menu.gd	s|\t_index = posmod\(_index \+ delta, size\(\)\)|\t_index = clampi(_index + delta, 0, size() - 1)|	tests/unit/test_options_menu.gd	the options cursor stops at the ends instead of wrapping
+scripts/world/world_scene.gd	s|\t\t\tlayer\.call\(\"restyle\", _style\)|\t\t\tpass|	tests/integration/test_options_palette.gd	a palette is chosen and every screen already on screen keeps its old colours
+scripts/ui/title_screen.gd	s|\t_build\(size, heading_text\)|\tpass|	tests/integration/test_options_palette.gd	the title keeps its old colours after a recolour chosen on top of it
+scripts/ui/dialog_box.gd	s|\tsetup\(style, _viewport\)|\tsetup(_style, _viewport)|	tests/integration/test_options_palette.gd	the dialog box is rebuilt in the palette it had rather than the one just chosen

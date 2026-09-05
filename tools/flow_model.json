@@ -122,6 +122,22 @@
 				"game_over_screen_up",
 				"player_cannot_move"
 			]
+		},
+		"options": {
+			"about": "Sound and the window's colours, over the world. Reached from the pause menu by CLOSING it first, because no overlay opens over another - so leaving goes back to the world rather than to a menu that is already gone.",
+			"invariants": [
+				"options_screen_up",
+				"game_running",
+				"player_cannot_move"
+			]
+		},
+		"options_at_title": {
+			"about": "The same page over the title. A SECOND state rather than a flag on the first, because the two differ in every way a state can: a game is running behind one and not the other, and leaving them goes to different places. Modelled as one state it had two exits and no way to say which was legal, and the seeded walks found that on the first journey that reached it - which is the whole job of this file.",
+			"invariants": [
+				"options_screen_up",
+				"no_game_running",
+				"player_cannot_move"
+			]
 		}
 	},
 	"edges": [
@@ -307,6 +323,61 @@
 				]
 			],
 			"adapter": "close_credits"
+		},
+		{
+			"action": "open_options_from_title",
+			"from": "title",
+			"to": "options_at_title",
+			"trace": [
+				[
+					"title",
+					"options_at_title"
+				]
+			],
+			"adapter": "open_options_from_title",
+			"note": "Opened INLINE, the credits' rule: the title is a base state rather than an overlay, so nothing pops anything behind this."
+		},
+		{
+			"action": "close_options_to_title",
+			"from": "options_at_title",
+			"to": "title",
+			"trace": [
+				[
+					"options_at_title",
+					"title"
+				]
+			],
+			"adapter": "close_options_to_title"
+		},
+		{
+			"action": "open_options",
+			"from": "paused",
+			"to": "options",
+			"trace": [
+				[
+					"paused",
+					"world"
+				],
+				[
+					"world",
+					"options"
+				]
+			],
+			"adapter": "open_options",
+			"note": "TWO hops, and the middle one is real. No overlay opens over another here, so the pause menu is CLOSED on the way through - the lose_battle shape one state earlier. The open is deferred so the close finishes first, the OP_SHOP rule."
+		},
+		{
+			"action": "close_options",
+			"from": "options",
+			"to": "world",
+			"trace": [
+				[
+					"options",
+					"world"
+				]
+			],
+			"adapter": "close_options",
+			"note": "Back to the world, not to the pause menu that was closed on the way in. Returning there would need the state to remember where it came from - one more edge and a hidden input; see DECISIONS.md."
 		},
 		{
 			"action": "open_battle",

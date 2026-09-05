@@ -24,20 +24,22 @@ enum Page { TOP, ITEMS, SAVE, LOAD, EQUIP, EQUIP_PICK, STATUS, MEMBER }
 
 ## The TOP page's rows, in the order they are drawn. The view indexes its labels by this, so
 ## the order lives in one place rather than in a list beside a list.
-## SOUND is appended rather than slotted in beside Resume, so every existing test that lands
-## on a row by naming it - move(Row.SAVE) - still lands on the same one.
+## OPTIONS is appended rather than slotted in beside Resume, so every existing test that lands
+## on a row by naming it - move(Row.SAVE) - still lands on the same one. It was SOUND until M46,
+## and the rename is the whole of what changed here: the row opens a page with the volume on it
+## rather than being the volume.
 ## EQUIP and STATUS are the exceptions, and they are slotted in DELIBERATELY: Item, Equip,
 ## Status is the order every classic command menu uses, and a row's position is the one thing
 ## a player navigates by muscle memory. The cost is paid once, in the sessions that count
 ## presses.
-enum Row { RESUME, ITEMS, EQUIP, STATUS, SAVE, LOAD, SOUND }
+enum Row { RESUME, ITEMS, EQUIP, STATUS, SAVE, LOAD, OPTIONS }
 
 ## What a press asked the world for. NONE covers both "that moved the cursor" and "that was
 ## refused" on purpose: neither is something the world has to do anything about.
 ## MEMBER is a request, not a change: the menu has decided WHO the next page is about and is
 ## asking the world to word it for them. It carries the member's id in `gear`, which is the
 ## field a slot id already travels in - a second name for "the thing this Pick is about".
-enum Kind { NONE, RESUME, SAVE, LOAD, SOUND, EQUIP, UNEQUIP, MEMBER }
+enum Kind { NONE, RESUME, SAVE, LOAD, OPTIONS, EQUIP, UNEQUIP, MEMBER }
 
 
 ## One answer, carried as a value the way Locomotion.Step is. The slot is explicit rather than
@@ -125,13 +127,9 @@ var _slots: Array[SlotSummary] = []
 ## One ItemRow per thing carried, in pickup order. Untyped Array because a typed default
 ## for a nested class is not a constant expression.
 var _items: Array = []
-## What the Sound row currently says. Carried as text for the reason the slots are carried as
-## SaveData: reading it means asking the settings singleton, and this class may not - the same
-## rule that keeps it off the disk.
-var _sound := ""
-## What the purse says. Text for the same reason _sound is: reading it means asking an
-## autoload, and this class may not. A readout rather than a Row, so every test that lands on
-## a row by naming it - move(Row.SAVE) - stays aimed at the same row.
+## What the purse says. Text rather than a number because wording it means asking an autoload,
+## and this class may not. A readout rather than a Row, so every test that lands on a row by
+## naming it - move(Row.SAVE) - stays aimed at the same row.
 var _gold := ""
 ## One GearRow per slot the template knows about, in the world's order. Untyped for the
 ## reason _items is: a typed default for a nested class is not a constant expression.
@@ -165,13 +163,12 @@ var _page := Page.TOP
 var _index := 0
 
 
-static func of(slots: Array[SlotSummary], items: Array = [], sound: String = "",
-		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = [], members: Array = [], can_save := true) -> PauseMenu:
+static func of(slots: Array[SlotSummary], items: Array = [], gold: String = "",
+		gear: Array = [], stats: String = "", status: Array[String] = [],
+		members: Array = [], can_save := true) -> PauseMenu:
 	var menu := PauseMenu.new()
 	menu._slots = slots.duplicate()
 	menu._items = items.duplicate()
-	menu._sound = sound
 	menu._gold = gold
 	menu._gear = gear.duplicate()
 	menu._stats = stats
@@ -268,10 +265,6 @@ func member_name() -> String:
 
 func gold_label() -> String:
 	return _gold
-
-
-func sound_label() -> String:
-	return "Sound: %s" % _sound if not _sound.is_empty() else "Sound"
 
 
 func page() -> Page:
@@ -444,9 +437,9 @@ func confirm() -> Pick:
 			return Pick.of(Kind.RESUME)
 		# Answered BEFORE the empty-slot guard below, along with the item page. Neither has
 		# anything to do with saves, and a game configured with no slots must still be able to
-		# turn the sound down.
-		if row == Row.SOUND:
-			return Pick.of(Kind.SOUND)
+		# reach its options.
+		if row == Row.OPTIONS:
+			return Pick.of(Kind.OPTIONS)
 		if row == Row.ITEMS:
 			_page = Page.ITEMS
 			_index = 0
@@ -544,12 +537,11 @@ func cancel() -> Pick:
 ## New slot contents, same cursor. Called after a save so the row the player is looking at
 ## shows what they just wrote; rebuilding the menu instead would send them back to the top of
 ## a page they are still using.
-func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
-		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = [], members: Array = [], can_save := true) -> void:
+func refresh(slots: Array[SlotSummary], items: Array = [], gold: String = "",
+		gear: Array = [], stats: String = "", status: Array[String] = [],
+		members: Array = [], can_save := true) -> void:
 	_slots = slots.duplicate()
 	_items = items.duplicate()
-	_sound = sound
 	_gold = gold
 	_gear = gear.duplicate()
 	_stats = stats

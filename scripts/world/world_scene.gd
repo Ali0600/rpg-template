@@ -49,6 +49,9 @@ var _title: TitleScreen
 ## The credits, when they are up. Over the title rather than over a game, so it is torn down
 ## with the title for the same reason: the thing about to build a game frees what is on screen.
 var _credits: CreditsScreen
+## The options page, when it is up. The only screen here with TWO bases - it is opened over the
+## title and over the world - so it is torn down with either.
+var _options: OptionsScreen
 ## The game the title offers. Written at boot by the resolver AND by start_game, so a title
 ## reached back from a game-over offers the game that was actually RUNNING - which is the same
 ## thing as the resolved one for a player, and is not the same thing for the integration
@@ -169,15 +172,39 @@ func _on_sound_wanted(id: StringName) -> void:
 	AudioBus.play_sfx(id)
 
 
-## The player turned the volume. Settings owns the value and writes it; the menu is handed the
-## new text the way it is handed new slot contents after a save.
-func _on_sound_changed() -> void:
+## The player turned the volume. Settings owns the value and writes it; the page is handed the
+## new words the way the pause menu is handed new slot contents after a save.
+func _on_options_sound() -> void:
 	Settings.cycle_sound()
 	# Played AFTER the change, so the blip is at the volume just chosen - which is the only
-	# feedback there is that Off means off.
+	# feedback there is that Off means off. That is why the view stays silent on this row where
+	# it makes a noise on the other one.
 	AudioBus.play(Sfx.Cue.MENU_CONFIRM)
-	if _pause != null:
-		_refresh_pause()
+	_refresh_options()
+
+
+## The player chose the next window palette. Which palettes exist is a Registry question, so it
+## is asked here rather than by the page; the answer is written, the style is bound again, and
+## the page is repainted in the colours just chosen - which is the whole point of the row.
+func _on_options_window() -> void:
+	Settings.cycle_palette(Registry.ids_of(&"UiPalette"))
+	# The page itself is repainted by the rebind, like every other layer that is up.
+	_rebind_style()
+	_refresh_options()
+
+
+## The words on the options rows, from the two places that own them.
+func _refresh_options() -> void:
+	if _options == null:
+		return
+	_options.refresh(Settings.sound_name(), _palette_word())
+
+
+## What the Window row says. A palette's own name, or the word for none of them - worded HERE
+## because the page may not ask the Registry what a palette is called.
+func _palette_word() -> String:
+	var chosen := _palette_of()
+	return chosen.name if chosen != null else "Default"
 
 
 ## Binds a style: what the world is drawn WITH, and how big the world IS.
@@ -241,12 +268,15 @@ func _palette_of() -> UiPalette:
 
 ## The style bound again, after the player changed what the windows look like.
 ##
-## _bind_style recomposes the colours, and then the two layers that OUTLIVE a map have to be
-## brought to them by hand: every other screen is built fresh when it opens and takes the new
-## colours for free. The dialog box is rebuilt because it holds its colours in a StyleBox and half
-## a dozen theme overrides made once in setup(), and a second way of applying them would be a
-## second thing to keep in step; the hint is restyled in place because rebuilding it would put a
-## dismissed hint back on screen.
+## _bind_style recomposes the colours, and then every interface layer that is UP has to be brought
+## to them: a screen built fresh when it opens takes the new colours for free, and one that is
+## already on screen does not. A DRIVER over whatever is in the tree rather than a list of the
+## layers that need it, because the list is what shipped first - the dialog box and the controls
+## hint, by name - and the title was not on it. The first person to play the options page found
+## that: recolour from the title, press Esc, and the title behind was still in the old palette.
+## Each screen answers restyle() its own way (the hint in place, so a dismissed hint stays
+## dismissed; the others by rebuilding, so a StyleBox made once is made again), and a layer added
+## tomorrow is repainted without anybody remembering to add it here.
 ##
 ## A recolour can only be asked for from the world or the title, and no conversation can be open
 ## in either - the pause menu opens from WORLD only - so rebuilding the box cannot destroy one
@@ -255,13 +285,10 @@ func _rebind_style() -> void:
 	if _style_source == null:
 		return
 	_bind_style(_style_source)
-	if _dialog != null and is_instance_valid(_dialog):
-		_dialog.closed.disconnect(_on_dialog_closed)
-		_dialog.free()
-		_dialog = _new_dialog()
-		_dialog.setup(_style, _ui_size())
-	if _hint != null and is_instance_valid(_hint):
-		_hint.restyle(_style)
+	for child in get_children():
+		var layer := child as CanvasLayer
+		if layer != null and layer.has_method("restyle"):
+			layer.call("restyle", _style)
 
 
 ## The size every screen lays itself out against: the design size, at every world scale, NEVER
@@ -357,6 +384,11 @@ func _teardown_game() -> void:
 	if _credits != null and is_instance_valid(_credits):
 		_credits.free()
 	_credits = null
+	# Two bases, one teardown: whether it was opened over the title or over a game, the thing
+	# about to build a game frees what is on screen.
+	if _options != null and is_instance_valid(_options):
+		_options.free()
+	_options = null
 	if _title != null and is_instance_valid(_title):
 		_title.free()
 	_title = null
@@ -972,7 +1004,7 @@ func open_pause() -> bool:
 	# Constructed and connected in one function, the DialogBox rule: a view built in one place
 	# and wired in another is a view that eventually gets built and not wired.
 	_pause.sound_wanted.connect(_on_sound_wanted)
-	_pause.sound_changed.connect(_on_sound_changed)
+	_pause.options_requested.connect(_on_pause_options)
 	_pause.resumed.connect(_close_pause)
 	_pause.save_requested.connect(_on_save_requested)
 	_pause.load_requested.connect(_on_load_requested)
@@ -981,8 +1013,7 @@ func open_pause() -> bool:
 	_pause.member_selected.connect(_on_member_selected)
 	_mount_ui(_pause)
 	_pause_member = &""
-	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), Settings.sound_name(),
-		_gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows(),
+	_pause.setup(PauseMenu.of(_slot_summaries(), _item_rows(), _gold_label(), _gear_rows(), _stats_label(), _status_lines(), _member_rows(),
 		_saves_from_the_menu()), _style, _ui_size(), _source)
 	Router.open_overlay(Router.State.PAUSED)
 	return true
@@ -1294,11 +1325,12 @@ func _close_shop() -> void:
 	Router.close_overlay()
 
 
-## Everything the paused screen draws, in one call. Four places refresh it - a save, a sound
-## step, a refused load, and any change to what is worn - and four copies of the same six
-## arguments is four places to forget the one that was just added.
+## Everything the paused screen draws, in one call. Several places refresh it - a save, a refused
+## load, and any change to what is worn - and that many copies of the same arguments is that many
+## places to forget the one just added. The volume step used to be one of them and is not any
+## more: it lives on the options page, which is not open at the same time as this.
 func _refresh_pause() -> void:
-	_pause.refresh(_slot_summaries(), _item_rows(), Settings.sound_name(), _gold_label(),
+	_pause.refresh(_slot_summaries(), _item_rows(), _gold_label(),
 		_gear_rows(_pause_member), _stats_label(_pause_member),
 		_status_lines(_pause_member), _member_rows(), _saves_from_the_menu())
 
@@ -1780,6 +1812,7 @@ func open_title() -> bool:
 	_title.load_requested.connect(_on_title_load)
 	_title.new_game_requested.connect(_on_title_new_game)
 	_title.credits_requested.connect(_on_title_credits)
+	_title.options_requested.connect(_on_title_options)
 	_mount_ui(_title)
 	# _style, never the `style` argument: _bind_style has just laid the player's palette over it,
 	# and handing the screen what came IN would draw the one surface a recolour is chosen from in
@@ -1834,6 +1867,65 @@ func _close_credits() -> void:
 	_credits.queue_free()
 	_credits = null
 	Router.close_overlay()
+
+
+## The options page. Public for the reason open_credits() is: a test must be able to stage it
+## without pressing through a menu.
+##
+## `over_world` is how it is DRAWN rather than where it came from - dimmed over a place, opaque
+## over the title - and it is passed rather than inferred from whether a game is running, because
+## those are two different questions and the day they come apart is the day a screen guesses.
+##
+## No `_title != null` guard, unlike open_credits: this is the one overlay with two bases.
+func open_options(over_world: bool = false) -> bool:
+	if _options != null or _style == null:
+		return false
+	_options = OptionsScreen.new()
+	# Constructed and connected in one function, the open_battle_with rule.
+	_options.sound_wanted.connect(_on_sound_wanted)
+	_options.sound_requested.connect(_on_options_sound)
+	_options.window_requested.connect(_on_options_window)
+	_options.left.connect(_close_options)
+	_mount_ui(_options)
+	_options.setup(OptionsMenu.of(Settings.sound_name(), _palette_word()), _style, _ui_size(),
+		over_world)
+	# Two states rather than one with a flag: what is underneath decides where leaving goes, and
+	# a state whose legal exit depends on something unwritten is what the flow model refuses.
+	Router.open_overlay(Router.State.OPTIONS if over_world else Router.State.OPTIONS_AT_TITLE)
+	return true
+
+
+func _close_options() -> void:
+	if _options == null:
+		return
+	# queue_free, not free: this is reached from inside the screen's own input handler.
+	_options.queue_free()
+	_options = null
+	Router.close_overlay()
+
+
+## The title's Options row. Opened INLINE, the credits' rule: the title is a base state, so
+## nothing pops an overlay behind this one.
+func _on_title_options() -> void:
+	open_options()
+
+
+## The pause menu's Options row, and the two-step is the whole of it.
+##
+## The menu is CLOSED first, because no overlay in this game opens over another - the model
+## declares that and the flow suite proves it - so the page is opened over the WORLD, and Esc
+## from it puts the player back there rather than into a menu that is already gone. Deferred for
+## the OP_SHOP reason: the close has to finish before the open, or the pop takes the new screen
+## with it. No input is processed in between.
+##
+## The trailing comment on that first line is there so the line is not byte-identical to the one
+## in _on_title_load, which an existing mutant anchors on: sed edits the FIRST match, so without
+## it that mutant would silently start reporting a verdict about this function instead. The aim
+## check catches it, and the contract's fix is to make the two lines differ rather than to loosen
+## the pattern.
+func _on_pause_options() -> void:
+	_close_pause()  # first, and the trailing note is load-bearing: see below
+	open_options.call_deferred(true)
 
 
 ## The composed attribution list the sprite generator writes beside a style's art, or nothing.
@@ -2066,6 +2158,11 @@ func save_screen() -> SaveScreen:
 ## The credits, for the flow model's gate and the layout audit.
 func credits_screen() -> CreditsScreen:
 	return _credits
+
+
+## The options page, for the flow model's gate and the layout audit.
+func options_screen() -> OptionsScreen:
+	return _options
 
 
 ## Whether a game is built behind whatever is on screen. The title is the one state where the

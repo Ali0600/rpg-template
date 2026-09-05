@@ -29,6 +29,17 @@ enum State {
 	## it, which is why the model names no_game_running for it where every other overlay names
 	## game_running. It exists because a licence requires it, not because a menu wanted a row.
 	CREDITS,
+	## What the player chose: how loud, and what colour the windows are, over the world.
+	## APPENDED, like every state before it: flow_changed carries these as ints and state_name()
+	## derives the model's own string from the enum, so reordering would rename every state
+	## after the one that moved.
+	OPTIONS,
+	## The same page over the TITLE, and it is a second state rather than a flag because the two
+	## differ in every way a state can: a game is running behind one and not the other, and
+	## leaving them goes to different places. One state with two exits is one whose legal move
+	## depends on something nobody wrote down - which is exactly what the flow model exists to
+	## refuse, and it refused this on the first walk that reached it.
+	OPTIONS_AT_TITLE,
 }
 
 var _state: State = State.TITLE

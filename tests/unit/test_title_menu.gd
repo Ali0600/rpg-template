@@ -136,6 +136,54 @@ func test_the_title_offers_no_route_to_itself() -> void:
 		"the game over offers no way back to the title").is_equal(1)
 
 
+func test_every_way_on_is_reachable_from_a_row_of_its_own() -> void:
+	# MEMBERSHIP, compared whole against a list written here, which is the only place the code
+	# under test cannot reach. A per-row property check passes happily while a whole row is
+	# unreachable: give Options the same index as Credits and every row still answers something,
+	# every row still has a word on it, and the title quietly stops offering a page. That mutant
+	# survived a full sweep until this test existed.
+	#
+	# It fails in BOTH directions - a way on that stopped being offered, and one nobody declared.
+	var offered: Array[int] = []
+	var title := TitleMenu.of(_slots([0]))
+	for at in title.row_count():
+		var pick := title.top_pick(at)
+		if pick == null:
+			# The Continue row, which SlotMenu answers for. Not a way on of the subclass's own.
+			continue
+		assert_bool(offered.has(pick.kind)).override_failure_message(
+			"two rows both answer kind %d, so one of them cannot be reached" % pick.kind).is_false()
+		offered.append(pick.kind)
+	offered.sort()
+	# LOAD is deliberately not here: it is what the Continue row's page answers, not what a top
+	# row answers, and top_pick returns null for that row so SlotMenu keeps the rule in one place.
+	var declared: Array[int] = [TitleMenu.Kind.NEW_GAME, TitleMenu.Kind.CREDITS,
+		TitleMenu.Kind.OPTIONS]
+	declared.sort()
+	assert_array(offered).override_failure_message(
+		"the title offers %s where it should offer %s" % [offered, declared]).is_equal(declared)
+
+
+func test_each_row_is_worded_as_the_thing_it_actually_does() -> void:
+	# The pair to the test above and the half it cannot see: a row can be reachable and still be
+	# labelled as its neighbour. Asserted as a PAIRING rather than as two lists, because the two
+	# are answered by different functions - top_label and top_pick - and nothing else requires
+	# them to agree about which row is the third one.
+	var title := TitleMenu.of(_slots([0]))
+	var words := {
+		TitleMenu.Kind.CREDITS: "Credits",
+		TitleMenu.Kind.OPTIONS: "Options",
+		TitleMenu.Kind.NEW_GAME: "New game",
+	}
+	for at in title.row_count():
+		var pick := title.top_pick(at)
+		if pick == null or not words.has(pick.kind):
+			continue
+		assert_str(title.top_label(at)).override_failure_message(
+			"row %d does %d and says '%s'" % [at, pick.kind, title.top_label(at)]
+			).is_equal(str(words[pick.kind]))
+
+
 func test_each_screen_builds_labels_for_every_row_it_has() -> void:
 	# The count is still worth pinning, for the reason the old test named: the view sizes its
 	# label pool from it, so a row past the pool is a row drawn nowhere. Pinned as "every row is

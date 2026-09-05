@@ -15,9 +15,10 @@ extends CanvasLayer
 ## gate skips any file whose TEXT names an autoload, so calling the audio singleton here would
 ## quietly drop this file out of that gate, along with every test that depends on it. That is
 ## not hypothetical - it is how this signal came to exist. Do not name it in prose either.
-## The player asked for the next volume step. The world owns the setting - a view that wrote
-## it would be a second writer for a value that outlives every scene.
-signal sound_changed()
+## The player asked for the options page. The world opens it - and CLOSES this menu on the way,
+## because no overlay here opens over another; tools/flow_model.json declares that and the flow
+## suite proves it. Until M46 this was sound_changed and the row WAS the volume.
+signal options_requested()
 
 signal sound_wanted(id: StringName)
 
@@ -48,10 +49,11 @@ const ROW_PITCH := 11
 const BACKDROP_ALPHA := 0.85
 
 ## Indexed by PauseMenu.Row, so the order is the enum's rather than a second list's.
-## Indexed by PauseMenu.Row. Sound is empty here because its text changes with the setting,
-## and the menu carries that - a view cannot ask the settings singleton without dropping this
-## file, and every suite that depends on it, out of the per-file parse gate.
-const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Status", "Save", "Load", ""]
+## Indexed by PauseMenu.Row. Every row's word is here now: the last slot was empty until M46,
+## because the row said what the volume WAS and only the menu could carry that text. It opens a
+## page instead, so its label is as fixed as the rest of them.
+const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Status", "Save", "Load",
+	"Options"]
 
 ## Where the party panel starts, and how tall one member's block is inside it - a face, a name,
 ## and two bars stacked beside it. Constants for the reason MARGIN is: they are layout facts, and
@@ -105,12 +107,12 @@ func setup(menu: PauseMenu, style: SpriteStyle, viewport_size: Vector2i,
 
 ## New slot contents from the world, cursor untouched. After a save that is what makes the row
 ## the player is looking at show what they just wrote.
-func refresh(slots: Array[SlotSummary], items: Array = [], sound: String = "",
-		gold: String = "", gear: Array = [], stats: String = "",
-		status: Array[String] = [], members: Array = [], can_save := true) -> void:
+func refresh(slots: Array[SlotSummary], items: Array = [], gold: String = "",
+		gear: Array = [], stats: String = "", status: Array[String] = [],
+		members: Array = [], can_save := true) -> void:
 	if _menu == null:
 		return
-	_menu.refresh(slots, items, sound, gold, gear, stats, status, members, can_save)
+	_menu.refresh(slots, items, gold, gear, stats, status, members, can_save)
 	_committed = false
 	_paint()
 
@@ -296,7 +298,7 @@ func _label_for(at: int) -> String:
 			# at a point offers fewer rows than the enum has - and labelling by the raw index
 			# there would draw "Save" over the row that now answers Load.
 			var row := _menu.top_row(at)
-			return _menu.sound_label() if row == PauseMenu.Row.SOUND else TOP_LABELS[row]
+			return TOP_LABELS[row]
 		PauseMenu.Page.ITEMS:
 			return PauseMenu.item_label(_menu.item(at))
 		PauseMenu.Page.STATUS:
@@ -416,9 +418,11 @@ func _act(pick: PauseMenu.Pick) -> void:
 			# Not committed, for the reason equipping is not: the page stays up and the world
 			# refreshes it, so the slot the player just emptied says so.
 			unequip_requested.emit(pick.gear)
-		PauseMenu.Kind.SOUND:
-			# Not committed: turning the sound down leaves the menu open, and the world calls
-			# refresh() so the row shows what it now says - the save-row rule.
-			sound_changed.emit()
+		PauseMenu.Kind.OPTIONS:
+			# COMMITTED, unlike the volume step this row used to be: the world closes this menu
+			# and opens the options page over the world instead, so a second press here would be
+			# aimed at a screen already on its way out.
+			_committed = true
+			options_requested.emit()
 		_:
 			_paint()

@@ -17,6 +17,8 @@ stateDiagram-v2
 	saving : A save point is open: the slot list, and nothing else on it. Reached from a conversation under either save policy, which is why it is its own state rather than the pause menu jumped to a page - a priest does not hand you your equipment.
 	credits : Who drew the art, over the title. An overlay on the one state with no game behind it, which is why it names no_game_running rather than game_running: it is reached from the title and returns there. It exists because the demo's art is CC-BY-SA and the licence requires the credits to be reachable from inside the game - see GENRE_CONVENTIONS 12a.
 	game_over : The run ended. The ways on are a save, a fresh start, or the title.
+	options : Sound and the window's colours, over the world. Reached from the pause menu by CLOSING it first, because no overlay opens over another - so leaving goes back to the world rather than to a menu that is already gone.
+	options_at_title : The same page over the title. A SECOND state rather than a flag on the first, because the two differ in every way a state can: a game is running behind one and not the other, and leaving them goes to different places. Modelled as one state it had two exits and no way to say which was legal, and the seeded walks found that on the first journey that reached it - which is the whole job of this file.
 	title --> world : new_game
 	title --> world : continue
 	world --> dialog : open_dialog
@@ -31,6 +33,10 @@ stateDiagram-v2
 	saving --> world : close_save
 	title --> credits : open_credits
 	credits --> title : close_credits
+	title --> options_at_title : open_options_from_title
+	options_at_title --> title : close_options_to_title
+	paused --> options : open_options
+	options --> world : close_options
 	world --> battle : open_battle
 	battle --> world : win_battle
 	battle --> game_over : lose_battle
@@ -52,6 +58,8 @@ stateDiagram-v2
 | **saving** | `save_screen_up`, `game_running`, `player_cannot_move` |
 | **credits** | `credits_screen_up`, `no_game_running`, `player_cannot_move` |
 | **game_over** | `game_over_screen_up`, `player_cannot_move` |
+| **options** | `options_screen_up`, `game_running`, `player_cannot_move` |
+| **options_at_title** | `options_screen_up`, `no_game_running`, `player_cannot_move` |
 
 ## Every declared move
 
@@ -72,6 +80,10 @@ stateDiagram-v2
 | `close_save` | saving | world | saving → world |
 | `open_credits` | title | credits | title → credits |
 | `close_credits` | credits | title | credits → title |
+| `open_options_from_title` | title | options_at_title | title → options_at_title |
+| `close_options_to_title` | options_at_title | title | options_at_title → title |
+| `open_options` | paused | options | paused → world, world → options |
+| `close_options` | options | world | options → world |
 | `open_battle` | world | battle | world → battle |
 | `win_battle` | battle | world | battle → world |
 | `lose_battle` | battle | game_over | battle → world, world → game_over |
@@ -89,6 +101,9 @@ stateDiagram-v2
 - **`close_rest`** — The screen ends itself; nothing presses anything.
 - **`open_save`** — Opened DEFERRED from a dialog effect, the open_shop rule, so the adapter waits a frame.
 - **`open_credits`** — Opened INLINE, unlike the save point: nothing pops an overlay behind this one, because the title is a base state rather than a dialog.
+- **`open_options_from_title`** — Opened INLINE, the credits' rule: the title is a base state rather than an overlay, so nothing pops anything behind this.
+- **`open_options`** — TWO hops, and the middle one is real. No overlay opens over another here, so the pause menu is CLOSED on the way through - the lose_battle shape one state earlier. The open is deferred so the close finishes first, the OP_SHOP rule.
+- **`close_options`** — Back to the world, not to the pause menu that was closed on the way in. Returning there would need the state to remember where it came from - one more edge and a hidden input; see DECISIONS.md.
 - **`lose_battle`** — TWO hops, and the middle one is real: _close_battle runs before open_game_over so two full-screen views are never stacked.
 - **`game_over_to_title`** — Two hops for the same reason. The from used to read world because to_title reset first; M23 made it say where it came from.
 - **`game_over_new_game`** — One hop: the close pops to world and start_game's reset finds it already there.

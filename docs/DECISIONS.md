@@ -3051,3 +3051,58 @@ assertion still passes.
   `StyleBoxFlat`; a pattern is a second field on `UiPalette` and a branch there.
 - *Per-style default palettes.* Hook: `SpriteStyle` could name one, and `_palette_of` would fall
   back to it instead of to null.
+
+## Options is one screen with two ways in, and two states — *M46*
+
+PR1 made the windows recolourable and gave no player a way to reach it. This is the surface.
+
+- **One `OptionsScreen`, opened from a row on the title AND a row in the pause menu.** *Chosen.*
+  Pokémon Gen I's placement, read out of `pret/pokered`: `OPTION` sits on the title menu
+  (`engine/menus/main_menu.asm`) and in the in-game start menu (`home/start_menu.asm`), calling
+  the same routine. This template has a title where Final Fantasy VI does not, so FF6's
+  field-menu-only answer would strand a player who wants to turn the sound down before starting.
+- *A page of the pause menu* — **rejected.** There is no pause menu at the title, so the title
+  would need its own copy of the rows, and two lists of the same settings drift.
+- *Title only* — **rejected**: the volume was already reachable mid-run and taking that away to
+  add a feature is a regression wearing a new row.
+
+**The pause menu CLOSES on the way through, and that is not a workaround.** No overlay in this
+game opens over another - `tools/flow_model.json` declares it and the flow suite proves it - so
+`_on_pause_options` closes the menu and defers the open, which is the `lose_battle` two-hop and the
+`OP_SHOP` deferral, both already here. Esc therefore returns to the world.
+
+- *Esc returning to the pause menu*, Final Fantasy's own behaviour — **deferred, worth trying.**
+  It needs the state to remember which base it was opened over, which is a second edge out of one
+  state chosen by something a player cannot see. Revisit hook: `_close_options`, plus a remembered
+  origin on the world.
+
+**`OPTIONS` and `OPTIONS_AT_TITLE` are two Router states, and the walks are what found that.**
+It shipped as one state with two exits, and the seeded journeys reached it on the first run and
+minimised to `open_options_from_title, close_options, open_battle, lose_battle` - a walk that
+opened the page over the title and then left it into a world that was not there. The two differ in
+every way a state can: a game is running behind one and not the other, and leaving them goes to
+different places. *A state whose legal exit depends on something nobody wrote down is not one
+state*, and the giveaway was already in the model file: the entry declared neither `game_running`
+nor `no_game_running`, because neither was always true.
+
+**Deferred, with hooks:** *text speed*, which EarthBound, Pokémon and FF6 all offer - hook,
+`DialogBox` reveals one character per frame. *Key bindings*, which have no seam at all: 42 bare
+`&"action"` literals across `scripts/ui/`, no `InputMap.action_*` call anywhere, and a controls
+hint that is a hand-written string - the hook is an `Actions` constants class replacing the
+literals, persistence beside the volume, and a hint DERIVED from the map (`setup_input_map.gd`
+carries a count line that would move with it). *Fullscreen*, **rejected** on the Quit row's own
+precedent: a row that does nothing on one of two shipped platforms is worse than no row.
+
+**Found after the LOOK, by the user, in the shipped screen.** Recolour from the title, press Esc:
+the title behind was still in the old palette. `_rebind_style` was a hand-kept list of the layers a
+recolour reaches - the dialog box and the hint - and the title was not on it, though PR1's own
+comment said PR2 would add it. It is a driver now: every `CanvasLayer` that answers `restyle` is
+called, and `test_options_palette` asserts the membership over both bases. Why no gate saw it: the
+one title-palette test proved the palette at BOOT and never made a live change, the scripted
+session reads states and sound cues and no QA op reads a colour, and the layout audits measure
+geometry. No OCR was needed to catch it - the colour is read off the `StyleBoxFlat` that paints the
+window, which is exact where OCR is approximate. *The thing in the screenshots that looked like a
+bug and was not, measured:* the controls hint under the options page reads "WASD / arr" and seems
+cut off; its brightest pixel is 17/255, the hint dimmed by the 85% backdrop exactly as it is under
+the pause menu, and it "ends" where the map begins because a 17-grey vanishes against an 11-grey.
+Left alone.

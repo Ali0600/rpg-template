@@ -161,18 +161,19 @@ guessing, because a guessed game presents as the game you meant to run behaving 
   and composes the attribution the game then displays in-game to satisfy it, and sub-tile
   autotiling that composes 47 edge shapes from 12 pieces — all in integer arithmetic so output is
   byte-identical on macOS and Linux, and drift-gated in CI.
-- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,404
-  unit and integration tests → boot → artifact drift → 24 scripted end-to-end play sessions →
+- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,445
+  unit and integration tests → boot → artifact drift → 25 scripted end-to-end play sessions →
   the exported package played; SHA-pinned actions, least-privilege tokens, a checksum-verified
   toolchain, and a Pages deploy gated on the green run of the exact commit it ships.
-- Implemented mutation testing over the project's own quality gates — 673 mutants, each proving
+- Implemented mutation testing over the project's own quality gates — 688 mutants, each proving
   a rule fails when broken — sharded four ways with a change-scoped fast lane (pull-request runs
   18 → 3 min) and a sub-second static check that every mutant still targets one line.
 - Built model-based testing of the application's state machine: transitions declared as data
   and driven through the real game, seeded random walks over one live world, and automatic
-  counterexample shrinking (a 24-step failure reduced to 5). Extended it to rendered layout —
-  automated audits of every screen's geometry that caught defects six years of passing tests
-  could not see, including readouts drawn over the sprites they described.
+  counterexample shrinking (a 24-step failure reduced to 5) — which caught a screen modelled as
+  one state that was really two, before it shipped. Extended it to rendered layout: automated
+  audits of every screen's geometry that caught defects passing tests could not see, including
+  readouts drawn over the sprites they described.
 - Replaced closed-form game-balance rules with deterministic simulation: the real combat engine
   played to completion under opposed policies across many seeds, asserting from shipped data
   that skilled play always wins and unskilled play always loses.

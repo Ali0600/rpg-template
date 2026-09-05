@@ -191,6 +191,30 @@ func setup(style: SpriteStyle, viewport_size: Vector2i) -> void:
 		_choice_labels.append(label)
 
 
+## New colours, after the player chose a palette. Rebuilt in place through setup(), so the node
+## survives and the world's `closed` connection with it - which is what lets a recolour be a loop
+## over whatever layers are up rather than a list of them. Safe because no conversation can be
+## open when a recolour is asked for: the options page is reached through the pause menu, which
+## opens from the world only, or from the title, where there is no conversation to have.
+##
+## The text label is a field made at declaration and added under the panel, so freeing the panel
+## frees it: it is made again, or setup() would parent a freed node.
+func restyle(style: SpriteStyle) -> void:
+	if _style == null:
+		return
+	for child in get_children():
+		remove_child(child)
+		child.free()
+	_text = RichTextLabel.new()
+	_choice_labels.clear()
+	_face = null
+	_select = null
+	_frame = null
+	_panel = null
+	_speaker = null
+	setup(style, _viewport)
+
+
 ## Opens a conversation. The SOURCE arrives here rather than at setup, and that is not a detail:
 ## the box is built once for the life of a game (`world_scene` guards on its child count) while
 ## the source is rebuilt per map from that map's style, so a face captured at setup would be cut

@@ -18,6 +18,12 @@ extends SlotMenu
 ## counting presses, and the sessions have no enum to name.
 const ROW_CREDITS := Row.NEW_GAME + 1
 
+## The fourth, appended for the reason Credits was: a scripted session lands on a row by counting
+## presses and has no enum to name, so a row slotted in above moves every one of them silently.
+## It sits below Credits because the genre puts the system rows last and because the sessions that
+## already reach Credits keep their count.
+const ROW_OPTIONS := ROW_CREDITS + 1
+
 
 static func of(slots: Array[SlotSummary]) -> TitleMenu:
 	var menu := TitleMenu.new()
@@ -27,7 +33,7 @@ static func of(slots: Array[SlotSummary]) -> TitleMenu:
 
 
 func row_count() -> int:
-	return ROW_CREDITS + 1
+	return ROW_OPTIONS + 1
 
 
 ## The third way on. Answered here rather than in SlotMenu because a game over has no business
@@ -36,10 +42,14 @@ func row_count() -> int:
 func top_pick(at: int) -> Pick:
 	if at == ROW_CREDITS:
 		return Pick.of(Kind.CREDITS)
+	if at == ROW_OPTIONS:
+		return Pick.of(Kind.OPTIONS)
 	return super(at)
 
 
 func top_label(at: int) -> String:
+	if at == ROW_OPTIONS:
+		return "Options"
 	if at == ROW_CREDITS:
 		return "Credits"
 	if at == Row.NEW_GAME:

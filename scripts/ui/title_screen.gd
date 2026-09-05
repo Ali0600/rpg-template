@@ -22,6 +22,9 @@ signal load_requested(slot: int)
 signal new_game_requested
 signal credits_requested
 
+## The player asked for the options page. Not committed either, and for the same reason.
+signal options_requested
+
 const LAYER := 30
 const MARGIN := 8
 ## The one screen in this game with a big word on it. A title is mostly its own name.
@@ -72,6 +75,31 @@ func refresh(slots: Array[SlotSummary]) -> void:
 ## The menu behind this screen, for tests that drive the rules rather than the keys.
 func menu() -> TitleMenu:
 	return _menu
+
+
+## New colours, after the player chose a palette on the options page over this. Rebuilt rather
+## than repainted, the OptionsScreen shape: the frame's fill and rule live in a StyleBox made once
+## in _build, and a second way of applying colours would be a second thing to keep in step. The
+## menu is a separate object, so the cursor keeps its row; the heading is re-set from the label
+## that carried it. Every child goes, the backdrop included - taken out and not freed it would be
+## an orphan, and the suites here assert a baseline of zero.
+##
+## This did not exist when the options page shipped, and the first person to play it found what
+## that cost: recolour from the title, press Esc, and the title behind was still in the old
+## palette while everything after New game was in the new one.
+func restyle(style: SpriteStyle) -> void:
+	if _style == null or _menu == null or _heading == null:
+		return
+	_style = style
+	var size := Vector2i(int(_backdrop.size.x), int(_backdrop.size.y))
+	var heading_text := _heading.text
+	for child in get_children():
+		remove_child(child)
+		child.free()
+	_rows.clear()
+	_backdrop = ColorRect.new()
+	_build(size, heading_text)
+	_paint()
 
 
 func _build(viewport_size: Vector2i, heading: String) -> void:
@@ -200,5 +228,8 @@ func _act(pick: SlotMenu.Pick) -> void:
 			# NOT committed: the credits screen is closed back to this one, and a title that had
 			# latched an answer would be deaf when the player returned to it.
 			credits_requested.emit()
+		TitleMenu.Kind.OPTIONS:
+			# Not committed, for the credits' reason exactly - the options page comes back here.
+			options_requested.emit()
 		_:
 			_paint()
