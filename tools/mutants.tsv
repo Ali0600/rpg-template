@@ -809,3 +809,11 @@ tests/helpers/content_reach.gd	s|for manifest in manifests:|for manifest in mani
 tests/helpers/content_reach.gd	s|var hooks := manifest.new_hooks\(\)|var hooks: GameHooks = null|	tests/unit/test_map_content.gd	a conversation only a game's own code opens belongs to nobody, so three shipped lines go unchecked
 tests/helpers/content_reach.gd	s|for key in \["dialog", "locked_dialog"\]:|for key in ["dialog"]:|	tests/unit/test_content_reach.gd	a refusal's conversation is not counted as the game's, so nothing checks the face it draws
 games/quest/quest_hooks.gd	s|= \[DIALOG_ASKS, |= [|	tests/unit/test_quest_hooks.gd	the game stops declaring a conversation it opens, and no gate can tell it still does
+# --- M47: the scaffold wizard's planner --------------------------------------------------
+scripts/util/game_scaffold.gd	s|start_spawn = &"start"|start_spawn = \&"begin"|	tests/integration/test_scaffolded_game_boots.gd	a scaffolded game names a spawn its own first room does not have, so it starts nowhere
+scripts/util/game_scaffold.gd	s|"tile": \[NPC_TILE.x, NPC_TILE.y\]|"tile": [NPC_TILE.x + 2, NPC_TILE.y]|	tests/integration/test_scaffolded_game_boots.gd	the greeter is not beside the spawn, so the session that walks into them counts tiles instead
+scripts/util/game_scaffold.gd	s|rows.append\(WALL_GLYPH.repeat\(MAP_WIDTH\)\)|rows.append(FLOOR_GLYPH.repeat(MAP_WIDTH))|	tests/unit/test_game_scaffold.gd	the starter room opens along the top and bottom, and the player walks out of the world
+scripts/util/game_scaffold.gd	s|return str\(want\["movement"\]\) == "grid"|return str(want["movement"]) != "grid"|	tests/unit/test_game_scaffold.gd	a game varying no axis is handed a config of its own, so every difference reads as a defect
+scripts/util/game_scaffold.gd	s|out\["tests/fixtures/qa/%s/boots.json" % id\] = _session_text\(want\)|pass|	tests/unit/test_game_scaffold.gd	a scaffolded game joins no play gate, so nothing ever boots it
+scripts/util/game_scaffold.gd	s|and not cast.has\(who\)|and false|	tests/unit/test_game_scaffold.gd	a character with no art in the chosen style is accepted, and the game starts invisible
+scripts/util/game_scaffold.gd	s|_list\(known, "existing_ids"\).has\(id\)|false|	tests/unit/test_game_scaffold.gd	a game overwrites one that is already there

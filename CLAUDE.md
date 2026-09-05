@@ -51,7 +51,7 @@ regression, however good that game looks.
 scripts/spritegen/  pure RefCounted, deterministic, NO node access — the sprite generator
 scripts/soundgen/   the same, for sound: synth, sound_bank, sound_source + two impls
 scripts/util/       dir, sfx, json_file, seeded_rng, hashing, lint_core, content_scan,
-                    image_file + sound_file (build-time readers, never shipped)
+                    game_scaffold, image_file + sound_file (build-time, never shipped)
 scripts/data/       Resource types (SpriteStyle, SoundStyle, CharacterSpec, GameConfig, SaveData, EnemyDef, CombatDef…)
 scripts/world/      Locomotion + GridWalker + NpcBrain (all pure) + the nodes that apply them
 scripts/ui/         DialogRunner + DialogBox, PauseMenu + PauseScreen,
@@ -80,6 +80,34 @@ unreachable — it is kept armed because the day a second game is added is exact
 guessed game starts presenting as the game you meant to run behaving strangely. The shipped
 `config/game` is empty for that reason: with one game it needs no answer, and with two it must
 be given one.
+
+**A NEW GAME IS A COMMAND, AND `GameScaffold` DECIDES IT WITH NO DISK IN SIGHT.** `plan(options,
+known)` answers project-relative path -> TEXT and `problems(options, known)` refuses by name;
+`known` — the styles, the cast each one draws, the voices, the ids already taken — is gathered by
+`known_from_disk()`, the one impure function, which the tool AND the boot gate both call so that
+two readings of "which characters does this style have" cannot drift. The planner takes `known`
+rather than fetching it, because a planner that scanned for itself could never be shown a project
+it must refuse.
+
+**`.tres` is emitted as TEXT, never through `ResourceSaver`**, which drops the comments and
+re-orders the fields: a scaffolded manifest should diff like `data/games/quest.tres` and read like
+something a person wrote. Three rules the planner is built around, each of which has its own
+mutant. The starter room is **walled all the way round**, because `MapData.problems` refuses a
+perimeter tile that is neither solid nor a warp. A scaffolded game **shares
+`data/game_config.tres` unless an axis genuinely differs** — `--movement=grid` or
+`--save=at_point` — which is M11's control-instance lesson as code: a game that varies a knob its
+design did not ask about turns every difference a player feels into a suspected defect. And it
+**always** writes `tests/fixtures/qa/<id>/boots.json`, because `check.sh` runs every
+`tests/fixtures/qa/<dir>/*.json` with `--game=<dir>`, so the new game joins the play gate the day
+it is made with nobody editing the gate.
+
+**The claim is GATED, not asserted.** `test_scaffolded_game_boots.gd` plans into `user://`, boots
+`world.tscn`, and starts the scaffolded game — the player walks, and the greeter stops them. It
+needs no second manifest on disk and no engine spawn, because `start_game` takes the manifest it is
+handed (the `test_game_switch` seam) and `MapData.root` is a var. **The order is the world, then
+the redirect, then the game**: `_ready` boots the shipped game as the node enters the tree, so
+moving `MapData.root` first sends that boot hunting for `quest_village` in a directory without it,
+which leaves half a map behind and every assertion still passing.
 
 **Gameplay goes in `games/<id>/`, never in `scripts/`.** A game's code is a `GameHooks`
 subclass named by its manifest. It is handed a `GameContext` and **may not name an autoload** —
