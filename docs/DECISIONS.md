@@ -3092,3 +3092,17 @@ hint that is a hand-written string - the hook is an `Actions` constants class re
 literals, persistence beside the volume, and a hint DERIVED from the map (`setup_input_map.gd`
 carries a count line that would move with it). *Fullscreen*, **rejected** on the Quit row's own
 precedent: a row that does nothing on one of two shipped platforms is worse than no row.
+
+**Found after the LOOK, by the user, in the shipped screen.** Recolour from the title, press Esc:
+the title behind was still in the old palette. `_rebind_style` was a hand-kept list of the layers a
+recolour reaches - the dialog box and the hint - and the title was not on it, though PR1's own
+comment said PR2 would add it. It is a driver now: every `CanvasLayer` that answers `restyle` is
+called, and `test_options_palette` asserts the membership over both bases. Why no gate saw it: the
+one title-palette test proved the palette at BOOT and never made a live change, the scripted
+session reads states and sound cues and no QA op reads a colour, and the layout audits measure
+geometry. No OCR was needed to catch it - the colour is read off the `StyleBoxFlat` that paints the
+window, which is exact where OCR is approximate. *The thing in the screenshots that looked like a
+bug and was not, measured:* the controls hint under the options page reads "WASD / arr" and seems
+cut off; its brightest pixel is 17/255, the hint dimmed by the 85% backdrop exactly as it is under
+the pause menu, and it "ends" where the map begins because a 17-grey vanishes against an 11-grey.
+Left alone.

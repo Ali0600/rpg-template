@@ -800,3 +800,6 @@ scripts/world/world_scene.gd	s|\tRouter\.open_overlay\(Router\.State\.OPTIONS if
 scripts/ui/title_menu.gd	s|const ROW_OPTIONS := ROW_CREDITS \+ 1|const ROW_OPTIONS := ROW_CREDITS|	tests/unit/test_title_menu.gd	the Options row lands on top of Credits, so one of them cannot be reached
 scripts/ui/options_screen.gd	s|\t\t\tUiChrome\.place\(_select, row, _frame\.inner\(\)\.size\.x, ROW_PITCH\)|\t\t\tpass|	tests/integration/test_options_layout.gd	the options page draws no cursor, on a page where every row has a verb
 scripts/ui/options_menu.gd	s|\t_index = posmod\(_index \+ delta, size\(\)\)|\t_index = clampi(_index + delta, 0, size() - 1)|	tests/unit/test_options_menu.gd	the options cursor stops at the ends instead of wrapping
+scripts/world/world_scene.gd	s|\t\t\tlayer\.call\(\"restyle\", _style\)|\t\t\tpass|	tests/integration/test_options_palette.gd	a palette is chosen and every screen already on screen keeps its old colours
+scripts/ui/title_screen.gd	s|\t_build\(size, heading_text\)|\tpass|	tests/integration/test_options_palette.gd	the title keeps its old colours after a recolour chosen on top of it
+scripts/ui/dialog_box.gd	s|\tsetup\(style, _viewport\)|\tsetup(_style, _viewport)|	tests/integration/test_options_palette.gd	the dialog box is rebuilt in the palette it had rather than the one just chosen

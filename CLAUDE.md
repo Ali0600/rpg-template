@@ -294,14 +294,21 @@ colour bars because its window is one colour, and here `text` has to stay legibl
 stores the ID ONLY and the world resolves it, so "a palette this build no longer ships" falls back
 in exactly one place.
 
-**A recolour REBUILDS the dialog box and RESTYLES the controls hint, and the asymmetry is the
-rule.** The box holds its colours in a StyleBox and half a dozen theme overrides made once in
-`setup()`, so a second way of applying them is a second thing to keep in step - and no
-conversation can be open when a recolour is asked for, since the pause menu opens from `WORLD`
-only. The hint carries STATE: a fresh one puts "use the arrow keys" back on the screen of somebody
-an hour into the game, and every colour assertion still passes. **`open_title` must hand the
-screen `_style` and never the style that came in** - it did the latter until M46, so all four
-palettes drew a byte-identical title, and only a photograph found it.
+**A recolour is a DRIVER over every layer that answers `restyle`, never a list of the ones that
+need it.** `_rebind_style` recomposes the style and then calls `restyle(_style)` on every
+`CanvasLayer` child that has one. It shipped as a list - the dialog box and the controls hint, by
+name - and the title was not on it: the first person to play the options page recoloured from the
+title, pressed Esc, and found the title behind still in the old palette while everything after New
+game was in the new one. Each screen answers its own way: the hint in place (a fresh one would put
+"use the arrow keys" back on the screen of somebody an hour in), the dialog box, the title and the
+options page by rebuilding (a StyleBox made once in `setup()` is made again, and a second way of
+applying colours is a second thing to keep in step). No conversation can be open when a recolour is
+asked for, since the pause menu opens from `WORLD` only. `test_options_palette` asserts the
+MEMBERSHIP - every window any layer is drawing, over both bases - so the next long-lived screen
+fails there without being named. **`open_title` must hand the screen `_style` and never the style
+that came in** - it did the latter until M46, so all four palettes drew a byte-identical title, and
+only a photograph found it. **A test that proves a property at boot says nothing about it after a
+live change**: the title-at-boot test was green throughout.
 
 **OPTIONS IS ONE SCREEN AND TWO STATES, and the walks are what proved it has to be.** The page is
 reached from a title row and a pause-menu row; the pause menu is CLOSED on the way through,

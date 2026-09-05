@@ -188,9 +188,8 @@ func _on_options_sound() -> void:
 ## the page is repainted in the colours just chosen - which is the whole point of the row.
 func _on_options_window() -> void:
 	Settings.cycle_palette(Registry.ids_of(&"UiPalette"))
+	# The page itself is repainted by the rebind, like every other layer that is up.
 	_rebind_style()
-	if _options != null:
-		_options.restyle(_style)
 	_refresh_options()
 
 
@@ -269,12 +268,15 @@ func _palette_of() -> UiPalette:
 
 ## The style bound again, after the player changed what the windows look like.
 ##
-## _bind_style recomposes the colours, and then the two layers that OUTLIVE a map have to be
-## brought to them by hand: every other screen is built fresh when it opens and takes the new
-## colours for free. The dialog box is rebuilt because it holds its colours in a StyleBox and half
-## a dozen theme overrides made once in setup(), and a second way of applying them would be a
-## second thing to keep in step; the hint is restyled in place because rebuilding it would put a
-## dismissed hint back on screen.
+## _bind_style recomposes the colours, and then every interface layer that is UP has to be brought
+## to them: a screen built fresh when it opens takes the new colours for free, and one that is
+## already on screen does not. A DRIVER over whatever is in the tree rather than a list of the
+## layers that need it, because the list is what shipped first - the dialog box and the controls
+## hint, by name - and the title was not on it. The first person to play the options page found
+## that: recolour from the title, press Esc, and the title behind was still in the old palette.
+## Each screen answers restyle() its own way (the hint in place, so a dismissed hint stays
+## dismissed; the others by rebuilding, so a StyleBox made once is made again), and a layer added
+## tomorrow is repainted without anybody remembering to add it here.
 ##
 ## A recolour can only be asked for from the world or the title, and no conversation can be open
 ## in either - the pause menu opens from WORLD only - so rebuilding the box cannot destroy one
@@ -283,13 +285,10 @@ func _rebind_style() -> void:
 	if _style_source == null:
 		return
 	_bind_style(_style_source)
-	if _dialog != null and is_instance_valid(_dialog):
-		_dialog.closed.disconnect(_on_dialog_closed)
-		_dialog.free()
-		_dialog = _new_dialog()
-		_dialog.setup(_style, _ui_size())
-	if _hint != null and is_instance_valid(_hint):
-		_hint.restyle(_style)
+	for child in get_children():
+		var layer := child as CanvasLayer
+		if layer != null and layer.has_method("restyle"):
+			layer.call("restyle", _style)
 
 
 ## The size every screen lays itself out against: the design size, at every world scale, NEVER

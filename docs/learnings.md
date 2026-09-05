@@ -2265,3 +2265,20 @@ the colour back off the thing that draws it.
 **Takeaway.** Before pointing a mutant at an end-to-end driver, ask which of that driver's
 assertions could go red - and if the honest answer is none, the rule needs a gate with an
 instrument for it rather than a more thorough script.
+
+### A property proven at boot is unproven after a live change
+
+A test that builds the world with a setting already chosen and reads the result says nothing about
+what happens when the setting changes while the world is up. The code that handles the change is a
+different path, and it is the path that forgets.
+
+**Why it came up.** M46 had a test that the title is drawn in the chosen palette - and it was green
+throughout, because it chose the palette BEFORE booting. The first person to play the screen chose
+a palette ON TOP of the title and pressed Esc, and the title behind was in the old colours: the
+recolour handler was a hand-kept list of screens to repaint, and the title was not on it. The fix
+made it a driver over every layer in the tree, and the test that would have caught it makes the
+change live and then reads every window's fill.
+
+**Takeaway.** For any setting that can change while things built from it are on screen, write the
+test that changes it live, and assert over every consumer that is up rather than the ones you
+remembered to list.

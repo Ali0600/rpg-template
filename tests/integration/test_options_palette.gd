@@ -212,6 +212,97 @@ func test_the_window_row_changes_the_palette_and_what_is_drawn_behind_it() -> vo
 			Color(str(chosen.colors["panel"])))
 
 
+func test_a_recolour_chosen_on_the_title_repaints_the_title_under_it() -> void:
+	# Found by the user after the LOOK, and by nothing here: open Options from the title, change
+	# the window, press Esc - and the title behind was still in the old palette, backdrop and
+	# frame both, while the letterbox and everything after New game were in the new one.
+	# test_the_title_is_drawn_in_the_palette_too proves the palette at BOOT; this makes the change
+	# LIVE, on top of the title, which is the only way to reach the code that forgot it.
+	var world := _instantiate()
+	await _steps(1)
+	assert_bool(world.open_options()).is_true()
+	await _steps(1)
+	var screen: OptionsScreen = world.options_screen()
+	assert_object(screen).is_not_null()
+	screen.window_requested.emit()
+	await _steps(1)
+	var chosen := Registry.get_resource(&"UiPalette", Settings.palette()) as UiPalette
+	assert_object(chosen).override_failure_message(
+		"the Window row chose nothing, so this measured nothing").is_not_null()
+	world._close_options()
+	await _steps(1)
+	var title: TitleScreen = world.title_screen()
+	assert_object(title).is_not_null()
+	var wanted := Color(str(chosen.colors["panel"]))
+	var frame := (title._frame.panel as Panel).get_theme_stylebox("panel") as StyleBoxFlat
+	assert_that(frame.bg_color).override_failure_message(
+		"the title's window is still filled in the old palette after a recolour chosen on top "
+		+ "of it").is_equal(wanted)
+	assert_that((title._backdrop as ColorRect).color).override_failure_message(
+		"the title's ground is still the old palette after a recolour chosen on top of it"
+		).is_equal(wanted)
+
+
+## Every window any layer in the tree is drawing, with the colour it is filled in.
+func _window_fills(world: Node2D) -> Array:
+	var out: Array = []
+	for child in world.get_children():
+		var layer := child as CanvasLayer
+		if layer == null:
+			continue
+		for node in SceneHelpers.find_all_by_class(layer, "Panel"):
+			var box := (node as Panel).get_theme_stylebox("panel") as StyleBoxFlat
+			if box != null:
+				out.append([layer.name, box.bg_color])
+	return out
+
+
+func _assert_every_window_wears(world: Node2D, chosen: UiPalette, where: String) -> void:
+	var fills := _window_fills(world)
+	assert_int(fills.size()).override_failure_message(
+		"%s: fewer than two windows were up, so this proved nothing" % where).is_greater_equal(2)
+	var wanted := Color(str(chosen.colors["panel"]))
+	for entry: Variant in fills:
+		var named: Array = entry
+		assert_that(named[1]).override_failure_message(
+			"%s: the window on layer '%s' is still filled in the old palette after a recolour"
+			% [where, named[0]]).is_equal(wanted)
+
+
+func test_every_layer_up_during_a_recolour_is_repainted() -> void:
+	# MEMBERSHIP over whatever is in the tree, rather than a list of the screens that need it.
+	# The list is what shipped first - the dialog box and the hint, by name - and the title was
+	# not on it, which is how the first player found a title still in the old colours after
+	# choosing new ones on top of it. A screen added tomorrow fails here without being named.
+	#
+	# Over the world AND over the title, because those are the two bases the page has and they
+	# hold different layers underneath.
+	var world := await _boot()
+	assert_bool(world.open_options(true)).is_true()
+	await _steps(1)
+	world.options_screen().window_requested.emit()
+	await _steps(1)
+	var chosen := Registry.get_resource(&"UiPalette", Settings.palette()) as UiPalette
+	assert_object(chosen).is_not_null()
+	_assert_every_window_wears(world, chosen, "over the world")
+
+	world.free()
+	_world = null
+	GameState.reset()
+	Router.reset()
+	Settings.set_palette(Settings.NO_PALETTE)
+
+	world = _instantiate()
+	await _steps(1)
+	assert_bool(world.open_options()).is_true()
+	await _steps(1)
+	world.options_screen().window_requested.emit()
+	await _steps(1)
+	chosen = Registry.get_resource(&"UiPalette", Settings.palette()) as UiPalette
+	assert_object(chosen).is_not_null()
+	_assert_every_window_wears(world, chosen, "over the title")
+
+
 func test_recolouring_does_not_bring_back_a_hint_the_player_has_dismissed() -> void:
 	# The reason the hint is restyled where the dialog box is rebuilt. It teaches which keys move
 	# you and goes away once you have moved; a fresh one would put that back on the screen of
