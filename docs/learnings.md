@@ -2299,3 +2299,20 @@ one map is reachable by neither the other's warps.
 **Takeaway.** When you generalise a rule from one to many, the gate has to be given a *many* that
 does not exist in production yet — otherwise the mutant survives and the coverage is imaginary.
 The tell is a fix you cannot make fail.
+
+### The gate you just wrote has the bug you just fixed
+
+Fixing a class of defect does not make you immune to it for the rest of the afternoon. The new
+code written alongside the fix is written with the same habits that produced the original.
+
+**Why it came up.** M47 re-scoped two content gates that assumed one game, then added a wizard that
+creates a second one. The two brand-new suites written in the same session both hardcoded the
+one-game world — one compared the list of games against the literal `["quest"]`, the other named
+its own scaffolded game with a fixed id — and both went red the moment a second game existed, over
+a game neither had anything to do with. A third pre-existing gate had it too, in a form the earlier
+pass had missed: it named a specific art style as "another style", which is only true while one
+game ships.
+
+**Takeaway.** After fixing an instance of a defect class, grep for the *shape* rather than the
+instance, and include the code you wrote today in the sweep. The tell here is a literal naming
+something the system is allowed to have more than one of.

@@ -132,8 +132,10 @@ func test_a_map_painted_on_another_grid_is_refused() -> void:
 func test_a_map_painted_against_another_style_is_refused() -> void:
 	var ids := _tile_ids(_shipped_style())
 	var tiled := TiledMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
-	assert_array(TiledMap.problems(tiled, &"gb16", ids)).override_failure_message(
-		"a map painted for one style was read as another without complaint").is_not_empty()
+	var other := ArtFixtures.some_other_style(StringName(_shipped_style()))
+	assert_array(TiledMap.problems(tiled, other, ids)).override_failure_message(
+		"a map painted for %s was read as %s without complaint" % [_shipped_style(), other]
+		).is_not_empty()
 
 func test_an_infinite_map_is_refused() -> void:
 	# Tiled will happily make one, and a template map has a fixed size - `MapData.size()` is the

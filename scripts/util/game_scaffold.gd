@@ -122,7 +122,13 @@ static func resolved(options: Dictionary, known: Dictionary) -> Dictionary:
 
 ## Every file the new game is made of, as project-relative path -> text. The caller decides where
 ## the root is, which is what lets the suites plan into user:// and the tool plan into res://.
-static func plan(options: Dictionary, known: Dictionary) -> Dictionary:
+##
+## `root` is where those files will LIVE, and the manifest needs it because a `.tres` names its
+## references absolutely. The distinction it encodes is the one that matters: a game's own config,
+## combat definition and hooks travel with it, and the TEMPLATE's files - the scripts, the shared
+## tuning, the voice - stay at res:// wherever the game is written, because they are not this
+## game's to move.
+static func plan(options: Dictionary, known: Dictionary, root: String = "res://") -> Dictionary:
 	var want := resolved(options, known)
 	var id := str(want["id"])
 	var out := {}
@@ -134,7 +140,7 @@ static func plan(options: Dictionary, known: Dictionary) -> Dictionary:
 		out["data/combat/%s.tres" % id] = _combat_text(want)
 	if bool(want["hooks"]):
 		out["games/%s/%s_hooks.gd" % [id, id]] = _hooks_text(want)
-	out["data/games/%s.tres" % id] = _manifest_text(want)
+	out["data/games/%s.tres" % id] = _manifest_text(want, root)
 	# Always, and it is the difference between a game that exists and a game that is known to
 	# work: check.sh runs every tests/fixtures/qa/<dir>/*.json with --game=<dir>, so a scaffolded
 	# game joins the play gate the day it is made, with nobody editing the gate.
@@ -206,12 +212,19 @@ static func _dialog_text(want: Dictionary) -> String:
 	})
 
 
-static func _manifest_text(want: Dictionary) -> String:
+## Where one of this game's own files will be, from the root it is being written to. res:// ends
+## in a separator and a directory does not, and getting that wrong produces `res:/data`, which is a
+## real path and a very confusing one.
+static func _under(root: String, path: String) -> String:
+	return root + path if root.ends_with("/") else "%s/%s" % [root, path]
+
+
+static func _manifest_text(want: Dictionary, root: String) -> String:
 	var id := str(want["id"])
 	var refs: Array[Dictionary] = [
 		{"type": "Script", "path": "res://scripts/data/game_manifest.gd", "id": "1_manifest"},
 	]
-	var config_path := "res://data/config/%s.tres" % id if _wants_own_config(want) \
+	var config_path := _under(root, "data/config/%s.tres" % id) if _wants_own_config(want) \
 		else "res://data/game_config.tres"
 	refs.append({"type": "Resource", "path": config_path, "id": "2_config"})
 	refs.append({"type": "Resource", "path": "res://data/sounds/%s.tres" % str(want["sound"]),
@@ -226,11 +239,11 @@ static func _manifest_text(want: Dictionary) -> String:
 		'sound_style = ExtResource("3_sound")',
 	]
 	if str(want["combat"]) == "turns":
-		refs.append({"type": "Resource", "path": "res://data/combat/%s.tres" % id,
+		refs.append({"type": "Resource", "path": _under(root, "data/combat/%s.tres" % id),
 			"id": "4_combat"})
 		body.append('combat = ExtResource("4_combat")')
 	if bool(want["hooks"]):
-		refs.append({"type": "Script", "path": "res://games/%s/%s_hooks.gd" % [id, id],
+		refs.append({"type": "Script", "path": _under(root, "games/%s/%s_hooks.gd" % [id, id]),
 			"id": "5_hooks"})
 		body.append('hooks = ExtResource("5_hooks")')
 	body.append('controls_hint = "WASD / arrows to walk    E or space to look    Esc to pause"')
@@ -321,11 +334,13 @@ static func _hooks_text(want: Dictionary) -> String:
 		"",
 		"",
 		"## Everything wrong with this game's own content, reported the way the template reports",
-		"## its own. Check here for anything this file names as a bare string.",
+		"## its own, and joined to the same gate.",
+		"##",
+		"## What belongs here is anything THIS FILE names as a bare string - a dialog id, an item",
+		"## id, a flag - because nothing in data can notice one of those going missing. The map",
+		"## already names the greeting, so it is already checked; this file names nothing yet.",
 		"func problems() -> Array[String]:",
 		"\tvar out: Array[String] = []",
-		"\tif not FileAccess.file_exists(\"res://data/dialog/%s_hello.json\"):" % id,
-		"\t\tout.append(\"the greeting this game starts with is missing\")",
 		"\treturn out",
 		"",
 	])

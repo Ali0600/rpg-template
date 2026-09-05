@@ -30,8 +30,8 @@ sprites, and composes the shorelines and verges where two grounds meet. Both arm
 regenerated in CI and the build fails if the committed pixels differ.
 
 **The gate.** Every rule the template makes is a test, and every test ships with a mutant
-proving it fails when the rule is broken. `tools/check.sh` runs lint, parse, compile, 1,404
-tests, a boot check, artifact drift, 24 scripted play sessions and the exported package, in
+proving it fails when the rule is broken. `tools/check.sh` runs lint, parse, compile, 1,482
+tests, a boot check, artifact drift, 25 scripted play sessions and the exported package, in
 that order, locally and in CI.
 
 ## The game it ships with
@@ -64,6 +64,16 @@ every seed, and one who times none of them loses on every seed. Both are proven 
 script that drives the real engine, not asserted in a comment.
 
 ## Quick start
+
+Start your own game. This writes a manifest, a first room with somebody standing in it, and a
+scripted play session that proves the whole thing boots — then tells you the one line to add to
+`project.godot` so the engine knows which game to run:
+
+```bash
+tools/new_game.sh --id=my_game
+```
+
+Play the game that ships:
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --path .
@@ -122,6 +132,13 @@ The recipes are in [`data/imports/lpc32/README.md`](data/imports/lpc32/README.md
 
 If changing any of these needs a code edit, that's a bug in the template.
 
+`tools/new_game.sh --id=<name>` writes the first four of those rows for a new game and leaves you
+editing content rather than wiring. `--style=` picks the art, `--movement=grid` makes one press one
+tile, `--save=at_point` moves saving to a save point, `--combat=turns` adds fighting, and `--hooks`
+gives the game a file of its own code. A game that varies none of those shares the template's
+tuning on purpose: a game that differs for no reason its design asked for turns every difference a
+player feels into a suspected defect.
+
 A **game** is one `data/games/<id>.tres`: its first map and spawn, the character the player
 wears, the tuning it uses, and the one script it is allowed to have. More than one can live side
 by side; with more than one and nothing choosing between them the boot **refuses** rather than
@@ -154,18 +171,19 @@ guessing, because a guessed game presents as the game you meant to run behaving 
 
 - Built a reusable 2D RPG template in Godot 4 / GDScript in which a complete game — six maps,
   branching dialog, a quest, party-based turn-based combat, shops, equipment and versioned
-  saves — is data plus one 96-line hooks file, with every gameplay system swappable behind a
-  single seam.
+  saves — is data plus one 96-line hooks file; a scaffold command generates a new game from one
+  flag, and an automated gate boots that generated game and walks its player, so the reusability
+  claim is re-proven on every CI run rather than asserted.
 - Designed a deterministic asset pipeline: procedural sprite generation from ASCII rigs and
   palettes, a build-time importer for hand-drawn art that gates every layer's licence by family
   and composes the attribution the game then displays in-game to satisfy it, and sub-tile
   autotiling that composes 47 edge shapes from 12 pieces — all in integer arithmetic so output is
   byte-identical on macOS and Linux, and drift-gated in CI.
-- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,445
+- Engineered a fail-closed CI/CD pipeline in GitHub Actions: lint → parse → compile → 1,482
   unit and integration tests → boot → artifact drift → 25 scripted end-to-end play sessions →
   the exported package played; SHA-pinned actions, least-privilege tokens, a checksum-verified
   toolchain, and a Pages deploy gated on the green run of the exact commit it ships.
-- Implemented mutation testing over the project's own quality gates — 688 mutants, each proving
+- Implemented mutation testing over the project's own quality gates — 707 mutants, each proving
   a rule fails when broken — sharded four ways with a change-scoped fast lane (pull-request runs
   18 → 3 min) and a sub-second static check that every mutant still targets one line.
 - Built model-based testing of the application's state machine: transitions declared as data

@@ -3191,3 +3191,39 @@ does the first two thirds of that. A `--replace` that removes `quest` is a diffe
 dangerous command; hook is `GameScaffold.plan`, which already knows every path a game occupies.
 *A `--style` that does not exist yet*, so a game can be scaffolded alongside new art rather than
 only onto shipped art; hook is `known_from_disk`.
+
+## What the two-game proof found — M47
+
+The wizard was scaffolded into this repo once, `application/config/game` was set as it instructed,
+and `tools/check.sh` was run with two games on disk. That is the one case no test can stage: a
+second manifest in `res://data/games` changes what `GameSelect` answers for every suite in the same
+process, so a suite cannot put one there. It is recorded here the way the 2026-09-01 Tiled pass is.
+
+**The run is the evidence, and the acceptance criterion is M7's own:** the second game added
+`data/games/proof.tres`, `data/maps/proof_start.json`, `data/dialog/proof_hello.json`,
+`games/proof/` and `tests/fixtures/qa/proof/`, and touched nothing under `scripts/`, `tools/` or
+`scenes/`. `ALL GATES PASS`, at **26** scripted play sessions rather than 25 — the wizard's own
+`boots.json` ran with `--game=proof`, found the room, walked into the greeter and had a
+conversation, with no edit to the gate.
+
+It found a third gate assuming one game, which PR1 had not:
+`test_a_map_painted_against_another_style_is_refused`, in both editor round-trip suites, named
+`gb16` as "another style". That is only another style while the demo is the only game — a second
+game drawn in gb16 makes the suite read a gb16 map as gb16, so the refusal it exists to prove
+cannot fire and the test goes red having found nothing wrong. `ArtFixtures.some_other_style`
+derives it now, and the property is asserted over EVERY style in `test_gates_consistency` rather
+than over the one that happens to ship, because with one game the literal and the derivation return
+the same answer.
+
+The same trap caught the two new suites themselves, which is worth recording rather than quietly
+fixing: `test_new_game_tool` compared `GameSelect.ids()` against the literal `["quest"]` and
+`test_scaffolded_game_boots` named its own game `proof`. Both went red over a game they had nothing
+to do with. `GameFixtures.unused_game_id` derives a free name, and the after-test assertion compares
+against the ids seen before the test rather than a list of what this project ships. **A suite that
+spells the shipped set of games into itself is the defect this milestone is about, and writing two
+new ones on the same afternoon was not enough to avoid it.**
+
+**Deferred:** the two-game run is not a `check.sh` step. It would write into the working tree on
+every gate run, and an interrupted one would leave half a game behind and three suites red for a
+reason nobody would connect to the interrupt. Revisit hook: `tools/new_game.sh --out=`, which
+already writes anywhere, plus a throwaway copy of the project to write into.

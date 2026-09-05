@@ -96,6 +96,18 @@ has proven is tested — and three times during this build a mutant proved a tes
 
 ## Where a new game changes things
 
+`tools/new_game.sh --id=<name>` writes the first several of these and nothing else: a manifest, a
+walled starter room with a greeter in it, that greeter's one line, and a play session that boots
+the lot. `--style=` chooses the art, `--character=`/`--npc=` the cast, `--sound=` the voice,
+`--movement=grid` one-press-one-tile movement, `--save=at_point` a save point instead of a Save
+row, `--combat=turns` a combat definition, `--hooks` a `GameHooks` file. Everything it decides
+lives in `GameScaffold`, which is pure — the tool reads the project and hands it over, so the
+rules are testable without a disk and the same reading is used by the gate that boots the result.
+
+It does not edit `project.godot`, and prints the line to add instead: `ProjectSettings.save()`
+strips every comment out of that file. With more than one game and nothing choosing between them,
+the boot refuses rather than guessing.
+
 - **Which game runs** → a manifest in `data/games/`: start map, spawn, player character,
   config, controls hint. `--game=<id>` beats `config/game` in `project.godot`, which beats
   "there is only one game" — and when nothing chooses, the boot **refuses** rather than
