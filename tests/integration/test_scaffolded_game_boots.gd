@@ -13,18 +13,21 @@ extends GdUnitTestSuite
 ## moved would report on the demo somewhere later in the run.
 
 const ROOT := "user://scaffold_boot"
-const ID := "proof"
 
 var _world: Node2D
 var _planned := {}
+## Derived rather than spelled in: the wizard invites scaffolding a game into this repo, and a
+## suite that named its own game would go red over somebody else's.
+var _id := ""
 
 
 func before_test() -> void:
 	GameState.reset()
 	Router.reset()
-	_planned = GameScaffold.plan({"id": ID}, GameScaffold.known_from_disk())
+	_id = GameFixtures.unused_game_id("scaffold_proof")
+	_planned = GameScaffold.plan({"id": _id}, GameScaffold.known_from_disk())
 	# Every refusal first: a plan that would not have been written is not a plan to boot.
-	assert_array(GameScaffold.problems({"id": ID}, GameScaffold.known_from_disk())
+	assert_array(GameScaffold.problems({"id": _id}, GameScaffold.known_from_disk())
 		).override_failure_message("the scaffold refuses its own default game").is_empty()
 	for path: Variant in _planned.keys():
 		# The hooks and the play session are files for a repository, not for a boot: a Script
@@ -63,7 +66,7 @@ func _boot() -> GameManifest:
 	_world = scene.instantiate() as Node2D
 	add_child(_world)
 	MapData.root = "%s/data/maps" % ROOT
-	var manifest := ResourceLoader.load("%s/data/games/%s.tres" % [ROOT, ID], "",
+	var manifest := ResourceLoader.load("%s/data/games/%s.tres" % [ROOT, _id], "",
 		ResourceLoader.CACHE_MODE_IGNORE) as GameManifest
 	assert_object(manifest).override_failure_message(
 		"the scaffolded manifest does not load as a GameManifest at all").is_not_null()
@@ -75,7 +78,7 @@ func test_a_game_made_out_of_nothing_passes_the_gate_every_shipped_game_passes()
 	# scaffolded game has to clear the same bar on the day it is made, or the wizard's output is
 	# something its author has to repair before it will start.
 	_boot()
-	var manifest := ResourceLoader.load("%s/data/games/%s.tres" % [ROOT, ID], "",
+	var manifest := ResourceLoader.load("%s/data/games/%s.tres" % [ROOT, _id], "",
 		ResourceLoader.CACHE_MODE_IGNORE) as GameManifest
 	assert_str("\n".join(manifest.problems())).is_equal("")
 
@@ -85,8 +88,8 @@ func test_it_boots_into_its_own_first_room() -> void:
 	assert_bool(_world.start_game(manifest)).override_failure_message(
 		"the world would not start the scaffolded game").is_true()
 	assert_int(Router.state()).is_equal(Router.State.WORLD)
-	assert_str(String(GameState.game)).is_equal(ID)
-	assert_str(String(GameState.current_map)).is_equal("%s_start" % ID)
+	assert_str(String(GameState.game)).is_equal(_id)
+	assert_str(String(GameState.current_map)).is_equal("%s_start" % _id)
 	assert_object(_world.player()).override_failure_message(
 		"the game started with nobody in it").is_not_null()
 

@@ -822,3 +822,5 @@ scripts/util/game_scaffold.gd	s|_list\(known, "existing_ids"\).has\(id\)|false|	
 tools/new_game.gd	s|elif VALUES.has\(name\):|elif false:|	tests/unit/test_new_game_tool.gd	a flag written with a space is ignored instead of refused, so the run uses a default nobody chose
 tools/new_game.gd	s|if FileAccess.file_exists\(_at\(str\(path\)\)\):|if false:|	tests/unit/test_new_game_tool.gd	the wizard writes over a game that is already where it is writing
 tools/new_game.gd	s|MapData.root = _at\("data/maps"\)|MapData.root = MapData.MAP_DIR|	tests/unit/test_new_game_tool.gd	the wizard checks its own output against the project's maps rather than the ones it just wrote
+tests/helpers/art_fixtures.gd	s|if id != style_id:|if true:|	tests/unit/test_gates_consistency.gd	a style is offered as a style other than itself, so the coupling check reads a map against its own bank
+tests/helpers/game_fixtures.gd	s|while taken.has\(id\):|while false:|	tests/unit/test_new_game_tool.gd	a suite makes up a game name that is already a real game's

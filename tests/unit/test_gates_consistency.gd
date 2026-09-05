@@ -17,6 +17,24 @@ func test_there_is_something_to_check() -> void:
 	for style_id in styles:
 		assert_array(ArtFixtures.characters_of(style_id)).is_not_empty()
 
+## "Another style" has to be another style for EVERY style, not just for the one the demo draws in.
+##
+## The round-trip suites prove a map read against the wrong bank is refused, and they used to name
+## the wrong bank as a literal. Asserted here over every style on disk, because with one game the
+## literal and the derivation return the same answer - the shipped data equalises them, and only
+## feeding the derivation each style in turn can tell them apart.
+func test_the_other_style_is_never_the_style_it_was_asked_about() -> void:
+	var ids := ArtFixtures.style_ids()
+	assert_int(ids.size()).override_failure_message(
+		"one style ships, so there is no other one and this proved nothing").is_greater(1)
+	for id in ids:
+		var other := ArtFixtures.some_other_style(id)
+		assert_str(String(other)).override_failure_message(
+			"'%s' is offered as a style other than itself" % id).is_not_equal(String(id))
+		assert_bool(ids.has(other)).override_failure_message(
+			"'%s' is not a style this project has" % other).is_true()
+
+
 func test_every_style_is_gated_by_exactly_one_suite() -> void:
 	# An imported style cannot be drawn through the rig, so it leaves these gates for
 	# test_imported_art.gd. Membership is asserted as a SET, both ways: the two lists together

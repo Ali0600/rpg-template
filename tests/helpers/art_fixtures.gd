@@ -43,6 +43,25 @@ static func style(style_id: StringName) -> SpriteStyle:
 ## of. An imported style has no rig and is gated by test_imported_art.gd instead. The two lists
 ## are asserted to cover every style between them (test_gates_consistency), so a third kind of
 ## source cannot quietly opt out of both.
+## A style this one is NOT, for the gates that prove a coupling is checked rather than assumed.
+##
+## "A map painted against another bank" needs another bank to name, and the round-trip suites named
+## one: `gb16`, spelled into the assertion. That is only "another" style while the demo is the only
+## game - scaffold a second one drawn in gb16 and the suite reads a gb16 map as gb16, so the
+## refusal it exists to prove cannot fire and the test goes red having found nothing wrong. It is
+## the same shape as the content gates that loaded one manifest by literal path.
+##
+## Sorted by text, never by the interned pointer, so the answer does not depend on which order the
+## StringNames happened to be created in.
+static func some_other_style(style_id: StringName) -> StringName:
+	var ids := style_ids()
+	by_text(ids)
+	for id in ids:
+		if id != style_id:
+			return id
+	return &""
+
+
 static func rig_style_ids() -> Array[StringName]:
 	var out: Array[StringName] = []
 	for style_id in style_ids():

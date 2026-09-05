@@ -254,10 +254,15 @@ func test_a_map_painted_on_another_grid_is_refused() -> void:
 		"a caller with no table to hand should get no size complaint, and got one").is_empty()
 
 func test_a_map_painted_against_another_style_is_refused() -> void:
-	var ids := _tile_ids(_shipped_style())
-	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
-	assert_array(LdtkMap.problems(made, &"gb16", ids)).override_failure_message(
-		"a map painted for one style was read as another without complaint").is_not_empty()
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(style))
+	# The other style is DERIVED, never named. Spelling one in works only while the demo is the
+	# only game: scaffold a second one drawn in that style and the suite reads its map as its own
+	# style, so the refusal this exists to prove cannot fire and it goes red having found nothing.
+	var other := ArtFixtures.some_other_style(StringName(style))
+	assert_array(LdtkMap.problems(made, other, ids)).override_failure_message(
+		"a map painted for %s was read as %s without complaint" % [style, other]).is_not_empty()
 
 func test_a_project_keeping_its_levels_elsewhere_is_refused() -> void:
 	# LDtk can split levels into `.ldtkl` files beside the project. This reads them inline, so a
