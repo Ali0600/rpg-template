@@ -18,3 +18,9 @@ reports/
 .DS_Store
 *.tmp
 *.log
+
+# Security audit reports. `/security-audit` writes SECURITY-AUDIT-<date>.md to the project
+# root, and a findings list is exactly the document a public repo should not carry: it names
+# the weak spots in one place, and it goes stale the moment anything it describes is fixed.
+# Ignored rather than deleted, so a pass can be re-read while it is being acted on.
+SECURITY-AUDIT-*.md
