@@ -824,3 +824,10 @@ tools/new_game.gd	s|if FileAccess.file_exists\(_at\(str\(path\)\)\):|if false:|	
 tools/new_game.gd	s|MapData.root = _at\("data/maps"\)|MapData.root = MapData.MAP_DIR|	tests/unit/test_new_game_tool.gd	the wizard checks its own output against the project's maps rather than the ones it just wrote
 tests/helpers/art_fixtures.gd	s|if id != style_id:|if true:|	tests/unit/test_gates_consistency.gd	a style is offered as a style other than itself, so the coupling check reads a map against its own bank
 tests/helpers/game_fixtures.gd	s|while taken.has\(id\):|while false:|	tests/unit/test_new_game_tool.gd	a suite makes up a game name that is already a real game's
+
+# --- M48: which side of a boundary draws it, and a tile that is not there ------------------
+scripts/spritegen/tile_bank.gd	s|if not against.has\(other\) or not \(against\[other\] as Array\).has\(tile_id\):|if false:|	tests/unit/test_tile_bank.gd	two materials each draw the boundary between them, so the two fringes meet in the middle of every cell
+scripts/spritegen/tile_bank.gd	s|_boundary_problems\(out\)|pass|	tests/unit/test_tile_bank.gd	the only rule that reads two tiles at once stops being run at all
+scripts/util/tiled_map.gd	s|elif gid - first_gid < 0 or gid - first_gid >= tile_ids.size\(\):|elif false:|	tests/unit/test_tiled_map.gd	a tile the bank does not have becomes an empty cell in silence, the way it did before
+scripts/util/tiled_map.gd	s|if \(gid & FLIP_BITS\) != 0:|if false:|	tests/unit/test_tiled_map.gd	a flipped tile is reported as a tile the bank does not have, which is not what a person did
+scripts/util/ldtk_map.gd	s|if at < 0 or at >= tile_ids.size\(\):|if false:|	tests/unit/test_ldtk_map.gd	an LDtk tile the bank does not have becomes an empty cell in silence

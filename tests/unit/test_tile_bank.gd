@@ -333,6 +333,42 @@ func test_a_tile_with_no_ring_at_all_is_left_alone() -> void:
 	assert_dict(plain.piece_of(0, "n")).override_failure_message(
 		"a tile with no ring answered with a piece").is_empty()
 
+## Two materials that BOTH carry a ring, with the boundary between them drawn from one side or
+## from both. The shipped bank can only ever show the correct arrangement, so the fault has to be
+## built here or the rule has nothing to be proven against.
+func _two_ringed(from_both_sides: bool) -> TileBank:
+	var water := {"id": "water", "ramp": "terrain_water", "rows": ["2222", "2222", "2222", "2222"],
+		"ring": _ring_rows(), "over": [["path"]]}
+	var path := {"id": "path", "ramp": "terrain_path", "rows": ["3333", "3333", "3333", "3333"],
+		"ring": _ring_rows(), "over": [["grass"], ["water"]] if from_both_sides else [["grass"]]}
+	return TileBank.from_dictionary({"id": "edged", "tile": RING_SIZE, "tiles": [
+		{"id": "grass", "ramp": "terrain_grass", "rows": ["1111", "1111", "1111", "1111"]},
+		path, water,
+	]})
+
+
+func test_two_materials_may_not_each_draw_the_boundary_between_them() -> void:
+	# The demo's own arrangement is one-sided and always has been: water names path, path does not
+	# name water, so the cave pool has ONE fringe. Nothing enforced that - `TerrainEdges.pick_group`
+	# ranks a single tile's own groups and cannot see a neighbour's ring at all, and every other
+	# check in this file is about one tile. Name both sides and both compose, giving a
+	# two-cell-wide transition where each material fades into the other, refused by nothing.
+	assert_str("\n".join(_two_ringed(true).problems())).override_failure_message(
+		"a boundary drawn from both sides was accepted").contains(
+		"each draw an edge against the other")
+	assert_array(_two_ringed(false).problems()).override_failure_message(
+		"the one-sided arrangement the demo actually ships was refused").is_empty()
+
+
+func test_the_pair_is_named_in_an_order_that_does_not_depend_on_the_file() -> void:
+	# Reported once per pair and sorted, so the message is the same whichever of the two the bank
+	# happens to list first - a fault whose wording moves with the file is one nobody can grep for.
+	var faults := "\n".join(_two_ringed(true).problems())
+	assert_str(faults).contains("tiles 'path' and 'water'")
+	assert_int(faults.count("each draw an edge against the other")).override_failure_message(
+		"the pair was reported once per direction rather than once").is_equal(1)
+
+
 func test_a_decor_tile_may_not_carry_a_ring() -> void:
 	# Decor stands ON the ground and keeps its own transparency, so it has no boundary with
 	# anything - and composing one would put a bush-shaped hole over a shoreline.

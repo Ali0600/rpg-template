@@ -50,7 +50,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Credits](#12a-credits-and-what-a-game-owes-the-people-who-drew-it) | A staff roll after the ending; a Credits screen where a licence requires one | A Credits row on the title, opening the composed list the generator writes | **met** (M43) — [rolled at the title rather than after an ending](DECISIONS.md), which is the licence's own instruction |
 | [Magic & skills](#13-magic-and-skills) | MP, a spell list, a battle command | MP from the level curve, five spell kinds, a Magic command, an MP status line | **met** (M25) — [no field-menu page](DECISIONS.md) |
 | [Statuses](#13a-statuses-and-which-way-they-point) | Boosts and afflictions as one system, aimed either way, counted in turns | `BOOST` / `SAP` / `SLEEP`, on the party as well as at it, expiring with the fight | **met** (M30) — [no persistent affliction](DECISIONS.md) |
-| [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path carry a ring; two ringed materials meeting is the [named divergence](DECISIONS.md) |
+| [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path both carry a ring and their boundary is drawn from one side, which is the [named divergence](DECISIONS.md) from a true blend |
 | [Interface chrome](#16-interface-chrome-and-the-anatomy-of-a-battle-screen) | Framed windows with header bands, a highlight cursor, coloured HP/MP, portraits | All of it, on every screen: one pixel font, framed windows with bands, a cursor bar, gold HP and violet MP, and faces in the fight, the menu and the conversation | **met** (M42) — the enemy-bar and save-slot divergences are [recorded](DECISIONS.md) |
 | [Options](#16b-options-where-a-player-changes-the-game-and-what-they-may-change) | A settings surface, on the title or in the field menu, with text speed and often the window's own look | An Options screen reached from both, carrying Sound and a named window palette | **met** (M46) — [palettes rather than colour bars, and a cycling row rather than an axis](DECISIONS.md); no text speed |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
@@ -1151,7 +1151,7 @@ neighbours. **A cell is still one tile id**: the shapes live in columns past the
 which no map can spell, so the map format, both editor translators and every map file are exactly
 what they were. `map_io` crops the atlas it hands an editor down to those paintable tiles.
 
-Water is an edge against grass and against dirt; a path is an edge against grass. Everything
+Water is an edge against grass and against `path`; a path is an edge against grass. Everything
 else - walls, floors, doors, decor - is a hard edge, which is what the references do too: an
 interior wall meets a floor at a line, not a fringe.
 
@@ -1165,9 +1165,18 @@ than the shoreline being thinned, because the bank is the artist's drawing and t
 Every scripted session still passes byte-identically; the rows added were a dead-end corridor
 against a wall and a strip of grass nothing walked.
 
-**Divergence, named:** an edge between two materials that BOTH carry a ring is drawn once, by
-whichever the bank names first, rather than as a true blend of the two. No reference needs more
-than that at this scale, and the alternative is recorded with its hook.
+**Divergence, named:** an edge between two materials that BOTH carry a ring is drawn once, from
+ONE side - whichever of them names the other in its `over` - rather than as a true blend. In the
+demo that is water against path, at the cave pool, and it is the only place the case arises.
+
+The blend was built and looked at on 2026-09-05 rather than argued about, and it is rejected for a
+reason that is not aesthetic: an edge is composed from the drawing tile's ring over the OTHER
+material's plain art, so a path cell drawing its verge against water comes out mostly water-blue -
+and a path cell is WALKABLE. Sixteen tiles the player crosses would read as water. One side draws
+it, and `TileBank.problems()` refuses a bank whose tiles each name the other.
+
+This paragraph said "by whichever the bank names first" until M48, which described nothing the code
+does: `TerrainEdges.pick_group` ranks one tile's own groups and never sees a neighbour's.
 
 **Gap, named:** animated water (LPC ships the frames; the atlas has one row and the runtime has
 no clock for it) and multi-tile objects like a whole tree, which need a record rather than a cell.
