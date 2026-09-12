@@ -93,7 +93,30 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 			+ "is wrong")
 	if int(set_one.get("tileGridSize", 0)) <= 0:
 		out.append("tileset has no tileGridSize, so no tile on it has a size")
+	_tile_problems(levels, tile_ids, out)
 	return out
+
+
+## Every tile on every layer, checked against the bank it is being read with. `TiledMap`'s twin
+## and for its reason: an index past the id list resolved to "" and the cell became a space, so a
+## project painted against a wider bank came back with holes in it and nothing said why. LDtk has
+## no flip bit on `t` - it carries flips in `f` - so there is one message here rather than two.
+static func _tile_problems(levels: Array, tile_ids: PackedStringArray, out: Array[String]) -> void:
+	for level_entry: Variant in levels:
+		var level: Dictionary = level_entry
+		for entry: Variant in level.get("layerInstances", []):
+			var layer: Dictionary = entry
+			if str(layer.get("__type", "")) != "Tiles":
+				continue
+			var stray := -1
+			for tile_entry: Variant in layer.get("gridTiles", []):
+				var at := int((tile_entry as Dictionary).get("t", -1))
+				if at < 0 or at >= tile_ids.size():
+					stray = at if stray < 0 else stray
+			if stray >= 0:
+				out.append("layer '%s' uses tile %d, which is not one of the %d this bank has - "
+					% [str(layer.get("__identifier", "")), stray, tile_ids.size()]
+					+ "it would come back as an empty cell")
 
 
 ## Which tile bank this map was painted against, read from the file itself - `TiledMap.style_of`'s

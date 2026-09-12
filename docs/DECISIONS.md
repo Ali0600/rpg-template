@@ -1403,11 +1403,16 @@ one tile id.
   the flat tile. That is what makes the whole thing additive rather than a migration — and
   getting it wrong once produced a pond made entirely of grass, which every structural test
   passed.
-- **DEFERRED — worth trying:** an edge between two materials that BOTH carry a ring (today the
-  second one wins by group order and draws over the first). Hook: `TerrainEdges.pick_group`,
-  which already ranks them. **Also deferred:** exporting a Tiled Wang set so an editor draws the
-  transitions as the game does — hook is `TiledMap`'s tileset entry plus the crop in
-  `map_io._copy_atlas_to`, which today hides the composed columns from the editor on purpose.
+- **CORRECTED IN M48.** This bullet used to read *"DEFERRED — worth trying: an edge between two
+  materials that BOTH carry a ring (today the second one wins by group order and draws over the
+  first). Hook: `TerrainEdges.pick_group`, which already ranks them."* Every clause of that was
+  wrong. The case is not deferred — `water`'s `over` has named `path` since this very milestone,
+  and the cave pool has had a shoreline ever since. There is no group-order contest: `pick_group`
+  ranks ONE tile's own `over` groups and cannot see a neighbour's ring, so it was never the hook.
+  What was actually missing was a RULE, and M48 added it. **Also deferred:** exporting a Tiled Wang
+  set so an editor draws the transitions as the game does — hook is `TiledMap`'s tileset entry plus
+  the crop in `map_io._copy_atlas_to`, which today hides the composed columns from the editor on
+  purpose.
 - **Still gaps rather than forks:** animated water (needs a clock the tile runtime has not) and
   multi-tile objects (need a map record rather than a cell).
 
@@ -3227,3 +3232,42 @@ new ones on the same afternoon was not enough to avoid it.**
 every gate run, and an interrupted one would leave half a game behind and three suites red for a
 reason nobody would connect to the interrupt. Revisit hook: `tools/new_game.sh --out=`, which
 already writes anywhere, plus a throwaway copy of the project to write into.
+
+---
+
+## One side of a boundary draws it, and the blend was rejected by eye — *M48*
+
+Two ringed materials meet in exactly one place in the demo: the cave pool, where `water` meets
+`path`. `water`'s `over` names `path`, so the water composes the shoreline and the path composes
+nothing. That was an authoring convention held up by `path` simply not listing `water` back — add
+that one array today and both sides fringe, refused by nothing and failed by no test. M48 turned it
+into a rule, which forced the question of WHICH rule.
+
+**The fork: should a boundary between two ringed materials be drawn once, or from both sides?**
+
+- **Once, by whichever side's `over` names the other.** One cell of transition. The material that
+  names the other is the one that spills onto it.
+- **Both sides, blending into each other.** A two-cell-wide transition where each material fades
+  into its neighbour — the softer look, and what a painter would reach for.
+
+**Chosen: once.** Both were built and photographed at `quest_cave` before deciding (with the
+refusal temporarily off, `path` given an `over` of `["water"]`, regenerated and re-imported; the
+experiment was backed out and the art drift gate confirmed the tree was clean again).
+
+**And the reason is legibility, not taste.** `TerrainEdges.compose` lays the DRAWING tile's ring
+over the OTHER material's plain art. So a `path` cell drawing its verge against water comes out
+mostly water-blue — and a `path` cell is WALKABLE. In the photographs the doubled version paints a
+thick blue band around the pool, sixteen tiles the player walks straight across, and the pool reads
+at roughly twice its real size. The game would be telling the player "water, do not go here" about
+ground they can cross. The single fringe says something true.
+
+- `rejected — reads as water on walkable ground`. Not rejected as ugly; the blend is the
+  better-looking of the two. **Revisit hook:** `TileBank._boundary_problems` becomes an opt-in
+  per-pair allowance rather than a flat refusal, and `path` gains an `over` group of `["water"]`.
+  Worth revisiting only for a pair where BOTH materials are unwalkable, or where the rings are
+  drawn so the spill reads as the drawing tile's own material rather than the neighbour's.
+
+**The rule is the first cross-tile check in this project.** Everything in `TileBank.problems()`
+before it validated one tile at a time, and `TerrainEdges.pick_group` cannot see a neighbour's ring
+at all. The shipped bank cannot express the fault, so the mutant is judged against a synthetic
+reciprocal bank rather than against `data/tiles/lpc32.json`.

@@ -253,6 +253,31 @@ func test_a_map_painted_on_another_grid_is_refused() -> void:
 	assert_array(LdtkMap.problems(made, StringName(style), ids)).override_failure_message(
 		"a caller with no table to hand should get no size complaint, and got one").is_empty()
 
+func test_a_tile_the_bank_does_not_have_is_named_rather_than_quietly_emptied() -> void:
+	# TiledMap's twin and for its reason: an index past the id list resolved to "" and the cell
+	# became a space, so a project painted against a wider bank came back with holes in it and
+	# nothing said why. One past the end is what a project painted against the whole atlas carries.
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, _tile_size(style))
+	assert_array(LdtkMap.problems(made, StringName(style), ids)).override_failure_message(
+		"an untouched export was refused").is_empty()
+	var poked := false
+	for level_entry: Variant in (made["levels"] as Array):
+		for entry: Variant in ((level_entry as Dictionary)["layerInstances"] as Array):
+			var layer: Dictionary = entry
+			if poked or str(layer.get("__type", "")) != "Tiles":
+				continue
+			var tiles: Array = layer["gridTiles"]
+			(tiles[0] as Dictionary)["t"] = ids.size()
+			layer["gridTiles"] = tiles
+			poked = true
+	assert_bool(poked).override_failure_message(
+		"the exported project has no tile layer to poke").is_true()
+	assert_str("\n".join(LdtkMap.problems(made, StringName(style), ids))).contains(
+		"would come back as an empty cell")
+
+
 func test_a_map_painted_against_another_style_is_refused() -> void:
 	var style := _shipped_style()
 	var ids := _tile_ids(style)

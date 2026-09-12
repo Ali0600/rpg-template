@@ -2316,3 +2316,23 @@ game ships.
 **Takeaway.** After fixing an instance of a defect class, grep for the *shape* rather than the
 instance, and include the code you wrote today in the sweep. The tell here is a literal naming
 something the system is allowed to have more than one of.
+
+### A doc that says a feature is MISSING is the one claim nothing can test
+
+A gate can prove that a feature works. Nothing a gate does can notice a sentence claiming the
+feature does not exist. So a documented absence is the one kind of statement that rots in total
+silence — and gets copied while it rots.
+
+**Why it came up.** `CLAUDE.md` read *"terrain transitions between two RINGED materials are still
+not drawn"* for six milestones. It was added by #131 and falsified by #132 — the very next PR of
+the same milestone, which gave `water`'s `over` a `path` group and put a shoreline on the cave
+pool. By the time anyone re-read the code, `GENRE_CONVENTIONS.md` and `DECISIONS.md` had both
+copied it, each getting the mechanism wrong in its own way. Every gate was green throughout, and
+the `_readme` inside `data/tiles/lpc32.json` — the file the generator actually reads — had
+described the shipped behaviour correctly the whole time.
+
+**Takeaway.** Treat "not implemented", "still not drawn", "deferred", "we do not support X" as a
+claim with an expiry date: re-derive it from the code rather than citing it. When you ship the
+thing a deferral names, grep the repo for that deferral in the same change — the sentence that
+recorded a known gap is now recording a known lie. And when a document and a data file disagree
+about behaviour, believe the file the code reads.

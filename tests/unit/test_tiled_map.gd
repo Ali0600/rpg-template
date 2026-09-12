@@ -112,6 +112,51 @@ func test_a_map_painted_against_another_bank_is_refused() -> void:
 		"the bank lost a tile and the map was accepted anyway - every id past the change is now "
 		+ "a different tile").is_not_empty()
 
+## The first tile layer's data array, so a single cell can be given a bad value.
+func _poked(tiled: Dictionary, gid: int) -> Dictionary:
+	for entry: Variant in (tiled["layers"] as Array):
+		var layer: Dictionary = entry
+		if str(layer.get("type", "")) == "tilelayer":
+			var data: Array = layer["data"]
+			data[0] = gid
+			layer["data"] = data
+			return tiled
+	fail("the exported map has no tile layer to poke")
+	return tiled
+
+
+func test_a_tile_the_bank_does_not_have_is_named_rather_than_quietly_emptied() -> void:
+	# It used to be SILENT: a GID the tileset does not have resolved to "" and the cell became a
+	# space, so a map painted against a wider bank came back with holes in it and the round trip
+	# reported a different map three layers downstream with no cause attached.
+	#
+	# One past the end is exactly what a map painted against the whole atlas carries - the
+	# composed transition shapes sit in the columns immediately after the paintable tiles.
+	var ids := _tile_ids(_shipped_style())
+	var size := _tile_size(_shipped_style())
+	var clean := TiledMap.from_native(_native_of(_maps()[0]), ids, size)
+	assert_array(TiledMap.problems(clean, StringName(_shipped_style()), ids)) \
+		.override_failure_message("an untouched export was refused").is_empty()
+	var faults := TiledMap.problems(
+		_poked(clean, ids.size() + 1), StringName(_shipped_style()), ids)
+	assert_str("\n".join(faults)).contains("would come back as an empty cell")
+
+
+func test_a_flipped_tile_is_told_apart_from_a_tile_that_is_not_there() -> void:
+	# Tiled's top four bits carry the flips and the hex rotation, so a rotated tile's GID lands far
+	# past any tileset. Reported as what it is, because rotating a tile is a real thing a person
+	# does in the editor and "not one of the tiles in this bank" is a confusing way to hear it.
+	var ids := _tile_ids(_shipped_style())
+	var clean := TiledMap.from_native(
+		_native_of(_maps()[0]), ids, _tile_size(_shipped_style()))
+	var faults := "\n".join(TiledMap.problems(
+		_poked(clean, 1 + TiledMap.FLIP_BITS), StringName(_shipped_style()), ids))
+	assert_str(faults).contains("flipped or rotated")
+	assert_str(faults).override_failure_message(
+		"a flip was also reported as a tile the bank does not have").not_contains(
+		"would come back as an empty cell")
+
+
 func test_a_map_painted_on_another_grid_is_refused() -> void:
 	# THE COUPLING IN ANOTHER UNIT. Every coordinate in a Tiled file is in PIXELS - an object is
 	# written at `tile * tile_size` and read back by dividing - so a file painted on one grid and

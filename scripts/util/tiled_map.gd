@@ -25,6 +25,11 @@ extends RefCounted
 ## is a space in the ASCII row, which `MapData.tile_at` already reads as "".
 const EMPTY_GID := 0
 
+## Tiled's top four bits on a GID: the horizontal, vertical and diagonal flips plus the hex
+## rotation. They push a GID far past any tileset, so without a name of their own a rotated tile
+## would be reported as a tile the bank does not have.
+const FLIP_BITS := 0xF0000000
+
 ## The marker on a property whose value is not a scalar.
 ##
 ## Tiled's property types are string, int, float, bool, colour, file, object and class - there is
@@ -82,7 +87,41 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 			% [count, style, tile_ids.size()] + "under it and every id past the change is wrong")
 	if int(set_one.get("firstgid", 0)) <= 0:
 		out.append("tileset has no firstgid, so no tile on the map can be resolved")
+		return out
+	_gid_problems(raw, tile_ids, int(set_one.get("firstgid", 1)), out)
 	return out
+
+
+## Every tile on every layer, checked against the bank it is being read with.
+##
+## It used to be SILENT. A GID the tileset does not have resolved to "" and the cell became a
+## space, so a map painted against a wider bank came back with holes in it and nothing said why -
+## the round trip reports a different map three layers downstream, and only this can name the
+## cause. Flips get their own message because they are a real thing a person does in Tiled, and
+## "not one of the tiles in this bank" would be a confusing way to hear about it.
+static func _gid_problems(raw: Dictionary, tile_ids: PackedStringArray, first_gid: int,
+		out: Array[String]) -> void:
+	for entry: Variant in raw.get("layers", []):
+		var layer: Dictionary = entry
+		if str(layer.get("type", "")) != "tilelayer":
+			continue
+		var name := str(layer.get("name", ""))
+		var flipped := 0
+		var stray := -1
+		for value: Variant in layer.get("data", []):
+			var gid := int(value)
+			if gid == EMPTY_GID:
+				continue
+			if (gid & FLIP_BITS) != 0:
+				flipped += 1
+			elif gid - first_gid < 0 or gid - first_gid >= tile_ids.size():
+				stray = gid if stray < 0 else stray
+		if flipped > 0:
+			out.append("layer '%s' has %d flipped or rotated tile(s), and a template map spells a "
+				% [name, flipped] + "cell as one character with nowhere to put a flip")
+		if stray >= 0:
+			out.append("layer '%s' uses tile %d, which is not one of the %d this bank has - it "
+				% [name, stray, tile_ids.size()] + "would come back as an empty cell")
 
 
 ## What the tileset image is called beside an exported map. One name per style, so a directory

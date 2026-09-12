@@ -205,9 +205,25 @@ collision - without which a pond keeps its middle and opens up all the way round
 `map_io` CROPS the atlas it sends to an editor down to the paintable tiles, because both
 translators declare `tilecount` as the id list and that stays true only if the image matches.
 
-**Terrain transitions between two RINGED materials are still not drawn.** Water meets grass and
-water meets dirt, each against its own block; water meeting a wall is a hard edge, as is
-anything a bank gives no ring. See `docs/GENRE_CONVENTIONS.md` §15.
+**A boundary between two RINGED materials IS drawn, and ONE side draws it.** Water names grass and
+`path` in its `over`; path names grass only - so at the cave pool, the one place in the demo where
+two ringed materials meet, water composes the shoreline and path composes nothing. Which side
+draws it is decided by which one names the other, and by nothing else: `TerrainEdges.pick_group`
+ranks a single tile's OWN `over` groups and cannot see a neighbour's ring at all. Water meeting a
+wall is a hard edge, as is anything a bank gives no ring. See `docs/GENRE_CONVENTIONS.md` §15.
+
+**That one-sidedness was an authoring convention until M48, and `TileBank.problems()` now refuses
+the pair.** Name both sides and both compose - a two-cell-wide transition where each material
+fades into the other - and the half drawn on the WALKABLE tile is water-coloured ground the player
+walks over, which is a legibility fault rather than a matter of taste. It is the only rule in this
+project that reads two tiles at once, and the shipped bank cannot express the fault, so its mutant
+is judged against a synthetic reciprocal bank.
+
+**This paragraph used to say the opposite, for six milestones.** It read "transitions between two
+RINGED materials are still not drawn" - added by #131 and falsified by #132, the very next PR of
+the same milestone. **A doc that says a feature is missing is the one kind nothing can test**, and
+two other documents copied it. The data file was right the whole time: `data/tiles/lpc32.json`'s
+own `_readme` says "where a path meets water it is the WATER that draws the boundary".
 
 **A tile names a ramp, never a colour, and `solid` is art data.** `TileBank.problems()`
 refuses a ragged row, a typo'd pixel, a duplicated id, a tile that is not the bank's declared

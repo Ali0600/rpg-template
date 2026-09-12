@@ -262,6 +262,7 @@ func problems() -> Array[String]:
 		else:
 			_row_problems(entry, "tile '%s'" % tile_id, out)
 		_ring_problems(index, entry, tile_id, out)
+	_boundary_problems(out)
 	return out
 
 
@@ -390,6 +391,48 @@ func _over_problems(index: int, tile_id: String, out: Array[String]) -> void:
 				out.append("tile '%s' lists '%s' in more than one group, so which edge a cell "
 					% [tile_id, other] + "draws would depend on which group was read first")
 			claimed.append(other)
+
+
+## WHICH SIDE OF A BOUNDARY DRAWS IT, and the first rule here that reads two tiles at once.
+##
+## A shoreline between two materials that BOTH carry a ring is composed once, by whichever of them
+## names the other in its `over`: the demo's water names path and path does not name water, so the
+## cave pool has one fringe. Nothing enforced that until now. Give path an `over` group of
+## ["water"] and both sides compose - a two-cell-wide transition where each material fades into
+## the other - refused by nothing, failed by no test, and visible only by looking at the cave.
+##
+## Every other check in this file is about one tile, and every other reader is too:
+## `TerrainEdges.pick_group` ranks a single tile's own groups and never sees a neighbour's ring at
+## all. So this is the only place the pair can be looked at, and three documents spent six
+## milestones describing a mechanism that would have done it somewhere else.
+func _boundary_problems(out: Array[String]) -> void:
+	var against := {}
+	for index in _tiles.size():
+		var tile_id := str(at(index).get("id", ""))
+		if tile_id.is_empty():
+			continue
+		var named: Array[String] = []
+		for group: PackedStringArray in over_of(index):
+			for other in group:
+				if not named.has(other):
+					named.append(other)
+		against[tile_id] = named
+	# Reported once per PAIR, and named in a fixed order, so the message does not depend on which
+	# of the two the file happens to list first.
+	var said: Array[String] = []
+	for tile_id: Variant in against.keys():
+		for other: Variant in (against[tile_id] as Array):
+			if not against.has(other) or not (against[other] as Array).has(tile_id):
+				continue
+			var pair: Array[String] = [str(tile_id), str(other)]
+			pair.sort()
+			var key := ",".join(pair)
+			if said.has(key):
+				continue
+			said.append(key)
+			out.append("tiles '%s' and '%s' each draw an edge against the other; one side of a "
+				% [pair[0], pair[1]] + "boundary draws it, or the two fringes meet in the middle. "
+				+ "Drop one of them.")
 
 
 ## The credit list itself. Every entry names a file and at least one licence; the licence is
