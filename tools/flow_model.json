@@ -27,6 +27,11 @@
 		"WHAT AN INVARIANT IS. A named fact that must hold while the machine is in that state,",
 		"asserted after every arrival. The names are resolved by the suite, so a vertex naming an",
 		"invariant nothing implements fails the build rather than passing silently.",
+		"`battle_screen_up` means a RESOLVER's screen is up, whichever one. Since M50 a fight is",
+		"the turn fight or the arena, and they are one state because nothing a player may do",
+		"differs between them (docs/DECISIONS.md, M49). The name stayed so no session had to",
+		"move; what it asks is world_scene.fight_screen(), and it was changed before either screen",
+		"existed to answer it.",
 		"",
 		"WALKS. Since M31 the same edges are also driven in SEQUENCES: six seeded walks of",
 		"twenty-four steps, on one world that is never rebuilt between them, asserting the same",
@@ -77,7 +82,7 @@
 			]
 		},
 		"battle": {
-			"about": "A fight has the screen; the world is still there underneath.",
+			"about": "A fight has the screen - whichever resolver draws it, the turn fight or the arena - and the world is still there underneath.",
 			"invariants": [
 				"battle_screen_up",
 				"game_running",

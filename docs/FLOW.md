@@ -11,7 +11,7 @@ stateDiagram-v2
 	world : The only state the player moves in.
 	dialog : A conversation is open; movement is suspended.
 	paused : The menu is open over the world.
-	battle : A fight has the screen; the world is still there underneath.
+	battle : A fight has the screen - whichever resolver draws it, the turn fight or the arena - and the world is still there underneath.
 	shop : A counter is open over the live world.
 	resting : A night is passing. Nothing to press; it ends on its own.
 	saving : A save point is open: the slot list, and nothing else on it. Reached from a conversation under either save policy, which is why it is its own state rather than the pause menu jumped to a page - a priest does not hand you your equipment.

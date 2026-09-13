@@ -389,6 +389,7 @@ scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game
 scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/test_router.gd	a run starts and the state machine tells nobody, the way it did before M23
 scripts/autoload/router.gd	s|\t_to_base\(State.TITLE\)|\t_to_base(State.WORLD)|	tests/unit/test_router.gd	going back to the title lands in the world instead
 scripts/world/world_scene.gd	s|\t_close_battle\(\)|\tpass|	tests/integration/test_flow_model.gd	a defeat stacks the game over on top of the fight screen it never closed
+scripts/world/world_scene.gd	s|return _battle as CanvasLayer|return null|	tests/integration/test_flow_model.gd	a fight is up and the model's battle state cannot see it, so every battle edge reports the wrong state
 scripts/util/flow_doc.gd	s|\t\tif from == to:|\t\tif false:|	tests/unit/test_flow_doc.gd	the diagram draws a warp as a state change, so the picture disagrees with the model
 scripts/soundgen/tune.gd	s|\t\thz \*= 2.0|\t\tpass|	tests/unit/test_tune.gd	every octave plays the same note
 scripts/soundgen/tune.gd	s|\t\tmix\[i\] = clampf\(v, -1.0, 1.0\)|\t\tmix[i] = v|	tests/unit/test_tune.gd	a chord past full scale wraps to the opposite sign and cracks
