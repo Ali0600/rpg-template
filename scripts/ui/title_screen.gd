@@ -25,6 +25,11 @@ signal credits_requested
 ## The player asked for the options page. Not committed either, and for the same reason.
 signal options_requested
 
+## The player asked for the next game this build carries. COMMITTED, unlike credits and options: the
+## world answers by closing this screen and opening another, and a second press in the frame between
+## would switch twice.
+signal switch_requested
+
 const LAYER := 30
 const MARGIN := 8
 ## The one screen in this game with a big word on it. A title is mostly its own name.
@@ -231,5 +236,8 @@ func _act(pick: SlotMenu.Pick) -> void:
 		TitleMenu.Kind.OPTIONS:
 			# Not committed, for the credits' reason exactly - the options page comes back here.
 			options_requested.emit()
+		TitleMenu.Kind.SWITCH_GAME:
+			_committed = true
+			switch_requested.emit()
 		_:
 			_paint()

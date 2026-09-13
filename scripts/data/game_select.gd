@@ -8,10 +8,11 @@ extends RefCounted
 ## precedence, evaluated in one place, is the only way those four cannot drift.
 ##
 ## It is a PRECEDENCE, not a search, and the last rule is the important one: with more than one
-## game and nothing choosing between them this REFUSES rather than picking the first. Booting
-## the wrong game does not look like a selection bug - it looks like a content bug in the game
-## you meant to run, and you go and debug that instead. One game ships today, so the refusal is
-## unreachable; it is kept because the day a second is added is exactly the day it matters.
+## game and nothing choosing between them this never picks the first. Booting the wrong game does
+## not look like a selection bug - it looks like a content bug in the game you meant to run, and you
+## go and debug that instead. So the precedence answers "nothing chose", and what happens next
+## depends on who asked: the world has a person in front of it and OFFERS every game on the title's
+## Switch game row (`unresolved()`, M50), while `resolve()` has nobody to ask and still refuses.
 
 const DIR := "res://data/games"
 
@@ -43,6 +44,15 @@ static func choose(ids: Array[String], args: PackedStringArray, setting: String)
 	return ""
 
 
+## Whether a person has to choose, as a pure function over the three inputs choose() takes: more
+## than one game, and nothing else having chosen. Pure for choose()'s reason - the process a test runs
+## in has its own command line and setting, and neither can be staged; the rule they share can be.
+static func should_ask(game_ids: Array[String], args_in: PackedStringArray, setting: String) -> bool:
+	if game_ids.size() < 2:
+		return false
+	return choose(game_ids, args_in, setting).is_empty()
+
+
 ## Every game manifest on disk, sorted by id.
 static func manifests() -> Array[GameManifest]:
 	var out: Array[GameManifest] = []
@@ -69,6 +79,21 @@ static func args() -> PackedStringArray:
 	var out := OS.get_cmdline_args()
 	out.append_array(OS.get_cmdline_user_args())
 	return out
+
+
+## Every game, when a person has to choose between them; none otherwise. The world offers these on
+## the title rather than calling resolve(), which would print the refusal it exists to make on every
+## boot of a build that ships two games on purpose. NOT a second precedence: it asks should_ask(), which
+## asks choose(), in this file, so the two answers cannot drift.
+static func unresolved() -> Array[GameManifest]:
+	var all := manifests()
+	var available: Array[String] = []
+	for manifest in all:
+		available.append(String(manifest.id))
+	if not should_ask(available, args(), str(ProjectSettings.get_setting(SETTING, ""))):
+		var none: Array[GameManifest] = []
+		return none
+	return all
 
 
 ## The chosen manifest, or null with an error saying which of the three ways it failed.

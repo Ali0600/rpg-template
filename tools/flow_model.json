@@ -155,6 +155,14 @@
 			"note": "The process opens on the title, so nothing has changed yet."
 		},
 		{
+			"action": "switch_game",
+			"from": "title",
+			"to": "title",
+			"trace": [],
+			"adapter": "switch_game",
+			"note": "Only when the build carries more than one game and nothing chose between them. The title is closed and reopened wearing the next game's name, look, voice, music and save slots; TITLE to TITLE is no change, so it announces nothing - the warp's shape."
+		},
+		{
 			"action": "new_game",
 			"from": "title",
 			"to": "world",

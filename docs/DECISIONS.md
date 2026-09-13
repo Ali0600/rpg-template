@@ -1670,7 +1670,7 @@ between two games?
   version of the same choice. **Its stated blocker is gone: M22 shipped `TitleScreen` and
   `Router.State.TITLE` is entered on every boot** — what is left is the picker itself. Revisit
   hook: `scripts/data/game_select.gd::ids()` already returns exactly the menu such a screen would
-  show, and `world_scene._ready()` is where a picker would consume `choose()`'s empty answer.
+  show, and `world_scene._ready()` is where a picker would consume `choose()`'s empty answer. **Taken up by M50**, as a row on the title rather than a list of its own (the M50 entry on picking a second game).
 
 ## Game code lives in `games/`, is reached through `GameHooks`, and never names an autoload
 
@@ -1987,7 +1987,7 @@ had become something else, and the second game had done its job.
   and it worked. It is deleted rather than left dormant because an unreachable screen rots
   quietly. **Revisit hook:** `GameSelect.choose()` still returns `""` for "more than one game
   and nothing chose", and `world_scene._ready()` is where a picker would consume that answer
-  again — the seam it plugged into is intact, only the consumer is gone.
+  again — the seam it plugged into is intact, only the consumer is gone. **Taken up by M50** as a Switch game row on the title rather than M8's screen, at exactly that seam.
 
 **What was given up, stated plainly.** The template's claim used to be checkable: *a second
 game was added without touching `scripts/`, `tools/` or `scenes/`*, provable with

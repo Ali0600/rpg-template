@@ -57,6 +57,10 @@ var _options: OptionsScreen
 ## thing as the resolved one for a player, and is not the same thing for the integration
 ## suites that hand start_game a manifest of their own.
 var _offered: GameManifest
+## Every game the title may offer, in order: all of them when the build carries more than one and
+## nothing chose between them, otherwise just the one that was. The Switch game row exists exactly
+## when this holds two or more.
+var _choices: Array[GameManifest] = []
 ## Enemy id -> its ActorBody, for the ones still standing on this map.
 var _enemies: Dictionary = {}
 ## The tile the player was on last frame, so a warp fires on ARRIVING at a tile rather than
@@ -76,6 +80,13 @@ var _entry_depth := 0
 func _ready() -> void:
 	# Resolution happens here and exactly once per process; construction is start_game's job,
 	# so booting and re-starting cannot drift into two different ideas of what starting means.
+	# More than one game and nothing chose between them: a person does, from a row on the title
+	# (M50). resolve() is not asked at all then, because it would print the refusal it exists to
+	# make on every boot of a build that ships two games on purpose.
+	var asking := GameSelect.unresolved()
+	if not asking.is_empty():
+		offer_games(asking)
+		return
 	var game := GameSelect.resolve()
 	if game == null:
 		# GameSelect has already said which of the three ways it failed. There is no default to
@@ -84,6 +95,7 @@ func _ready() -> void:
 		# behaving strangely - which is a much worse afternoon than an error.
 		return
 	_offered = game
+	_choices.assign([game])
 	# Resolution still happens exactly once per process; what changed is that STARTING is now a
 	# press rather than the next line. A title that cannot be drawn boots the way this always
 	# did rather than not at all - it needs a style, and there is no map yet to supply one, so
@@ -1802,8 +1814,9 @@ func _ensure_party() -> void:
 ## the game-over screen routes back to it.
 ##
 ## Answers false when it cannot be drawn - no game resolved, or no style to draw it in - so
-## the caller can fall back to starting rather than showing nothing.
-func open_title() -> bool:
+## the caller can fall back to starting rather than showing nothing. `at_row` puts the cursor on a
+## row, which a title rebuilt by Switch game uses to stay on the row that asked.
+func open_title(at_row := -1) -> bool:
 	if _title != null or _offered == null:
 		return false
 	var style := _style_for(_offered)
@@ -1826,13 +1839,14 @@ func open_title() -> bool:
 	_title.new_game_requested.connect(_on_title_new_game)
 	_title.credits_requested.connect(_on_title_credits)
 	_title.options_requested.connect(_on_title_options)
+	_title.switch_requested.connect(_on_title_switch)
 	_mount_ui(_title)
 	# _style, never the `style` argument: _bind_style has just laid the player's palette over it,
 	# and handing the screen what came IN would draw the one surface a recolour is chosen from in
 	# the colours it is being changed away from. Every other screen here already reads _style;
 	# this line was the odd one out, and only a photograph of the title found it.
-	_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), _style, _ui_size(),
-		_offered.title)
+	_title.setup(TitleMenu.of(_slot_summaries_for(_offered), _choices.size() >= 2, at_row), _style,
+		_ui_size(), _offered.title)
 	if not String(_offered.title_music).is_empty():
 		AudioBus.play_music(_offered.title_music)
 	Router.to_title()
@@ -1967,6 +1981,38 @@ func _commit_title_load(slot: int) -> void:
 	var manifest := _offered
 	_close_title()
 	boot_from_save(manifest, data)
+
+
+## Offers `games` at the title with the first of them showing, and a Switch game row when there is
+## more than one. Called by _ready for a build shipping several games with nothing choosing, and
+## public for the reason start_game is: a suite offers games of its own without a second manifest on
+## disk.
+func offer_games(games: Array[GameManifest]) -> bool:
+	if games.is_empty():
+		return false
+	_choices = games.duplicate()
+	_offered = games[0]
+	# A title already up is replaced rather than kept: it was built for whatever was offered before.
+	_close_title()
+	if open_title():
+		return true
+	return start_game(_offered)
+
+
+func _on_title_switch() -> void:
+	# Deferred for every title answer's reason: this rebuilds the screen that is dispatching it.
+	_commit_switch_game.call_deferred()
+
+
+## The next game the build carries, wearing its own name, look, voice, music and save slots - every
+## one of which open_title already reads from _offered - with the cursor back on the row that asked.
+func _commit_switch_game() -> void:
+	if _title == null or _choices.size() < 2:
+		return
+	var at := _choices.find(_offered)
+	_offered = _choices[(at + 1) % _choices.size()]
+	_close_title()
+	open_title(TitleMenu.ROW_GAME)
 
 
 func _on_title_new_game() -> void:

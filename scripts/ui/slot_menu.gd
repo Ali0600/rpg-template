@@ -21,7 +21,7 @@ enum Row { CONTINUE, NEW_GAME }
 
 ## What a press asked the world for. NONE covers "that moved the cursor" and "that was
 ## refused" alike: neither is something the world has to act on.
-enum Kind { NONE, LOAD, NEW_GAME, TITLE, CREDITS, OPTIONS }
+enum Kind { NONE, LOAD, NEW_GAME, TITLE, CREDITS, OPTIONS, SWITCH_GAME }
 
 
 ## One answer, carried as a value. The slot is explicit rather than read back off index()

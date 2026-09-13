@@ -383,7 +383,7 @@ scripts/ui/game_over_menu.gd	s|\treturn ROW_TITLE \+ 1|\treturn Row.size()|	test
 scripts/ui/title_screen.gd	s|\t\t\tload_requested.emit\(pick.slot\)|\t\t\tpass|	tests/integration/test_title.gd	Continue is pressed at the title and no save is ever loaded
 scripts/ui/title_screen.gd	s|\t\t\tnew_game_requested.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/the_title_screen.json	New game is pressed and the title just sits there
 scripts/world/world_scene.gd	s|\tif not open_title\(\):|\tif true:|	tests/integration/test_title.gd	the game boots straight into a map and the title is never seen
-scripts/world/world_scene.gd	s|\t_title.setup\(TitleMenu.of\(_slot_summaries_for\(_offered\)\), _style, _ui_size\(\),|\t_title.setup(TitleMenu.of([] as Array[SaveData]), _style, _ui_size(),|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
+scripts/world/world_scene.gd	s|TitleMenu.of\(_slot_summaries_for\(_offered\), _choices|TitleMenu.of([] as Array[SlotSummary], _choices|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
 scripts/world/world_scene.gd	s|^\topen_title\(\)$|\tpass|	tests/integration/test_title.gd	the game-over screen's Title row leads nowhere
 scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game.start_map, _game.start_spawn)|	tests/integration/test_title.gd	Continue starts a new game wearing the save's name
 scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/test_router.gd	a run starts and the state machine tells nobody, the way it did before M23
@@ -792,13 +792,26 @@ scripts/data/ui_palette.gd	s|\tout\.append_array\(SpriteStyle\.role_problems\(co
 scripts/autoload/settings.gd	s|"palette": String\(_palette\)|"palette": String(NO_PALETTE)|	tests/unit/test_settings.gd	the chosen window colours never survive a restart
 scripts/autoload/settings.gd	s|\t_palette = ring\[\(maxi\(at, 0\) \+ 1\) % ring\.size\(\)\]|\t_palette = ring[mini(maxi(at, 0) + 1, ring.size() - 1)]|	tests/unit/test_settings.gd	the palette row stops at the last one, so a player who cycles past cannot get back
 scripts/autoload/settings.gd	s|maxi\(at, 0\) \+ 1|at + 1|	tests/unit/test_settings.gd	a settings file naming a deleted palette makes the next press land one row short
-scripts/world/world_scene.gd	s|\t_title\.setup\(TitleMenu\.of\(_slot_summaries_for\(_offered\)\), _style, _ui_size\(\),|\t_title.setup(TitleMenu.of(_slot_summaries_for(_offered)), _style_source, _ui_size(),|	tests/integration/test_options_palette.gd	the title is drawn in the style's own colours rather than the palette the player chose
+scripts/world/world_scene.gd	s|_choices.size\(\) >= 2, at_row\), _style,|_choices.size() >= 2, at_row), _style_source,|	tests/integration/test_options_palette.gd	the title is drawn in the style's own colours rather than the palette the player chose
 scripts/ui/pause_screen.gd	s|\t\t\toptions_requested\.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/change_the_options.json	the pause menu's Options row is pressed and nothing opens
 scripts/ui/title_screen.gd	s|\t\t\toptions_requested\.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/change_the_options.json	the title's Options row is pressed and nothing opens
 scripts/world/world_scene.gd	s|\t_close_pause\(\)  # first, and the trailing note is load-bearing: see below|\tpass|	tests/integration/test_flow_model.gd	the options page is opened OVER the pause menu, which is the one thing this game's flow forbids
 scripts/world/world_scene.gd	s|\tSettings\.cycle_palette\(Registry\.ids_of\(&\"UiPalette\"\)\)|\tpass|	tests/integration/test_options_palette.gd	the Window row is pressed and the windows never change colour
 scripts/world/world_scene.gd	s|\tRouter\.open_overlay\(Router\.State\.OPTIONS if over_world else Router\.State\.OPTIONS_AT_TITLE\)|\tRouter.open_overlay(Router.State.OPTIONS)|	tests/integration/test_flow_model.gd	the page over the title claims to be the one over the world, so leaving it goes nowhere real
 scripts/ui/title_menu.gd	s|const ROW_OPTIONS := ROW_CREDITS \+ 1|const ROW_OPTIONS := ROW_CREDITS|	tests/unit/test_title_menu.gd	the Options row lands on top of Credits, so one of them cannot be reached
+scripts/data/game_select.gd	s|if game_ids.size\(\) < 2:|if false:|	tests/unit/test_game_select.gd	a build with no games at all asks which to play, and offers an empty title
+scripts/data/game_select.gd	s|return choose\(game_ids, args_in, setting\).is_empty\(\)|return true|	tests/unit/test_game_select.gd	--game= no longer hides the Switch game row, so every scripted session meets it
+scripts/ui/title_menu.gd	s|return ROW_GAME \+ 1 if _switchable else ROW_OPTIONS \+ 1|return ROW_OPTIONS + 1|	tests/unit/test_title_menu.gd	the Switch game row never appears
+scripts/ui/title_menu.gd	s|return ROW_GAME \+ 1 if _switchable else ROW_OPTIONS \+ 1|return ROW_GAME + 1|	tests/unit/test_title_menu.gd	the title offers to switch with nowhere to go
+scripts/ui/title_menu.gd	s|return Pick.of\(Kind.SWITCH_GAME\)|return null|	tests/unit/test_title_menu.gd	the Switch game row is drawn and answers nothing
+scripts/ui/title_menu.gd	s|return "Switch game"|return "Options"|	tests/unit/test_title_menu.gd	the Switch game row is worded as its neighbour
+scripts/ui/title_menu.gd	s|if at_row >= 0 and at_row < menu.row_count\(\):|if false:|	tests/unit/test_title_menu.gd	a title rebuilt for the next game forgets the row that switched it
+scripts/ui/title_screen.gd	s|\t\t\tswitch_requested.emit\(\)|\t\t\tpass|	tests/integration/test_title_picker.gd	Switch game is pressed and the title just sits there
+scripts/world/world_scene.gd	s|_offered = _choices\[\(at \+ 1\) % _choices.size\(\)\]|_offered = _choices[0]|	tests/integration/test_title_picker.gd	switching never leaves the first game
+scripts/world/world_scene.gd	s|\topen_title\(TitleMenu.ROW_GAME\)|\topen_title()|	tests/integration/test_title_picker.gd	the cursor leaves the row that switched
+scripts/world/world_scene.gd	s|if _title == null or _choices.size\(\) < 2:|if _title == null:|	tests/integration/test_title_picker.gd	a build with one game rebuilds its title to switch to itself
+scripts/world/world_scene.gd	s|_choices.size\(\) >= 2, at_row\)|false, at_row)|	tests/integration/test_title_picker.gd	two games are offered and the title never shows the row
+scripts/world/world_scene.gd	s|\t_title.switch_requested.connect\(_on_title_switch\)|\tpass|	tests/integration/test_title_picker.gd	the row is pressed and nobody is listening
 scripts/ui/options_screen.gd	s|\t\t\tUiChrome\.place\(_select, row, _frame\.inner\(\)\.size\.x, ROW_PITCH\)|\t\t\tpass|	tests/integration/test_options_layout.gd	the options page draws no cursor, on a page where every row has a verb
 scripts/ui/options_menu.gd	s|\t_index = posmod\(_index \+ delta, size\(\)\)|\t_index = clampi(_index + delta, 0, size() - 1)|	tests/unit/test_options_menu.gd	the options cursor stops at the ends instead of wrapping
 scripts/world/world_scene.gd	s|\t\t\tlayer\.call\(\"restyle\", _style\)|\t\t\tpass|	tests/integration/test_options_palette.gd	a palette is chosen and every screen already on screen keeps its old colours
