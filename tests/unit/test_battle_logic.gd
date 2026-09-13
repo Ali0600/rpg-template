@@ -1746,3 +1746,51 @@ func test_a_sweep_that_kills_everything_still_reports_what_it_did() -> void:
 	assert_int(battle.phase()).override_failure_message(
 		"the fight did not end after a sweep killed everything").is_equal(BattleLogic.Phase.OVER)
 	assert_int(battle.outcome()).is_equal(BattleLogic.Outcome.VICTORY)
+
+# -- what winning is worth, as the arena reads it --------------------------------------------------
+
+func test_a_formation_is_worth_the_sum_of_its_foes() -> void:
+	var one := EnemyDef.new()
+	one.name = "Slink"
+	one.max_hp = 10
+	one.xp = 5
+	one.gold = 2
+	var two := EnemyDef.new()
+	two.name = "Gloom"
+	two.max_hp = 14
+	two.xp = 12
+	two.gold = 3
+	var foes := BattleLogic.formation([one, two])
+	assert_int(BattleLogic.xp_of(foes)).is_equal(17)
+	assert_int(BattleLogic.gold_of(foes)).is_equal(5)
+
+func test_sharing_an_award_levels_and_restores_whoever_crosses_a_threshold() -> void:
+	var curve := CombatDef.new()
+	curve.base_hp = 20
+	curve.hp_per_level = 4
+	curve.base_mp = 8
+	curve.mp_per_level = 3
+	curve.xp_curve = [10, 20]
+	var ahead := BattleHelpers.leader(curve, 5, 8, 1, 0)
+	var behind := BattleHelpers.companion(&"rook", curve, "Rook", 5, 0, 1, 0)
+	var levelled := BattleLogic.share_award([ahead, behind], 3)
+	# 8 + 3 crosses the first step of 10, and 0 + 3 does not. A level restores everything: 24 hp
+	# and 11 magic at level 2.
+	assert_int(levelled.size()).is_equal(1)
+	assert_int(ahead.level).is_equal(2)
+	assert_int(ahead.hp).is_equal(24)
+	assert_int(ahead.mp).is_equal(11)
+	assert_int(behind.xp).is_equal(3)
+	assert_int(behind.hp).is_equal(5)
+
+func test_a_seal_marks_and_pays_only_a_win() -> void:
+	var curve := CombatDef.new()
+	curve.xp_curve = [10]
+	var lead := BattleHelpers.leader(curve)
+	var lost := BattleLogic.seal_effects(false, "map/foe", [lead], 4)
+	assert_int(lost.size()).is_equal(1)
+	assert_str(str(lost[0]["op"])).is_equal(str(GameContext.OP_PARTY))
+	var won := BattleLogic.seal_effects(true, "map/foe", [lead], 4)
+	assert_int(won.size()).is_equal(3)
+	assert_dict(won[0]).is_equal({"op": GameContext.OP_SEEN, "key": "map/foe"})
+	assert_dict(won[2]).is_equal({"op": GameContext.OP_GOLD, "amount": 4})

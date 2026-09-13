@@ -199,7 +199,7 @@ scripts/ui/battle_logic.gd	s|return _pressed_at >= 0 and _pressed_at <= _combat.
 scripts/ui/battle_logic.gd	s|moves\[_moves_rng.next_int\(0, moves.size\(\) - 1\)\]|moves[0]|	tests/unit/test_battle_logic.gd	an enemy only ever uses its first move, so half its content never ships
 scripts/ui/battle_logic.gd	s|^\t\t\twho.hp = who.max_hp\(\)$|\t\t\tpass|	tests/unit/test_battle_logic.gd	levelling up stops healing, so the boss is unreachable
 scripts/ui/battle_logic.gd	s|^\tvar barring := _boss\(\)$|\tvar barring := -1|	tests/unit/test_battle_logic.gd	a boss can be walked away from
-scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_SEEN, "key": _seen_key\}\)|pass|	tests/unit/test_battle_logic.gd	a beaten enemy is never marked beaten and comes back
+scripts/ui/battle_logic.gd	s|out.append\(\{"op": GameContext.OP_SEEN, "key": seen_key\}\)|pass|	tests/unit/test_battle_logic.gd	a beaten enemy is never marked beaten and comes back
 scripts/ui/battle_logic.gd	s|var healed := mini\(on.hp \+ row.heal, on.max_hp\(\)\) - on.hp|var healed := row.heal|	tests/unit/test_battle_logic.gd	a tonic heals past the player's own maximum
 scripts/ui/battle_logic.gd	s|_effects.append\(\{"op": GameContext.OP_TAKE_ITEM, "id": row.id, "count": 1\}\)|pass|	tests/unit/test_battle_logic.gd	a tonic is drunk and never consumed
 scripts/ui/battle_logic.gd	s|if on.hp <= 0:|if false:|	tests/unit/test_battle_logic.gd	the player cannot lose a fight
@@ -319,7 +319,7 @@ scripts/world/world_scene.gd	s|\t_drive_npcs\(\)|\tpass|	tests/integration/test_
 scripts/autoload/game_state.gd	s|if n <= 0 or n > gold:|if false:|	tests/unit/test_saves.gd	a player buys what they cannot afford and the purse goes negative
 scripts/autoload/game_state.gd	s|gold -= n|pass|	tests/unit/test_saves.gd	spending pays for nothing and money is infinite
 scripts/data/migrations.gd	s|d\["gold"\] = 0|pass|	tests/unit/test_saves.gd	an old save loads with no purse at all
-scripts/ui/battle_logic.gd	s|if _outcome == Outcome.VICTORY and purse > 0:|if false:|	tests/unit/test_battle_logic.gd	winning a fight pays nothing
+scripts/ui/battle_logic.gd	s|if won and purse > 0:|if false:|	tests/unit/test_battle_logic.gd	winning a fight pays nothing
 scripts/data/save_data.gd	s|if gold < 0:|if false:|	tests/unit/test_saves.gd	a hand-edited save carrying a negative purse loads without complaint
 scripts/ui/shop_menu.gd	s|if _page == Page.BUY and not affordable\(_index\):|if false:|	tests/unit/test_shop_menu.gd	a player buys what they cannot afford and the purse decides afterwards
 scripts/ui/shop_menu.gd	s|return r != null and r.price <= _gold|return r != null|	tests/unit/test_shop_menu.gd	every row reads as affordable, so the refusal never fires
@@ -508,8 +508,8 @@ scripts/world/world_scene.gd	s|\t\tGameState.set_companion\(member.id, curve.max
 scripts/world/world_scene.gd	s|^\tfor joined in _active_party\(\):$|\tfor joined in []:|	tests/fixtures/qa/quest/recruit_a_companion.json	somebody joins and has no numbers until the next fight asks for them
 scripts/ui/battle_logic.gd	s|^\tif alive.size\(\) < 2:$|\tif true:|	tests/unit/test_battle_logic.gd	a formation is swung at without ever asking which one
 scripts/ui/battle_logic.gd	s|^\t\tif next_up > taken:$|\t\tif false:|	tests/unit/test_battle_logic.gd	only the first foe in a formation ever takes a turn
-scripts/ui/battle_logic.gd	s|\t\tearned \+= _foe\(at\).def.xp|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the experience of one of its foes
-scripts/ui/battle_logic.gd	s|\t\tpurse \+= _foe\(at\).def.gold|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the coin of one of its foes
+scripts/ui/battle_logic.gd	s|\t\tearned \+= foe.def.xp|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the experience of one of its foes
+scripts/ui/battle_logic.gd	s|\t\tpurse \+= foe.def.gold|\t\tpass|	tests/unit/test_battle_logic.gd	a formation pays the coin of one of its foes
 scripts/ui/battle_logic.gd	s|\t\t\t\teach.hp = maxi\(each.hp - took, 0\)|\t\t\t\tpass|	tests/unit/test_battle_logic.gd	a spell that reaches everything announces damage and deals none
 scripts/ui/battle_logic.gd	s|\t\t\tdisplay = "%s %s" % \[entry.name, char\("A".unicode_at\(0\) \+ nth\)\]|\t\t\tpass|	tests/unit/test_battle_logic.gd	two foes of one kind are both called the same thing
 scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	tests/unit/test_map_data.gd	two enemies stand on one tile and the second can never be fought
@@ -866,3 +866,46 @@ scripts/autoload/qa.gd	s|if String\(game_id\).is_empty\(\):|if false:|	tests/uni
 scripts/autoload/qa.gd	s|if manifest.id != game_id:|if false:|	tests/unit/test_qa_ops.gd	a session is judged by whichever manifest the build lists first, not the game it ran
 scripts/autoload/qa.gd	s|for problem in manifest.problems\(\):|for problem in manifest.problems().slice(0, 0):|	tests/unit/test_qa_ops.gd	the running game is found and its problems are never read
 scripts/autoload/qa.gd	s|\tfaults.append\("the game .%s. ran, and this build carries no manifest for it" % game_id\)|\tpass|	tests/unit/test_qa_ops.gd	a session running a game this build does not carry ends green
+
+# M50 - the arena's rules: ArenaSim, the fields it reads, the driver that plays it, and the input names a harness presses.
+scripts/ui/arena_sim.gd	s|SeededRng.new\(seed_value\).derive\("arena"\)|SeededRng.new(seed_value).derive("moves")|	tests/unit/test_arena_sim.gd	the arena reads the turn fight's moves stream, so every replay recorded against it shifts
+scripts/ui/arena_sim.gd	s|if swing and _swing_left == 0 and _shove_left == 0:|if swing:|	tests/unit/test_arena_sim.gd	holding the button starts a fresh swing every frame
+scripts/ui/arena_sim.gd	s|_want\(Sfx.Cue.SWING\)|pass|	tests/unit/test_arena_sim.gd	a swing makes no sound
+scripts/ui/arena_sim.gd	s|elif _swing_left > 0:|elif false:|	tests/unit/test_arena_sim.gd	the player walks and turns with the sword out
+scripts/ui/arena_sim.gd	s|\t\t_pos \+= _shove$|\t\tpass|	tests/unit/test_arena_sim.gd	being touched no longer shoves the player
+scripts/ui/arena_sim.gd	s|\t\t\t_hurt_left = 0$|\t\t\tpass|	tests/unit/test_arena_sim.gd	a wall ends the player's shove but not the protection, so a pinned player cannot be hurt
+scripts/ui/arena_sim.gd	s|if body.foe.down\(\) or _struck.has\(body.slot\):|if body.foe.down():|	tests/unit/test_arena_sim.gd	one swing lands on the same foe every frame it is out
+scripts/ui/arena_sim.gd	s|^\t\tif body.hurt_left > 0:$|\t\tif false:|	tests/unit/test_arena_sim.gd	a foe still flashing from a blow is struck again
+scripts/ui/arena_sim.gd	s|BattleLogic.foe_defense\(body.foe\)\)|0)|	tests/unit/test_arena_sim.gd	the sword ignores armour
+scripts/ui/arena_sim.gd	s|body.shove_left = _combat.push_frames|pass|	tests/unit/test_arena_sim.gd	a struck foe is never knocked back
+scripts/ui/arena_sim.gd	s|body.hurt_left = 0$|pass|	tests/unit/test_arena_sim.gd	a foe shoved into a wall stays protected, so pinning it buys nothing
+scripts/ui/arena_sim.gd	s|^\tif _hurt_left > 0:$|\tif false:|	tests/unit/test_arena_sim.gd	protection protects nobody, so one touch lands every frame
+scripts/ui/arena_sim.gd	s|if body.foe.down\(\) or body.hurt_left > 0:|if body.foe.down():|	tests/unit/test_arena_sim.gd	a foe flashing from a blow still bites
+scripts/ui/arena_sim.gd	s|_leader.hp = maxi\(_leader.hp - took, 0\)|pass|	tests/unit/test_arena_sim.gd	touching a foe hurts nobody
+scripts/ui/arena_sim.gd	s|_want\(Sfx.Cue.HURT\)|pass|	tests/unit/test_arena_sim.gd	being touched makes no sound
+scripts/ui/arena_sim.gd	s|\t\t_swing_left = 0$|\t\tpass|	tests/unit/test_arena_sim.gd	being touched leaves the sword out
+scripts/ui/arena_sim.gd	s|if \(_frame \+ body.slot\) % every == 0:|if false:|	tests/unit/test_arena_sim.gd	a chaser never turns toward the player
+scripts/ui/arena_sim.gd	s|next_int\(_combat.wander_min_frames, _combat.wander_max_frames\)|next_int(1, 1)|	tests/unit/test_arena_sim.gd	a wanderer's countdown ignores its bounds
+scripts/ui/arena_sim.gd	s|body.heading = -body.heading|pass|	tests/unit/test_arena_sim.gd	a wanderer walks into a wall forever
+scripts/ui/arena_sim.gd	s|return carried / STRIDE|return carried / UNITS_PER_TILE|	tests/unit/test_arena_sim.gd	a speed in tiles a second is spent every frame, sixty times too fast
+scripts/ui/arena_sim.gd	s|\treturn DIAGONAL$|\treturn UNITS_PER_TILE|	tests/unit/test_arena_sim.gd	walking diagonally is 41% faster than walking straight
+scripts/ui/arena_sim.gd	s|if absf\(value\) < AXIS_THRESHOLD:|if false:|	tests/unit/test_arena_sim.gd	a stick resting a little off true walks on a diagonal
+scripts/ui/arena_sim.gd	s|if _leader.down\(\):|if false:|	tests/unit/test_arena_sim.gd	the player cannot lose
+scripts/ui/arena_sim.gd	s|if nearest_standing\(\) >= 0:|if true:|	tests/unit/test_arena_sim.gd	the player cannot win
+scripts/ui/arena_sim.gd	s|BattleLogic.share_award\(standing,|BattleLogic.share_award([],|	tests/unit/test_arena_sim.gd	a won arena pays nobody any experience
+scripts/ui/arena_sim.gd	s|BattleLogic.gold_of\(_foes\)\)|0)|	tests/unit/test_arena_sim.gd	a won arena pays no coin
+scripts/ui/arena_sim.gd	s|if _last_struck >= 0 and not foe_down\(_last_struck\):|if false:|	tests/unit/test_arena_sim.gd	the bar ignores the blow and always shows the nearest foe
+scripts/ui/arena_sim.gd	s|if _outcome != BattleLogic.Outcome.NONE:|if false:|	tests/unit/test_arena_sim.gd	a finished fight keeps running
+scripts/ui/arena_sim.gd	s|\t_sounds.clear\(\)|\tpass|	tests/unit/test_arena_sim.gd	a cue handed over plays again every frame
+scripts/data/combat_def.gd	s|if swing_frames <= 0:|if false:|	tests/unit/test_combat_def.gd	a sword that is never out ships
+scripts/data/combat_def.gd	s|if hurt_frames <= 0 or foe_hurt_frames <= 0:|if false:|	tests/unit/test_combat_def.gd	a hit that protects for no frames ships, so one touch lands every frame
+scripts/data/combat_def.gd	s|elif push_frames > mini\(hurt_frames, foe_hurt_frames\):|elif false:|	tests/unit/test_combat_def.gd	a shove outlasting its protection ships, sliding a body into the next hit
+scripts/data/combat_def.gd	s|elif wander_min_frames > wander_max_frames:|elif false:|	tests/unit/test_combat_def.gd	a backwards wander range ships
+scripts/data/combat_def.gd	s|if arena_tiles.x < 2 or arena_tiles.y < 2:|if false:|	tests/unit/test_combat_def.gd	an arena too small to stand apart in ships
+scripts/data/enemy_def.gd	s|if speed_tiles_per_second < 0.0:|if false:|	tests/unit/test_enemy_def.gd	an enemy that moves backwards ships
+scripts/data/enemy_def.gd	s|if chase_every_frames < 0:|if false:|	tests/unit/test_enemy_def.gd	an enemy chasing on a negative period ships
+scripts/data/enemy_def.gd	s|if body_tiles.x <= 0.0 or body_tiles.y <= 0.0:|if false:|	tests/unit/test_enemy_def.gd	an enemy with no body to touch ships
+tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).grow\(CHARGE_RANGE\).intersects\(sim.foe_box\(target\)\)|out.swing = false|	tests/unit/test_arena_driver.gd	the unskilled policy never swings, so every fight looks unwinnable for the wrong reason
+tests/helpers/arena_driver.gd	s|if danger >= 0 and sim.player_hurt\(\) == 0:|if false:|	tests/unit/test_arena_driver.gd	the skilled policy walks into what is about to touch it
+tests/helpers/arena_driver.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_arena_driver.gd	the skilled policy stands still swinging at air
+scripts/world/locomotion.gd	s|return &"move_left"|return \&"move_right"|	tests/unit/test_locomotion.gd	a harness pressing left holds right

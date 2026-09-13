@@ -91,6 +91,21 @@ extends Resource
 ## thing dies to fire" is a design decision and not a fault.
 @export var resistances: Dictionary = {}
 
+# -- the arena --------------------------------------------------------------------------------
+
+## How fast it moves in an arena, in tiles a second. Zero is legal: something that holds its ground.
+@export var speed_tiles_per_second: float = 2.0
+
+## How often, in frames, it turns toward the player and heads that way, holding the heading until
+## the next time. ZERO MEANS IT NEVER DOES, and it wanders instead. A Link to the Past's guards
+## re-aim every 32 frames, offset by their slot so a room of them does not turn as one.
+@export var chase_every_frames: int = 0
+
+## The footprint it hits and is hit with, in tiles: the box at its feet, the shape the player's own
+## body is. A number per enemy rather than a size word from a table, because it is one a designer
+## tunes.
+@export var body_tiles: Vector2 = Vector2(0.625, 0.375)
+
 ## What a move's `status` may say. A closed vocabulary for the reason SpellDef.Kind is an enum:
 ## a typo in a data file would otherwise be a move that reaches its turn and does nothing.
 const STATUSES := ["sleep", "sap"]
@@ -127,6 +142,12 @@ func problems() -> Array[String]:
 		out.append("enemy '%s' grants %d xp" % [id, xp])
 	if gold < 0:
 		out.append("enemy '%s' drops %d gold" % [id, gold])
+	if speed_tiles_per_second < 0.0:
+		out.append("enemy '%s' moves %s tiles a second - backwards" % [id, speed_tiles_per_second])
+	if chase_every_frames < 0:
+		out.append("enemy '%s' chases every %d frames" % [id, chase_every_frames])
+	if body_tiles.x <= 0.0 or body_tiles.y <= 0.0:
+		out.append("enemy '%s' has a body of %s tiles - nothing could touch it" % [id, body_tiles])
 	# An enemy with no moves reaches its turn and has nothing to do, which presents as a
 	# battle that stops rather than as a broken file.
 	if moves.is_empty():

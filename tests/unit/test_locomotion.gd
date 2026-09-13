@@ -88,3 +88,13 @@ func test_the_interaction_point_works_while_standing_still() -> void:
 
 func test_the_shipped_config_is_sane() -> void:
 	assert_array(_config.problems()).is_empty()
+
+func test_one_axis_at_a_time_takes_the_larger_and_breaks_a_tie_sideways() -> void:
+	assert_vector(Locomotion.axis_locked(Vector2(1.0, -1.0))).is_equal(Vector2(1.0, 0.0))
+	assert_vector(Locomotion.axis_locked(Vector2(0.2, -0.9))).is_equal(Vector2(0.0, -1.0))
+
+func test_each_direction_is_pressed_by_the_action_that_walks_it() -> void:
+	assert_str(String(Locomotion.action_for(D.DOWN))).is_equal("move_down")
+	assert_str(String(Locomotion.action_for(D.LEFT))).is_equal("move_left")
+	assert_str(String(Locomotion.action_for(D.RIGHT))).is_equal("move_right")
+	assert_str(String(Locomotion.action_for(D.UP))).is_equal("move_up")
