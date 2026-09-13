@@ -20,6 +20,7 @@ func after_test() -> void:
 	# that has nothing to do with audio.
 	AudioBus.use_style(load("res://data/sounds/dusk16.tres") as SoundStyle)
 	Qa._failures.clear()
+	GameState.reset()
 
 
 ## Runs one step and answers whether it complained.
@@ -138,3 +139,48 @@ func test_asking_a_member_for_the_purse_fails() -> void:
 	assert_bool(_complains({"op": "assert_gold", "member": "scrapper", "value": 0})) \
 		.override_failure_message("the harness answered a per-member gold question").is_true()
 	GameState.reset()
+
+
+func _broken() -> GameManifest:
+	var manifest := GameManifest.new()
+	manifest.id = &"broken"
+	return manifest
+
+
+func _shipped(game_id: StringName) -> GameManifest:
+	for manifest in GameSelect.manifests():
+		if manifest.id == game_id:
+			return manifest
+	return null
+
+
+func test_a_session_is_judged_by_the_problems_of_the_game_it_ran() -> void:
+	# The shipped game is clean, which makes it the control: without that, every refusal below would
+	# prove nothing.
+	var quest := _shipped(&"quest")
+	assert_object(quest).is_not_null()
+	assert_array(Qa._running_game_faults(&"quest", GameSelect.manifests())).override_failure_message(
+		"the shipped game reports problems, so every refusal below proves nothing").is_empty()
+	var carried: Array[GameManifest] = [quest, _broken()]
+	assert_str("\n".join(Qa._running_game_faults(&"broken", carried))).override_failure_message(
+		"a running game whose manifest has problems was passed").contains("names no start_map")
+	# Judged by the game that RAN, not by whichever manifest the build happens to list first.
+	var broken_first: Array[GameManifest] = [_broken(), quest]
+	assert_array(Qa._running_game_faults(&"quest", broken_first)).override_failure_message(
+		"the session was judged by another game's manifest").is_empty()
+	# A session that ends on the title started no game, and is not judged by one.
+	assert_array(Qa._running_game_faults(&"", carried)).is_empty()
+	assert_str("\n".join(Qa._running_game_faults(&"not_a_game", GameSelect.manifests()))
+		).override_failure_message("a game this build carries no manifest for was passed"
+		).contains("not_a_game")
+
+
+func test_every_session_ends_by_asking_the_running_game_for_its_problems() -> void:
+	# Through the function _finish calls, because _finish quits the tree. A game id no manifest
+	# answers to is the one failure the shipped data lets a suite stage, and it is asserted by its
+	# wording because AudioBus's unknown requests pile up across the whole run.
+	GameState.game = &"not_a_game"
+	Qa._failures.clear()
+	Qa._end_of_session_checks()
+	assert_str("\n".join(Qa._failures)).override_failure_message(
+		"the end of a session did not ask about the game that ran").contains("not_a_game")

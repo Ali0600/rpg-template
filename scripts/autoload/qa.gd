@@ -560,15 +560,49 @@ func _fail(message: String) -> void:
 	_failures.append(message)
 
 
-func _finish() -> void:
-	_finished = true
-	_release_all()
+## What every session is judged by, whatever its steps asserted. Split out of _finish, which quits the
+## tree, so a suite can run it.
+func _end_of_session_checks() -> void:
 	# Every session, not just the ones that assert a sound. AudioBus warns once about an id it
 	# does not have, into a log nobody is reading, in a build that has already shipped - so a
 	# misspelled cue is exactly the kind of defect that survives to release. Checking it here
-	# turns that warning into a red gate across all nine scripted play sessions for free.
+	# turns that warning into a red gate across every scripted play session for free.
 	for unknown in AudioBus.unknown_requests():
 		_fail("something asked for the sound '%s', which no cue is called" % unknown)
+	# And the running game's own problems(), which the world prints at boot into that same unread
+	# log. Against res:// smoke_boot already holds every manifest to them; what only a session can
+	# see is the PACK, where a check asking the filesystem about an imported asset reported six
+	# files missing on every web boot while the sessions using them played.
+	var faults := _running_game_faults(GameState.game, GameSelect.manifests())
+	if String(GameState.game).is_empty():
+		_log.append("no game was running at the end, so no manifest was checked")
+	else:
+		_log.append("the running game's manifest was checked: %d problem(s)" % faults.size())
+	for fault in faults:
+		_fail(fault)
+
+
+## The game that ran, judged by its own manifest: each problem it reports, or the plain fact that this
+## build carries no manifest for it. Over a list rather than the disk, so a suite can hand it a
+## manifest with a problem in it - the shipped one has none.
+func _running_game_faults(game_id: StringName, carried: Array[GameManifest]) -> Array[String]:
+	var faults: Array[String] = []
+	if String(game_id).is_empty():
+		return faults
+	for manifest in carried:
+		if manifest.id != game_id:
+			continue
+		for problem in manifest.problems():
+			faults.append("the game '%s' reports a problem: %s" % [game_id, problem])
+		return faults
+	faults.append("the game '%s' ran, and this build carries no manifest for it" % game_id)
+	return faults
+
+
+func _finish() -> void:
+	_finished = true
+	_release_all()
+	_end_of_session_checks()
 	for line in _log:
 		print("qa: " + line)
 	if _failures.is_empty():

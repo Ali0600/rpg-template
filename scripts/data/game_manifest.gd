@@ -197,8 +197,11 @@ func problems() -> Array[String]:
 		for p in sound_style.problems():
 			out.append("sound: " + p)
 		var cue := "res://assets/generated/%s/sfx/%s.wav" % [sound_style.id, Sfx.id_of(Sfx.Cue.FOOTSTEP)]
-		if not FileAccess.file_exists(cue):
-			out.append("sound_style '%s' has no generated cues (expected %s) - run tools/gen_sounds.gd"
+		# Asked of the loader, never the filesystem. An export carries a sound as its .import sidecar and
+		# the engine's converted copy, never the .wav, so a file check said this on every web boot while
+		# the game played the cue. AudioBus.reload asks the loader about these same paths.
+		if not ResourceLoader.exists(cue):
+			out.append("sound_style '%s' has no generated cues (expected %s) - run tools/gen_sounds.gd, then --import"
 				% [sound_style.id, cue])
 
 	# The themes, same shape four times: a game naming a tune nobody rendered is a silence, and
@@ -215,8 +218,9 @@ func problems() -> Array[String]:
 			out.append("%s '%s' has no voice to play it in" % [field, tune])
 			continue
 		var track := "res://assets/generated/%s/music/%s.wav" % [sound_style.id, tune]
-		if not FileAccess.file_exists(track):
-			out.append("%s '%s' was never generated (expected %s) - run tools/gen_sounds.gd"
+		# The loader again, for the cue's reason: in a pack the .wav itself is not there.
+		if not ResourceLoader.exists(track):
+			out.append("%s '%s' was never generated (expected %s) - run tools/gen_sounds.gd, then --import"
 				% [field, tune, track])
 
 	if hooks != null:
