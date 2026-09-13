@@ -177,9 +177,10 @@ colour.
 **A cell stays ONE tile id, and the edge between two materials is composed for it.** A tile in
 a bank may carry a `ring` - LPC's twelve transition pieces - and an `over` list saying which
 ground it is an edge against; `TileGen` then appends a block of the 47 blob shapes per group to
-the atlas, and `MapBuilder` picks one per cell from that cell's eight neighbours. So a map file,
-both editor translators and `MapData.problems` are all untouched: they still see one character
-per cell, and the shapes live in atlas columns no map may name.
+the atlas, and `MapBuilder` picks one per cell from that cell's eight neighbours. So a map file
+and `MapData.problems` are untouched: they still see one character per cell, and the shapes live
+in atlas columns no map may name. The editor translators are the one place those columns are
+spelled out - below.
 
 **The shapes are built from QUARTERS of those twelve pieces**, which is RPG Maker's autotile
 scheme and the reason this is possible at all. Thirteen whole pieces draw thirteen shapes, and
@@ -202,8 +203,30 @@ the old behaviour exactly, which is how gb16, nes16 and dusk16 carried on unchan
 
 **Every shape in a block IS its block's tile**, so `TileSetFactory` gives it that tile's
 collision - without which a pond keeps its middle and opens up all the way round its rim.
-`map_io` CROPS the atlas it sends to an editor down to the paintable tiles, because both
-translators declare `tilecount` as the id list and that stays true only if the image matches.
+
+**An editor is shown the shapes the game draws, and the sheet travels whole.** Both translators
+write each ground cell as `TerrainEdges.cell_index` over `MapData.around` - the lookup the world
+paints with, moved out of MapBuilder so there is exactly one - and fold any column back to its
+block's tile on import with `TerrainEdges.tile_of_column`, so wearing a shoreline in the editor
+changes nothing about which tile a cell holds. Every count either format declares is
+`TerrainEdges.column_count`, derived once. `map_io` used to CROP the sheet down to the plain
+tiles, and every pond opened in Tiled with hard edges the game never draws.
+
+**Tiled gets a terrain brush per edge block, and the brush paints the GROUND.** Measured before it
+was written: Tiled 1.12.2's own filler was driven through `TileLayerWangEdit` and every tile it
+picked was judged by `TerrainEdges` (one-off scripts, not a gate - Tiled is not on the runner). A
+side or corner of the grid is ground's colour whenever any cell touching it is ground
+(`TerrainEdges.touching`), and painting grass around a pond put the game's own shape in 108 cells
+of 108. **Painting the water cannot work for a bank where one side draws the edge**: the brush
+claims a painted cell's whole border, so every water cell reads alike and 40-45 cells flipped
+every way it was tried. **A single-tile pool cannot be painted at all**, because its colouring is
+plain ground's exactly - no shipped map has one, and export and import still carry it, since they
+write and fold columns rather than asking the brush. The two one-colour shapes and every `over`
+variant past the first are at Tiled probability 0, because the filler settles a tie at random:
+without that it scattered single-tile ponds over a third of painted grass and `grass_alt` over
+half of it. Tiled's `wangid` order IS `TerrainEdges`' bit order, read from `wangset.h` at the
+installed tag and confirmed 8 of 8 by asking the binary which positions are edges. LDtk gets the
+shapes and the fold, and no brush.
 
 **A boundary between two RINGED materials IS drawn, and ONE side draws it.** Water names grass and
 `path` in its `over`; path names grass only - so at the cave pool, the one place in the demo where

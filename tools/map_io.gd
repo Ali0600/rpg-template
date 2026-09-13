@@ -43,6 +43,8 @@ var _to := ""
 var _dir := ""
 var _verify := false
 var _problems: Array[String] = []
+## style -> tile id -> swatch, so the sheet is read once per style rather than once per map.
+var _colors := {}
 
 
 func _init() -> void:
@@ -160,21 +162,13 @@ func _copy_atlas_to(into: String, style: String) -> bool:
 	if not FileAccess.file_exists(from):
 		_fail("no generated tile sheet for '%s' - run gen_sprites.gd first" % style)
 		return false
-	var table := _tile_table(style)
-	if table.is_empty():
-		return false
 	var atlas := ImageFile.read_png(from)
 	if atlas == null:
 		_fail("could not read the tile sheet for '%s'" % style)
 		return false
-	# Only the PAINTABLE tiles travel to an editor. Any column past them is a transition shape
-	# the world composes for itself out of a cell's neighbours, so an editor that could paint one
-	# would be painting a decision the game makes - and both translators declare `tilecount` as
-	# the id list, which stays a true statement about this image only if it is cropped to match.
-	var ids: PackedStringArray = table["ids"]
-	var wide := ids.size() * int(table["tile_size"])
-	if wide > 0 and wide < atlas.get_width():
-		atlas = atlas.get_region(Rect2i(0, 0, wide, atlas.get_height()))
+	# The WHOLE sheet travels, composed shapes and all. Both translators write those shapes onto
+	# the ground and declare every column, so an editor opens a pond with the shoreline the game
+	# draws. It used to be cropped to the plain tiles, and every pond opened with hard edges.
 	var file := FileAccess.open(to, FileAccess.WRITE)
 	if file == null:
 		_fail("could not write '%s'" % to)
@@ -302,10 +296,39 @@ func _sweep(root: String) -> void:
 func _to_editor(format: String, native: Dictionary, table: Dictionary) -> Dictionary:
 	var ids: PackedStringArray = table["ids"]
 	var size := int(table["tile_size"])
+	var edges: Array = table["edges"]
+	var style := str(native.get("style", ""))
 	if format == "ldtk":
-		return LdtkMap.from_native(native, ids, size,
-			_chrome_of(str(native.get("style", ""))))
-	return TiledMap.from_native(native, ids, size)
+		return LdtkMap.from_native(native, ids, size, _chrome_of(style), edges)
+	return TiledMap.from_native(native, ids, size, edges, _colors_of(style, ids, size))
+
+
+## Each plain tile's average colour, as the swatch Tiled draws beside a brush's name. Taken from the
+## ART rather than written down: a template has no colour to choose for somebody else's grass, and
+## the tile already is one. Whole bytes throughout, so an export is the same file on every machine.
+func _colors_of(style: String, ids: PackedStringArray, size: int) -> Dictionary:
+	if _colors.has(style):
+		return _colors[style] as Dictionary
+	var out := {}
+	var atlas := ImageFile.read_png("res://assets/generated/%s/tiles.png" % style)
+	if atlas != null and size > 0:
+		for i in ids.size():
+			var sums: Array[int] = [0, 0, 0, 0]
+			for y in mini(size, atlas.get_height()):
+				for x in size:
+					if i * size + x >= atlas.get_width():
+						continue
+					var px := atlas.get_pixel(i * size + x, y)
+					if px.a8 == 0:
+						continue
+					sums[0] += px.r8
+					sums[1] += px.g8
+					sums[2] += px.b8
+					sums[3] += 1
+			if sums[3] > 0:
+				out[ids[i]] = "#%02x%02x%02x" % [sums[0] / sums[3], sums[1] / sums[3], sums[2] / sums[3]]
+	_colors[style] = out
+	return out
 
 
 ## The running style's own UI palette, handed to the LDtk exporter so a map opens in the editor
@@ -328,13 +351,14 @@ func _from_editor(format: String, raw: Dictionary, where: String) -> Dictionary:
 		return {}
 	var ids: PackedStringArray = table["ids"]
 	var size := int(table["tile_size"])
-	var faults := LdtkMap.problems(raw, style, ids, size) if format == "ldtk" \
-		else TiledMap.problems(raw, style, ids, size)
+	var edges: Array = table["edges"]
+	var faults := LdtkMap.problems(raw, style, ids, size, edges) if format == "ldtk" \
+		else TiledMap.problems(raw, style, ids, size, edges)
 	if not faults.is_empty():
 		_fail("'%s' is not fit to import:\n    %s" % [where, "\n    ".join(faults)])
 		return {}
-	return LdtkMap.to_native(raw, ids, size) if format == "ldtk" \
-		else TiledMap.to_native(raw, ids, size)
+	return LdtkMap.to_native(raw, ids, size, edges) if format == "ldtk" \
+		else TiledMap.to_native(raw, ids, size, edges)
 
 
 ## Which tile bank a file was painted against, asked of the file itself. Both translators answer
@@ -382,7 +406,9 @@ func _native_of(path: String) -> Dictionary:
 	return out
 
 
-## `{"ids": PackedStringArray, "tile_size": int}`, or empty when there is nothing to read.
+## `{"ids": PackedStringArray, "tile_size": int, "edges": Array}`, or empty when there is nothing
+## to read. `edges` is the generator's own list of composed blocks, because which column is which
+## shape is a fact about THIS sheet, and both translators need it in both directions.
 ##
 ## The bank in index order, which is what a tile index MEANS, and the SIZE those indices are
 ## drawn at. Both from the generated table because that is the file the coupling actually runs
@@ -405,7 +431,7 @@ func _tile_table(style: String) -> Dictionary:
 	if drawn_at <= 0:
 		_fail("the tile table for '%s' names no tile_size" % style)
 		return {}
-	return {"ids": ids, "tile_size": drawn_at}
+	return {"ids": ids, "tile_size": drawn_at, "edges": file.data.get("edges", []) as Array}
 
 
 func _fail(message: String) -> void:

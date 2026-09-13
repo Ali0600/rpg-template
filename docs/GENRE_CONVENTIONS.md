@@ -1147,9 +1147,16 @@ as secondhand while the arithmetic is not.
 **This template.** A tile in a bank may carry a `ring` - LPC's twelve pieces - and an `over` list
 naming the ground it is an edge against. The generator composes all 47 shapes from quarters of
 those pieces and appends them to the atlas; the world picks one per cell from that cell's eight
-neighbours. **A cell is still one tile id**: the shapes live in columns past the paintable tiles,
-which no map can spell, so the map format, both editor translators and every map file are exactly
-what they were. `map_io` crops the atlas it hands an editor down to those paintable tiles.
+neighbours. **A cell is still one tile id in a map file**: the shapes live in columns past the
+paintable tiles, which no map can spell, so the map format and every map file are exactly what
+they were. Since M48 an editor is SHOWN the shapes - both translators write the column the game
+draws and fold it back on import - and Tiled gets a terrain brush per edge block.
+
+**Divergence, named: the brush paints the ground, not the water.** Tiled's terrain model colours
+the sides and corners BETWEEN cells, which is two-sided by construction; this bank has one side
+draw each edge. The two meet only one way round - paint the grass around a pond and the water
+shapes itself, exactly as the game draws it (108 of 108 cells, measured through Tiled's own
+filler) - and a one-tile pool has no colouring of its own to paint. See `docs/DECISIONS.md`.
 
 Water is an edge against grass and against `path`; a path is an edge against grass. Everything
 else - walls, floors, doors, decor - is a hard edge, which is what the references do too: an

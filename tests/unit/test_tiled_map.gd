@@ -255,3 +255,209 @@ func test_two_styles_do_not_collide_on_one_atlas_name() -> void:
 	# One export directory may hold maps drawn from different banks. A single shared name would
 	# mean the second copy overwrites the first and half the maps open wearing the wrong art.
 	assert_str(TiledMap.atlas_name("gb16")).is_not_equal(TiledMap.atlas_name("dusk16"))
+
+
+# -- the shapes the game draws, and a brush that paints them -----------------------------------
+
+## The generator's own list of composed blocks: which column is which shape. Read, never written
+## here, for `_tile_ids`' reason.
+func _edges(style: String) -> Array:
+	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+	assert_bool(file.ok).is_true()
+	return file.data.get("edges", []) as Array
+
+## How wide the generator says the sheet is - an independent statement of what every declared
+## count in the export must equal.
+func _columns(style: String) -> int:
+	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+	assert_bool(file.ok).is_true()
+	return int(file.data.get("columns", 0))
+
+func _layer(tiled: Dictionary, name: String) -> Dictionary:
+	for entry: Variant in (tiled["layers"] as Array):
+		if str((entry as Dictionary).get("name", "")) == name:
+			return entry
+	fail("the export has no '%s' layer" % name)
+	return {}
+
+func _tileset(tiled: Dictionary) -> Dictionary:
+	return (tiled["tilesets"] as Array)[0]
+
+func _exported(style: String) -> Dictionary:
+	return TiledMap.from_native(_native_of(_maps()[0]), _tile_ids(style), _tile_size(style),
+		_edges(style))
+
+func test_every_shipped_map_survives_a_trip_through_tiled_wearing_its_shorelines() -> void:
+	var composed := 0
+	for path in _maps():
+		var native := _native_of(path)
+		var style := str(native.get("style", "gb16"))
+		var ids := _tile_ids(style)
+		var size := _tile_size(style)
+		var tiled := TiledMap.from_native(native, ids, size, _edges(style))
+		for gid: Variant in _layer(tiled, "ground")["data"]:
+			if int(gid) - 1 >= ids.size():
+				composed += 1
+		var back := TiledMap.to_native(tiled, ids, size, _edges(style))
+		var faults := MapData.differences(MapData.load_from(path), MapData.from_dictionary(back))
+		assert_array(faults).override_failure_message(
+			"'%s' came back from Tiled as a different map:\n  %s"
+			% [path.get_file(), "\n  ".join(faults)]).is_empty()
+	assert_int(composed).override_failure_message(
+		"no cell on any shipped map was written as a composed shape, so nothing was folded") \
+		.is_greater(0)
+
+func test_a_ground_cell_is_exported_as_the_shape_the_game_draws_there() -> void:
+	var shored := 0
+	for path in _maps():
+		var native := _native_of(path)
+		var style := str(native.get("style", "gb16"))
+		var edges := _edges(style)
+		if edges.is_empty():
+			continue
+		var ids := _tile_ids(style)
+		var map := MapData.load_from(path)
+		var by_tile := TileSetFactory.edges_by_id({"edges": edges})
+		var data: Array = _layer(TiledMap.from_native(native, ids, _tile_size(style), edges),
+			"ground")["data"]
+		var wide := map.size().x
+		for y in map.size().y:
+			for x in wide:
+				var tile := map.ground_at(Vector2i(x, y))
+				if tile.is_empty():
+					continue
+				var want := TerrainEdges.cell_index(by_tile.get(tile, []) as Array,
+					map.around(Vector2i(x, y)), ids.find(tile))
+				assert_int(int(data[y * wide + x]) - 1).override_failure_message(
+					"%s (%d,%d) is %s and the game draws column %d there; the export wrote %d"
+					% [path.get_file(), x, y, tile, want, int(data[y * wide + x]) - 1]) \
+					.is_equal(want)
+				if want >= ids.size():
+					shored += 1
+	assert_int(shored).override_failure_message(
+		"no shipped cell draws a composed shape, so this compared plain columns only").is_greater(0)
+
+func test_the_tileset_declares_every_column_of_the_sheet() -> void:
+	var style := _shipped_style()
+	assert_int(_columns(style)).override_failure_message(
+		"the shipped sheet has no composed columns, so this would compare the plain width with "
+		+ "itself").is_greater(_tile_ids(style).size())
+	var set_one := _tileset(_exported(style))
+	assert_int(int(set_one["tilecount"])).is_equal(_columns(style))
+	assert_int(int(set_one["columns"])).is_equal(_columns(style))
+	assert_int(int(set_one["imagewidth"])).is_equal(_columns(style) * _tile_size(style))
+
+func test_a_composed_tile_is_accepted_and_only_a_tile_past_the_whole_sheet_is_refused() -> void:
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var size := _tile_size(style)
+	var edges := _edges(style)
+	var tiled := _exported(style)
+	assert_array(TiledMap.problems(tiled, StringName(style), ids, size, edges)) \
+		.override_failure_message("an untouched export was refused").is_empty()
+	# GIDs start at 1, so the last column of the sheet is GID `columns`.
+	assert_array(TiledMap.problems(_poked(tiled, _columns(style)), StringName(style), ids, size,
+		edges)).override_failure_message("the last shape on the sheet was refused").is_empty()
+	assert_str("\n".join(TiledMap.problems(_poked(tiled, _columns(style) + 1), StringName(style),
+		ids, size, edges))).contains("would come back as an empty cell")
+
+func test_a_composed_tile_comes_back_as_the_tile_its_shape_belongs_to() -> void:
+	# What painting a shoreline in the editor does to a cell. Whichever shape it wears, the map
+	# that comes back holds that shape's tile - here the LAST block, so the fold has to search.
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var size := _tile_size(style)
+	var edges := _edges(style)
+	var block: Dictionary = edges[edges.size() - 1]
+	var tiled := _poked(_exported(style), int(block["first"]) + 5 + 1)
+	var back := MapData.from_dictionary(TiledMap.to_native(tiled, ids, size, edges))
+	assert_str(back.ground_at(Vector2i(0, 0))).override_failure_message(
+		"a cell wearing a '%s' shape came back as '%s'" % [block["tile"], back.ground_at(Vector2i(0, 0))]) \
+		.is_equal(str(block["tile"]))
+
+func test_every_edge_block_is_a_brush_holding_its_tiles() -> void:
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var edges := _edges(style)
+	var sets: Array = _tileset(_exported(style))["wangsets"]
+	assert_int(sets.size()).is_equal(edges.size())
+	for i in edges.size():
+		var block: Dictionary = edges[i]
+		var brush: Dictionary = sets[i]
+		assert_str(str(brush["type"])).is_equal("mixed")
+		var colors: Array = brush["colors"]
+		var over := JsonFile.to_string_array(block["over"])
+		assert_int(colors.size()).is_equal(2)
+		assert_str(str((colors[0] as Dictionary)["name"])).is_equal(str(block["tile"]))
+		assert_str(str((colors[1] as Dictionary)["name"])).is_equal(over[0])
+		var want: Array[int] = [ids.find(str(block["tile"]))]
+		for ground_id in over:
+			want.append(ids.find(ground_id))
+		for k in int(block["count"]):
+			want.append(int(block["first"]) + k)
+		want.sort()
+		var got: Array[int] = []
+		for entry: Variant in brush["wangtiles"]:
+			got.append(int((entry as Dictionary)["tileid"]))
+		got.sort()
+		assert_array(got).override_failure_message(
+			"brush '%s' holds the wrong tiles" % brush["name"]).is_equal(want)
+
+func _wang_id(tiled: Dictionary, brush_index: int, tile: int) -> Array:
+	var brush: Dictionary = (_tileset(tiled)["wangsets"] as Array)[brush_index]
+	for entry: Variant in brush["wangtiles"]:
+		if int((entry as Dictionary)["tileid"]) == tile:
+			return (entry as Dictionary)["wangid"]
+	fail("brush %d holds no tile %d" % [brush_index, tile])
+	return []
+
+func test_a_shape_is_coloured_ground_wherever_it_touches_ground() -> void:
+	# Tiled's order runs clockwise from the top, and INNER is 1, GROUND is 2. Written out as
+	# literals, so neither a rotation nor the corner rule can be argued with.
+	var style := _shipped_style()
+	var tiled := _exported(style)
+	var edges := _edges(style)
+	var first := int((edges[0] as Dictionary)["first"])
+	var TE := TerrainEdges
+	assert_array(_wang_id(tiled, 0, first + TE.index_of(TE.N))).is_equal([2, 2, 1, 1, 1, 1, 1, 2])
+	assert_array(_wang_id(tiled, 0, first + TE.index_of(TE.NE))).is_equal([1, 2, 1, 1, 1, 1, 1, 1])
+	assert_array(_wang_id(tiled, 0, first + TE.index_of(TE.E + TE.S))).is_equal(
+		[1, 2, 2, 2, 2, 2, 1, 1])
+	assert_array(_wang_id(tiled, 0, first + TE.index_of(0))).is_equal([1, 1, 1, 1, 1, 1, 1, 1])
+	assert_array(_wang_id(tiled, 0, first + TE.index_of(TE.SIDES_MASK))).is_equal(
+		[2, 2, 2, 2, 2, 2, 2, 2])
+
+func test_the_brush_never_picks_a_tile_that_means_what_another_one_does() -> void:
+	# Both kinds were measured: a one-colour shape tied with a plain tile and was scattered at
+	# random, and a ground variant was painted where plain ground was asked for.
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var edges := _edges(style)
+	var painted := {}
+	for entry: Variant in edges:
+		var block: Dictionary = entry
+		painted[ids.find(str(block["tile"]))] = true
+		painted[ids.find(JsonFile.to_string_array(block["over"])[0])] = true
+	var want := {}
+	for entry: Variant in edges:
+		var block: Dictionary = entry
+		want[int(block["first"]) + TerrainEdges.index_of(0)] = true
+		want[int(block["first"]) + TerrainEdges.index_of(TerrainEdges.SIDES_MASK)] = true
+		var over := JsonFile.to_string_array(block["over"])
+		for k in range(1, over.size()):
+			if not painted.has(ids.find(over[k])):
+				want[ids.find(over[k])] = true
+	assert_int(want.size()).override_failure_message(
+		"the shipped bank has no ground variant, so the second kind is never exercised") \
+		.is_greater(2 * edges.size())
+	var expected: Array[int] = []
+	for key: Variant in want.keys():
+		expected.append(int(key))
+	expected.sort()
+	var got: Array[int] = []
+	for entry: Variant in _tileset(_exported(style)).get("tiles", []):
+		if float((entry as Dictionary)["probability"]) == 0.0:
+			got.append(int((entry as Dictionary)["id"]))
+	got.sort()
+	assert_array(got).is_equal(expected)
+

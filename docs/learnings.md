@@ -2336,3 +2336,21 @@ claim with an expiry date: re-derive it from the code rather than citing it. Whe
 thing a deferral names, grep the repo for that deferral in the same change — the sentence that
 recorded a known gap is now recording a known lie. And when a document and a data file disagree
 about behaviour, believe the file the code reads.
+
+### An editor's model can be symmetric where your rule is not
+
+Tiled's terrain brush puts colours on the sides and corners BETWEEN cells, which makes every
+boundary two-sided by construction. A rule where only one material draws the edge can meet it only
+one way round, and no documentation says which.
+
+**Why it came up.** M48 planned a Tiled Wang set "so shorelines stay correct while the terrain
+brush paints". Scripting Tiled's own filler through `TileLayerWangEdit` and judging every tile it
+picked with the game's real `TerrainEdges` showed painting the water flips 40-45 cells in every
+configuration, painting the ground around it is exact (108 of 108), and the "obvious" encoding of a
+don't-care corner erased whole ponds - because the filler, read at source, requires a candidate to
+match every painted position exactly. A single-tile pool turned out to be unrepresentable at all.
+
+**Takeaway.** When mapping your rule onto another tool's algorithm, drive that algorithm itself
+with scripted input and judge its output with your real code before designing the table. A
+mismatch between two models is structural, and it is invisible in the format documentation.
+

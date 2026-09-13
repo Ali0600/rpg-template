@@ -372,3 +372,90 @@ func test_a_tie_on_sides_is_broken_by_the_corners() -> void:
 		["water", "water", "water", "path", "water", "water", "water", "water"])
 	assert_int(TerrainEdges.cell_index(_two_groups(), only_a_corner, 3)) \
 		.is_equal(59 + TerrainEdges.index_of(SE))
+
+
+# -- what an editor that colours positions is told --------------------------------------------
+
+func test_a_corner_touches_the_other_material_when_either_side_beside_it_does() -> void:
+	# A corner is shared by three neighbours, so it touches the other material when ANY of them is.
+	# Open to the north, both northern corners touch - the shape drawn in THIS cell ignores them,
+	# and the cells across those corners do not. Literals, so a rotated reading cannot pass.
+	assert_int(TerrainEdges.touching(TerrainEdges.N)).override_failure_message(
+		"open to the north, the corners either side of it should touch as well; got %d"
+		% TerrainEdges.touching(TerrainEdges.N)) \
+		.is_equal(TerrainEdges.N + TerrainEdges.NE + TerrainEdges.NW)
+	assert_int(TerrainEdges.touching(TerrainEdges.NE)).override_failure_message(
+		"a diagonal alone touches only its own corner").is_equal(TerrainEdges.NE)
+	assert_int(TerrainEdges.touching(0)).is_equal(0)
+	assert_int(TerrainEdges.EVERY_POSITION).is_equal(255)
+	assert_int(TerrainEdges.touching(TerrainEdges.SIDES_MASK)).is_equal(255)
+
+func test_exactly_two_shapes_are_one_colour_all_the_way_round() -> void:
+	# Nothing open, and every side open. To a brush these mean what the two plain tiles mean, so
+	# they are the shapes it must never be allowed to pick - asserted as the whole set, because a
+	# third would be one more shape a brush could scatter over ground nobody asked it to change.
+	var uniform: Array[int] = []
+	for mask in TerrainEdges.MASKS:
+		var reach := TerrainEdges.touching(mask)
+		if reach == 0 or reach == 255:
+			uniform.append(mask)
+	assert_array(uniform).is_equal([0, 85])
+
+func test_no_two_shapes_are_coloured_the_same_way() -> void:
+	# A brush tells tiles apart only by their eight positions. Two different shapes sharing one
+	# colouring would be chosen between at random, drawing a shoreline the game does not.
+	var seen := {}
+	for mask in TerrainEdges.MASKS:
+		var reach := TerrainEdges.touching(mask)
+		assert_bool(seen.has(reach)).override_failure_message(
+			"shapes %s and %d are coloured the same way (%d)" % [seen.get(reach), mask, reach]) \
+			.is_false()
+		seen[reach] = mask
+	assert_int(seen.size()).is_equal(47)
+
+
+# -- the sheet, counted and read back ---------------------------------------------------------
+
+func _blocks() -> Array:
+	return [
+		{"tile": "path", "over": ["grass"], "first": 4, "count": 47},
+		{"tile": "water", "over": ["grass"], "first": 51, "count": 47},
+	]
+
+func test_a_sheet_is_as_wide_as_its_plain_tiles_and_every_block_after_them() -> void:
+	assert_int(TerrainEdges.column_count(4, _blocks())).is_equal(98)
+	assert_int(TerrainEdges.column_count(4, [])).override_failure_message(
+		"a bank with no ring must be exactly as wide as it always was").is_equal(4)
+
+func test_every_generated_sheet_is_as_wide_as_the_generator_says() -> void:
+	# Against the generator's OWN statement of its width, which column_count never reads.
+	var ringed := 0
+	for style_path in ContentScan.files_of("res://data/styles", "tres"):
+		var style := style_path.get_file().get_basename()
+		var table := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+		if not table.ok:
+			continue
+		var edges: Array = table.data.get("edges", [])
+		var plain := (table.data.get("tiles", []) as Array).size()
+		assert_int(TerrainEdges.column_count(plain, edges)).override_failure_message(
+			"'%s' has %d columns by the generator and %d by column_count"
+			% [style, int(table.data.get("columns", 0)), TerrainEdges.column_count(plain, edges)]) \
+			.is_equal(int(table.data.get("columns", 0)))
+		if not edges.is_empty():
+			ringed += 1
+	assert_int(ringed).override_failure_message(
+		"no generated sheet has an edge block, so this only compared plain widths").is_greater(0)
+
+func test_a_column_is_the_tile_it_draws_and_nothing_past_the_sheet() -> void:
+	var plain := PackedStringArray(["grass", "wall", "path", "water"])
+	assert_str(TerrainEdges.tile_of_column(2, plain, _blocks())).is_equal("path")
+	assert_str(TerrainEdges.tile_of_column(4, plain, _blocks())).override_failure_message(
+		"the first shape of a block is still its block's tile").is_equal("path")
+	assert_str(TerrainEdges.tile_of_column(50, plain, _blocks())).is_equal("path")
+	assert_str(TerrainEdges.tile_of_column(51, plain, _blocks())).is_equal("water")
+	assert_str(TerrainEdges.tile_of_column(97, plain, _blocks())).is_equal("water")
+	assert_str(TerrainEdges.tile_of_column(98, plain, _blocks())).is_equal("")
+	assert_str(TerrainEdges.tile_of_column(-1, plain, _blocks())).is_equal("")
+	assert_str(TerrainEdges.tile_of_column(4, plain, [])).override_failure_message(
+		"with no blocks, a column past the plain tiles must be nothing").is_equal("")
+

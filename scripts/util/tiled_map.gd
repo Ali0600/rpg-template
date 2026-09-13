@@ -46,6 +46,10 @@ const JSON_PREFIX := "@json:"
 ## walk it: the exporter builds a layer per entry, the importer reads one.
 const RECORD_LAYERS := ["spawns", "npcs", "warps", "objects", "enemies"]
 
+## A brush's two colours: the material that draws an edge, and the ground it is drawn onto.
+const INNER := 1
+const GROUND := 2
+
 
 ## Everything wrong with `raw` as a Tiled map for `tile_ids`, in the idiom of every other
 ## problems() here: all of them, not the first.
@@ -59,7 +63,7 @@ const RECORD_LAYERS := ["spawns", "npcs", "warps", "objects", "enemies"]
 ## so a file painted at one size and read at another puts every record at a fraction of its tile,
 ## silently, on a map that still parses. It is the tileset coupling exactly, in another unit.
 static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringArray,
-		tile_size: int = 0) -> Array[String]:
+		tile_size: int = 0, edges: Array = []) -> Array[String]:
 	var out: Array[String] = []
 	if str(raw.get("type", "")) != "map":
 		out.append("not a Tiled map: type is '%s'" % raw.get("type", ""))
@@ -81,14 +85,17 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 	if named != String(style):
 		out.append("map was painted against tileset '%s' and is being read as '%s' - every tile "
 			% [named, style] + "on it would come out as a different tile")
+	# Every column of the sheet, the composed shapes included: an export shows an editor the shapes
+	# the game draws, so a tile pointing at one is a real tile rather than a stray.
+	var columns := TerrainEdges.column_count(tile_ids.size(), edges)
 	var count := int(set_one.get("tilecount", 0))
-	if count != tile_ids.size():
+	if count != columns:
 		out.append("map was painted against %d tiles and '%s' now has %d - the bank has changed "
-			% [count, style, tile_ids.size()] + "under it and every id past the change is wrong")
+			% [count, style, columns] + "under it and every id past the change is wrong")
 	if int(set_one.get("firstgid", 0)) <= 0:
 		out.append("tileset has no firstgid, so no tile on the map can be resolved")
 		return out
-	_gid_problems(raw, tile_ids, int(set_one.get("firstgid", 1)), out)
+	_gid_problems(raw, columns, int(set_one.get("firstgid", 1)), out)
 	return out
 
 
@@ -99,7 +106,7 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 ## the round trip reports a different map three layers downstream, and only this can name the
 ## cause. Flips get their own message because they are a real thing a person does in Tiled, and
 ## "not one of the tiles in this bank" would be a confusing way to hear about it.
-static func _gid_problems(raw: Dictionary, tile_ids: PackedStringArray, first_gid: int,
+static func _gid_problems(raw: Dictionary, columns: int, first_gid: int,
 		out: Array[String]) -> void:
 	for entry: Variant in raw.get("layers", []):
 		var layer: Dictionary = entry
@@ -114,14 +121,14 @@ static func _gid_problems(raw: Dictionary, tile_ids: PackedStringArray, first_gi
 				continue
 			if (gid & FLIP_BITS) != 0:
 				flipped += 1
-			elif gid - first_gid < 0 or gid - first_gid >= tile_ids.size():
+			elif gid - first_gid < 0 or gid - first_gid >= columns:
 				stray = gid if stray < 0 else stray
 		if flipped > 0:
 			out.append("layer '%s' has %d flipped or rotated tile(s), and a template map spells a "
 				% [name, flipped] + "cell as one character with nowhere to put a flip")
 		if stray >= 0:
 			out.append("layer '%s' uses tile %d, which is not one of the %d this bank has - it "
-				% [name, stray, tile_ids.size()] + "would come back as an empty cell")
+				% [name, stray, columns] + "would come back as an empty cell")
 
 
 ## What the tileset image is called beside an exported map. One name per style, so a directory
@@ -148,7 +155,7 @@ static func style_of(raw: Dictionary) -> String:
 ## `tile_ids` is the bank in index order, which is what makes a GID mean anything; the caller
 ## reads it from the generated `tiles.json` rather than this class reaching for a file.
 static func from_native(native: Dictionary, tile_ids: PackedStringArray,
-		tile_size: int) -> Dictionary:
+		tile_size: int, edges: Array = [], colors: Dictionary = {}) -> Dictionary:
 	var ground := JsonFile.to_string_array(native.get("ground", []))
 	var decor := JsonFile.to_string_array(native.get("decor", []))
 	var legend: Dictionary = native.get("legend", {})
@@ -156,10 +163,17 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 	for row in ground:
 		wide = maxi(wide, row.length())
 	var style := str(native.get("style", "gb16"))
+	var columns := TerrainEdges.column_count(tile_ids.size(), edges)
+	# The map as the game reads it, for the one neighbourhood rule a shape is picked by.
+	var map := MapData.from_dictionary(native)
+	var by_tile := TileSetFactory.edges_by_id({"edges": edges})
 	var layers: Array = []
 	var layer_id := 1
 	for pair: Array in [["ground", ground], ["decor", decor]]:
-		layers.append(_tile_layer(str(pair[0]), pair[1], legend, tile_ids, wide, layer_id))
+		# Only the ground is composed, because it is the only layer MapBuilder picks shapes for.
+		var shaped: Dictionary = by_tile if str(pair[0]) == "ground" else {}
+		layers.append(_tile_layer(str(pair[0]), pair[1], legend, tile_ids, wide, layer_id,
+			shaped, map))
 		layer_id += 1
 	var object_id := 1
 	for key: String in RECORD_LAYERS:
@@ -168,7 +182,7 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 		layers.append(made["layer"])
 		object_id = int(made["next_object_id"])
 		layer_id += 1
-	return {
+	var made := {
 		"type": "map",
 		"version": "1.10",
 		"tiledversion": "1.10.2",
@@ -193,18 +207,25 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 			"name": style,
 			"tilewidth": tile_size,
 			"tileheight": tile_size,
-			"tilecount": tile_ids.size(),
-			"columns": tile_ids.size(),
+			# The WHOLE sheet, composed shapes and all, so an editor shows the shoreline the game
+			# draws. It used to be cropped to the plain tiles, and every pond opened hard-edged.
+			"tilecount": columns,
+			"columns": columns,
 			# Named for the STYLE and expected BESIDE the map file. Tiled resolves this relative
 			# to the .tmj, so a bare "tiles.png" pointed at a file that is not there and every
 			# tile opened blank - found by opening one in Tiled, which is the only place it
 			# could be found. map_io.gd copies the atlas in under this name.
 			"image": _atlas_name(style),
-			"imagewidth": tile_ids.size() * tile_size,
+			"imagewidth": columns * tile_size,
 			"imageheight": tile_size,
 		}],
 		"layers": layers,
 	}
+	if not edges.is_empty():
+		var tileset: Dictionary = (made["tilesets"] as Array)[0]
+		tileset["tiles"] = _never_picked(tile_ids, edges)
+		tileset["wangsets"] = _wang_sets(tile_ids, edges, colors)
+	return made
 
 
 ## One of this template's maps, from a Tiled one. The inverse of `from_native`, and the round-trip
@@ -215,7 +236,8 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 ## compares the RESOLVED map rather than the raw text: two legends that map different characters
 ## to the same tiles describe the same map, and a comparison on the strings would call them
 ## different.
-static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: int) -> Dictionary:
+static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: int,
+		edges: Array = []) -> Dictionary:
 	var first_gid := 1
 	var sets: Array = raw.get("tilesets", [])
 	if not sets.is_empty():
@@ -232,7 +254,7 @@ static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: i
 		var layer: Dictionary = entry
 		var name := str(layer.get("name", ""))
 		if str(layer.get("type", "")) == "tilelayer":
-			out[name] = _rows_of(layer, tile_ids, first_gid, legend, used)
+			out[name] = _rows_of(layer, tile_ids, first_gid, legend, used, edges)
 		elif RECORD_LAYERS.has(name):
 			out[name] = _records_of(layer, name, tile_size)
 	out["legend"] = legend
@@ -242,7 +264,8 @@ static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: i
 # -- writing ------------------------------------------------------------------------------------
 
 static func _tile_layer(name: String, rows: Array[String], legend: Dictionary,
-		tile_ids: PackedStringArray, wide: int, id: int) -> Dictionary:
+		tile_ids: PackedStringArray, wide: int, id: int, shaped: Dictionary,
+		map: MapData) -> Dictionary:
 	var data: Array[int] = []
 	for y in rows.size():
 		var row: String = rows[y]
@@ -252,6 +275,10 @@ static func _tile_layer(name: String, rows: Array[String], legend: Dictionary,
 			var ch := row[x] if x < row.length() else " "
 			var named := str(legend.get(ch, ""))
 			var at := tile_ids.find(named)
+			# Through the same lookup the world paints with, so what an editor opens is the
+			# shoreline the game draws rather than the plain tile under it.
+			if at >= 0 and shaped.has(named):
+				at = TerrainEdges.cell_index(shaped[named] as Array, map.around(Vector2i(x, y)), at)
 			data.append(EMPTY_GID if named.is_empty() or at < 0 else at + 1)
 	return {
 		"type": "tilelayer", "name": name, "id": id, "x": 0, "y": 0,
@@ -320,6 +347,109 @@ static func _properties(fields: Dictionary) -> Array:
 	return out
 
 
+## One Tiled Wang set per edge block, so the terrain brush puts down the shapes the game composes.
+##
+## MEASURED BEFORE IT WAS WRITTEN, against Tiled 1.12.2's own filler driven through
+## `TileLayerWangEdit`, with every tile it picked judged by `TerrainEdges`. What that decided:
+##
+## - **Paint the GROUND, and the water shapes itself.** A side or corner of the grid is the ground's
+##   colour whenever any cell touching it is ground (`TerrainEdges.touching`), which is the one
+##   colouring every cell of a map agrees on. Painting grass around a pond put the game's own shape
+##   in 108 cells of 108. Painting the WATER cannot work for a bank where one side draws the edge:
+##   the brush claims a painted cell's whole border, so every water cell reads alike and the shape
+##   lands in the grass cells, which draw nothing - 40 to 45 cells flipped every way it was tried.
+## - **A single-tile pool cannot be painted**, because all eight of its positions touch ground, which
+##   is plain ground's colouring exactly. No shipped map has one, and a map that did would still
+##   export and come back intact: the translators write and fold columns directly, not by brush.
+## - **A tie is settled by probability rather than by chance** - see `_never_picked`.
+static func _wang_sets(tile_ids: PackedStringArray, edges: Array, colors: Dictionary) -> Array:
+	var out: Array = []
+	for entry: Variant in edges:
+		var block: Dictionary = entry
+		var inner_id := str(block.get("tile", ""))
+		var over := JsonFile.to_string_array(block.get("over", []))
+		var inner := tile_ids.find(inner_id)
+		if inner < 0 or over.is_empty() or tile_ids.find(over[0]) < 0:
+			continue
+		var tiles: Array = [{"tileid": inner, "wangid": _wang_id(0)}]
+		for ground_id: String in over:
+			var ground := tile_ids.find(ground_id)
+			if ground >= 0:
+				tiles.append({"tileid": ground, "wangid": _wang_id(TerrainEdges.EVERY_POSITION)})
+		var first := int(block.get("first", 0))
+		for i in mini(int(block.get("count", 0)), TerrainEdges.MASKS.size()):
+			tiles.append({"tileid": first + i,
+				"wangid": _wang_id(TerrainEdges.touching(TerrainEdges.MASKS[i]))})
+		out.append({
+			"name": "%s over %s" % [inner_id, over[0]], "type": "mixed", "tile": inner,
+			"class": "", "properties": [],
+			"colors": [_wang_color(inner_id, inner, colors),
+				_wang_color(over[0], tile_ids.find(over[0]), colors)],
+			"wangtiles": tiles,
+		})
+	return out
+
+
+## Eight positions in Tiled's order, which is `TerrainEdges`' bit order: both run clockwise from
+## the top. Read from Tiled's own `wangset.h` at the installed tag and confirmed by asking the
+## installed binary which positions it treats as edges and which as corners, 8 of 8.
+static func _wang_id(touches: int) -> Array[int]:
+	var out: Array[int] = []
+	for i in TerrainEdges.OFFSETS.size():
+		out.append(GROUND if (touches & (1 << i)) != 0 else INNER)
+	return out
+
+
+## A brush colour, swatched from the tile it paints. The swatch is only what Tiled draws beside the
+## name; a caller with no art to hand gets a grey built from a number, `LdtkMap._chrome`'s rule.
+static func _wang_color(label: String, tile: int, colors: Dictionary) -> Dictionary:
+	var level := 64 + (tile * 37) % 128
+	return {
+		"name": label, "probability": 1.0, "tile": tile, "class": "", "properties": [],
+		"color": str(colors.get(label, "#%02x%02x%02x" % [level, level, level])),
+	}
+
+
+## The tiles the brush may RECOGNISE but must never PICK, as Tiled's per-tile probability.
+##
+## Two kinds, and both were measured rather than guessed. A shape whose eight positions are all one
+## colour means exactly what that material's plain tile means, and the filler chose between the two
+## at random - a third of painted grass came out as single-tile ponds. And every tile of an `over`
+## group past its first is a variant nobody asked the brush for: `grass_alt` was scattered over 41
+## to 50 of 90 painted cells. At probability 0 the variant was never painted in 360 grass cells,
+## and with these sets exported both brushes put the game's shape in 216 cells of 216 - while an
+## existing variant still reads as ground, so painting beside one leaves it alone.
+static func _never_picked(tile_ids: PackedStringArray, edges: Array) -> Array:
+	var never := {}
+	var painted := {}
+	for entry: Variant in edges:
+		var block: Dictionary = entry
+		painted[tile_ids.find(str(block.get("tile", "")))] = true
+		var over := JsonFile.to_string_array(block.get("over", []))
+		for k in over.size():
+			var at := tile_ids.find(over[k])
+			if at < 0:
+				continue
+			if k == 0:
+				painted[at] = true
+			else:
+				never[at] = true
+		var first := int(block.get("first", 0))
+		for i in mini(int(block.get("count", 0)), TerrainEdges.MASKS.size()):
+			var reach := TerrainEdges.touching(TerrainEdges.MASKS[i])
+			if reach == 0 or reach == TerrainEdges.EVERY_POSITION:
+				never[first + i] = true
+	var listed: Array[int] = []
+	for key: Variant in never.keys():
+		if not painted.has(key):
+			listed.append(int(key))
+	listed.sort()
+	var out: Array = []
+	for id in listed:
+		out.append({"id": id, "probability": 0.0})
+	return out
+
+
 # -- reading ------------------------------------------------------------------------------------
 
 static func _read_properties(raw: Variant) -> Dictionary:
@@ -335,7 +465,7 @@ static func _read_properties(raw: Variant) -> Dictionary:
 
 
 static func _rows_of(layer: Dictionary, tile_ids: PackedStringArray, first_gid: int,
-		legend: Dictionary, used: Dictionary) -> Array[String]:
+		legend: Dictionary, used: Dictionary, edges: Array) -> Array[String]:
 	# The characters a legend may use, in the order they are handed out. Chosen to look like the
 	# hand-written maps rather than to be dense: a converted map should read like one somebody
 	# typed, because that is the artifact that gets committed and reviewed.
@@ -348,8 +478,9 @@ static func _rows_of(layer: Dictionary, tile_ids: PackedStringArray, first_gid: 
 		var gid := int(data[i])
 		var ch := " "
 		if gid != EMPTY_GID:
-			var at := gid - first_gid
-			var named: String = tile_ids[at] if at >= 0 and at < tile_ids.size() else ""
+			# A composed shape folds back to the tile it IS, so whichever shape a cell wore in the
+			# editor, the map that comes back holds the same tile there.
+			var named := TerrainEdges.tile_of_column(gid - first_gid, tile_ids, edges)
 			if not named.is_empty():
 				if not used.has(named):
 					var next: String = ALPHABET[used.size()] if used.size() < ALPHABET.length() \

@@ -16,9 +16,10 @@ one-glance menu of things still worth trying.
 - ~~**Terrain transitions**~~ (an edge tile where grass meets water, placed by a rule). **Taken
   up by M41**, and the constraint this entry named — that a cell would stop being one tile id —
   turned out to be avoidable rather than a price: the shapes live in atlas columns no map may
-  name, so `MapData`, both editor translators and every map file were untouched. What is still
-  out is an edge between two materials that BOTH carry a ring, and a Wang-set export so an
-  editor draws the transitions too; see the entry below for both hooks.
+  name, so `MapData` and every map file were untouched. **Both of what this entry left out are
+  in by M48**: an edge between two ringed materials had in fact shipped in M41 and is now a rule,
+  and an editor is shown the shapes with a terrain brush that paints them - from the GROUND,
+  which is its own entry at the bottom of this file.
 - ~~**Tiled / LDtk map import.**~~ **Finished and VERIFIED for Tiled, 2026-09-01.** Both editors,
   both directions, `tools/map_io.gd` as the command. Tiled was installed and a generated map
   opened in it: 352 cells over both layers matching the source exactly, all five object layers
@@ -1409,10 +1410,9 @@ one tile id.
   wrong. The case is not deferred — `water`'s `over` has named `path` since this very milestone,
   and the cave pool has had a shoreline ever since. There is no group-order contest: `pick_group`
   ranks ONE tile's own `over` groups and cannot see a neighbour's ring, so it was never the hook.
-  What was actually missing was a RULE, and M48 added it. **Also deferred:** exporting a Tiled Wang
-  set so an editor draws the transitions as the game does — hook is `TiledMap`'s tileset entry plus
-  the crop in `map_io._copy_atlas_to`, which today hides the composed columns from the editor on
-  purpose.
+  What was actually missing was a RULE, and M48 added it. **The Wang-set export this bullet also
+  deferred is taken up by M48 too** — the crop in `map_io._copy_atlas_to` is gone, and the fork it
+  turned into is the last entry in this file.
 - **Still gaps rather than forks:** animated water (needs a clock the tile runtime has not) and
   multi-tile objects (need a map record rather than a cell).
 
@@ -3271,3 +3271,52 @@ ground they can cross. The single fringe says something true.
 before it validated one tile at a time, and `TerrainEdges.pick_group` cannot see a neighbour's ring
 at all. The shipped bank cannot express the fault, so the mutant is judged against a synthetic
 reciprocal bank rather than against `data/tiles/lpc32.json`.
+
+---
+
+## An editor is shown the shapes, and its brush paints the GROUND — *M48*
+
+The game composes a shoreline for each cell from its eight neighbours, one material drawing each
+edge. Tiled's terrain brush picks a tile per cell from colours on the sides and corners BETWEEN
+cells. **The fork: how to put the one onto the other.** Every option was measured through Tiled
+1.12.2's own filler, driven by a script with each tile it picked judged by `TerrainEdges`, before
+any of it was written.
+
+- **A Wang set coloured ground wherever any touching cell is ground, painted from the ground.** A
+  side is ground exactly when that neighbour is; a corner when any of the three cells sharing it
+  is. Painting grass around a pond put the game's own shape in 108 of 108 cells, for both the
+  water and the path blocks, through the sets the exporter really writes. Cost: the water itself
+  cannot be brushed, and a one-tile pool has no colouring of its own.
+- **Paint the water instead.** The natural gesture. Structurally impossible for a one-sided bank:
+  the brush claims a painted cell's whole border, so every water cell reads alike and the shape
+  information lands in the ground cells, which draw nothing. 40-45 cells flipped in every
+  configuration tried.
+- **Leave the corners `normalise` ignores unset (Tiled's `0`).** The obvious reading of "the shape
+  does not depend on that corner". Worse, and the reason is in the filler's source: a candidate
+  must match every painted position exactly, so an unset corner matches nothing painted, and
+  painting ground erased every cell of the pond.
+- **Tiled Automapping rules instead of a Wang set.** Would let an author paint the water and would
+  express a one-tile pool, because a rule reads cells rather than corners. Costs a rules file per
+  bank and "AutoMap While Drawing" switched on by every author.
+- **Export the shapes and fold them back, with no brush.** Is the foundation of the chosen road
+  rather than a road of its own: an editor is shown the shoreline either way.
+
+**Chosen: the Wang set, painted from the ground.** It is the one colouring every cell agrees on,
+it was exact wherever it can be used, and no shipped map has a cell it cannot make. Two ties the
+filler would otherwise settle at random are put at Tiled probability 0: the two one-colour shapes,
+which mean what a plain tile means (without it, single-tile ponds were scattered over a third of
+painted grass), and every `over` variant past the first (`grass_alt` was painted over 41-50 of 90
+cells).
+
+- Paint the water — `rejected — impossible for a bank where one side draws the edge`.
+- Unset corners — `rejected — measured to erase whole ponds`.
+- Automapping — `deferred — worth trying`. **Revisit hook:** `map_io` writing a `rules.txt` and
+  rule maps beside the export, generated from the same `TerrainEdges.MASKS` table the Wang set is
+  built from, so the two cannot disagree about which shape a neighbourhood asks for.
+- Export and fold only — `rejected — the brush was the point`; it ships anyway, underneath.
+
+**Tiled's `wangid` order was not guessed.** The JSON documentation states only `uchar[8]`. It was
+read from `wangset.h` at the installed tag (clockwise from the top — `TerrainEdges`' own order) and
+confirmed on the binary by putting one colour at each position and asking which it treats as an
+edge: 8 of 8 as predicted.
+
