@@ -133,8 +133,9 @@ the boot refuses rather than guessing.
   when its design demands it: a game that varies a knob for no reason turns every difference
   a player feels into a suspected defect.
 - **How a game fights** → a `CombatDef` under `data/combat/`, named by the manifest's `combat`:
-  the level curves, the magic pool and the timing windows. A manifest with none is a game that
-  cannot fight, and `tools/new_game.sh --combat=none|turns` writes that choice.
+  the level curves, the magic pool, the timing windows, and `style` - `turns`, the menu fight, or
+  `arena`, the sword. A manifest with none is a game that cannot fight, and
+  `tools/new_game.sh --combat=none|turns|arena` writes that choice.
 - **New mechanics** → a `GameHooks` subclass under `games/<id>/`, named by the manifest.
   Never under `scripts/`: that tree is the template, and every mechanic added to it makes
   the template more specific to one game.

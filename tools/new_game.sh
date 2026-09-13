@@ -6,7 +6,7 @@
 #   tools/new_game.sh --id=my_game --out=user://somewhere   # anywhere but the project
 #
 # Flags: --id (required) --title --style --character --npc --sound
-#        --movement=free|grid --save=anywhere|at_point --combat=none|turns --hooks --out
+#        --movement=free|grid --save=anywhere|at_point --combat=none|turns|arena --hooks --out
 #
 # A wrapper over `tools/new_game.gd`, and it exists for one reason: so nobody has to type the
 # engine's path. `_engine.sh` resolves it from the usual places and honours GODOT_BIN, the same

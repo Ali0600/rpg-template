@@ -26,7 +26,9 @@ const STYLE_DEFAULT := "lpc32"
 const VOICE_FALLBACK := "dusk16"
 
 const MOVEMENTS: Array[String] = ["free", "grid"]
-const COMBATS: Array[String] = ["none", "turns"]
+## `none` is a game with no CombatDef; every other word is one of CombatDef.STYLES, and
+## test_game_scaffold holds the two lists to each other in both directions.
+const COMBATS: Array[String] = ["none", "turns", "arena"]
 
 ## The starter room: ten by seven, walled all the way round. The wall is not decoration -
 ## `MapData.problems` refuses a perimeter tile that is neither solid nor a warp, because a map with
@@ -140,7 +142,7 @@ static func plan(options: Dictionary, known: Dictionary, root: String = "res://"
 	out["data/dialog/%s_hello.json" % id] = _dialog_text(want)
 	if _wants_own_config(want):
 		out["data/config/%s.tres" % id] = _config_text(want)
-	if str(want["combat"]) == "turns":
+	if _fights(want):
 		out["data/combat/%s.tres" % id] = _combat_text(want)
 	if bool(want["hooks"]):
 		out["games/%s/%s_hooks.gd" % [id, id]] = _hooks_text(want)
@@ -242,7 +244,7 @@ static func _manifest_text(want: Dictionary, root: String) -> String:
 		'config = ExtResource("2_config")',
 		'sound_style = ExtResource("3_sound")',
 	]
-	if str(want["combat"]) == "turns":
+	if _fights(want):
 		refs.append({"type": "Resource", "path": _under(root, "data/combat/%s.tres" % id),
 			"id": "4_combat"})
 		body.append('combat = ExtResource("4_combat")')
@@ -286,13 +288,23 @@ static func _config_text(want: Dictionary) -> String:
 	])
 
 
+## Whether this game can fight at all, whichever way it fights.
+static func _fights(want: Dictionary) -> bool:
+	return str(want["combat"]) != "none"
+
+
 static func _combat_text(want: Dictionary) -> String:
-	return _tres("CombatDef", [
-		{"type": "Script", "path": "res://scripts/data/combat_def.gd", "id": "1_combat"},
-	], "1_combat", [
+	var body: Array[String] = [
 		'id = &"%s"' % str(want["id"]),
 		"xp_curve = Array[int](%s)" % str(XP_CURVE),
-	], [
+	]
+	# The one axis an arena game moves is stated; every arena number rides its default, the
+	# _config_text rule - state the axis you meant to move and inherit the rest.
+	if str(want["combat"]) == String(CombatDef.STYLE_ARENA):
+		body.append('style = &"arena"')
+	return _tres("CombatDef", [
+		{"type": "Script", "path": "res://scripts/data/combat_def.gd", "id": "1_combat"},
+	], "1_combat", body, [
 		"How fighting works in %s. A game with no combat definition simply cannot" % str(want["title"]),
 		"fight, and that is a legal shape forever - this file is here because one was asked for.",
 		"",

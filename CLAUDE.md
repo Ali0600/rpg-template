@@ -565,6 +565,19 @@ draw from `derive("arena")` (`docs/DECISIONS.md`, M50). It calls `BattleLogic`'s
 seal are one set of lines for both resolvers: a second copy of "the award sums the formation" is the
 one that forgets to sum. `tests/helpers/arena_driver.gd` is its `BattleDriver`, PERFECT and CHARGE.
 
+**Which screen opens is `CombatDef.style`, and `FightScreen` is what both screens are.** `turns`,
+the default, or `arena`, refused by name; only the manifest's combat is read, and a companion's is
+ignored like its timing fields. `world_scene._fight_screen_for` reads it after every guard in
+`open_battle_with` has run, so a style chooses a screen and can never let a refused fight through.
+`FightScreen` holds the two signals, `LAYER`, the `_committed` latch, `MAX_FOES` (a formation is a map
+rule) and `fighter_scale`; `BattleScreen` and `ArenaScreen` extend it, and `fight_screen()` is
+whichever is up. `ArenaScreen` is three windows - a banner with one bar for `ArenaSim.shown_foe()`,
+the floor, the leader's health - with the floor at 16 design pixels a tile, `FLOOR_MAX_TILES` 16x4,
+and its margins read from every sheet's own anchor, so a body pressed into a wall stays inside its
+window in either kind of art. It READS the move actions through `Locomotion.read_input()` each
+frame and takes `interact` as a PRESS, so holding it is one swing. A body flickers two frames on and
+two off for as long as it is protected, and a felled foe leaves the floor.
+
 **Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
 and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
 it - Super Mario RPG's shape, where one touched sprite opens a formation the ROM already knew

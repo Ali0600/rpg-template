@@ -590,6 +590,10 @@ func member_name(at: int) -> String:
 	return (_members[at] as BattleLogic.Fighter).name
 
 
+func member_character(at: int) -> StringName:
+	return (_members[at] as BattleLogic.Fighter).character
+
+
 func leader_hp() -> int:
 	return _leader.hp
 

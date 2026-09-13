@@ -267,7 +267,7 @@ func _full_field_screen() -> BattleScreen:
 			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
 			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, []))
 	var foes: Array = []
-	for at in BattleScreen.MAX_FOES:
+	for at in FightScreen.MAX_FOES:
 		# Long names here too, and DIFFERENT ones: a formation that repeats a name gets lettered,
 		# which makes every caption a little wider than the file it came from.
 		var foe := _enemy()
@@ -595,7 +595,7 @@ func _swept_field_screen() -> BattleScreen:
 			[BattleLogic.SpellRow.of(&"gale", "Gale", 1, SpellDef.Kind.ATTACK, 12, 0,
 				SpellDef.Target.ALL, SpellDef.Stat.ATTACK, &"lightning")]))
 	var foes: Array = []
-	for at in BattleScreen.MAX_FOES:
+	for at in FightScreen.MAX_FOES:
 		var foe := _enemy()
 		foe.id = StringName("foe%d" % at)
 		foe.name = "Deepdweller%d" % at
@@ -605,7 +605,7 @@ func _swept_field_screen() -> BattleScreen:
 		# audit can see an unwrapped caption depends on the platform's font metrics - measured,
 		# after a mutant killed on one runner and survived on another.
 		foe.resistances = {&"lightning": 50}
-		foe.max_hp = 4 if at < BattleScreen.MAX_FOES - 1 else 99
+		foe.max_hp = 4 if at < FightScreen.MAX_FOES - 1 else 99
 		foes.append(foe)
 	var logic := BattleLogic.of(combat, foes, members, [], "map/foe", 7)
 	screen.setup(logic, load("res://data/styles/dusk16.tres") as SpriteStyle, VIEWPORT,
@@ -943,8 +943,8 @@ func test_every_foe_of_a_full_formation_is_named() -> void:
 		if label.visible and not label.text.strip_edges().is_empty():
 			drawn += 1
 	assert_int(drawn).override_failure_message(
-		"a formation of %d named %d of them" % [BattleScreen.MAX_FOES, drawn]) \
-		.is_equal(BattleScreen.MAX_FOES)
+		"a formation of %d named %d of them" % [FightScreen.MAX_FOES, drawn]) \
+		.is_equal(FightScreen.MAX_FOES)
 
 func test_one_bar_says_how_the_foe_you_are_aiming_at_is_doing() -> void:
 	# ONE, whatever the formation's size - which is the M42 divergence from this template's own
@@ -953,7 +953,7 @@ func test_one_bar_says_how_the_foe_you_are_aiming_at_is_doing() -> void:
 	assert_str(lone._foe_bar.numbers.text).override_failure_message(
 		"the banner says nothing about the foe in front of you").is_equal("99/99")
 	var crowd := _full_field_screen()
-	assert_int(crowd._foe_names.size()).is_equal(BattleScreen.MAX_FOES)
+	assert_int(crowd._foe_names.size()).is_equal(FightScreen.MAX_FOES)
 	assert_str(crowd._foe_bar.numbers.text).override_failure_message(
 		"a formation of three draws something other than one bar").is_equal("99/99")
 

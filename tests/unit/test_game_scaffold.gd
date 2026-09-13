@@ -304,3 +304,38 @@ func test_what_this_project_currently_has_is_read_off_the_disk() -> void:
 	assert_array(cast).contains(["hero"])
 	assert_bool(cast.has("hero.sheet")).override_failure_message(
 		"the sheet suffix is being carried into the character id").is_false()
+
+
+func test_an_arena_game_gets_a_combat_definition_that_says_so() -> void:
+	var planned := _plan({"combat": "arena"})
+	var text := str(planned["data/combat/proof.tres"])
+	assert_str(text).contains('style = &"arena"')
+	assert_str(text).contains("xp_curve = Array[int](")
+	assert_str(str(planned["data/games/proof.tres"])).contains(
+		'path="res://data/combat/proof.tres"')
+	# The turn fight states no style: it is the default, and a file repeating a default reads like a
+	# decision somebody made.
+	assert_str(str(_plan({"combat": "turns"})["data/combat/proof.tres"])).not_contains("style =")
+	# And the engine reads the line back as an arena. A misspelt key in a .tres is dropped silently
+	# and the style would load as the default.
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(TITLE_SCRATCH))
+	var path := "%s/proof.tres" % TITLE_SCRATCH
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string(text)
+	file.close()
+	var loaded := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as CombatDef
+	assert_object(loaded).is_not_null()
+	assert_str(String(loaded.style)).is_equal("arena")
+
+
+func test_every_combat_the_tool_offers_is_a_style_the_game_answers_and_back() -> void:
+	# `none` is the absence of a CombatDef. Every other word the tool writes must be one CombatDef
+	# accepts, and every style CombatDef accepts must be one the tool can write: two lists in two
+	# files, held to each other in both directions.
+	assert_str(GameScaffold.COMBATS[0]).is_equal("none")
+	var offered: Array[String] = []
+	offered.assign(GameScaffold.COMBATS.slice(1))
+	var answered: Array[String] = []
+	for style: StringName in CombatDef.STYLES:
+		answered.append(String(style))
+	assert_array(offered).contains_exactly_in_any_order(answered)
