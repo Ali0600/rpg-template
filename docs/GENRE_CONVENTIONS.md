@@ -47,7 +47,7 @@ secondary sources only, marked wherever it is cited. Neither is a reference for 
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices, a headed list | All of it, and the columns are named since M42 | **met** (M18.1, chrome M42) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices, a named speaker, a portrait | Framed box, speaker in its header, the speaker's face, reveal, choice band, size-gated | **met** (M42) — no advance indicator, [named](#6-dialog) |
-| [Battle](#7-battle) | Random encounters, turn menu, a party; in an action RPG, a sword on the field | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md); a real-time resolver [researched](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) and its shape [decided](DECISIONS.md) (M49) |
+| [Battle](#7-battle) | Random encounters, turn menu, a party; in an action RPG, a sword on the field | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md); a real-time resolver [researched](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) and its shape [decided](DECISIONS.md) (M49); what its screen shows [read the same way](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) before it was built (M50) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
@@ -749,6 +749,39 @@ are the findings it rests on.
 - The flicker is the invulnerability made visible, so there is no separate hurt pose to draw.
 - The rules are a pure simulation stepped once per physics frame, `BattleLogic`'s discipline, so a
   balance gate and a replayed session can run them with no scene.
+
+**What the screen shows while the sword is out.** Added in M50, before the arena's screen was
+built, from the same three codebases at the same commits.
+
+- **(a) The player's health is always on screen, and no ordinary enemy's is.** A Link to the Past's
+  `Hud_Update_Hearts` (`src/hud.c`) draws the life meter from `link_health_current` against
+  `link_health_capacity`, and nothing in `hud.c` reads `sprite_health`, the enemies' table. Link's
+  Awakening builds its heart row as draw commands (`LoadHeartsCount`, `src/code/bank2.asm`) and has
+  no enemy meter either.
+- **(a) A struck enemy flashes, and the flash is its protection.** A Link to the Past's
+  `Sprite_TimersAndOam` (`src/sprite.c`) writes `sprite_hit_timer[k] * 2 & 0xe` into the sprite's
+  OAM palette bits on every frame the hit timer runs, and clears them when it ends, so the enemy
+  cycles colour for exactly as long as it is being hurt. Link's Awakening's per-frame entity update
+  (`src/code/bank14.asm`, after `.flashCountdownEnd`, commented "invert the palette every 4 frames")
+  switches the second palette on and off in four-frame spans while `wEntitiesFlashCountdownTable`
+  runs - the table whose own comment says a flashing entity takes no damage from the sword. The
+  picture and the rule are one counter, which is what the paragraph above found for Link.
+- **(a) Zelda II draws a meter for a boss.** Its RAM map names `$C7` "Boss Hit Points (00-20)" and
+  `src/prg0.asm` carries the "draw boss hp bar" routine beside Link's own life meter (`$774`).
+  Ordinary enemies get the flash (`$40E,X`, "causes flashing") and no meter.
+- **(b) Ni no Kuni** draws HP and MP as coloured bars on its battle screen and separates the
+  targeted enemy from the rest with a dark translucent strip, according to an interface analysis.
+  Whether every enemy carries a bar or only the target does could not be confirmed: the page that
+  would have said answered 403.
+
+**What the arena takes from it.** The leader's health is the one number always drawn, in a window of
+its own, with no magic and no command list, because there is nothing to choose. A foe's health is
+still shown, as ONE bar for the foe last struck - or the nearest while nothing has been - which is
+§16's rule for the turn fight rather than Zelda's. A template whose every other fight shows the
+aimed-at foe's bar would otherwise hide the one number a sword changes, and Zelda II's boss meter
+and Ni no Kuni's target are the precedent for drawing it. A foe that has just been struck flickers
+for exactly as long as it cannot be struck again, and so does the player; there is no hurt pose,
+because no sheet in this template has one.
 
 **Unverified, and named rather than guessed:** how a Ni no Kuni fight begins; the values Link's
 Awakening writes when an enemy touches Link and when the sword strikes an enemy (only the spike
@@ -1792,7 +1825,7 @@ woodus, nesworld, guides.gamercorner, wikibound, dragonquest.fandom (**402**), e
 - [dragon-quest.org — Dragon Quest IV](https://dragon-quest.org/wiki/Dragon_Quest_IV) — save
   moved from castles to churches, so the developers could write the monarchs as characters
 
-Action combat research (§7d, added in M49). The three codebases were cloned at the commits named
+Action combat research (§7d, added in M49; what the screen shows, added in M50). The three codebases were cloned at the commits named
 and read directly, the M33 route again, and every number in §7d is a line in one of them. Ni no
 Kuni is prose only and is marked so.
 
@@ -1805,7 +1838,9 @@ Kuni is prose only and is marked so.
   `src/code/bank2.asm` (`HurtBySpikes`); `src/code/bank0.asm` (the per-frame invincibility
   decrement); `src/code/entities/bank3.asm` (`ConfigureEntityRecoil`,
   `DefaultEnemyDamageCollisionHandler`); `src/code/entities/03_moblin.asm` (`AnimateRoamingEnemy`);
-  `src/code/entities/05__helpers_2.asm` (`GetEntityDirectionToLink_05`)
+  `src/code/entities/05__helpers_2.asm` (`GetEntityDirectionToLink_05`); and for the screen (M50),
+  `src/code/bank2.asm` (`LoadHeartsCount`) and `src/code/bank14.asm` (the palette switched while
+  `wEntitiesFlashCountdownTable` runs)
 - [snesrev/zelda3](https://github.com/snesrev/zelda3) at `fbbb3f9` — `src/player.c`
   (`Link_ControlHandler`, `Link_CheckForSwordSwing`, `HandleSwordSfxAndBeam`, `kSpinAttackDelays`);
   `src/player_oam.c` (where `countdown_for_blink` is decremented); `src/sprite.c`
@@ -1813,9 +1848,11 @@ Kuni is prose only and is marked so.
   `Sprite_AttemptDamageToLinkPlusRecoil`, `Sprite_ApplyRecoilToLink`, `Sprite_AttemptZapDamage`,
   `Sprite_CalculateSwordDamage`, `Sprite_GiveDamage`, `Guard_ParrySwordAttacks`);
   `src/sprite_main.c` (`Sprite_6D_Rat`, `Soldier_Func12`, `Octoballoon_RecoilLink`);
-  `src/messaging.c` (`Module12_GameOver`, `Death_Func1`)
+  `src/messaging.c` (`Module12_GameOver`, `Death_Func1`); and for the screen (M50), `src/hud.c`
+  (`Hud_Update_Hearts`) and `src/sprite.c` (`Sprite_TimersAndOam`)
 - [FiendsOfTheElements/z2disassembly](https://github.com/FiendsOfTheElements/z2disassembly) at
-  `c4c3a4c` — `ram-map.txt` only: `$518`, `$50C`, `$50A`, `$40E,X`
+  `c4c3a4c` — `ram-map.txt`: `$518`, `$50C`, `$50A`, `$40E,X`; and for the screen (M50) `$C7`,
+  `$774`, and the "draw boss hp bar" comments in `src/prg0.asm`
 - [Wikipedia — Ni no Kuni: Wrath of the White Witch](https://en.wikipedia.org/wiki/Ni_no_Kuni:_Wrath_of_the_White_Witch)
   — the open battlefield and what a win pays (**secondhand**)
 - [Nintendo World Report — Switch review](http://www.nintendoworldreport.com/review/51807/ni-no-kuni-wrath-of-the-white-witch-switch-review)
@@ -1824,6 +1861,8 @@ Kuni is prose only and is marked so.
   — what losing costs (**secondhand**)
 - [TheGamer — combat tips](https://www.thegamer.com/ni-no-kuni-wrath-white-witch-combat-tips/) —
   the command to run away (**secondhand**)
+- [Champicky — battle screen interface analysis](https://champicky.com/2020/12/15/ni-no-kuni-wrath-of-the-white-witch-battle-screen-interface-design-analysis/)
+  — HP and MP drawn as bars, and the strip that marks the target (**secondhand**, M50)
 - [Glenn Fiedler — Fix Your Timestep!](https://gafferongames.com/post/fix_your_timestep/)
 - Godot documentation — [Idle and Physics Processing](https://docs.godotengine.org/en/stable/tutorials/scripting/idle_and_physics_processing.html),
   [Area2D](https://docs.godotengine.org/en/stable/classes/class_area2d.html) and
@@ -1831,4 +1870,6 @@ Kuni is prose only and is marked so.
 
 Bot-blocked or unreached on 2026-09-13 and therefore NOT cited above: the Neoseeker walkthrough and
 the GameFAQs guide that would have said how a Ni no Kuni fight begins (403 each), and the Eurogamer,
-IGN, GameSpot and RPGamer reviews. tcrf.net answered with an anti-bot page and was not read.
+IGN, GameSpot and RPGamer reviews. tcrf.net answered with an anti-bot page and was not read. In
+M50 the Neoseeker controls page, which would have said whether every Ni no Kuni enemy carries a
+bar, answered 403 as well.
