@@ -57,10 +57,14 @@ func test_an_unknown_name_is_returned_so_the_error_can_name_it() -> void:
 	assert_str(GameSelect.choose(TWO, args, "quest")).is_equal("typo")
 
 
-func test_one_game_never_asks() -> void:
+func test_one_game_or_none_never_asks() -> void:
 	# A template someone has just cloned has one game, and a menu with one row in it is a question
-	# whose answer it already has.
+	# whose answer it already has. With NO games there is nothing to offer at all, and that is the
+	# case the size guard is for: choose() already answers with the only game when there is one, so
+	# one game alone could never tell the guard from its absence - a mutant deleting it survived.
 	assert_bool(GameSelect.should_ask(ONE, _no_args(), "")).is_false()
+	var none: Array[String] = []
+	assert_bool(GameSelect.should_ask(none, _no_args(), "")).is_false()
 
 
 func test_two_games_ask_only_when_nothing_else_chose() -> void:

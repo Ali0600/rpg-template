@@ -799,7 +799,7 @@ scripts/world/world_scene.gd	s|\t_close_pause\(\)  # first, and the trailing not
 scripts/world/world_scene.gd	s|\tSettings\.cycle_palette\(Registry\.ids_of\(&\"UiPalette\"\)\)|\tpass|	tests/integration/test_options_palette.gd	the Window row is pressed and the windows never change colour
 scripts/world/world_scene.gd	s|\tRouter\.open_overlay\(Router\.State\.OPTIONS if over_world else Router\.State\.OPTIONS_AT_TITLE\)|\tRouter.open_overlay(Router.State.OPTIONS)|	tests/integration/test_flow_model.gd	the page over the title claims to be the one over the world, so leaving it goes nowhere real
 scripts/ui/title_menu.gd	s|const ROW_OPTIONS := ROW_CREDITS \+ 1|const ROW_OPTIONS := ROW_CREDITS|	tests/unit/test_title_menu.gd	the Options row lands on top of Credits, so one of them cannot be reached
-scripts/data/game_select.gd	s|if game_ids.size\(\) < 2:|if false:|	tests/unit/test_game_select.gd	a build with one game asks which to play
+scripts/data/game_select.gd	s|if game_ids.size\(\) < 2:|if false:|	tests/unit/test_game_select.gd	a build with no games at all asks which to play, and offers an empty title
 scripts/data/game_select.gd	s|return choose\(game_ids, args_in, setting\).is_empty\(\)|return true|	tests/unit/test_game_select.gd	--game= no longer hides the Switch game row, so every scripted session meets it
 scripts/ui/title_menu.gd	s|return ROW_GAME \+ 1 if _switchable else ROW_OPTIONS \+ 1|return ROW_OPTIONS + 1|	tests/unit/test_title_menu.gd	the Switch game row never appears
 scripts/ui/title_menu.gd	s|return ROW_GAME \+ 1 if _switchable else ROW_OPTIONS \+ 1|return ROW_GAME + 1|	tests/unit/test_title_menu.gd	the title offers to switch with nowhere to go
