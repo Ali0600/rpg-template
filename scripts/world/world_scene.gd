@@ -2176,6 +2176,13 @@ func battle_screen() -> BattleScreen:
 	return _battle
 
 
+## Whichever screen is resolving the fight that is up - the turn fight's, and from M50 the arena's -
+## or null. The flow model's `battle_screen_up` asks this rather than battle_screen(), because a
+## fight is one state whichever resolver draws it.
+func fight_screen() -> CanvasLayer:
+	return _battle as CanvasLayer
+
+
 ## The title, for tests that read what it drew rather than driving keys at it.
 func title_screen() -> TitleScreen:
 	return _title

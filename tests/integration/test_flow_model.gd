@@ -311,8 +311,8 @@ func _invariant_holds(name: String) -> bool:
 			var pause: PauseScreen = _world.pause_screen()
 			return pause != null
 		"battle_screen_up":
-			var battle: BattleScreen = _world.battle_screen()
-			return battle != null
+			# A resolver's screen, whichever one draws the fight: the state is the same for both.
+			return _world.fight_screen() != null
 		"shop_screen_up":
 			var shop: ShopScreen = _world.shop_screen()
 			return shop != null
