@@ -1553,7 +1553,7 @@ hold maps from different banks. The first export wrote a bare `tiles.png` and ev
 BLANK - found by opening one in Tiled, and findable nowhere else, because the round trip never
 reads the image and only an editor does.
 
-**Tiled's own CLI is the strongest check available here**, and it is a one-off rather than a gate
+**Tiled's own CLI is an independent reading of a file**, and it is a one-off rather than a gate
 (it needs Tiled installed, which CI does not have). `tiled --export-map csv <map>.tmj out.csv`
 makes Tiled PARSE the file and re-emit its tile data; comparing that against the source map is an
 independent reading. Measured 2026-09-01 on `quest_village`: 352 cells over both layers, zero
@@ -1561,6 +1561,18 @@ mismatches, all five object layers present with their counts, and NPC fields arr
 typed Tiled properties. Note Tiled's CSV writes 0-based LOCAL ids where the `.tmj` stores GIDs
 (`firstgid + index`), so a uniform off-by-one between the two is the format's convention and not
 a bug - it looked like 176 failures for a moment.
+
+**Tiled's filler can be driven from a script, and for anything a brush does that out-ranks the CSV
+check.** `tiled --evaluate <script.js>` runs the scripting API with no window, and
+`TileLayer.wangEdit(wangSet)` hands back the same `WangFiller` the terrain brush uses - `setEdge` and
+`setCorner` spread paint onto neighbouring cells the way a whole-tile stroke does, `setWangIndex`
+does not - so a script can paint a map and record every tile the editor picked. Judge those picks
+with a GDScript run as `-s /absolute/path/judge.gd` beside `--path .`: a script outside the project
+still sees every `class_name`, so the verdict comes from the real `TerrainEdges` rather than a copy.
+That is how #164's brush was designed, and the scripts were not kept - rebuild them before changing
+the Wang set. Two traps that each cost a round: a `TextFile` opened `WriteOnly` is a save-file and
+writes nothing until `commit()`, and a `-s` script that errors before `quit()` never exits - time-box
+every run and `quit()` on bad input.
 
 **Through the `.sh` wrapper, like `check.sh` and `pack_check.sh`** - it resolves the engine
 through `_engine.sh` (honouring `GODOT_BIN`), so nobody types the app's path and nothing breaks

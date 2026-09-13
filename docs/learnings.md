@@ -2354,3 +2354,31 @@ match every painted position exactly. A single-tile pool turned out to be unrepr
 with scripted input and judge its output with your real code before designing the table. A
 mismatch between two models is structural, and it is invisible in the format documentation.
 
+### A dependency audit only sees the directories it was run in
+
+`npm audit` at a repository's root says nothing about a lockfile two directories down, so "there is
+no npm here" is a conclusion about the root and nothing more.
+
+**Why it came up.** The 2026-09-07 security audit reported that the only dependency ecosystem was
+GitHub Actions, having found no `package.json` at the root. `tools/mcp_bench/` has its own
+lockfile, and switching on Dependabot alerts found six advisories in it within a minute, four of
+them High (#159 fixed them). The same pass read the workflow files from a local checkout one commit
+behind `origin/main`, and so described a hardening fix that had already landed as missing.
+
+**Takeaway.** List every manifest first (`find . -name package-lock.json`, `requirements*.txt`, and
+so on) and audit each directory that has one; audit the ref that is actually deployed, and say
+which ref each claim was measured at.
+
+### `npm audit fix` reports on the lockfile, not on what node loads
+
+After `npm audit fix` the lockfile held the patched versions while `node_modules` still held the
+vulnerable ones - and both it and a following `npm install` printed "found 0 vulnerabilities".
+
+**Why it came up.** #159 bumped `fast-uri` and `qs` in `tools/mcp_bench`. Reading the version out of
+the installed package's own `package.json` showed `fast-uri` 3.1.5 still on disk after both commands
+had called the tree clean.
+
+**Takeaway.** After any dependency change, check the installed package's version against the
+lockfile. `npm ci` forces the two to agree and proves the lockfile installs from clean; then import
+the code that depends on it, because a clean lockfile is not a working import.
+

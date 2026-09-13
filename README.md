@@ -189,12 +189,13 @@ behaving strangely.
   sub-tile autotiling that builds 47 edge shapes from 12 pieces. All of it uses integer
   arithmetic, so the output is byte-identical on macOS and Linux, and CI fails if the committed
   output drifts.
-- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,482
+- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,507
   unit and integration tests → boot → artifact drift → 25 scripted end-to-end play sessions →
-  the exported package played. Actions are pinned to a SHA, tokens get the least access they
-  need, the toolchain is checksum-verified, and the Pages deploy waits for the green run of the
-  exact commit it ships.
-- Added mutation testing over the project's own quality gates: 707 mutants, each proving a rule
+  the exported package played. Repository policy requires every action to be pinned to a SHA,
+  `main` cannot be force-pushed or deleted, dependency alerts open their own fix PRs, tokens get
+  the least access they need, the toolchain is checksum-verified, and the Pages deploy waits for
+  the green run of the exact commit it ships.
+- Added mutation testing over the project's own quality gates: 724 mutants, each proving a rule
   fails when it is broken. The run is split four ways, with a fast lane that runs only the
   mutants a change touches (pull-request runs went from 18 → 3 min), and a sub-second static
   check that every mutant still targets one line.
@@ -207,9 +208,11 @@ behaving strangely.
 - Replaced hand-written balance formulas with simulation: the real combat engine plays every
   fight to the end under opposite strategies across many seeds. It proves, from the shipped
   data, that skilled play always wins and unskilled play always loses.
-- Grounded design decisions in primary sources — disassembled shipped binaries and the editor's
-  loader source where the documentation was missing or wrong — and recorded how strong the
-  evidence was for each.
+- Grounded design decisions in primary sources — disassembled shipped binaries and editors'
+  own source where the documentation was missing or wrong — and recorded how strong the
+  evidence was for each. For the Tiled export, scripted the editor's autotile algorithm
+  headlessly and checked every tile it chose against the game's own code, which showed the
+  planned design could not work before any of it was built.
 
 ---
 
