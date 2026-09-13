@@ -845,7 +845,7 @@ scripts/util/ldtk_map.gd	s|TerrainEdges.tile_of_column\(at, tile_ids, edges\)|Te
 scripts/util/ldtk_map.gd	s|"__cWid": columns, "__cHei": 1,|"__cWid": _tile_ids.size(), "__cHei": 1,|	tests/unit/test_ldtk_map.gd	the LDtk tileset declares only the plain tiles, so its shorelines point past the sheet
 tools/map_io.gd	s|"edges": file.data.get\("edges", \[\]\) as Array|"edges": []|	tests/unit/test_map_io.gd	map_io hands the translators no edge blocks, so every export is plain ground with no brush and every import folds nothing
 # --- Security audit findings 4-6: what a pack may carry, what a fetch may trust, what a title may break
-tools/pack_check.sh	s|  if ! grep -a -q .res://data/games/. "\$1"; then|  if false; then|	tests/unit/test_ci_paths.gd	a pack whose file table cannot be read is reported as carrying nothing, so an unreadable pack passes the contents check
+tools/pack_check.sh	s|  if ! LC_ALL=C grep -a -q -E .\^data/games/. <<< "\$fields"; then|  if false; then|	tests/unit/test_ci_paths.gd	a pack whose file table cannot be found is reported as carrying nothing, so an unread pack passes the contents check
 tools/pack_check.sh	s|  if \[ -n "\$leaked" \]; then|  if false; then|	tests/unit/test_ci_paths.gd	a pack carrying the test framework, the tests or the raw imports is passed, and players download them
 tools/fetch_tiles.sh	s|  case "\$1" in \*/\*\) return 1 ;; esac|  :|	tests/unit/test_ci_paths.gd	a bank naming ../x.png writes outside the directory the bank reads from
 tools/fetch_tiles.sh	s|  if ! plain_name "\$id"; then|  if false; then|	tests/unit/test_ci_paths.gd	a bank id that is a path makes a directory wherever it points
@@ -858,3 +858,6 @@ scripts/spritegen/tile_bank.gd	s|if not _is_sha256\(str\(record.get\("sha256", "
 data/tiles/lpc32.json	s|"sha256": "9fad54558dcb0aa9|"sha256": "0fad54558dcb0aa9|	tests/unit/test_imported_art.gd	a committed sheet no longer matches the sum its bank names, and nothing notices the art changed
 scripts/util/game_scaffold.gd	s|if _has_control_character\(str\(want\["title"\]\)\):|if false:|	tests/unit/test_game_scaffold.gd	a title with a line break is accepted, and the rest of it lands in the hooks file as code
 scripts/util/game_scaffold.gd	s|% _tres_string\(str\(want\["title"\]\)\),|% str(want["title"]),|	tests/unit/test_game_scaffold.gd	a title's quote cuts it short in the manifest and its backslashes vanish, and one ending in a backslash makes a manifest the engine cannot load
+# --- The pack check reads the file table, and a session is judged by the game it ran
+tools/pack_check.sh	s|grep -a -o -E "\^\$\{DEV_TREES\}|grep -a -o -E "${DEV_TREES}|	tests/unit/test_ci_paths.gd	a development path named in a packed file's text is read as a packed file, so a clean pack is refused
+tools/pack_check.sh	s|LC_ALL=C tr .\\000. .\\n. <|LC_ALL=C cat <|	tests/unit/test_ci_paths.gd	the pack is searched as one blob, so no table entry starts a field and every pack is refused as unread
