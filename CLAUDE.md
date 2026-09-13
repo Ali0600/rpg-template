@@ -542,6 +542,20 @@ speed. Diagonals deliberately do not count - a fight that must happen is made un
 GEOMETRY (a one-tile gap), never by a radius. A game with no `CombatDef` on its manifest cannot
 fight, and that is a legal shape forever.
 
+**A fight sits behind ONE seam, and anything that resolves an encounter honours it.** In is
+`world_scene.open_battle_with(defs, seen_key) -> bool`: it refuses when another screen is up, the
+manifest has no `combat` or a def has problems, then halts the player, builds the screen with a
+`BattleLogic` seeded from `_battle_seed(seen_key)`, and opens the `BATTLE` overlay. Out is the
+screen's `finished(outcome, effects)`, emitted ONCE behind the `_committed` latch because the world
+applies whatever arrives: `_on_battle_finished` discards the list on `DEFEAT` and opens the game
+over, and sends anything else through `_apply_effects`, `_despawn_beaten_enemies` and the music
+hand-back. A fight reaches the world through four `GameContext` ops - `OP_TAKE_ITEM`, `OP_SEEN`,
+`OP_PARTY`, `OP_GOLD` - and nothing else it holds outlives it. Its randomness is a labelled stream
+off that seed (`derive("moves")`, `derive("target")`), and a new consumer takes a NEW label: a third
+reader of an existing one shifts every draw after it, and every recorded replay with them. The
+research for a second resolver is `docs/GENRE_CONVENTIONS.md` §7d and the decision is the M49 entry
+in `docs/DECISIONS.md`; both are written against this seam as it stands.
+
 **Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
 and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
 it - Super Mario RPG's shape, where one touched sprite opens a formation the ROM already knew

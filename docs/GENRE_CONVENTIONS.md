@@ -29,6 +29,12 @@ reason is a better answer than compliance. What it must never be is an *accident
 what this template generates art for. Reference games: Final Fantasy I–VI, Dragon Quest I–VI
 (NES and SNES remakes, which differ), Chrono Trigger, EarthBound, Pokémon R/B/G/S.
 
+**For §7d only, two more are admitted, each for a reason.** The 2D Zeldas (Zelda II, A Link to the
+Past, Link's Awakening), because their combat can be read out of reverse-engineered code rather than
+remembered, and Ni no Kuni: Wrath of the White Witch, because it is the JRPG whose field-to-arena
+shape a second fight resolver borrows. Ni no Kuni is neither 2D nor of the era, and is admitted on
+secondary sources only, marked wherever it is cited. Neither is a reference for any other section.
+
 ---
 
 ## Audit — the template against the conventions
@@ -41,7 +47,7 @@ what this template generates art for. Reference games: Final Fantasy I–VI, Dra
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices, a headed list | All of it, and the columns are named since M42 | **met** (M18.1, chrome M42) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices, a named speaker, a portrait | Framed box, speaker in its header, the speaker's face, reveal, choice band, size-gated | **met** (M42) — no advance indicator, [named](#6-dialog) |
-| [Battle](#7-battle) | Random encounters, turn menu, a party | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md) |
+| [Battle](#7-battle) | Random encounters, turn menu, a party; in an action RPG, a sword on the field | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md); a real-time resolver [researched](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) and its shape [decided](DECISIONS.md) (M49) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
@@ -600,6 +606,156 @@ answers uniformly is told about exactly as clearly as a mixed one.
 Dragon Quest II — the first in its series with enemy *groups*, and so the likeliest to contradict
 the multi-target finding — has no reachable disassembly either. Settling that one needs ROM-level
 work rather than a repo clone.
+
+---
+
+### 7d. Action combat: the sword, the arena, and the fixed step
+
+M49 needed this before a second way of resolving an encounter is built. Everything above is a
+fight chosen from a menu; the backlog's largest item is a fight played with a sword, in an arena
+that opens when the player meets an enemy. So this section reads the mechanics out of the 2D Zeldas
+and the arena's shape out of Ni no Kuni, the two references the Scope note admits for this section
+alone.
+
+**Sources note.** The mechanics come from three reverse-engineered codebases, cloned at pinned
+commits and grepped for every write to each variable: the Link's Awakening DX disassembly
+(`zladx/LADX-Disassembly` at `880d24c`), the A Link to the Past C reimplementation
+(`snesrev/zelda3` at `fbbb3f9`) and the Zelda II RAM map (`FiendsOfTheElements/z2disassembly` at
+`c4c3a4c`). They are marked **(a)**, as in §8. Ni no Kuni has no such source, so everything said
+about it is **(b)**, from an encyclopedia article and reviews, and is secondhand. A number below was
+read at the line that writes it and the routine is named, because one variable takes different
+values in different routines; where only a label was found, only the label is given. tcrf.net was
+not used: this pass it served an anti-bot page in place of the article.
+
+**A sword is a box in front of the facing, alive for a counted number of frames.**
+
+- **(a) A hitbox is a TYPE, not a shape each enemy carries.** Link's Awakening packs it into one
+  byte (`src/constants/hitbox.asm`): two bits choose a collision-box size, five choose a class
+  (`HITFLAGS_HITBOX_ENEMY`, `_NPC`, `_PICKUP` and so on), and bit 7 is `HITFLAGS_IGNORE_HITS`.
+  `ConfigureEntityHitbox` copies that class's four bytes, x, y, width and height, from one table
+  into the entity's slot. Whether the sword can hit anything at all is a single flag,
+  `wSwordCollisionEnabled`.
+- **(a) A swing is nine steps paced by a table.** In A Link to the Past, `Link_CheckForSwordSwing`
+  advances a step whenever a delay counter runs out and reloads it from `kSpinAttackDelays`,
+  recomputing the sword's hitbox as it goes; past the ninth step a held button becomes a charge.
+  Walking the table from a fresh press gives about twelve frames of swing. That figure is derived
+  from the table and assumes the delay counter starts at zero; it was not measured in play. Letting
+  go and pressing again from the fourth step on starts the swing over.
+- **(a) A charge is a counter too.** Link's Awakening's `wSwordCharge` fills to `$28` for a spin
+  attack, and `wIsUsingSpinAttack` runs down from `$20`. Zelda II's map names a sword-slash timer
+  (`$50A`) and gives no value.
+
+**Being hit makes you untouchable for a while, on both sides, and it is a counter, not a flag.**
+
+- **(a) Link, A Link to the Past.** A hit is queued and applied in `Link_ControlHandler`, which
+  starts `countdown_for_blink` at **58** unless it is already running. While it runs,
+  `Sprite_AttemptDamageToLinkPlusRecoil` returns before doing anything. The counter is decremented
+  inside the routine that draws Link (`src/player_oam.c`), in the same test that picks alternate
+  frames, so the invulnerability and the flicker a player sees are one number.
+- **(a) Link, Link's Awakening.** The spike trap's routine, `HurtBySpikes`, sets
+  `wIgnoreLinkCollisionsCountdown` to `$10`, sixteen frames in which Link collides with no entity,
+  and `wInvincibilityCounter` to `$30`, which its own comment calls 48 frames; `bank0.asm` counts
+  the second down once a frame. The routine for an enemy's touch was not traced to its value.
+- **(a) Link, Zelda II.** An invulnerability timer at `$518` and an injured-state timer at `$50C`.
+- **(a) Enemies.** In A Link to the Past a sword hit hands `Sprite_GiveDamage` a hit timer of
+  `0x9d` (`Sprite_CalculateSwordDamage`), and while an enemy's hit timer is non-zero it cannot hurt
+  Link by touch (`Sprite_CheckDamageToPlayer_1`) and projectiles pass it by. Link's Awakening keeps
+  two tables: `wEntitiesIgnoreHitsCountdownTable`, during which the entity takes part in no
+  collision, and `wEntitiesFlashCountdownTable`, whose comment says a flashing entity takes no
+  damage from the sword or projectiles. Zelda II's `$40E,X` is an enemy hit state that flashes.
+
+**A hit is a push, the push has a size, and a wall ends it.**
+
+- **(a) Link is shoved by what hit him, by an amount that depends on what it was.** A Link to the
+  Past's `Sprite_ApplyRecoilToLink(k, vel)` aims `vel` from the enemy through Link and gives half of
+  it as a hop. The call sites choose the size: **24** from touching an enemy, **48** or **32** when
+  the sword strikes something armoured, **16** from an Octoballoon, **8** or **16** from a guard's
+  parry, and **4** when a blow is simply turned aside. Each also takes control away through
+  `link_incapacitated_timer`, set to 19 on contact and 16 on the others.
+- **(a) An enemy is shoved the other way.** `Sprite_AttemptZapDamage` pushes a struck enemy away
+  from Link at `0x50` mid-swing and `0x40` otherwise, and a recoiling enemy skips its own routine
+  for the frame (`Sprite_ReturnIfRecoiling`, at the top of the rat's).
+- **(a) A wall ends the push and the invulnerability together.** Link's Awakening fills
+  `wEntitiesRecoilVelocityX/Y` with a vector away from Link (`ConfigureEntityRecoil`), applies it
+  only while the entity's ignore-hits countdown runs, and `StopEntityRecoilOnCollision` zeroes that
+  countdown the moment the entity touches a wall in the direction it is mostly travelling.
+
+**Touching an enemy hurts, and the test is not run on every frame.** **(a)** In A Link to the Past
+contact is a box overlap (`Sprite_DoHitBoxesFast`, `CheckIfHitBoxesOverlap`) and the damage is read
+from a table by the enemy's bump class and Link's armour (`kPlayerDamages`). The ordinary path
+tests each sprite on one frame in four, offset by its slot (`(k ^ frame_counter) & 3` in
+`Sprite_CheckDamageToPlayer_1`), and another path one frame in two. It was a budget for the
+hardware and costs nothing in determinism: which frame a sprite is tested on is a pure function of
+the frame counter and the slot. Link's Awakening sends an ordinary enemy's contact through one
+shared routine, `DefaultEnemyDamageCollisionHandler`, which the roaming enemies call on every
+update.
+
+**Enemies wander, and the ones that react read where you are on a timer.**
+
+- **(a) Link's Awakening.** Octoroks, Moblins and Iron Masks share `AnimateRoamingEnemy`
+  (`src/code/entities/03_moblin.asm`), which draws a new countdown of 32 to 63 frames from
+  `GetRandomByte` each time the last one ends. At one fixed point in that countdown, if
+  `GetEntityDirectionToLink` says the enemy already faces Link, it fires a rock or an arrow: it
+  shoots when it happens to be facing you and never turns to find you. Being hit switches it to its
+  second state with a `$40` countdown.
+- **(a) A Link to the Past.** The rat (`Sprite_6D_Rat`) walks at 24 along one axis, turns when it
+  meets a wall, and pauses and chooses again with `GetRandomNumber`. A guard routine,
+  `Soldier_Func12`, re-aims at Link once every 32 frames, offset by the guard's slot, with
+  `Sprite_ApplySpeedTowardsLink(k, 16)`, turns its head to face him, and holds that heading until the
+  next re-aim. The same call moves Ropa, Geldman, the hog spearman and the Tektite. Chasing is a
+  periodic re-aim, not homing on every frame.
+- **This template** already has the wandering half in `NpcBrain`: bounded drift, dwell counted in
+  frames, draws from a seeded stream. Its `intent` reads no target, so the chasing half is new.
+
+**Ni no Kuni: a battlefield you are sent to, and what could not be confirmed.** **(b)** Wikipedia
+describes fights on an open battlefield the party roams freely, and a win paying experience, money
+and items. Nintendo World Report adds that backing away escapes melee while spells still land;
+RPGFan that losing costs half to all of the party's money or sends it back to the last save;
+TheGamer that the battle commands include running away. **What could not be reached** is how a
+fight begins. A walkthrough and a set of guides that would have said whether an enemy that has seen
+you starts the fight by touching you both refused the fetch, and the claim reached this pass only as
+a search snippet, so it is not made here. It carries no weight: this template's encounters fire on
+arriving next to an enemy (M13's rule, `_try_encounter`), and nothing a second resolver needs
+depends on how Ni no Kuni opens a fight.
+
+**Dying, and leaving.** **(a)** In A Link to the Past, a hit that would leave no health makes
+`Link_ControlHandler` switch the whole game to module 18, `Module12_GameOver`, a mode of its own that
+saves the music and the palette and closes an iris, rather than a window over the field. A Zelda has
+nothing to flee, because the fight happens where Link stands and leaving is walking away. Ni no Kuni
+**(b)** has both an arena and a way out of it. This template's turn fight can already end in
+`BattleLogic.Outcome.FLED`, which `_on_battle_finished` handles on the same arm as a victory.
+
+**A fixed step is what makes any of it replayable.** Glenn Fiedler's *Fix Your Timestep!* is the
+standard statement: a simulation stepped by a varying delta behaves differently at different frame
+rates, and one stepped by a fixed delta reproduces exactly from the same inputs. Godot's
+`_physics_process` runs at a fixed rate, 60 a second by default, and every number above is a count
+of frames at a fixed rate as well. The engine's own tools for this genre are `Area2D`, for overlap,
+with its signals and its `monitoring`/`monitorable` pair, and `CharacterBody2D`, whose
+`move_and_slide` belongs in the physics step and whose `MOTION_MODE_FLOATING` is for a world with no
+floor. They are named here as what a build would first reach for, not as the rules.
+
+**What a second resolver takes from it.** The fork itself is the M49 entry in `DECISIONS.md`; these
+are the findings it rests on.
+
+- Invulnerability on both sides, and a swing's live frames, are counts of physics frames stated in
+  data, the shape `CombatDef.timed_window_frames` already has.
+- A hitbox is a size an enemy names from a small table, Link's Awakening's scheme, rather than
+  geometry every enemy carries.
+- A push is a distance with a size per cause, stated in tiles by M44's rule, and a wall ends it
+  together with the invulnerability that came with it.
+- Touching a foe hurts, and the same invulnerability counter guards it.
+- Foes wander, which `NpcBrain` already does, or re-aim at the player on a period, and every draw
+  comes from a labelled seeded stream.
+- The flicker is the invulnerability made visible, so there is no separate hurt pose to draw.
+- The rules are a pure simulation stepped once per physics frame, `BattleLogic`'s discipline, so a
+  balance gate and a replayed session can run them with no scene.
+
+**Unverified, and named rather than guessed:** how a Ni no Kuni fight begins; the values Link's
+Awakening writes when an enemy touches Link and when the sword strikes an enemy (only the spike
+trap's were traced); what unit A Link to the Past's `0x9d` hit timer counts in; and whether its
+swing's delay counter starts at zero, which the twelve-frame figure assumes. No 2D action RPG outside
+Zelda has a public disassembly documenting any of this (Secret of Mana's is a tracking issue rather
+than code, and none turned up for Crystalis or Ys), so a second lineage could not be checked.
 
 ---
 
@@ -1635,3 +1791,44 @@ woodus, nesworld, guides.gamercorner, wikibound, dragonquest.fandom (**402**), e
   — slot counts, and Chrono Trigger's Shelter being the thing that heals at a save point
 - [dragon-quest.org — Dragon Quest IV](https://dragon-quest.org/wiki/Dragon_Quest_IV) — save
   moved from castles to churches, so the developers could write the monarchs as characters
+
+Action combat research (§7d, added in M49). The three codebases were cloned at the commits named
+and read directly, the M33 route again, and every number in §7d is a line in one of them. Ni no
+Kuni is prose only and is marked so.
+
+- [zladx/LADX-Disassembly](https://github.com/zladx/LADX-Disassembly) at `880d24c` —
+  `src/constants/hitbox.asm` (the hitbox byte); `src/constants/memory/wram.asm`
+  (`wIgnoreLinkCollisionsCountdown`, `wInvincibilityCounter`, `wEntitiesIgnoreHitsCountdownTable`,
+  `wEntitiesFlashCountdownTable`, `wEntitiesRecoilVelocityX/Y`, `wSwordCharge`,
+  `wIsUsingSpinAttack`, `wSwordCollisionEnabled`, `wEntitiesHitboxPositionTable`);
+  `src/code/home/entities.asm` (`ConfigureEntityHitbox`, `StopEntityRecoilOnCollision`);
+  `src/code/bank2.asm` (`HurtBySpikes`); `src/code/bank0.asm` (the per-frame invincibility
+  decrement); `src/code/entities/bank3.asm` (`ConfigureEntityRecoil`,
+  `DefaultEnemyDamageCollisionHandler`); `src/code/entities/03_moblin.asm` (`AnimateRoamingEnemy`);
+  `src/code/entities/05__helpers_2.asm` (`GetEntityDirectionToLink_05`)
+- [snesrev/zelda3](https://github.com/snesrev/zelda3) at `fbbb3f9` — `src/player.c`
+  (`Link_ControlHandler`, `Link_CheckForSwordSwing`, `HandleSwordSfxAndBeam`, `kSpinAttackDelays`);
+  `src/player_oam.c` (where `countdown_for_blink` is decremented); `src/sprite.c`
+  (`Sprite_CheckDamageToPlayer_1`, `Sprite_CheckDamageFromLink`,
+  `Sprite_AttemptDamageToLinkPlusRecoil`, `Sprite_ApplyRecoilToLink`, `Sprite_AttemptZapDamage`,
+  `Sprite_CalculateSwordDamage`, `Sprite_GiveDamage`, `Guard_ParrySwordAttacks`);
+  `src/sprite_main.c` (`Sprite_6D_Rat`, `Soldier_Func12`, `Octoballoon_RecoilLink`);
+  `src/messaging.c` (`Module12_GameOver`, `Death_Func1`)
+- [FiendsOfTheElements/z2disassembly](https://github.com/FiendsOfTheElements/z2disassembly) at
+  `c4c3a4c` — `ram-map.txt` only: `$518`, `$50C`, `$50A`, `$40E,X`
+- [Wikipedia — Ni no Kuni: Wrath of the White Witch](https://en.wikipedia.org/wiki/Ni_no_Kuni:_Wrath_of_the_White_Witch)
+  — the open battlefield and what a win pays (**secondhand**)
+- [Nintendo World Report — Switch review](http://www.nintendoworldreport.com/review/51807/ni-no-kuni-wrath-of-the-white-witch-switch-review)
+  — backing away from melee (**secondhand**)
+- [RPGFan — Remastered review](https://www.rpgfan.com/review/ni-no-kuni-wrath-of-the-white-witch-remastered/)
+  — what losing costs (**secondhand**)
+- [TheGamer — combat tips](https://www.thegamer.com/ni-no-kuni-wrath-white-witch-combat-tips/) —
+  the command to run away (**secondhand**)
+- [Glenn Fiedler — Fix Your Timestep!](https://gafferongames.com/post/fix_your_timestep/)
+- Godot documentation — [Idle and Physics Processing](https://docs.godotengine.org/en/stable/tutorials/scripting/idle_and_physics_processing.html),
+  [Area2D](https://docs.godotengine.org/en/stable/classes/class_area2d.html) and
+  [CharacterBody2D](https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html)
+
+Bot-blocked or unreached on 2026-09-13 and therefore NOT cited above: the Neoseeker walkthrough and
+the GameFAQs guide that would have said how a Ni no Kuni fight begins (403 each), and the Eurogamer,
+IGN, GameSpot and RPGamer reviews. tcrf.net answered with an anti-bot page and was not read.

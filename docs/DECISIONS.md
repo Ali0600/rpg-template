@@ -38,8 +38,10 @@ one-glance menu of things still worth trying.
   open item, and the one the save axis is the small precedent for. Revisit hook is exactly two
   functions: `world_scene.open_battle_with(defs, seen_key)` in and `finished(outcome, effects)`
   out — everything between is `BattleScreen` + `BattleLogic`, and a second resolver honouring
-  that contract inherits encounters, rewards, persistence and music unchanged. The open design
-  question is `Router.player_can_move()`, which is one line and answers `WORLD` only.
+  that contract inherits encounters, rewards, persistence and music unchanged. **Researched and
+  decided in M49** (`GENRE_CONVENTIONS.md` §7d, and the entry at the bottom of this file): a screen
+  behind this seam with rules as pure as `BattleLogic`'s, which leaves `Router.player_can_move()`
+  untouched. What remains is the build.
 - **Asymmetric side parts** (a satchel on one hip only). Blocked by
   `mirror_left_from_right`; revisit hook is the `left = flip_x(right)` branch in
   `sprite_compositor.gd`.
@@ -3320,3 +3322,101 @@ read from `wangset.h` at the installed tag (clockwise from the top — `TerrainE
 confirmed on the binary by putting one colour at each position and asking which it treats as an
 edge: 8 of 8 as predicted.
 
+## The arena is a screen behind the fight's own seam, and its rules stay pure — *M49*
+
+The largest item in the backlog is a second way to resolve an encounter: an arena that opens when
+the player meets an enemy, fought with a sword rather than chosen from a menu.
+`GENRE_CONVENTIONS.md` §7d is the research; this entry is what it decided before anything is built.
+M39 is the precedent, a rule the template decided for everybody becoming a word a game states with
+both sides gated. The seam was re-measured at `6e6a54e` and is named here by function rather than
+by line: in through `world_scene.open_battle_with(defs, seen_key)`, out through `BattleScreen`'s
+`finished(outcome, effects)` into `_on_battle_finished`, seeded by `_battle_seed(seen_key)`, latched
+by `_committed`, and reaching the world through four `GameContext` ops.
+
+**The fork: where the second resolver lives.**
+
+- **A screen.** A `CanvasLayer` opened under `Router.State.BATTLE` exactly as `BattleScreen` is,
+  holding a small arena and stepping its own rules once per physics frame. Everything on both sides
+  of the seam is inherited, from the encounter trigger and the seen key to the rewards, the music
+  and the game over, and `Router.player_can_move()` does not change: the field's player is halted as
+  for a turn fight, and the arena's fighter is a different thing.
+- **The map.** A new state in which the field's own player moves and fights. Every line below the
+  `player_can_move()` early return in `world_scene._physics_process` would be split again (the
+  player moves, the NPCs stop, the triggers stop); the one-line predicate gains a case its three
+  readers (`world_scene`, `Router.accepts_world_input`, `GameState`'s play clock) all inherit; and
+  `_drive_npcs()` sitting below that gate, a decided placement, reopens.
+- **No arena at all: the fight happens on the field, Zelda's own shape.** The option the research
+  made real rather than hypothetical. Enemies get brains on the map and the sword is a field verb,
+  with nothing to open or close. It forfeits the seam: there is no `finished`, so no single moment
+  to mark an encounter `seen`, no music takeover and no caller for the game over. It needs enemies
+  that come back when a map is re-entered, which this template has no model for; it puts hit
+  detection inside the loop every scripted session walks; and it makes a JRPG template an
+  action-adventure one.
+
+**Chosen: a screen.** It is the only shape that changes nothing on either side of the seam, and the
+reference for the shape fights on a battlefield apart from the field (§7d, secondhand).
+
+**The fork: what moves an arena's bodies.**
+
+- **The engine.** Arena bodies as `ActorBody`s driven through `apply()`, which is `move_and_slide`,
+  with `Area2D` hitboxes. The physics engine becomes the rules, so they exist only inside a running
+  scene: `BattleDriver` could not play them, no session could be replayed from pure state, and
+  bodies under a `CanvasLayer` would share the field's physics space.
+- **A pure simulation.** Positions move one physics frame at a time inside a RefCounted with no
+  nodes and no clock, and the screen only places what it draws. `BattleLogic`'s discipline, and the
+  reason the balance gate exists.
+
+**Chosen: a pure simulation.**
+
+**The fork: where the word that picks a resolver lives.** The owner's call, 2026-09-13.
+
+- **`GameConfig.combat_style`, beside `save_policy`.** A game that cannot fight would carry a word
+  nothing reads, and a game that wants the arena would need a config of its own, which M47 made the
+  sign that a game's movement or saving differs.
+- **`CombatDef.style`.** The word exists exactly when the game can fight, the frame counts an arena
+  needs already live on that resource, and `data/games/quest.tres` already argues the principle: a
+  game without battles must not carry battle knobs it will never turn.
+
+**Chosen: `CombatDef.style`**, a StringName checked against a list in `problems()`, for the
+`save_policy` reason: an enum in a `.tres` is a bare integer. `GameScaffold.COMBATS` already spells
+`turns`, so the two lists must agree about every word but `none`, and the build owes a test that
+holds them to it.
+
+**The fork: which button swings.** Every Zelda gives the sword a button of its own. The roads are
+`interact` doubling inside the arena, where there is nothing to talk to; a new `attack` action; or
+Zelda's two item buttons. Left to the owner at build time, because a control is judged in the hand.
+
+**The arena reuses `Router.State.BATTLE`** rather than adding a state. States are told apart by
+what is legal in them (`docs/learnings.md`), and an arena's legality is a turn fight's exactly: the
+field cannot move, one screen owns input, and the ways out are the same. The flow model gains no
+state; its `battle_screen_up` invariant must come to mean that a resolver's screen is up, and that
+edit is made before any code.
+
+**The contract a second resolver is held to.**
+
+- `CombatDef.style` is `turns`, the default, or `arena`, and anything else is refused by name.
+- `open_battle_with` keeps every guard it has and chooses the screen after them. `finished(outcome,
+  effects)`, the four ops and a latch like `_committed` do not change, because the world applies
+  whatever arrives.
+- Every draw an arena makes comes from `derive("arena")` off the same seed. A third reader of
+  `moves` or `target` would move every recorded replay.
+- The rules are pure and integer. Invulnerability and a swing's live frames are frame counts on
+  `CombatDef`, and a push is a distance in tiles.
+- QA finds the screen by type, as `Qa._battle_screen()` does, and the balance gate is a driver of
+  opposed policies over the pure rules, `BattleDriver`'s shape.
+- `NpcBrain.intent(at)` reads no target, so a foe that chases needs a brain that does, drawing from
+  the arena's stream.
+- Both values are proven on a fixture manifest that varies only `style`, M39's control-instance
+  rule. Whether the demo itself carries an arena, which `demo-must-show-the-feature` argues for, is
+  the build's question.
+
+- The map — `rejected — one predicate with three readers, and a decided placement reopened`.
+- No arena — `rejected — it forfeits the seam and needs a respawn model`.
+- The engine as the rules — `rejected — no balance gate and no replay`.
+- `GameConfig.combat_style` — `rejected — a word a game that cannot fight carries for nothing`.
+- The swing button — `deferred — the owner's call when there is something to press`.
+  **Revisit hook:** `tools/setup_input_map.gd`, one `_action(...)` line and the count it prints.
+- Fleeing an arena — `deferred — worth trying`: Ni no Kuni has a way out (secondhand) and a Zelda
+  has no arena to leave. **Revisit hook:** `BattleLogic.Outcome.FLED` is already legal on the seam
+  and `_on_battle_finished` handles it; at M49 `tools/flow_model.json` declared no edge for it even
+  for the turn fight, so the first milestone that models a flee writes that edge first.
