@@ -68,9 +68,11 @@ func _init() -> void:
 			failures.append("GameState.reset left a flag behind - tests would leak state")
 
 	# Which game boots is data, and the resolution runs before anything is on screen - so when
-	# it fails, it fails as an empty window rather than as an error anyone reads.
-	if GameSelect.resolve() == null:
-		failures.append("GameSelect resolved no game to boot (%s)" % GameSelect.SETTING)
+	# it fails, it fails as an empty window rather than as an error anyone reads. A build carrying
+	# more than one game with nothing choosing OFFERS them on the title instead (M50), and resolve()
+	# is not asked then, because it would print the refusal it exists to make.
+	if GameSelect.unresolved().is_empty() and GameSelect.resolve() == null:
+		failures.append("GameSelect neither boots a game nor offers any (%s)" % GameSelect.SETTING)
 	# EVERY shipped game, not just the one that boots - `--game=` reaches any of them, and a
 	# game nothing validates is a game that breaks the day someone runs it.
 	for manifest in GameSelect.manifests():

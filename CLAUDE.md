@@ -73,13 +73,16 @@ map, the spawn, the player's character, the config and the controls hint. `GameS
 one: `--game=<id>` beats the `application/config/game` project setting, which beats "there is
 only one game". Nothing in `scripts/world/` may name a map, a spawn or a character again.
 
-**When nothing chooses, refuse — never guess.** `GameSelect.choose()` returns `""` when there
-is more than one game and nothing picked between them, and the boot stops there with an error
-naming them. One game ships, so the single-game fallthrough is the live path and the refusal is
-unreachable — it is kept armed because the day a second game is added is exactly the day a
-guessed game starts presenting as the game you meant to run behaving strangely. The shipped
-`config/game` is empty for that reason: with one game it needs no answer, and with two it must
-be given one.
+**When nothing chooses, a person does — never a guess.** `GameSelect.choose()` returns `""` when
+there is more than one game and nothing picked between them, and the world then OFFERS them
+(`GameSelect.unresolved()`, `world_scene.offer_games`): the title gains a Switch game row, appended
+last, that reopens it on the next game - name, look, voice, music and slots all come from `_offered`
+already - with the cursor still on the row. `resolve()`, which has nobody to ask, still refuses, and
+the world does not call it while offering, or every boot would print that refusal. The shipped
+`config/game` is empty because the deployed page should ask; naming a game there boots it and hides
+the row, and `--game=` beats both, which is why no scripted session in a game's own directory ever
+meets it. A guessed game presents as the game you meant to run behaving strangely, which is the whole
+reason for any of this.
 
 **A NEW GAME IS A COMMAND, AND `GameScaffold` DECIDES IT WITH NO DISK IN SIGHT.** `plan(options,
 known)` answers project-relative path -> TEXT and `problems(options, known)` refuses by name;

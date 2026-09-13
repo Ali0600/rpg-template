@@ -104,6 +104,16 @@ func _quiet_manifest() -> GameManifest:
 	return manifest
 
 
+## Two quiet games at the title, so its Switch game row has somewhere to go. The same id on purpose:
+## a walk may Continue after switching, and the save it seeded belongs to `quest`.
+func _offer_quiet_games() -> void:
+	var other := _quiet_manifest().duplicate() as GameManifest
+	other.title = "The Other Road"
+	var games: Array[GameManifest] = [_quiet_manifest(), other]
+	_world._choices = games
+	_world._offered = games[0]
+
+
 func _foe(hp := 1, attack := 1) -> EnemyDef:
 	var out := EnemyDef.new()
 	out.id = &"flow_foe"
@@ -132,12 +142,12 @@ func _arrive_at(state: String, adapter := "") -> void:
 		# a world->dialog hop on every edge out of the title. That greeting is the quest's
 		# content, not the template's flow, so the title is pointed at a map with nothing to
 		# say and the greeting keeps its own suite.
-		_world._offered = _quiet_manifest()
+		_offer_quiet_games()
 		return
 	if state == "options_at_title":
 		# Above start_game, like the credits: this is the page over the TITLE, and there is no
 		# game behind it. Its twin one state along is the same screen over the world.
-		_world._offered = _quiet_manifest()
+		_offer_quiet_games()
 		assert_bool(_world.open_options()).is_true()
 		await _steps(1)
 		return
@@ -145,7 +155,7 @@ func _arrive_at(state: String, adapter := "") -> void:
 		# Above start_game rather than in the match below it, because this is the only overlay
 		# whose base state has no game behind it. _ready already opened the title, so there is
 		# one to open this over.
-		_world._offered = _quiet_manifest()
+		_offer_quiet_games()
 		assert_bool(_world.open_credits()).is_true()
 		await _steps(1)
 		return
@@ -193,6 +203,9 @@ func _drive(adapter: String, next_adapter := "") -> void:
 			await _steps(2)
 		"new_game":
 			_world._commit_new_game_from_title()
+			await _steps(2)
+		"switch_game":
+			_world._commit_switch_game()
 			await _steps(2)
 		"continue_from_title":
 			_world._commit_title_load(0)
@@ -564,5 +577,5 @@ func _seed_a_save() -> void:
 	GameState.set_party(9, 3, 1, 0)
 	assert_bool(SaveManager.save(0, GameState.to_save())).is_true()
 	assert_bool(_world.open_title()).is_true()
-	_world._offered = _quiet_manifest()
+	_offer_quiet_games()
 	await _steps(1)

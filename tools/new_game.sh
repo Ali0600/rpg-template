@@ -16,7 +16,8 @@
 # after a space leaves the option at its default and the run does something nobody asked for.
 #
 # It never edits project.godot. With more than one game in data/games and nothing choosing between
-# them the boot refuses rather than guessing, so the last thing it prints is what to add by hand.
+# them the title offers a Switch game row; the last thing it prints is the line that boots this game
+# straight away instead, to add by hand if that is what you want.
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1

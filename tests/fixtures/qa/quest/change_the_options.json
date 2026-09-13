@@ -16,7 +16,7 @@
 	"steps": [
 		{
 			"op": "note",
-			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits, Options - so Options is the LAST row, and two move_ups get there: one onto Continue and one that wraps round the top. Counted up rather than down because wrapping is one deliberate press per row rather than a walk past every row between."
+			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits, Options - so Options is the LAST row, and two move_ups get there: one onto Continue and one that wraps round the top. Counted up rather than down because wrapping is one deliberate press per row rather than a walk past every row between. Options is the last row only because this session names its game: with no --game= and two games in the build, a Switch game row sits below it."
 		},
 		{ "op": "assert_state", "state": "title" },
 		{ "op": "press", "action": "move_up" },

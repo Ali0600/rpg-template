@@ -121,7 +121,11 @@ func _press(action: StringName) -> void:
 	up.action = action
 	up.pressed = false
 	Input.parse_input_event(up)
-	await _steps(2)
+	await _steps(1)
+	# An idle frame too: input is flushed once a process frame, and a headless run can fit several
+	# physics frames inside one.
+	await await_idle_frame()
+	await _steps(1)
 
 
 ## The sword button, down or up, as a real event - the screen reads a press, not a held state.

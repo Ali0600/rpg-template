@@ -144,24 +144,31 @@ func test_every_way_on_is_reachable_from_a_row_of_its_own() -> void:
 	# survived a full sweep until this test existed.
 	#
 	# It fails in BOTH directions - a way on that stopped being offered, and one nobody declared.
-	var offered: Array[int] = []
-	var title := TitleMenu.of(_slots([0]))
-	for at in title.row_count():
-		var pick := title.top_pick(at)
-		if pick == null:
-			# The Continue row, which SlotMenu answers for. Not a way on of the subclass's own.
-			continue
-		assert_bool(offered.has(pick.kind)).override_failure_message(
-			"two rows both answer kind %d, so one of them cannot be reached" % pick.kind).is_false()
-		offered.append(pick.kind)
-	offered.sort()
-	# LOAD is deliberately not here: it is what the Continue row's page answers, not what a top
-	# row answers, and top_pick returns null for that row so SlotMenu keeps the rule in one place.
-	var declared: Array[int] = [TitleMenu.Kind.NEW_GAME, TitleMenu.Kind.CREDITS,
-		TitleMenu.Kind.OPTIONS]
-	declared.sort()
-	assert_array(offered).override_failure_message(
-		"the title offers %s where it should offer %s" % [offered, declared]).is_equal(declared)
+	#
+	# Twice: a title with one game to offer, and one with another to switch to, whose declared ways
+	# on differ by exactly the Switch game row.
+	for switchable: bool in [false, true]:
+		var offered: Array[int] = []
+		var title := TitleMenu.of(_slots([0]), switchable)
+		for at in title.row_count():
+			var pick := title.top_pick(at)
+			if pick == null:
+				# The Continue row, which SlotMenu answers for. Not a way on of the subclass's own.
+				continue
+			assert_bool(offered.has(pick.kind)).override_failure_message(
+				"two rows both answer kind %d, so one of them cannot be reached" % pick.kind).is_false()
+			offered.append(pick.kind)
+		offered.sort()
+		# LOAD is deliberately not here: it is what the Continue row's page answers, not what a top
+		# row answers, and top_pick returns null for that row so SlotMenu keeps the rule in one place.
+		var declared: Array[int] = [TitleMenu.Kind.NEW_GAME, TitleMenu.Kind.CREDITS,
+			TitleMenu.Kind.OPTIONS]
+		if switchable:
+			declared.append(TitleMenu.Kind.SWITCH_GAME)
+		declared.sort()
+		assert_array(offered).override_failure_message(
+			"a title (switchable %s) offers %s where it should offer %s"
+			% [switchable, offered, declared]).is_equal(declared)
 
 
 func test_each_row_is_worded_as_the_thing_it_actually_does() -> void:
@@ -169,11 +176,12 @@ func test_each_row_is_worded_as_the_thing_it_actually_does() -> void:
 	# labelled as its neighbour. Asserted as a PAIRING rather than as two lists, because the two
 	# are answered by different functions - top_label and top_pick - and nothing else requires
 	# them to agree about which row is the third one.
-	var title := TitleMenu.of(_slots([0]))
+	var title := TitleMenu.of(_slots([0]), true)
 	var words := {
 		TitleMenu.Kind.CREDITS: "Credits",
 		TitleMenu.Kind.OPTIONS: "Options",
 		TitleMenu.Kind.NEW_GAME: "New game",
+		TitleMenu.Kind.SWITCH_GAME: "Switch game",
 	}
 	for at in title.row_count():
 		var pick := title.top_pick(at)
@@ -193,3 +201,11 @@ func test_each_screen_builds_labels_for_every_row_it_has() -> void:
 		for at in menu.row_count():
 			assert_str(menu.top_label(at)).override_failure_message(
 				"row %d of %s has no words on it" % [at, menu]).is_not_empty()
+
+
+func test_a_title_rebuilt_for_another_game_opens_on_the_row_that_asked() -> void:
+	# The cursor goes where it is told when it is told somewhere real, and the pressable-row rule
+	# still decides otherwise - a row past the end is not a place.
+	assert_int(TitleMenu.of(_slots([]), true, TitleMenu.ROW_GAME).index()).is_equal(TitleMenu.ROW_GAME)
+	assert_int(TitleMenu.of(_slots([]), true, 99).index()).is_equal(TitleMenu.Row.NEW_GAME)
+	assert_int(TitleMenu.of(_slots([])).index()).is_equal(TitleMenu.Row.NEW_GAME)

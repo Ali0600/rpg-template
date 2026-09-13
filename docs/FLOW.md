@@ -66,6 +66,7 @@ stateDiagram-v2
 | Action | From | To | Announces |
 | --- | --- | --- | --- |
 | `boot` | title | title | *nothing* |
+| `switch_game` | title | title | *nothing* |
 | `new_game` | title | world | title → world |
 | `continue` | title | world | title → world |
 | `open_dialog` | world | dialog | world → dialog |
@@ -94,6 +95,7 @@ stateDiagram-v2
 ## Notes the model carries
 
 - **`boot`** — The process opens on the title, so nothing has changed yet.
+- **`switch_game`** — Only when the build carries more than one game and nothing chose between them. The title is closed and reopened wearing the next game's name, look, voice, music and save slots; TITLE to TITLE is no change, so it announces nothing - the warp's shape.
 - **`new_game`** — Announced only since M23: enter_map's reset used to assign the state field.
 - **`continue`** — Goes through boot_from_save, NEVER through the start map. The bug this whole model exists because of was an extra world -> dialog hop right here, from the start map's entry hooks firing on the way past.
 - **`open_pause`** — Driven by the real cancel key, because the guard that makes PAUSED reachable only from WORLD lives in _unhandled_input and nowhere else.

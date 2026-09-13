@@ -6,10 +6,10 @@ extends GdUnitTestSuite
 ## `-s tools/x.gd`, and a QA run - cannot all be staged from a test. What CAN be pinned is the
 ## rule itself, in one place, which is the only reason those four agree at all.
 ##
-## The case that matters is the one this repo cannot reach: more than one game and nothing
-## choosing must REFUSE. One game ships today, so `ONE` is the live path and `TWO` is the rule
-## kept armed for the day a second is added - picking the first one would not present as a
-## selection bug, it would present as the game you meant to run behaving strangely.
+## The case that matters: more than one game and nothing choosing must never pick the first -
+## that would not present as a selection bug, it would present as the game you meant to run behaving
+## strangely. choose() answers "nothing chose", should_ask() says a person has to, and the world
+## offers the games on the title (M50).
 
 const TWO: Array[String] = ["quest", "sequel"]
 const ONE: Array[String] = ["quest"]
@@ -57,10 +57,28 @@ func test_an_unknown_name_is_returned_so_the_error_can_name_it() -> void:
 	assert_str(GameSelect.choose(TWO, args, "quest")).is_equal("typo")
 
 
-func test_the_shipped_project_boots_a_game() -> void:
+func test_one_game_never_asks() -> void:
+	# A template someone has just cloned has one game, and a menu with one row in it is a question
+	# whose answer it already has.
+	assert_bool(GameSelect.should_ask(ONE, _no_args(), "")).is_false()
+
+
+func test_two_games_ask_only_when_nothing_else_chose() -> void:
+	assert_bool(GameSelect.should_ask(TWO, _no_args(), "")).is_true()
+	# Every scripted session names its game, which is why none of them meets the Switch game row.
+	assert_bool(GameSelect.should_ask(TWO, PackedStringArray(["--game=quest"]), "")).is_false()
+	assert_bool(GameSelect.should_ask(TWO, _no_args(), "quest")).is_false()
+
+
+func test_the_shipped_project_boots_a_game_or_offers_them() -> void:
 	# The pure cases above say nothing about whether this project is wired up: if every manifest
-	# were missing, all of them would still pass. One game ships, so resolving is the whole of
-	# being wired up - there is no menu to fall back on and no default to guess.
+	# were missing, all of them would still pass. Wired up is one of two things - a game resolves,
+	# or a person is offered every game there is - and resolve() is asked only when nobody is
+	# offered anything, because otherwise it would print the refusal it exists to make.
 	assert_bool(GameSelect.ids().is_empty()).is_false()
-	assert_object(GameSelect.resolve()).override_failure_message(
-		"the project ships games but resolves none of them").is_not_null()
+	var offered := GameSelect.unresolved()
+	if offered.is_empty():
+		assert_object(GameSelect.resolve()).override_failure_message(
+			"the project ships games but neither boots one nor offers them").is_not_null()
+	else:
+		assert_int(offered.size()).is_equal(GameSelect.ids().size())

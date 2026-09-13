@@ -110,9 +110,8 @@ the boot refuses rather than guessing.
 
 - **Which game runs** → a manifest in `data/games/`: start map, spawn, player character,
   config, controls hint. `--game=<id>` beats `config/game` in `project.godot`, which beats
-  "there is only one game" — and when nothing chooses, the boot **refuses** rather than
-  guessing, naming the games it found. One game ships, so nothing has to choose today;
-  the refusal is what keeps the second one honest when it arrives.
+  "there is only one game" — and when nothing chooses, the title **offers** every game on a
+  Switch game row rather than guessing, which is how one deployed page carries more than one.
 - **Art style** → a new file in `data/styles/`. Nothing else.
 - **Terrain** → a tile bank in `data/tiles/`: pixel art in the rig's own alphabet, plus
   `solid` (does it block?) and `decor` (does it stand on another tile?). One bank dresses

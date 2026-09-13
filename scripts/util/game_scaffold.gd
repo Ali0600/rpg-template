@@ -260,8 +260,8 @@ static func _manifest_text(want: Dictionary, root: String) -> String:
 		"player stands in it, who they are, the tuning it uses and the voice it speaks in.",
 		"",
 		"It is not chosen automatically. With more than one game in data/games and nothing",
-		"picking between them the boot REFUSES rather than guessing, so either set",
-		"application/config/game in project.godot or run the game with --game=%s." % str(want["id"]),
+		"picking between them the title offers a Switch game row; to boot this one straight",
+		"away, set application/config/game in project.godot or run it with --game=%s." % str(want["id"]),
 	])
 
 

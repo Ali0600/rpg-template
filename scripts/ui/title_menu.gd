@@ -24,22 +24,39 @@ const ROW_CREDITS := Row.NEW_GAME + 1
 ## already reach Credits keep their count.
 const ROW_OPTIONS := ROW_CREDITS + 1
 
+## The fifth, and only when the build carries another game to switch to (M50). Appended LAST for the
+## reason every row after New game was, and HIDDEN rather than refused when there is nothing to switch
+## to: a capability this build does not have is the requires_item case, which hides, not the
+## spend_gold case, which quotes a price and says no. With `--game=` on the command line it is never
+## there, which is why every scripted session keeps its count.
+const ROW_GAME := ROW_OPTIONS + 1
 
-static func of(slots: Array[SlotSummary]) -> TitleMenu:
+var _switchable := false
+
+
+## `switchable` says there is another game to switch to. `at_row` puts the cursor somewhere past the
+## pressable-row rule: a title rebuilt for the next game opens on the row that asked for it, so
+## switching back is the same press again rather than a walk.
+static func of(slots: Array[SlotSummary], switchable := false, at_row := -1) -> TitleMenu:
 	var menu := TitleMenu.new()
 	menu._slots = slots.duplicate()
+	menu._switchable = switchable
 	menu._open_on_a_pressable_row()
+	if at_row >= 0 and at_row < menu.row_count():
+		menu._index = at_row
 	return menu
 
 
 func row_count() -> int:
-	return ROW_OPTIONS + 1
+	return ROW_GAME + 1 if _switchable else ROW_OPTIONS + 1
 
 
 ## The third way on. Answered here rather than in SlotMenu because a game over has no business
 ## offering it: a player who has just died is being asked how to carry on, and a reading page is
 ## not one of the answers.
 func top_pick(at: int) -> Pick:
+	if at == ROW_GAME:
+		return Pick.of(Kind.SWITCH_GAME)
 	if at == ROW_CREDITS:
 		return Pick.of(Kind.CREDITS)
 	if at == ROW_OPTIONS:
@@ -48,6 +65,8 @@ func top_pick(at: int) -> Pick:
 
 
 func top_label(at: int) -> String:
+	if at == ROW_GAME:
+		return "Switch game"
 	if at == ROW_OPTIONS:
 		return "Options"
 	if at == ROW_CREDITS:
