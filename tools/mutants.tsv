@@ -919,9 +919,10 @@ scripts/data/combat_def.gd	s|if arena_tiles.x < 2 or arena_tiles.y < 2:|if false
 scripts/data/enemy_def.gd	s|if speed_tiles_per_second < 0.0:|if false:|	tests/unit/test_enemy_def.gd	an enemy that moves backwards ships
 scripts/data/enemy_def.gd	s|if chase_every_frames < 0:|if false:|	tests/unit/test_enemy_def.gd	an enemy chasing on a negative period ships
 scripts/data/enemy_def.gd	s|if body_tiles.x <= 0.0 or body_tiles.y <= 0.0:|if false:|	tests/unit/test_enemy_def.gd	an enemy with no body to touch ships
-tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).grow\(CHARGE_RANGE\).intersects\(sim.foe_box\(target\)\)|out.swing = false|	tests/unit/test_arena_driver.gd	the unskilled policy never swings, so every fight looks unwinnable for the wrong reason
+tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).intersects\(sim.foe_box\(target\)\)|out.swing = false|	tests/unit/test_arena_driver.gd	the unskilled policy never swings, so every fight looks unwinnable for the wrong reason
 tests/helpers/arena_driver.gd	s|if danger >= 0 and sim.player_hurt\(\) == 0:|if false:|	tests/unit/test_arena_driver.gd	the skilled policy walks into what is about to touch it
 tests/helpers/arena_driver.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_arena_driver.gd	the skilled policy stands still swinging at air
+tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).intersects\(sim.foe_box\(target\)\)|out.swing = sim.player_box().grow(64).intersects(sim.foe_box(target))|	tests/unit/test_arena_driver.gd	the careless policy swings a moment before a touch, which is using the sword's reach, so the balance gate stops measuring skill
 scripts/world/locomotion.gd	s|return &"move_left"|return \&"move_right"|	tests/unit/test_locomotion.gd	a harness pressing left holds right
 
 # M50 - the arena's screen: the style word, the screen the world chooses by it, what the scaffold writes, and what the floor draws.
@@ -943,3 +944,12 @@ scripts/ui/arena_screen.gd	s|var shown := _sim.shown_foe\(\)|var shown := 0|	tes
 scripts/ui/arena_screen.gd	s|set_pose\(&"walk" if moved else &"idle", facing\)|set_pose(\&"idle", facing)|	tests/integration/test_arena_layout.gd	a body slides across the floor standing still
 scripts/ui/arena_screen.gd	s|var box := _sim.sword_box\(\).intersection\(_sim.floor_rect\(\)\)|var box := _sim.sword_box()|	tests/integration/test_arena_layout.gd	the blade is drawn through the wall and out of its window
 scripts/ui/arena_screen.gd	s|_before.y = maxf\(_before.y, ceilf\(float\(meta.anchor.y\) \* drawn\)\)|pass|	tests/integration/test_arena_layout.gd	the floor leaves no room above its top row, so a body there is drawn out of its window
+scripts/autoload/qa.gd	s|if arena != null:|if false:|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	fight_well never plays an arena, so a session stands in one until its frame cap
+scripts/autoload/qa.gd	s|for node in scene.find_children\("", "ArenaScreen", true, false\):|for node in scene.find_children("", "BattleScreen", true, false):|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	the harness looks for the turn fight's screen in the arena and finds nothing to play
+scripts/autoload/qa.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_qa_ops.gd	the harness's arena play stops agreeing with the balance gate's PERFECT
+scripts/autoload/qa.gd	s|if String\(GameState.game\) != wanted:|if false:|	tests/unit/test_qa_ops.gd	a session asserting which game is running passes whatever game it is
+scripts/world/world_scene.gd	s|if not asking.is_empty\(\):|if false:|	tests/fixtures/qa/menu/pick_the_arena.json	with two games and nothing choosing, the boot refuses instead of offering the title's Switch game row
+tools/pack_check.sh	s|if \[ -f "\$2/data/games/\$1\.tres" \]; then|if true; then|	tests/unit/test_ci_paths.gd	a packed session in a directory naming no game is handed one, so no packed run ever meets the picker
+data/combat/quest_arena_combat.tres	s|^style = &"arena"$|style = \&"turns"|	tests/unit/test_battle_content.gd	the arena game quietly fights with menus
+data/combat/quest_arena_combat.tres	s|^arena_tiles = Vector2i\(14, 4\)$|arena_tiles = Vector2i(40, 4)|	tests/unit/test_battle_content.gd	the arena game asks for a floor wider than the screen draws
+data/games/quest_arena.tres	s|^title = "The Barred Gate: Arena"$|title = "The Barred Gate"|	tests/unit/test_game_manifest.gd	two games share a title, and Switch game looks like a press that did nothing

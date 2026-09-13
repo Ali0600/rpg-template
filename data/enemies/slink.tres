@@ -20,6 +20,11 @@
 ; over tier words - 'weak' and 'resistant' cannot say this, and the day a game wants a fourth
 ; answer it writes a number instead of asking for a new word. UNJUDGED BY EAR.
 
+; IN THE ARENA (M50) it is the quick one that does not think: two and a half tiles a second on a
+; wander, turning at walls, with a footprint smaller than a person's. It never chases - a pair of
+; them is a room of things to line up on, not things coming for you. UNJUDGED BY HAND, and the
+; balance gate plays these numbers rather than trusting them.
+
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
 [resource]
@@ -37,3 +42,6 @@ resistances = {
 &"wind": 150
 }
 moves = [{ "name": "Scratch", "power": 0 }, { "name": "Lunge", "power": 2 }]
+speed_tiles_per_second = 2.5
+chase_every_frames = 0
+body_tiles = Vector2(0.5, 0.25)

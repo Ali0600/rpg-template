@@ -74,6 +74,15 @@ contents_ok() { # $1 pack
   return 0
 }
 
+## The flag a session is played with: --game=<its directory> when that directory names a game, and
+## nothing at all otherwise - check.sh's rule, so a session under tests/fixtures/qa/menu/ meets the
+## title's Switch game row the way the deployed page does. One test per line, for mutants.tsv.
+game_flag_for() { # $1 the session's directory name  $2 the project root
+  if [ -f "$2/data/games/$1.tres" ]; then
+    printf -- '--game=%s' "$1"
+  fi
+}
+
 # Drives the REAL contents_ok over packs small enough to write by hand - fetch_godot.sh's precedent.
 # The accepting cases are what make every refusal evidence of anything.
 selftest() {
@@ -132,6 +141,20 @@ selftest() {
   table "$dir/unreadable.pck" "no paths in here at all"
   contents_ok "$dir/unreadable.pck" >/dev/null
   ok "a pack whose file table names nothing is refused rather than passed" 1 $?
+
+  # The game a session plays, over a project written here: quest is a game and menu is not.
+  mkdir -p "$dir/project/data/games"
+  : > "$dir/project/data/games/quest.tres"
+  if [ "$(game_flag_for quest "$dir/project")" = "--game=quest" ]; then
+    echo "  ok: a session in a game's directory plays that game"
+  else
+    echo "  selftest FAIL: a session in quest/ was not given --game=quest"; fail=1
+  fi
+  if [ -z "$(game_flag_for menu "$dir/project")" ]; then
+    echo "  ok: a session in a directory naming no game is given no --game=, so it meets the picker"
+  else
+    echo "  selftest FAIL: a session in menu/ was handed a game"; fail=1
+  fi
 
   rm -rf "$dir"
   [ "$fail" -eq 0 ] || return 1
@@ -241,14 +264,17 @@ ran=0
 # generated file out of the pack. Every other gate in this project runs against res://, where
 # assets/generated is simply a directory - so "credits.json did not get packed" is a defect only
 # this can see, and it is the shape M14 shipped in the audio seam.
-for name in the_game_makes_noise talk_to_npc warp_between_maps save_and_load read_the_credits \
-    change_the_options; do
-  script="$ROOT/tests/fixtures/qa/quest/$name.json"
+# pick_the_arena is here because it is the only session that proves what the deployed page does with
+# two games: it runs with no --game=, meets the title's Switch game row, and starts the other game.
+for session in quest/the_game_makes_noise quest/talk_to_npc quest/warp_between_maps \
+    quest/save_and_load quest/read_the_credits quest/change_the_options menu/pick_the_arena; do
+  name="${session#*/}"
+  script="$ROOT/tests/fixtures/qa/$session.json"
   [ -f "$script" ] || { echo "FAIL  no such play script: $script"; fail=1; continue; }
   ran=$((ran + 1))
   out="$WORK/$name.log"
   ( cd "$WORK" && "$TIMEOUT" "$LIMIT" "$GODOT" --headless $GODOT_FRAMES \
-      --main-pack "$PACK" -- --qa-script="$script" --game=quest ) > "$out" 2>&1
+      --main-pack "$PACK" -- --qa-script="$script" $(game_flag_for "${session%%/*}" "$ROOT") ) > "$out" 2>&1
   code=$?
   if [ "$code" -eq 124 ]; then
     echo "  HUNG    $name (killed after ${LIMIT}s - the pack is unusable)"

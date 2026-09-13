@@ -30,6 +30,10 @@
 ; that appears in the game's unfleeable fight: the press that was already worth making is worth
 ; making for one more reason.
 
+; IN THE ARENA (M50) it hunts: two tiles a second, turning toward the player every 32 frames the
+; way A Link to the Past's guards re-aim, and holding its heading in between so it can be
+; side-stepped. UNJUDGED BY HAND; the balance gate plays it.
+
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
 [resource]
@@ -47,3 +51,5 @@ resistances = {
 &"fire": 200
 }
 moves = [{ "name": "Chill", "status": "sap", "stat": "defense", "amount": 2, "turns": 3 }, { "name": "Grasp", "power": 3 }]
+speed_tiles_per_second = 2.0
+chase_every_frames = 32

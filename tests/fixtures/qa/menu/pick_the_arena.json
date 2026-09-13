@@ -1,0 +1,76 @@
+{
+	"_readme": [
+		"What the deployed page does with two games. This directory names no game, so check.sh and",
+		"pack_check.sh run it with no --game= at all - the only sessions that meet the title's Switch",
+		"game row, because the flag is exactly what hides it. It picks The Barred Gate: Arena and",
+		"starts it, and asserts the game that is running rather than anything both games share."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the title, with two games in the build and nothing choosing. Games are offered in id order, so The Barred Gate shows first. Rows: Continue, New game, Credits, Options, Switch game - nothing is saved, so the cursor opens on New game, and two presses up reach Switch game: one onto Continue and one that wraps round the top"
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "the title now wears The Barred Gate: Arena, with the cursor still on Switch game. Down wraps onto Continue, and down again is New game"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_game",
+			"id": "quest_arena"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		}
+	]
+}

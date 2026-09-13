@@ -2425,3 +2425,34 @@ framework only because those scripts have uids.
 be in it, and write that list in the check rather than reading it from the build config the check is
 meant to catch. Read the container's own index rather than searching it for strings, and prove the
 reading with an entry nothing else refers to.
+
+### A test's key press lands on a PROCESS frame, not a physics frame
+
+`Input.parse_input_event` hands the engine an event, and the engine delivers queued input on its
+process frames, so waiting one physics frame after a press does not promise any handler has seen it.
+
+**Why it came up.** The title picker's test (M50) pressed Switch game and then pressed again, and the
+second press did nothing. Counting `Engine.get_process_frames()` around the presses showed each event
+reaching the screen a process frame after it was sent, so the helper's next step ran before the screen
+had seen the press. The press helpers in `test_title_picker.gd` and `test_world_arena.gd` now
+`await await_idle_frame()` after each press and each release.
+
+**Takeaway.** After injecting input in a test, wait for an idle (process) frame before asserting that
+anything reacted: physics frames count the simulation, not the input queue.
+
+### Two drivers that share the habit the difficulty lives in are one driver
+
+A balance gate made of a skilled policy and a careless one measures skill only if the careless one
+lacks the skill the fights actually reward. If it shares that habit, both win, and no change to the
+numbers can tell them apart.
+
+**Why it came up.** The arena's first careless driver (M50) walked straight at the nearest foe and
+swung whenever one came within a quarter tile. On twelve seeds it won every shipped fight without once
+being touched, exactly as the skilled driver did: the sword reaches three quarters of a tile past the
+body and a touch reaches none, so swinging a moment early IS using the reach. Faster, more eager
+enemies made the skilled driver lose first. Changing only when the careless driver swings, to once it
+has walked into a foe, split them with every enemy number unchanged: at level 2 it lost to the Keeper
+on 44 seeds of 48, and the skilled driver lost on none.
+
+**Takeaway.** Before tuning data to separate two drivers, name the habit the difficulty depends on and
+check that the two policies really differ on it; a gap you cannot tune open is usually in the drivers.

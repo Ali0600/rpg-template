@@ -14,7 +14,9 @@
 ; The timing fields are here because CombatDef has them, and they are IGNORED: a fight's pacing
 ; is the manifest's own curve, or a party would be one screen asking the player to react at two
 ; speeds. They are set to the game's values so a reader diffing the two files sees no
-; difference where none is meant.
+; difference where none is meant. `style` and the arena's numbers are ignored the same way: which
+; resolver a fight uses is the manifest's own fighter's word, and Rook does not stand on the arena's
+; floor at all - she shares its award.
 ;
 ; UNJUDGED BY EAR, in the sense scrapper.tres sets out: the balance gate plays these numbers
 ; every run and can only report who wins, never how it feels.

@@ -16,8 +16,8 @@ extends Node
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
 ## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
 ## assert_level · assert_gold · assert_mp · assert_equipped · sound_mark · assert_sound ·
-## assert_audio_ready · mark · assert_moved · assert_status · assert_foe_hp · fight_well ·
-## screenshot · note.
+## assert_audio_ready · mark · assert_moved · assert_status · assert_foe_hp · assert_game ·
+## fight_well · screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
 ##
@@ -137,6 +137,8 @@ func _run(step: Dictionary) -> void:
 			_assert_status(step)
 		"assert_foe_hp":
 			_assert_foe_hp(step)
+		"assert_game":
+			_assert_game(step)
 		"assert_state":
 			var wanted := str(step.get("state", ""))
 			if Router.state_name() != wanted:
@@ -294,13 +296,19 @@ func _tick_fight_well() -> void:
 		_fight_holding = false
 		return
 	if Router.state_name() != "battle":
+		_release_arena_moves()
 		_log.append("fought it out in %d frames" % _fight_frames)
 		_fight_active = false
 		return
 	_fight_frames += 1
 	if _fight_frames >= _fight_limit:
 		_fail("fought for %d frames and the battle never ended" % _fight_limit)
+		_release_arena_moves()
 		_fight_active = false
+		return
+	var arena := _arena_screen()
+	if arena != null:
+		_tick_arena_well(arena)
 		return
 	var screen := _battle_screen()
 	if screen == null:
@@ -308,6 +316,90 @@ func _tick_fight_well() -> void:
 	if screen.cue_on() or screen.choosing():
 		_press(&"interact")
 		_fight_holding = true
+
+
+## An arena, played well through the keys: the four move actions held or let go to match this
+## frame's choice, and the sword pressed when it should swing. The choice is _arena_choice's, which
+## is ArenaDriver's PERFECT stated again - see there for why it has to be stated twice.
+func _tick_arena_well(screen: ArenaScreen) -> void:
+	var choice := _arena_choice(screen.sim())
+	var move: Vector2 = choice["move"]
+	_hold_arena_move(Dir.D.LEFT, move.x < 0.0)
+	_hold_arena_move(Dir.D.RIGHT, move.x > 0.0)
+	_hold_arena_move(Dir.D.UP, move.y < 0.0)
+	_hold_arena_move(Dir.D.DOWN, move.y > 0.0)
+	if bool(choice["swing"]):
+		_press(&"interact")
+		_fight_holding = true
+
+
+func _hold_arena_move(d: Dir.D, down: bool) -> void:
+	var action := Locomotion.action_for(d)
+	if down and not _held.has(action):
+		_press(action)
+	elif not down and _held.has(action):
+		_release(action)
+
+
+func _release_arena_moves() -> void:
+	for d: Dir.D in Dir.ALL:
+		var action := Locomotion.action_for(d)
+		if _held.has(action):
+			_release(action)
+
+
+## How close the cross axis has to be before PERFECT closes on the main one, in the rules' units.
+## ArenaDriver.ALIGN, stated again with the rest of the choice.
+const ARENA_ALIGN := 24
+
+
+## This frame's choice for a player who plays the arena well: ArenaDriver.choose(sim, PERFECT),
+## stated a second time because this autoload SHIPS and tests/helpers does not - an autoload naming a
+## class that is not in the exported pack would fail to load, and every packed session with it.
+## test_qa_ops holds the two to one answer over every branch the choice takes.
+func _arena_choice(sim: ArenaSim) -> Dictionary:
+	var out := {"move": Vector2.ZERO, "swing": false}
+	var target := sim.nearest_standing()
+	if target < 0 or sim.shoved():
+		return out
+	if sim.sword_reaches(target):
+		out["swing"] = not sim.swinging() and sim.foe_hurt(target) == 0
+		return out
+	if sim.swinging():
+		return out
+	var danger := sim.threat()
+	if danger >= 0 and sim.player_hurt() == 0:
+		out["move"] = Vector2(_arena_dominant(sim.player_pos() - sim.foe_pos(danger)))
+		return out
+	out["move"] = Vector2(_arena_approach(sim.foe_pos(target) - sim.player_pos()))
+	return out
+
+
+static func _arena_dominant(delta: Vector2i) -> Vector2i:
+	if absi(delta.x) >= absi(delta.y):
+		return Vector2i(signi(delta.x), 0)
+	return Vector2i(0, signi(delta.y))
+
+
+static func _arena_approach(gap: Vector2i) -> Vector2i:
+	if absi(gap.x) >= absi(gap.y):
+		if absi(gap.y) > ARENA_ALIGN:
+			return Vector2i(0, signi(gap.y))
+		return Vector2i(signi(gap.x), 0)
+	if absi(gap.x) > ARENA_ALIGN:
+		return Vector2i(signi(gap.x), 0)
+	return Vector2i(0, signi(gap.y))
+
+
+## Which game is running. The one thing a session that PICKED its game on the title, rather than
+## being handed one with --game=, has to prove it got - every other assertion would pass in either
+## of two games that share every map.
+func _assert_game(step: Dictionary) -> void:
+	var wanted := str(step.get("id", ""))
+	if String(GameState.game) != wanted:
+		_fail("expected the running game to be '%s', found '%s'" % [wanted, GameState.game])
+	else:
+		_log.append("the running game is '%s'" % wanted)
 
 
 ## What the battle screen is currently saying about a fighter beyond their numbers - the short
@@ -351,6 +443,17 @@ func _assert_foe_hp(step: Dictionary) -> void:
 		_fail("expected foe %d to be on %d health, found %d" % [at, wanted, actual])
 	else:
 		_log.append("foe %d is on %d health" % [at, actual])
+
+
+## The arena's view, found by type for _battle_screen's reason - and by its OWN type, since both fight
+## screens are FightScreens and the harness plays the two differently.
+func _arena_screen() -> ArenaScreen:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	for node in scene.find_children("", "ArenaScreen", true, false):
+		return node as ArenaScreen
+	return null
 
 
 ## The battle view, found by TYPE rather than by a path or a group, so nothing in the shipped

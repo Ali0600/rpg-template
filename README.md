@@ -32,8 +32,8 @@ both, and the build fails if the committed pixels differ.
 
 **The gate.** Every rule the template makes is a test. Every test ships with a mutant — a
 deliberate break in the code — that proves the test fails when the rule is broken.
-`tools/check.sh` runs lint, parse, compile, 1,482 tests, a boot check, an artifact drift check
-(generated files must match what is committed), 25 scripted play sessions and the exported
+`tools/check.sh` runs lint, parse, compile, 1,590 tests, a boot check, an artifact drift check
+(generated files must match what is committed), 27 scripted play sessions and the exported
 package, in that order. It runs the same way locally and in CI.
 
 ## The game it ships with
@@ -50,7 +50,7 @@ hollow. What nests on it now is why nobody has fetched it.
 | World | six maps joined by doors, drawn in hand-made LPC art at 32px tiles |
 | Verbs | walk, talk, read a well, open a stash once, carry a key, unlock a gate with it, trade a word for a flask of oil, burn the oil lighting a lantern, sleep at an inn, buy and sell, wear a sword |
 | Fights | five, and every one is a crowd: paired slinks, paired glooms, a slink-and-gloom pair, and the Keeper with an escort. Three cannot be avoided. Both roads out of the village stay shut until Rook joins you — a fight sized for two must not be reachable by one |
-| Combat | menu turns with a timing window — press on the cue and your hit doubles or theirs halves. Up to three a side, a cursor to pick which foe, five spells that unlock as you level up, a ward and a chill, XP and levels |
+| Combat | menu turns with a timing window — press on the cue and your hit doubles or theirs halves. Up to three a side, a cursor to pick which foe, five spells that unlock as you level up, a ward and a chill, XP and levels. Or pick **The Barred Gate: Arena** on the title: the same encounters, awards and levels, fought in real time with a sword |
 | Code | **one file**, 96 lines: which of the warden's four lines to say |
 
 That one file is the point. Every map, conversation, flag, price, spell and fight is data. The
@@ -63,7 +63,10 @@ line of JSON. The game was built **without editing a single file under `scripts/
 
 Difficulty is arithmetic, not feel. A player who times every press beats the Keeper on every
 seed. A player who times none of them loses on every seed. A play script that drives the real
-engine proves both. No comment just claims it.
+engine proves both. No comment just claims it. With the sword, a player who uses its reach beats
+the Keeper on every seed too, and one who walks straight into him wins 4 times in 48.
+
+![The hollow's slink pair, fought with the sword - the lit block is the blade's reach](docs/images/arena.png)
 
 ## Quick start
 
@@ -166,7 +169,7 @@ behaving strangely.
 | `games/<id>/` | A game's own code, if it has any. |
 | `assets/generated/` | Build output of `tools/gen_sprites.gd` and `gen_sounds.gd`. Never edit it by hand. |
 | `tools/` | Headless scripts and the gate. |
-| `tests/` | 102 test suites for gdUnit4 (a Godot test framework), fixtures, 25 play sessions, and the targets the mutation harness aims at. |
+| `tests/` | 107 test suites for gdUnit4 (a Godot test framework), fixtures, 27 play sessions, and the targets the mutation harness aims at. |
 
 - [CLAUDE.md](CLAUDE.md) — the engineering contract
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the seams, and what each one protects
@@ -179,7 +182,8 @@ behaving strangely.
 ## Experience Gained
 
 - Built a reusable 2D RPG template in Godot 4 / GDScript. A complete game — six maps, branching
-  dialog, a quest, party-based turn-based combat, shops, equipment and versioned saves — is data
+  dialog, a quest, two interchangeable combat systems (party turn-based battles, and a real-time
+  sword arena a player picks on the title), shops, equipment and versioned saves — is data
   plus one 96-line hooks file. One command with one flag generates a new game. An automated gate
   boots that generated game and walks its player, so every CI run re-proves that the template is
   reusable, rather than just claiming it.
@@ -189,14 +193,14 @@ behaving strangely.
   sub-tile autotiling that builds 47 edge shapes from 12 pieces. All of it uses integer
   arithmetic, so the output is byte-identical on macOS and Linux, and CI fails if the committed
   output drifts.
-- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,513
-  unit and integration tests → boot → artifact drift → 25 scripted end-to-end play sessions →
+- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,590
+  unit and integration tests → boot → artifact drift → 27 scripted end-to-end play sessions →
   the exported package checked for test code, then played. Repository policy requires every
   action to be pinned to a SHA, `main` cannot be force-pushed or deleted, dependency alerts open
   their own fix PRs, and tokens get the least access they need. Every download the build and the
   art pipeline make is pinned to a commit or checked against a committed checksum, and the Pages
   deploy waits for the green run of the exact commit it ships.
-- Added mutation testing over the project's own quality gates: 744 mutants, each proving a rule
+- Added mutation testing over the project's own quality gates: 827 mutants, each proving a rule
   fails when it is broken. The run is split four ways, with a fast lane that runs only the
   mutants a change touches (pull-request runs went from 18 → 3 min), and a sub-second static
   check that every mutant still targets one line.
@@ -206,9 +210,11 @@ behaving strangely.
   was really two, before it shipped. Extended the same idea to rendered layout: automated audits
   of every screen's geometry caught defects that passing tests could not see, including readouts
   drawn over the sprites they described.
-- Replaced hand-written balance formulas with simulation: the real combat engine plays every
-  fight to the end under opposite strategies across many seeds. It proves, from the shipped
-  data, that skilled play always wins and unskilled play always loses.
+- Replaced hand-written balance formulas with simulation: both combat engines, the turn fight
+  and an integer real-time arena, play every shipped fight to the end under opposite strategies
+  across 12 to 48 seeds. From the shipped data, skilled play always wins and careless play loses:
+  on every seed in turns, and 44 of 48 in the arena, where the first careless strategy turned out
+  to be using the sword's reach and had to be rebuilt before the gate could measure skill.
 - Grounded design decisions in primary sources — disassembled shipped binaries and editors'
   own source where the documentation was missing or wrong — and recorded how strong the
   evidence was for each. For the Tiled export, scripted the editor's autotile algorithm
