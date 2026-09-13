@@ -435,6 +435,13 @@ func _boundary_problems(out: Array[String]) -> void:
 				+ "Drop one of them.")
 
 
+## Whether a string is a SHA-256 the way `sha256sum` and `FileAccess.get_sha256` both write one.
+## Lower case only, because the comparison is exact: an upper-case sum is a typo that never matches.
+static func _is_sha256(text: String) -> bool:
+	var re := RegEx.create_from_string("^[0-9a-f]{64}$")
+	return re != null and re.search(text) != null
+
+
 ## The credit list itself. Every entry names a file and at least one licence; the licence is
 ## checked against the STYLE in TileGen.problems(), because only the style knows what it accepts.
 func _credit_problems(out: Array[String]) -> void:
@@ -454,3 +461,9 @@ func _credit_problems(out: Array[String]) -> void:
 			out.append("'%s' credits no author" % file)
 		if JsonFile.to_string_array(record.get("licenses", [])).is_empty():
 			out.append("'%s' names no licence" % file)
+		# The sum tools/fetch_tiles.sh refuses a download against, and test_imported_art holds the
+		# committed sheet to. Required rather than optional, because an optional sum is one the next
+		# file gets added without - and a sheet is a binary nobody reads in a diff, so without it a
+		# changed one arrives as ground that quietly moved.
+		if not _is_sha256(str(record.get("sha256", ""))):
+			out.append("'%s' names no sha256 of its art (64 lower-case hex digits)" % file)

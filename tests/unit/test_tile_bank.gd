@@ -116,6 +116,8 @@ func test_the_outline_character_draws_the_styles_outline_colour() -> void:
 # that lands on the wrong cell - or swaps column for row - says so by colour.
 
 const CUT_SIZE := 32
+## Any well-formed sum. Nothing here reads the art's bytes; test_imported_art holds real sheets to theirs.
+const VALID_SHA256 := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 const CELL_COLOURS: Array = [
 	Color8(200, 40, 40), Color8(40, 200, 40), Color8(40, 40, 200),
 	Color8(200, 200, 40), Color8(200, 40, 200), Color8(40, 200, 200),
@@ -144,7 +146,7 @@ func _painted(holed := false, format := Image.FORMAT_RGBA8) -> Image:
 func _cut_bank(tiles: Array, files: Variant = null) -> TileBank:
 	var credited: Array = files if files != null else [{
 		"file": "art.png", "authors": ["Someone"], "licenses": ["CC-BY-SA 3.0"],
-		"urls": ["https://example.invalid/art"],
+		"urls": ["https://example.invalid/art"], "sha256": VALID_SHA256,
 	}]
 	return TileBank.from_dictionary({
 		"id": "cut", "tile": CUT_SIZE, "pixels_from": "files", "files": credited, "tiles": tiles,
@@ -240,6 +242,22 @@ func test_a_credited_file_with_no_licence_or_no_author_is_refused() -> void:
 	var bank := _cut_bank(_one_tile([0, 0]), [{"file": "art.png", "authors": [], "licenses": []}])
 	assert_str("\n".join(bank.problems())).contains("names no licence")
 	assert_str("\n".join(bank.problems())).contains("credits no author")
+
+func test_a_credited_file_names_the_sha256_of_its_art() -> void:
+	# The sum tools/fetch_tiles.sh refuses a download against. A malformed one is refused as well as
+	# a missing one: an upper-case or short sum is a typo that can never match, and it would read as
+	# "the art has changed" for ever.
+	for bad: Variant in [null, "", "not a sum", VALID_SHA256.to_upper(), VALID_SHA256.left(63),
+			VALID_SHA256 + "0"]:
+		var record := {"file": "art.png", "authors": ["Someone"], "licenses": ["CC0"]}
+		if bad != null:
+			record["sha256"] = bad
+		assert_str("\n".join(_cut_bank(_one_tile([0, 0]), [record]).problems())
+			).override_failure_message("sha256 %s was accepted" % JSON.stringify(bad)
+			).contains("names no sha256")
+	var good := {"file": "art.png", "authors": ["Someone"], "licenses": ["CC0"],
+		"sha256": VALID_SHA256}
+	assert_str("\n".join(_cut_bank(_one_tile([0, 0]), [good]).problems())).not_contains("sha256")
 
 func test_a_bank_that_cuts_its_pixels_and_credits_nobody_is_refused() -> void:
 	var bank := _cut_bank(_one_tile([0, 0]), [])

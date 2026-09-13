@@ -844,3 +844,17 @@ scripts/util/ldtk_map.gd	s|if shaped.has\(named\):|if false:|	tests/unit/test_ld
 scripts/util/ldtk_map.gd	s|TerrainEdges.tile_of_column\(at, tile_ids, edges\)|TerrainEdges.tile_of_column(at, tile_ids, [])|	tests/unit/test_ldtk_map.gd	a shoreline in an LDtk project comes back as an empty cell
 scripts/util/ldtk_map.gd	s|"__cWid": columns, "__cHei": 1,|"__cWid": _tile_ids.size(), "__cHei": 1,|	tests/unit/test_ldtk_map.gd	the LDtk tileset declares only the plain tiles, so its shorelines point past the sheet
 tools/map_io.gd	s|"edges": file.data.get\("edges", \[\]\) as Array|"edges": []|	tests/unit/test_map_io.gd	map_io hands the translators no edge blocks, so every export is plain ground with no brush and every import folds nothing
+# --- Security audit findings 4-6: what a pack may carry, what a fetch may trust, what a title may break
+tools/pack_check.sh	s|  if ! grep -a -q .res://data/games/. "\$1"; then|  if false; then|	tests/unit/test_ci_paths.gd	a pack whose file table cannot be read is reported as carrying nothing, so an unreadable pack passes the contents check
+tools/pack_check.sh	s|  if \[ -n "\$leaked" \]; then|  if false; then|	tests/unit/test_ci_paths.gd	a pack carrying the test framework, the tests or the raw imports is passed, and players download them
+tools/fetch_tiles.sh	s|  case "\$1" in \*/\*\) return 1 ;; esac|  :|	tests/unit/test_ci_paths.gd	a bank naming ../x.png writes outside the directory the bank reads from
+tools/fetch_tiles.sh	s|  if ! plain_name "\$id"; then|  if false; then|	tests/unit/test_ci_paths.gd	a bank id that is a path makes a directory wherever it points
+tools/fetch_tiles.sh	s|    if ! matches "\$scratch/\$name" "\$sum"; then|    if false; then|	tests/unit/test_ci_paths.gd	a download that is not the art the bank names is put in place anyway, and the sum is decoration
+tools/fetch_tiles.sh	s|      if ! matches "\$dest/\$name" "\$sum"; then|      if false; then|	tests/unit/test_ci_paths.gd	a sheet on disk that is not the one the bank names reads as already there
+tools/lpc_compose.sh	s|  case "\$1" in /\*\) return 1 ;; esac|  :|	tests/unit/test_ci_paths.gd	an absolute layer path is fetched to wherever it names
+tools/lpc_compose.sh	s|  case "/\$1/" in \*/\.\./\*\) return 1 ;; esac|  :|	tests/unit/test_ci_paths.gd	a layer path climbing out of the cache is fetched outside it
+tools/lpc_compose.sh	s|Character-Generator/007365eac3a85121da9085a6f1aff5934307f6e4"|Character-Generator/master"|	tests/unit/test_ci_paths.gd	the generator is read at a branch, so the next push to it changes what a recipe composes
+scripts/spritegen/tile_bank.gd	s|if not _is_sha256\(str\(record.get\("sha256", ""\)\)\):|if false:|	tests/unit/test_tile_bank.gd	a credited sheet with no sha256 is accepted, so fetch_tiles has nothing to check a download against
+data/tiles/lpc32.json	s|"sha256": "9fad54558dcb0aa9|"sha256": "0fad54558dcb0aa9|	tests/unit/test_imported_art.gd	a committed sheet no longer matches the sum its bank names, and nothing notices the art changed
+scripts/util/game_scaffold.gd	s|if _has_control_character\(str\(want\["title"\]\)\):|if false:|	tests/unit/test_game_scaffold.gd	a title with a line break is accepted, and the rest of it lands in the hooks file as code
+scripts/util/game_scaffold.gd	s|% _tres_string\(str\(want\["title"\]\)\),|% str(want["title"]),|	tests/unit/test_game_scaffold.gd	a title's quote cuts it short in the manifest and its backslashes vanish, and one ending in a backslash makes a manifest the engine cannot load

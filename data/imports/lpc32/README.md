@@ -27,7 +27,8 @@ and commit the folder here together with what it produced.
 ## Making one — from a recipe (no browser)
 
 A hero can be text. A recipe names the generator's layers and colours, and
-`tools/lpc_compose.sh` fetches just the files it needs (into `build/lpc/`, gitignored) and
+`tools/lpc_compose.sh` fetches just the files it needs, from the generator's repository at a
+pinned commit rather than at `master` (into `build/lpc/`, gitignored), and
 composes the same two files the browser would download, then checks them with the importer:
 
 ```bash

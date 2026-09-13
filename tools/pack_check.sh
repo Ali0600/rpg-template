@@ -3,6 +3,7 @@
 #
 #   tools/pack_check.sh                 # export a pack, then play it
 #   tools/pack_check.sh <pack>          # play a pack somebody already exported
+#   tools/pack_check.sh --selftest      # prove the contents check refuses AND accepts
 #
 # Every other gate in this project runs against res:// in the project directory. Nothing has
 # ever looked at the .pck a player downloads, and the packaging step is where a whole class of
@@ -21,6 +22,96 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
+
+# What a player's download must never carry: the trees that exist to build and test the game.
+# Written out HERE rather than read from export_presets.cfg's exclude filter, because a check that
+# read the filter would agree with it by construction - including on the day it stops naming one of
+# them. The preset is where the rule is applied; this is where it is checked, against the artifact.
+# It is not `addons/`: a game may add a plugin it really runs, and only the test framework is known
+# to belong to the build rather than to the game.
+#
+# Measured before it was written (2026-09-13): the filter had never named addons/, and the web pack
+# carried gdUnit4's 554 files - its TCP server, its runners, its own test suites. Playing the pack
+# could not notice, because nothing loads them: every session still played.
+DEV_TREES='res://(tests|tools|docs|reports|addons/gdUnit4|data/imports)/'
+
+# Every development-only path the pack names, one per line. A pack's file table holds each path as
+# plain text (measured on 4.7.1: `res://data/games/quest.tres` is in it verbatim), so reading it
+# needs no engine. The tail is the characters a path is made of rather than "anything printable",
+# which let the binary after a name ride along and counted one file as three.
+dev_paths_in() { # $1 pack
+  LC_ALL=C grep -a -o -E "${DEV_TREES}[[:alnum:]_.@+/-]*" "$1" 2>/dev/null | sort -u
+}
+
+# The verdict on what a pack CONTAINS. Separate from playing it, and before it: an artifact can
+# play perfectly and still carry things nobody meant to ship.
+contents_ok() { # $1 pack
+  local leaked count
+  # A pack this cannot read proves nothing about what is in it. An encrypted or reformatted file
+  # table names no development path because it names no path at all, and that would read as clean.
+  if ! grep -a -q 'res://data/games/' "$1"; then
+    echo "FAIL  $1 names no res://data/games/ path, so its file table was not read and its contents are unknown"
+    return 1
+  fi
+  leaked="$(dev_paths_in "$1")"
+  if [ -n "$leaked" ]; then
+    count="$(printf '%s\n' "$leaked" | wc -l | tr -d ' ')"
+    echo "FAIL  the pack carries $count file(s) that only build or test the game, e.g.:"
+    printf '%s\n' "$leaked" | head -5 | sed 's/^/        /'
+    return 1
+  fi
+  return 0
+}
+
+# Drives the REAL contents_ok over packs small enough to write by hand - fetch_godot.sh's precedent.
+# The accepting case is what makes every refusal evidence of anything.
+selftest() {
+  local dir fail=0 out leak
+  dir="$(mktemp -d)"
+  ok() { # $1 label  $2 expected code  $3 actual code
+    if [ "$2" != "$3" ]; then
+      echo "  selftest FAIL: $1 (expected exit $2, got $3)"; fail=1
+    else echo "  ok: $1"; fi
+  }
+  table() { # $1 file  $2... the paths its file table names, NUL-separated the way a pack's are
+    local file="$1" p
+    shift
+    printf 'GDPC' > "$file"
+    for p in "$@"; do printf '\0%s' "$p" >> "$file"; done
+  }
+
+  table "$dir/clean.pck" res://data/games/quest.tres res://scripts/world/world_scene.gd \
+    res://addons/a_plugin_the_game_runs/plugin.gd res://data/tiles/lpc32.json
+  contents_ok "$dir/clean.pck" >/dev/null
+  ok "a pack of the game's own files is accepted, a plugin it runs included" 0 $?
+
+  for leak in res://addons/gdUnit4/src/network/GdUnitServer.gd res://tests/unit/test_saves.gd \
+      res://tools/check.sh res://docs/FLOW.md res://reports/report_1/index.html \
+      res://data/imports/lpc32/quest_wanderer/sheet.png; do
+    table "$dir/leak.pck" res://data/games/quest.tres res://scripts/world/world_scene.gd "$leak"
+    out="$(contents_ok "$dir/leak.pck")"
+    ok "a pack carrying $leak is refused" 1 $?
+    case "$out" in
+      *"$leak"*) echo "  ok: the refusal names it" ;;
+      *) echo "  selftest FAIL: the refusal did not name $leak"; fail=1 ;;
+    esac
+  done
+
+  table "$dir/unreadable.pck" "no paths in here at all"
+  contents_ok "$dir/unreadable.pck" >/dev/null
+  ok "a pack whose file table names nothing is refused rather than passed" 1 $?
+
+  rm -rf "$dir"
+  [ "$fail" -eq 0 ] || return 1
+  echo "  pack_check: selftest passed"
+}
+
+case "${1:-}" in
+  --selftest)
+    selftest
+    exit $?
+    ;;
+esac
 
 # shellcheck source=tools/_engine.sh
 . "$(dirname "$0")/_engine.sh"
@@ -100,6 +191,14 @@ if [ "$bytes" -lt 100000 ]; then
   exit 1
 fi
 echo "pack: $PACK ($bytes bytes)"
+
+# What it CONTAINS, before anything plays it. Playing proves the game is in there; it cannot see
+# what else is.
+if ! contents_ok "$PACK"; then
+  echo "pack_check: the exported artifact carries files a player should never download"
+  exit 1
+fi
+echo "contents: nothing that only builds or tests the game"
 
 fail=0
 ran=0

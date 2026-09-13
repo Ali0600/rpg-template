@@ -9,9 +9,9 @@ data/tiles/<bank id>.json          # the bank: which cell of which file each til
 
 A bank with `"pixels_from": "files"` names, per tile, a `from` file and a `cell` — column then
 row, in cells of the bank's own `tile` size — and lists every file under `files` with its
-`authors`, `licenses` and `urls`. That list is the licence gate's whole input: a tile cut from a
-file the bank does not credit is refused, and a file offered under no licence the style accepts is
-refused by name. It is also what puts the artists into `assets/generated/<style>/credits.json`
+`authors`, `licenses`, `urls` and the `sha256` of the sheet. That list is the licence gate's whole
+input: a tile cut from a file the bank does not credit is refused, and a file offered under no
+licence the style accepts is refused by name. It is also what puts the artists into `assets/generated/<style>/credits.json`
 beside the ones who drew the cast.
 
 `tools/gen_sprites.gd` cuts the tiles into `assets/generated/<style>/tiles.png` and writes
@@ -32,9 +32,20 @@ imported texture, so a fresh `tiles.png` behind a stale import shows you the old
 tools/fetch_tiles.sh data/tiles/lpc32.json
 ```
 
-It downloads every file whose entry carries a `url`, skips what is already there, and reports —
-rather than fails — a file that has none. `plants.png` is that case: it ships as a zip from its
-OpenGameArt page, so its one sheet is extracted and put in place by hand.
+It downloads every file whose entry carries a `url` and checks every file against the `sha256`
+its entry names. A download that does not match is never put in place; a sheet already there that
+does not match is reported and left alone; and a `url` with no sum is fetched but not placed, with
+the sum it got printed for a person to check and add. `plants.png` has no url: it ships as a zip
+from its OpenGameArt page, so its one sheet is extracted and put in place by hand, and its sum is
+still checked. The urls read the LPC repository at a commit rather than at `master`, so the next
+push there cannot change what they serve.
+
+```bash
+tools/fetch_tiles.sh data/tiles/lpc32.json --into=build/tiles_check   # what the urls serve today
+```
+
+Replace a sheet and its `sha256` together: `test_imported_art` fails when a committed sheet is not
+the one its bank names.
 
 ## Authoring an edge
 

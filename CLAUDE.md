@@ -1307,8 +1307,8 @@ with no new check.sh step, and the tiles are drawn the same way for both.
 **The input is the generator's own two files, and the folder is the spec.**
 `data/imports/<style>/<character_id>/sheet.png` + `character.json` - "Download PNG" and "Export
 JSON", unmodified - under a `.gdignore`, so the editor never imports an 832x3456 input and the
-exporter never packs one (`test_imported_art` pins the marker; `pack_check.sh` proves the
-outcome, and `strings index.pck` shows zero `data/imports` entries). No `CharacterSpec` for an
+exporter never packs one (`test_imported_art` pins the marker; `pack_check.sh` refuses a
+pack naming any `data/imports` path). No `CharacterSpec` for an
 imported character: the folder's name is the id, the way a `.tres`'s id is for a rig one.
 Everything known about LPC's layout is a CONSTANT in `LpcImport`, measured from the generator's
 source rather than remembered: 64px frames, 13 columns, every animation at a FIXED row whatever
@@ -1606,6 +1606,17 @@ that is neither there nor absent while its id is already taken. And it LOADS the
 wrote and runs `problems()` on it, the gate `smoke_boot` applies to every shipped game: a wizard
 whose output the game refuses is worse than no wizard, and the only way to know is to ask the game.
 
+**A `--title` is one line, and the manifest spells it the way the engine's own writer does.** The
+title is written into three `.tres` comment headers and the hooks file's first doc line, where a
+line break would end the comment and turn the rest of the title into code, so `problems()` refuses
+any control character. Inside the manifest it is a string, escaped as `String::c_escape_multiline`
+does at the 4.7.1 tag: every backslash doubled, THEN every quote escaped - the other order doubles
+the backslash a quote was just given. Measured against the old unescaped writer: a quote loaded as
+a title cut short at it, a backslash vanished, and a trailing backslash made a manifest that did not
+load. `test_new_game_tool` sends a backslash through the real command and never a quote, because
+`OS.execute` with captured output passes its arguments through a shell and the quote is gone before
+the tool runs; a real shell delivers it, and `test_game_scaffold` proves quotes on the planner.
+
 **A hero can be a text recipe.** `tools/lpc_compose.sh <recipe> --out=<dir>` fetches the layers a
 recipe names from the generator's repository into `build/lpc/` (gitignored and `.gdignore`d) and
 composes them the way the browser does. `LpcCompose` is the generator's rendering contract,
@@ -1621,6 +1632,11 @@ mass; both previews had rendered perfectly well. A layer with no art for the bod
 cycle, or a licence outside the style is refused BY NAME, because the browser draws nothing and
 says nothing. The path logic lives ONCE, in `LpcCompose`: the wrapper fetches the definitions a
 recipe names, asks `--list` which files the plan resolves to, fetches those, and composes.
+**The generator is read at a COMMIT**, the one `master` was when the committed cast's 75 layer
+files were fetched, and all 75 were checked byte for byte against it on 2026-09-13 - so the next
+push to that repository cannot change what a recipe composes. No per-file sums on top: git's
+content address already is one. A layer path from a recipe or from `--list` that climbs out of
+`build/lpc/` is refused before anything is fetched.
 
 **The editor file is a WORKING file and is not committed.** The map that ships is still the
 hand-readable legend-and-ASCII JSON, so it diffs as a picture in a pull request; a second
@@ -1667,6 +1683,20 @@ against the `.pck` a player downloads**, because that is where a whole class of 
 asset that is not packed, an exclude filter that grew, an importer that did not run. M14 shipped
 one of those - the audio seam's drop-in half had been broken in exports since the day it was
 written, and no gate could have seen it.
+
+**A pack that plays can still carry what nobody meant to ship, so `pack_check.sh` reads what it
+CONTAINS before it plays it.** The web preset's exclude filter never named `addons/`, so every web
+build carried gdUnit4's 554 files - its TCP server and its runners among them - past a gate that
+only asked whether the game played, which it always did, because nothing loads them. The filter now
+names `addons/gdUnit4/*` and `reports/*` (gdUnit4 writes its reports into the project, which in CI
+is the checkout the pack is exported from), and the pack went from 7.45 MB to 5.75 MB. **Not
+`addons/*`**: a game may add a plugin it really runs, and a filter that swallowed it would ship a
+build without it and nothing red. The check spells the development trees out ITSELF - `tests`,
+`tools`, `docs`, `reports`, `addons/gdUnit4`, `data/imports` - rather than reading the filter,
+because a check that read the filter would agree with it by construction. It greps the pack's file
+table, where every path is plain text, and refuses a pack whose table names no `res://data/games/`
+path, since a table it cannot read would otherwise pass as clean. `--selftest` drives the verdict
+over packs written by hand, and `test_ci_paths.gd` runs it.
 
 `--export-pack` needs no export templates and `--main-pack` boots the pack with the stock
 binary, so the whole thing costs about five seconds and runs in `check.sh` as step 7b. The QA
@@ -1844,6 +1874,17 @@ LOOKING** - the first pass here gave the inn a cold green stone floor and a tabl
 in its cell like a stool, and both were re-cut against a screenshot. And after regenerating, run
 `--import` before photographing anything: the game loads the IMPORTED texture, so a fresh
 `tiles.png` behind a stale import reads as the change not having happened.
+
+**Every credited sheet names its `sha256`, and `TileBank.problems()` refuses one that does not.**
+It is `fetch_godot.sh`'s rule one noun along: the sum sits in the repository beside the url,
+because a sum served by the host that serves the file cannot notice that host serving a different
+one. `fetch_tiles.sh` puts no download in place that fails to match, reports a committed sheet that
+no longer does, and prints the sum of a download whose entry has none rather than trusting it -
+so adding art is a decision somebody makes after looking at it. `test_imported_art` holds every
+committed sheet to its sum, which turns replacing art into a changed line in a JSON file rather
+than ground that quietly moved. The urls read the LPC repository at a COMMIT, checked against the
+committed sheets on 2026-09-13, and a file name or bank id with a slash in it is refused before the
+script touches the disk. `--into=<dir>` fetches somewhere else, to see what the urls serve today.
 
 **Commit the `.import` sidecar with every generated file.** An imported asset ships as its
 sidecar plus the engine's cached copy; the original file is not packed, so a `.wav` or `.png`

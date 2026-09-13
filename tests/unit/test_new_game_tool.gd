@@ -15,6 +15,14 @@ extends GdUnitTestSuite
 
 const SCRATCH := "user://new_game_test"
 
+## A backslash in the middle of a word, through the real command. The manifest writer used to put it
+## into the resource unescaped, and the engine's parser read it as the start of an escape and dropped
+## it - the game came out titled "Backslash Game" and nothing said so. There is no double quote in it
+## because this suite cannot send one: OS.execute with captured output hands its arguments to a shell
+## wrapped in double quotes (measured, 2026-09-13), so a quote is gone before the tool runs. A real
+## shell delivers it intact, and test_game_scaffold proves quotes against the planner.
+const ESCAPED_TITLE := 'Back\\slash Game'
+
 ## Derived, and compared against what was there BEFORE rather than against a literal list of the
 ## games this project happens to ship: the wizard invites scaffolding a game into this repo, and a
 ## suite that spelled the shipped set in would go red over somebody else's game.
@@ -63,8 +71,12 @@ func _run(args: Array) -> Array:
 
 
 func test_it_writes_a_game_the_game_itself_accepts() -> void:
-	var result := _run(["--out=%s" % SCRATCH, "--id=%s" % _id, "--style=gb16", "--hooks"])
+	var result := _run(["--out=%s" % SCRATCH, "--id=%s" % _id, "--style=gb16", "--hooks",
+		"--title=%s" % ESCAPED_TITLE])
 	assert_int(int(result[0])).override_failure_message(str(result[1])).is_equal(0)
+	var manifest := ResourceLoader.load("%s/data/games/%s.tres" % [SCRATCH, _id], "",
+		ResourceLoader.CACHE_MODE_IGNORE) as GameManifest
+	assert_str(manifest.title if manifest != null else "(it did not load)").is_equal(ESCAPED_TITLE)
 	# The files, not the status. A tool that is not there exits 0 and writes nothing.
 	for shape: String in ["data/games/%s.tres", "data/maps/%s_start.json",
 			"data/dialog/%s_hello.json", "games/%s/%s_hooks.gd",

@@ -63,6 +63,10 @@ static func problems(options: Dictionary, known: Dictionary) -> Array[String]:
 			% id + "directory, so it may hold lower-case letters, digits and underscores only")
 	if _list(known, "existing_ids").has(id):
 		out.append("there is already a game called '%s'" % id)
+	if _has_control_character(str(want["title"])):
+		out.append("title %s holds a control character - a title is one line of text, and it is "
+			% JSON.stringify(str(want["title"])) + "written into comment headers and the hooks file, "
+			+ "where a line break would end the comment and turn the rest of the title into code")
 
 	var style := str(want["style"])
 	var styles := _list(known, "styles")
@@ -231,7 +235,7 @@ static func _manifest_text(want: Dictionary, root: String) -> String:
 		"id": "3_sound"})
 	var body: Array[String] = [
 		'id = &"%s"' % id,
-		'title = "%s"' % str(want["title"]),
+		'title = "%s"' % _tres_string(str(want["title"])),
 		'start_map = &"%s_start"' % id,
 		'start_spawn = &"start"',
 		'player_character = &"%s"' % str(want["character"]),
@@ -405,6 +409,24 @@ static func _tres(script_class: String, refs: Array[Dictionary], script_ref: Str
 	lines.append_array(body)
 	lines.append("")
 	return "\n".join(lines)
+
+
+## A string spelled the way Godot's own resource writer spells one. `String::c_escape_multiline`, at
+## the 4.7.1 tag, doubles every backslash and then escapes every quote, in that ORDER - the other way
+## round doubles the backslash a quote was just given. Nothing else needs escaping, because problems()
+## refuses control characters before a title gets here.
+static func _tres_string(text: String) -> String:
+	return text.replace("\\", "\\\\").replace("\"", "\\\"")
+
+
+## Anything below a space, DEL, or the C1 block. None of it belongs in one line of display text, and a
+## line break in particular ends the comment a title is written into.
+static func _has_control_character(text: String) -> bool:
+	for i in text.length():
+		var code := text.unicode_at(i)
+		if code < 32 or (code >= 127 and code <= 159):
+			return true
+	return false
 
 
 static func _json(value: Dictionary) -> String:

@@ -2399,3 +2399,18 @@ off as what an enemy's touch does.
 **Takeaway.** Grep for every store of a variable, name the routine around each, and cite a value
 together with its routine; when the path you care about was not traced, say which path the number
 came from.
+
+### A gate that proves an artifact works cannot see what else is in it
+
+Playing a build tells you the game is in it. It says nothing about the files that ride along, because
+the ones nothing loads never get a chance to fail.
+
+**Why it came up.** `tools/pack_check.sh` has exported the web pack and played six scripted sessions
+on every run since M15. On 2026-09-13 the pack still carried the test framework's 554 files, gdUnit4's
+TCP server and runners among them: the export filter had never named `addons/`, and every session
+passed because nothing in the game loads those files. Excluding them took the pack from 7.45 MB to
+5.75 MB, and the gate now lists what the pack contains before it plays it.
+
+**Takeaway.** Beside "does the artifact work", check what it CONTAINS against a list of what must never
+be in it, and write that list in the check rather than reading it from the build config the check is
+meant to catch.
