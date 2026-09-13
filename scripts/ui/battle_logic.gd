@@ -427,7 +427,7 @@ static func of(combat: CombatDef, enemies: Array, members: Array, items: Array,
 		seen_key: String, seed_value: int) -> BattleLogic:
 	var out := BattleLogic.new()
 	out._combat = combat
-	out._foes = _formation(enemies)
+	out._foes = formation(enemies)
 	out._members = members.duplicate()
 	out._items = items.duplicate()
 	out._seen_key = seen_key
@@ -448,7 +448,7 @@ static func of(combat: CombatDef, enemies: Array, members: Array, items: Array,
 ## "Slink B" - EarthBound's convention - because "the Slink is down" says nothing about which of
 ## them fell. A name that appears once is left ALONE, which is what keeps every message in a
 ## fight of one byte-identical to the ones recorded before formations existed.
-static func _formation(enemies: Array) -> Array:
+static func formation(enemies: Array) -> Array:
 	var seen := {}
 	for entry: EnemyDef in enemies:
 		seen[entry.name] = int(seen.get(entry.name, 0)) + 1
@@ -1117,7 +1117,7 @@ func _stat_word(which: int) -> String:
 ## What `row` actually takes off `target`, once that foe's answer to the spell's element is
 ## applied. The ONE place a resistance is read, called by both arms of the attack branch below.
 ##
-## Two arms doing this arithmetic separately is the `_attack_of`/`_defense_of` shape and the same
+## Two arms doing this arithmetic separately is the `attack_of`/`defense_of` shape and the same
 ## failure: the copy somebody forgets is not a crash, it is a weakness that works when you aim
 ## and silently not when you sweep, which reads as the spell being broken rather than as a bug.
 ##
@@ -1401,7 +1401,7 @@ func _begin_cue(next: Phase, frames: int) -> void:
 func _land_player_hit() -> void:
 	var swinger := _fighter(_acting)
 	var aimed := _foe(_struck if _struck >= 0 else 0)
-	var base := damage(_attack_of(swinger), _foe_defense(aimed))
+	var base := damage(attack_of(swinger), foe_defense(aimed))
 	var timed := pressed_in_time()
 	var dealt := base * 2 if timed else base
 	# The IMPACT is the feedback, not the press. A click the moment the button went down would
@@ -1424,7 +1424,7 @@ func _land_enemy_hit() -> void:
 	if not str(move.get("status", "")).is_empty():
 		_land_affliction(move, swinging, on)
 		return
-	var base := damage(_foe_attack(swinging) + int(move.get("power", 0)), _defense_of(on))
+	var base := damage(foe_attack(swinging) + int(move.get("power", 0)), defense_of(on))
 	var blocked := pressed_in_time()
 	var taken := maxi(base / 2, 1) if blocked else base
 	_want(Sfx.Cue.BLOCK if blocked else Sfx.Cue.HURT)
@@ -1511,31 +1511,20 @@ func _win(felled: String = "") -> void:
 ## caller that wants both in one breath is `_win` itself, which is the other two sites.
 func _award_victory(felled: String) -> String:
 	_outcome = Outcome.VICTORY
-	var earned := 0
-	for at in _foes.size():
-		earned += _foe(at).def.xp
+	var earned := xp_of(_foes)
 	var line := "%s is down. +%d xp." % [felled if not felled.is_empty() else _foe(0).name, earned]
 	_want(Sfx.Cue.VICTORY)
-	var levelled := false
+	var standing: Array = []
 	for i in _living():
-		var who := _fighter(i)
-		who.xp += earned
-		var was := who.level
-		who.level = who.combat.level_for(who.xp)
-		if who.level > was:
-			# A level restores that member completely - magic included, which is what
-			# "completely" has to mean once there is magic. It is the loop the whole design
-			# rests on: ambient fights are what make the boss survivable, and a heal you can
-			# feel is what makes fighting one more thing before the door a real decision.
-			who.hp = who.max_hp()
-			who.mp = who.max_mp()
-			if not levelled:
-				# One cue however many of them levelled: two chimes in one frame is noise, and
-				# the second carries no information the first did not.
-				_want(Sfx.Cue.LEVEL_UP)
-				levelled = true
-			line += " %s: level %d!" % [who.name, who.level] if _members.size() > 1 \
-				else " Level %d!" % who.level
+		standing.append(_fighter(i))
+	var levelled := share_award(standing, earned)
+	if not levelled.is_empty():
+		# One cue however many of them levelled: two chimes in one frame is noise, and the second
+		# carries no information the first did not.
+		_want(Sfx.Cue.LEVEL_UP)
+	for who: Fighter in levelled:
+		line += " %s: level %d!" % [who.name, who.level] if _members.size() > 1 \
+			else " Level %d!" % who.level
 	_seal()
 	return line
 
@@ -1549,26 +1538,75 @@ func _award_victory(felled: String) -> String:
 ## on the VIEW side, where a screen emitting its result twice is genuinely possible, and it is
 ## latched and mutant-tested there.
 func _seal() -> void:
-	if _outcome == Outcome.VICTORY:
-		_effects.append({"op": GameContext.OP_SEEN, "key": _seen_key})
+	_effects.append_array(seal_effects(_outcome == Outcome.VICTORY, _seen_key, _members,
+		gold_of(_foes)))
+
+
+# -- what winning is worth, for either resolver ----------------------------------------------
+#
+# Static and handed everything, so the arena (scripts/ui/arena_sim.gd) pays out through these same
+# lines rather than a copy of them. A second copy of "the award sums the formation" is the one that
+# forgets to sum.
+
+
+## The experience a formation is worth: the SUM of every foe in it, felled early or late.
+static func xp_of(foes: Array) -> int:
+	var earned := 0
+	for foe: Foe in foes:
+		earned += foe.def.xp
+	return earned
+
+
+## The coin, on the same terms: Final Fantasy I's gold is "the direct sum of the gold values of all
+## monsters killed".
+static func gold_of(foes: Array) -> int:
+	var purse := 0
+	for foe: Foe in foes:
+		purse += foe.def.gold
+	return purse
+
+
+## Hands `earned` to every member given - the caller passes the ones still standing, because the
+## fallen earn nothing - and answers who levelled, in the order given.
+##
+## A level restores that member completely, magic included, which is what "completely" has to mean
+## once there is magic. It is the loop the whole design rests on: ambient fights are what make the
+## boss survivable, and a heal you can feel is what makes fighting one more thing before the door a
+## real decision.
+static func share_award(members: Array, earned: int) -> Array:
+	var levelled: Array = []
+	for who: Fighter in members:
+		who.xp += earned
+		var was := who.level
+		who.level = who.combat.level_for(who.xp)
+		if who.level > was:
+			who.hp = who.max_hp()
+			who.mp = who.max_mp()
+			levelled.append(who)
+	return levelled
+
+
+## The effects a finished fight hands the world. `won` decides the seen key and the coin; the party
+## record is written either way, because a flight leaves hurt people behind too.
+static func seal_effects(won: bool, seen_key: String, members: Array,
+		purse: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if won:
+		out.append({"op": GameContext.OP_SEEN, "key": seen_key})
 	# ONE effect carrying everybody, rather than one per member. The sink applies an effect
 	# list all-or-nothing, and a party half-written - the leader's new level saved and the
 	# companion's fall not - is a state no rule in the game produces.
 	var who: Array[Dictionary] = []
-	for i in _members.size():
-		var member := _fighter(i)
+	for member: Fighter in members:
 		who.append({"id": String(member.id), "hp": member.hp, "xp": member.xp,
 			"level": member.level, "mp": member.mp})
-	_effects.append({"op": GameContext.OP_PARTY, "members": who})
-	# Coin is appended only on a WIN, and only when the formation carries any. It is SUMMED over
-	# every foe, the way the experience is - a fight pays for what it killed. It rides the same
+	out.append({"op": GameContext.OP_PARTY, "members": who})
+	# Coin is appended only on a WIN, and only when the formation carries any. It rides the same
 	# collected list as everything else, so a defeat - whose effects world_scene discards
 	# wholesale - pays nothing, and the rule "a fight never writes" is untouched.
-	var purse := 0
-	for at in _foes.size():
-		purse += _foe(at).def.gold
-	if _outcome == Outcome.VICTORY and purse > 0:
-		_effects.append({"op": GameContext.OP_GOLD, "amount": purse})
+	if won and purse > 0:
+		out.append({"op": GameContext.OP_GOLD, "amount": purse})
+	return out
 
 
 # -- messages ------------------------------------------------------------------------------
@@ -1652,24 +1690,25 @@ static func damage(attack: int, defense: int) -> int:
 # you are swung at, which reads as the spell being broken.
 #
 # So these are the ONLY places either number is assembled, and every call site reads them.
+# Static, so the arena (scripts/ui/arena_sim.gd) calls them rather than adding a copy.
 # `lessons.md` names this twice - compute a compound value once above the branches, and populate
 # a field other systems read even where your own path ignores it.
 
 
-func _attack_of(who: Fighter) -> int:
+static func attack_of(who: Fighter) -> int:
 	return maxi(0, who.combat.attack_at(who.level) + who.attack_mod + who.status.attack_bonus())
 
 
 ## Floored at nought rather than allowed to go negative: a sap deep enough to invert this would
 ## make a hit land for MORE than it does on an unarmoured target, which is not what "your guard
 ## is down" means. `damage()`'s own floor of 1 then keeps the blow real.
-func _defense_of(who: Fighter) -> int:
+static func defense_of(who: Fighter) -> int:
 	return maxi(0, who.combat.defense_at(who.level) + who.defense_mod + who.status.defense_bonus())
 
 
-func _foe_attack(it: Foe) -> int:
+static func foe_attack(it: Foe) -> int:
 	return maxi(0, it.def.attack + it.status.attack_bonus())
 
 
-func _foe_defense(it: Foe) -> int:
+static func foe_defense(it: Foe) -> int:
 	return maxi(0, it.def.defense + it.status.defense_bonus())

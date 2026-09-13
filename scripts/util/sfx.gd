@@ -41,6 +41,8 @@ enum Cue {
 	LEVEL_UP,
 	VICTORY,
 	DEFEAT,
+	# The arena
+	SWING,
 }
 
 ## Keyed by the enum rather than laid out positionally, because a positional array beside an
@@ -64,6 +66,7 @@ const IDS: Dictionary = {
 	Cue.LEVEL_UP: &"level_up",
 	Cue.VICTORY: &"victory",
 	Cue.DEFEAT: &"defeat",
+	Cue.SWING: &"swing",
 }
 
 

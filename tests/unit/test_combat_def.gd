@@ -103,3 +103,37 @@ func test_a_game_with_no_magic_at_all_is_allowed() -> void:
 	combat.mp_per_level = 0
 	assert_array(combat.problems()).is_empty()
 	assert_int(combat.max_mp(4)).is_equal(0)
+
+# -- the arena's numbers -------------------------------------------------------------------------
+
+func test_a_combat_that_never_mentions_the_arena_is_still_valid() -> void:
+	# The fixture sets none of the arena fields, so its defaults have to pass on their own - which
+	# is what lets a turn-based game carry them without a word.
+	assert_array(_combat().problems()).is_empty()
+
+func test_a_sword_that_is_never_out_is_refused() -> void:
+	var combat := _combat()
+	combat.swing_frames = 0
+	assert_str("\n".join(combat.problems())).contains("swings for 0 frames")
+
+func test_protection_that_lasts_no_frames_is_refused() -> void:
+	var combat := _combat()
+	combat.foe_hurt_frames = 0
+	assert_str("\n".join(combat.problems())).contains("protects a hit body for no frames")
+
+func test_a_shove_that_outlasts_its_protection_is_refused() -> void:
+	var combat := _combat()
+	combat.push_frames = 30
+	# The defaults protect the player for 48 and a foe for 24: the foe's is the shorter.
+	assert_str("\n".join(combat.problems())).contains("protects for 24")
+
+func test_a_backwards_wander_range_is_refused() -> void:
+	var combat := _combat()
+	combat.wander_min_frames = 40
+	combat.wander_max_frames = 10
+	assert_str("\n".join(combat.problems())).contains("the range is backwards")
+
+func test_an_arena_too_small_to_stand_apart_in_is_refused() -> void:
+	var combat := _combat()
+	combat.arena_tiles = Vector2i(1, 4)
+	assert_str("\n".join(combat.problems())).contains("too small to stand apart in")

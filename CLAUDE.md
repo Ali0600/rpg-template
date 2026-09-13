@@ -556,6 +556,15 @@ reader of an existing one shifts every draw after it, and every recorded replay 
 research for a second resolver is `docs/GENRE_CONVENTIONS.md` §7d and the decision is the M49 entry
 in `docs/DECISIONS.md`; both are written against this seam as it stands.
 
+**The arena's rules are `ArenaSim`, and what a win is worth is not theirs to decide.**
+`scripts/ui/arena_sim.gd` is a sword fight as pure, clockless INTEGER rules: positions in 256ths of
+a tile, a heading of -1, 0 or 1 per axis, speeds carried as a remainder, boxes as `Rect2i`, and every
+draw from `derive("arena")` (`docs/DECISIONS.md`, M50). It calls `BattleLogic`'s statics -
+`formation`, `damage`, `attack_of`/`defense_of`/`foe_attack`/`foe_defense`, `xp_of`/`gold_of`,
+`share_award`, `seal_effects` - rather than a copy of them, so the award, the level-up heal and the
+seal are one set of lines for both resolvers: a second copy of "the award sums the formation" is the
+one that forgets to sum. `tests/helpers/arena_driver.gd` is its `BattleDriver`, PERFECT and CHARGE.
+
 **Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
 and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
 it - Super Mario RPG's shape, where one touched sprite opens a formation the ROM already knew
@@ -718,7 +727,7 @@ through immunity. An entry of exactly 100 is REFUSED rather than allowed as a no
 like a decision and changes nothing, so it is a typo or a note belonging in a comment.
 
 `_spell_damage` is the one place the multiply happens, called by both arms of the attack branch.
-Two arms each doing it is the `_attack_of`/`_defense_of` shape and the same failure: the copy
+Two arms each doing it is the `attack_of`/`defense_of` shape and the same failure: the copy
 somebody forgets is a weakness that works when you aim and silently not when you sweep, which
 reads as the spell being broken. Damage is floored at 1 wherever the element does not stop the
 spell outright, so *resisted* and *immune* stay things a player can tell apart - 1 power halved is
@@ -841,7 +850,7 @@ the holder's OWN turn, where `asleep_turns` has always been counted - so a shift
 the enemy's answer and a shift of two also covers your next swing. Nothing is saved, nothing is
 migrated, and `BattleLogic` still writes nothing; persistent affliction is a milestone of its own.
 
-**Four contributors reach two numbers, so `_attack_of`/`_defense_of` are the ONLY places either
+**Four contributors reach two numbers, so `attack_of`/`defense_of` are the ONLY places either
 is assembled.** The level curve, worn equipment and a status shift all feed attack and defense,
 and before M30 each hit resolver added its own two up. A third contributor is exactly when that
 stops being safe: the copy somebody forgets is not a crash, it is a buff that works when you

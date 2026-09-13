@@ -36,12 +36,7 @@ class Step:
 static func step(input: Vector2, facing_now: int, config: GameConfig) -> Step:
 	var move := input
 	if not config.allow_diagonal:
-		# One axis at a time. The dominant axis wins, and a tie goes horizontal - the same
-		# rule Dir uses for facing, so the character never faces a way it is not moving.
-		if absf(move.x) >= absf(move.y):
-			move = Vector2(signf(move.x), 0.0)
-		else:
-			move = Vector2(0.0, signf(move.y))
+		move = axis_locked(move)
 
 	if move.length() > 1.0:
 		# Normalise, never clamp per-axis: two keys held would otherwise produce a vector of
@@ -55,12 +50,36 @@ static func step(input: Vector2, facing_now: int, config: GameConfig) -> Step:
 	return Step.new(velocity, facing, &"walk" if moving else &"idle")
 
 
+## One axis at a time. The dominant axis wins, and a tie goes horizontal - the same rule Dir uses
+## for facing, so the character never faces a way it is not moving. Its own function because the
+## arena's integer movement asks the same question, and two copies of a tie rule disagree.
+static func axis_locked(move: Vector2) -> Vector2:
+	if absf(move.x) >= absf(move.y):
+		return Vector2(signf(move.x), 0.0)
+	return Vector2(0.0, signf(move.y))
+
+
 ## Reads the four movement actions into an axis pair. The only place the action names are
 ## spelled, so a rebind is one edit and a rename cannot half-apply.
 static func read_input() -> Vector2:
 	return Vector2(
 		Input.get_axis(&"move_left", &"move_right"),
 		Input.get_axis(&"move_up", &"move_down"))
+
+
+## The action that walks toward `d`: the other half of read_input(), for anything that has to PRESS
+## a direction rather than read one - a scripted harness, a suite driving real input - so the four
+## names are still spelled here and nowhere else.
+static func action_for(d: Dir.D) -> StringName:
+	match d:
+		Dir.D.DOWN:
+			return &"move_down"
+		Dir.D.LEFT:
+			return &"move_left"
+		Dir.D.RIGHT:
+			return &"move_right"
+		_:
+			return &"move_up"
 
 
 ## Where an interaction lands: in front of the character, at arm's length. Derived from the

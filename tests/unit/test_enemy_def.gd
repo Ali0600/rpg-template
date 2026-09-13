@@ -123,3 +123,20 @@ func test_a_named_element_is_answered_by_its_own_number() -> void:
 	enemy.resistances = {&"fire": 200, &"ice": 50}
 	assert_int(enemy.resistance_to(&"fire")).is_equal(200)
 	assert_int(enemy.resistance_to(&"ice")).is_equal(50)
+
+# -- the arena's numbers -------------------------------------------------------------------------
+
+func test_an_enemy_that_moves_backwards_is_refused() -> void:
+	var enemy := _enemy()
+	enemy.speed_tiles_per_second = -1.0
+	assert_str("\n".join(enemy.problems())).contains("backwards")
+
+func test_an_enemy_chasing_on_a_negative_period_is_refused() -> void:
+	var enemy := _enemy()
+	enemy.chase_every_frames = -1
+	assert_str("\n".join(enemy.problems())).contains("chases every -1 frames")
+
+func test_an_enemy_with_no_body_to_touch_is_refused() -> void:
+	var enemy := _enemy()
+	enemy.body_tiles = Vector2(0.0, 0.375)
+	assert_str("\n".join(enemy.problems())).contains("nothing could touch it")
