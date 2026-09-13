@@ -234,3 +234,17 @@ func test_a_freed_reference_compares_equal_to_null() -> void:
 		"the control failed: a live node reads as invalid, so the assertion above proves nothing"
 		).is_true()
 	live.free()
+
+
+
+func test_a_search_by_class_name_finds_a_subclass_of_that_class() -> void:
+	# Anything looking for "the fight screen" by name - the scripted harness does - has to find the
+	# arena's as well as the turn fight's, and that rests on find_children walking a script's base
+	# classes rather than matching its own name only.
+	var parent := Node.new()
+	var screen := ArenaScreen.new()
+	parent.add_child(screen)
+	var found := parent.find_children("", "FightScreen", true, false)
+	assert_int(found.size()).is_equal(1)
+	assert_object(found[0]).is_same(screen)
+	parent.free()

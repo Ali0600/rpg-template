@@ -389,7 +389,7 @@ scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game
 scripts/autoload/router.gd	s|\tset_state\(base\)|\t_state = base|	tests/unit/test_router.gd	a run starts and the state machine tells nobody, the way it did before M23
 scripts/autoload/router.gd	s|\t_to_base\(State.TITLE\)|\t_to_base(State.WORLD)|	tests/unit/test_router.gd	going back to the title lands in the world instead
 scripts/world/world_scene.gd	s|\t_close_battle\(\)|\tpass|	tests/integration/test_flow_model.gd	a defeat stacks the game over on top of the fight screen it never closed
-scripts/world/world_scene.gd	s|return _battle as CanvasLayer|return null|	tests/integration/test_flow_model.gd	a fight is up and the model's battle state cannot see it, so every battle edge reports the wrong state
+scripts/world/world_scene.gd	s|^\treturn _battle$|\treturn null|	tests/integration/test_flow_model.gd	a fight is up and the model's battle state cannot see it, so every battle edge reports the wrong state
 scripts/util/flow_doc.gd	s|\t\tif from == to:|\t\tif false:|	tests/unit/test_flow_doc.gd	the diagram draws a warp as a state change, so the picture disagrees with the model
 scripts/soundgen/tune.gd	s|\t\thz \*= 2.0|\t\tpass|	tests/unit/test_tune.gd	every octave plays the same note
 scripts/soundgen/tune.gd	s|\t\tmix\[i\] = clampf\(v, -1.0, 1.0\)|\t\tmix[i] = v|	tests/unit/test_tune.gd	a chord past full scale wraps to the opposite sign and cracks
@@ -515,7 +515,7 @@ scripts/ui/battle_logic.gd	s|\t\t\t\teach.hp = maxi\(each.hp - took, 0\)|\t\t\t\
 scripts/ui/battle_logic.gd	s|\t\t\tdisplay = "%s %s" % \[entry.name, char\("A".unicode_at\(0\) \+ nth\)\]|\t\t\tpass|	tests/unit/test_battle_logic.gd	two foes of one kind are both called the same thing
 scripts/world/map_data.gd	s|^\t\tif occupied.has\(stands\):$|\t\tif false:|	tests/unit/test_map_data.gd	two enemies stand on one tile and the second can never be fought
 scripts/ui/battle_screen.gd	s|\t\tvar theirs := acting and not player_side and swinging_foe == at|\t\tvar theirs := acting and not player_side|	tests/integration/test_battle_layout.gd	every foe leans when any one of them swings
-scripts/ui/battle_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
+scripts/ui/fight_screen.gd	s|^const MAX_FOES := 3$|const MAX_FOES := 0|	tests/unit/test_battle_content.gd	a map may name a formation bigger than the screen draws
 scripts/ui/battle_screen.gd	s|^const MAX_PARTY := 3$|const MAX_PARTY := 0|	tests/unit/test_battle_content.gd	a game may declare a party bigger than the screen draws
 scripts/ui/battle_logic.gd	s|\t\t\t\tdef.status_turns, def.target, def.stat, def.element\)\)|\t\t\t\tdef.status_turns, def.stat, def.element))|	tests/integration/test_world_battles.gd	a spell's shape is dropped between the file and the fight
 scripts/ui/battle_logic.gd	s|who.status.attack_bonus\(\)|0|	tests/unit/test_battle_logic.gd	a boost never reaches the swing, so the spell announces itself and changes no number
@@ -650,7 +650,7 @@ scripts/world/world_scene.gd	s|var at := at_tile \* float\(_built.tile_size\)|va
 scripts/data/migrations.gd	s|d = _v9_to_v10\(d\)|break|	tests/unit/test_saves.gd	a v9 save is handed on unmigrated, still speaking in pixels
 scripts/data/migrations.gd	s|const PRE_V10_TILE_PIXELS := 16.0|const PRE_V10_TILE_PIXELS := 32.0|	tests/unit/test_saves.gd	every save written before v10 lands the player half way to where they stood
 scripts/autoload/game_state.gd	s|out.tile = player_position / float\(maxi\(tile_size, 1\)\)|out.tile = player_position|	tests/unit/test_saves.gd	a save is written in pixels wearing a tile's name
-scripts/ui/battle_screen.gd	s|return float\(_style.battle_sprite_scale\) / float\(UiScale.scale_of\(_style\)\)|return float(_style.battle_sprite_scale)|	tests/integration/test_battle_layout.gd	a fighter under a 32px style is drawn at twice the size its style asked for
+scripts/ui/fight_screen.gd	s|return float\(style.battle_sprite_scale\) / float\(UiScale.scale_of\(style\)\)|return float(style.battle_sprite_scale)|	tests/integration/test_battle_layout.gd	a fighter under a 32px style is drawn at twice the size its style asked for
 scripts/world/npc_brain.gd	s|return ARRIVE_EPSILON_PER_TILE \* float\(_tile_size\)|return ARRIVE_EPSILON_PER_TILE * 16.0|	tests/unit/test_npc_brain.gd	at 32px tiles an NPC shuffles forever a pixel short of its waypoint
 scripts/autoload/qa.gd	s|var tile_size := GameState.tile_size|var tile_size := 16|	tests/unit/test_qa_ops.gd	a play session reads a 32px world in 16px tiles and asserts the wrong door
 tests/helpers/warp_graph.gd	s|changed = true|pass|	tests/unit/test_map_content.gd	the reach walk stops one door in, so the rooms beyond it are never compared with the rest
@@ -910,3 +910,23 @@ tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).grow\(CHARGE_RANG
 tests/helpers/arena_driver.gd	s|if danger >= 0 and sim.player_hurt\(\) == 0:|if false:|	tests/unit/test_arena_driver.gd	the skilled policy walks into what is about to touch it
 tests/helpers/arena_driver.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_arena_driver.gd	the skilled policy stands still swinging at air
 scripts/world/locomotion.gd	s|return &"move_left"|return \&"move_right"|	tests/unit/test_locomotion.gd	a harness pressing left holds right
+
+# M50 - the arena's screen: the style word, the screen the world chooses by it, what the scaffold writes, and what the floor draws.
+scripts/world/world_scene.gd	s|if combat.style == CombatDef.STYLE_ARENA:|if false:|	tests/integration/test_world_arena.gd	a game whose combat says arena opens the turn fight
+scripts/world/world_scene.gd	s|if combat.style == CombatDef.STYLE_ARENA:|if true:|	tests/integration/test_world_battles.gd	a turn-based game opens the arena
+scripts/data/combat_def.gd	s|if not STYLES.has\(style\):|if false:|	tests/unit/test_combat_def.gd	a style no resolver answers ships, and loads as a fight nobody draws
+scripts/data/combat_def.gd	s|const STYLES: Array\[StringName\] = \[STYLE_TURNS, STYLE_ARENA\]|const STYLES: Array[StringName] = [STYLE_TURNS]|	tests/unit/test_game_scaffold.gd	the game stops answering a style the scaffold still writes
+scripts/util/game_scaffold.gd	s|const COMBATS: Array\[String\] = \["none", "turns", "arena"\]|const COMBATS: Array[String] = ["none", "turns"]|	tests/unit/test_game_scaffold.gd	the scaffold cannot write a style the game answers
+scripts/util/game_scaffold.gd	s|return str\(want\["combat"\]\) != "none"|return str(want["combat"]) == "turns"|	tests/unit/test_game_scaffold.gd	--combat=arena writes a game with no combat definition, which cannot fight
+scripts/util/game_scaffold.gd	s|body.append\('style = &"arena"'\)|pass|	tests/unit/test_game_scaffold.gd	a scaffolded arena game fights by turns
+scripts/ui/battle_screen.gd	s|\treturn _logic.foe_ids\(\)|\treturn _logic.foe_ids().slice(0, 0)|	tests/integration/test_world_arena.gd	the world announces a turn fight with nobody in it
+scripts/ui/arena_screen.gd	s|_committed = true|pass|	tests/integration/test_world_arena.gd	a won arena pays out again on every frame that follows
+scripts/ui/arena_screen.gd	s|_swing_pressed = true|pass|	tests/integration/test_world_arena.gd	the sword button never reaches the sword
+scripts/ui/arena_screen.gd	s|\t_swing_pressed = false|\tpass|	tests/integration/test_world_arena.gd	one press of the sword button swings on every frame after it
+scripts/ui/arena_screen.gd	s|_sim.tick\(Locomotion.read_input\(\), _swing_pressed\)|_sim.tick(Vector2.ZERO, _swing_pressed)|	tests/integration/test_world_arena.gd	the keys do not move the player in the arena
+scripts/ui/arena_screen.gd	s|view.visible = hurt <= 0 or hurt % \(FLICKER_SPAN \* 2\) < FLICKER_SPAN|view.visible = true|	tests/integration/test_arena_layout.gd	protection is invisible, so a struck foe looks like it can be struck again
+scripts/ui/arena_screen.gd	s|UiChrome.fill\(_foe_bar, _sim.foe_hp\(shown\), _sim.foe_max_hp\(shown\)\)|pass|	tests/integration/test_arena_layout.gd	the foe bar never moves, so a blow says nothing
+scripts/ui/arena_screen.gd	s|var shown := _sim.shown_foe\(\)|var shown := 0|	tests/integration/test_arena_layout.gd	the bar is always the first foe's, whichever one was struck
+scripts/ui/arena_screen.gd	s|set_pose\(&"walk" if moved else &"idle", facing\)|set_pose(\&"idle", facing)|	tests/integration/test_arena_layout.gd	a body slides across the floor standing still
+scripts/ui/arena_screen.gd	s|var box := _sim.sword_box\(\).intersection\(_sim.floor_rect\(\)\)|var box := _sim.sword_box()|	tests/integration/test_arena_layout.gd	the blade is drawn through the wall and out of its window
+scripts/ui/arena_screen.gd	s|_before.y = maxf\(_before.y, ceilf\(float\(meta.anchor.y\) \* drawn\)\)|pass|	tests/integration/test_arena_layout.gd	the floor leaves no room above its top row, so a body there is drawn out of its window

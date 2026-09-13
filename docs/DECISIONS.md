@@ -3392,7 +3392,7 @@ field cannot move, one screen owns input, and the ways out are the same. The flo
 state; its `battle_screen_up` invariant must come to mean that a resolver's screen is up, and that
 edit is made before any code.
 
-**The contract a second resolver is held to.**
+**The contract a second resolver is held to.** *Built in M50: `CombatDef.style`, `FightScreen`, `ArenaScreen` and `ArenaSim`, each item below with a test and a mutant.*
 
 - `CombatDef.style` is `turns`, the default, or `arena`, and anything else is refused by name.
 - `open_battle_with` keeps every guard it has and chooses the screen after them. `finished(outcome,

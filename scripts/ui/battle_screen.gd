@@ -1,5 +1,5 @@
 class_name BattleScreen
-extends CanvasLayer
+extends FightScreen
 ## A fight, drawn. BattleLogic decides; this paints, times it, and reports the result.
 ##
 ## Built in code from a SpriteStyle like every other view here: a .tscn would hold a colour,
@@ -12,18 +12,10 @@ extends CanvasLayer
 ## The screen has NO timing code of its own. Every moving thing on it is derived from
 ## logic.count(), the same number the rules are judging the player's press against, so what the
 ## player sees and what the fight scores cannot drift apart.
-## A sound this view wants played. Emitted rather than played directly, for two reasons.
 ##
-## Signals up, calls down - the world owns the speaker, and a view asking for a noise is the
-## same shape as a view asking for anything else. And practically: check.sh's per-file parse
-## gate skips any file whose TEXT names an autoload, so calling the audio singleton here would
-## quietly drop this file out of that gate, along with every test that depends on it. That is
-## not hypothetical - it is how this signal came to exist. Do not name it in prose either.
-signal sound_wanted(id: StringName)
+## The signals, the layer, the result latch and the formation cap live on FightScreen, which the
+## arena's screen extends too: a fight is one state whichever resolver draws it.
 
-signal finished(outcome: int, effects: Array)
-
-const LAYER := 12
 const MARGIN := 8
 const TITLE_SIZE := UiChrome.FONT_SIZE
 const ROW_SIZE := UiChrome.FONT_SIZE
@@ -100,17 +92,6 @@ const MAX_PARTY := 3
 const BLOCK_HEIGHT := 16.0
 const BLOCK_PITCH := 17.0
 
-## The same contract on the other side: how many foes this screen can draw, and therefore how
-## large a formation a map record may name. Three for the same reason as MAX_PARTY - it is what
-## the banner names on one line at the widest names the layout audit uses, and it is the size the
-## genre's own small fights come in.
-const MAX_FOES := 3
-
-## The same contract on the other side: how many foes this screen can draw, and therefore how
-## large a formation a map record may name. Three for the same reason - it is what the band
-## above the cue line holds, and it is the size the genre's own small fights come in.
-##
-
 ## How far a fighter leans in as its blow lands. Pixels, at the sprite's own scale.
 const LUNGE := 10.0
 ## The drawn width the file's 18/14 stagger was chosen against - a 16px cell at twice size.
@@ -169,16 +150,6 @@ var _foe_homes: Array[Vector2] = []
 
 var _gate := InputGate.new()
 
-## Set the frame the result goes out, and never cleared. Without it _physics_process emits
-## again on every later frame - the fight is still finished() - and the world applies the same
-## xp, the same seen key and the same item take once per frame until something notices.
-var _committed := false
-
-
-func _ready() -> void:
-	layer = LAYER
-
-
 ## Nobody's art is passed in any more. The party's stopped being when members gained their own;
 ## the foe's stops now for the same reason, because a formation has as many as it has - so the
 ## screen asks the fight who it is drawing rather than being told once about a hero and a foe.
@@ -192,6 +163,13 @@ func setup(logic: BattleLogic, style: SpriteStyle, viewport_size: Vector2i,
 
 func logic() -> BattleLogic:
 	return _logic
+
+
+func foe_ids() -> Array[StringName]:
+	if _logic == null:
+		var none: Array[StringName] = []
+		return none
+	return _logic.foe_ids()
 
 
 func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
@@ -354,16 +332,9 @@ func _drawn_width() -> float:
 	return float(_style.cell_size.x) * _fighter_scale()
 
 
-## How many of THIS SCREEN's pixels one of a fighter's own pixels covers. The style says how
-## many times world size a fighter is drawn at; the division is because this screen is a
-## CanvasLayer already drawn at the world's scale, so a bare 2.0 under a 2x layer would put a
-## 64px cell across 128 of the 180 design pixels this layout was measured for.
-##
-## The numerator moved into the style in M42 and the divisor stayed, which is exactly the hook
-## DECISIONS named when it deferred this. lpc32 asks for 1 and gets world size: the size that
-## character is when you walk around as them.
+## See FightScreen.fighter_scale: the arena draws its fighters by the same formula.
 func _fighter_scale() -> float:
-	return float(_style.battle_sprite_scale) / float(UiScale.scale_of(_style))
+	return FightScreen.fighter_scale(_style)
 
 
 func _make_fighter(source: SpriteSource, character: StringName, at: Vector2, facing: int) -> SpriteView:

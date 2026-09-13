@@ -158,7 +158,7 @@ func test_no_map_asks_for_a_bigger_formation_than_the_screen_draws() -> void:
 			var size := 1 + (record.get("group", []) as Array).size()
 			assert_int(size).override_failure_message(
 				"%s places a formation of %d, and the screen draws %d"
-				% [path, size, BattleScreen.MAX_FOES]).is_less_equal(BattleScreen.MAX_FOES)
+				% [path, size, FightScreen.MAX_FOES]).is_less_equal(FightScreen.MAX_FOES)
 
 func test_no_game_asks_for_a_bigger_party_than_the_screen_draws() -> void:
 	for path in ContentScan.files("res://data/games", ["tres"]):

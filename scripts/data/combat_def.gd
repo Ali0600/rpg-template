@@ -14,6 +14,21 @@ extends Resource
 ## Used by Registry as this resource's key.
 @export var id: StringName = &""
 
+## The resolvers this template ships, by the word a CombatDef names them with.
+const STYLE_TURNS := &"turns"
+const STYLE_ARENA := &"arena"
+const STYLES: Array[StringName] = [STYLE_TURNS, STYLE_ARENA]
+
+## Which resolver fights this game's encounters: `turns`, the menu fight, or `arena`, the sword.
+## A StringName checked against STYLES rather than an enum, for save_policy's reason: a .tres stores
+## an enum as the integer it was written as, so a style added later would re-label every shipped
+## file. A typo is refused BY NAME, because a style that silently read as `turns` is an arena game
+## that opens menus.
+##
+## Only the GAME's combat is read. A companion's own CombatDef carries this the way it carries the
+## timing fields below, and ignores it the same way: one screen resolves one fight.
+@export var style: StringName = STYLE_TURNS
+
 ## The level-1 player, and what each level adds. Stats are DERIVED from level rather than
 ## stored, so a designer retuning the curve changes every existing save's player too - which
 ## is the point of a curve living in data.
@@ -143,6 +158,9 @@ func problems() -> Array[String]:
 	var out: Array[String] = []
 	if String(id).is_empty():
 		out.append("combat has no id")
+	if not STYLES.has(style):
+		out.append("combat '%s' fights with '%s', which no resolver answers - it must be one of %s"
+			% [id, style, STYLES])
 	if base_hp <= 0:
 		out.append("combat '%s' starts the player on %d hp" % [id, base_hp])
 	if base_attack <= 0:

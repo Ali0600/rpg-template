@@ -137,3 +137,11 @@ func test_an_arena_too_small_to_stand_apart_in_is_refused() -> void:
 	var combat := _combat()
 	combat.arena_tiles = Vector2i(1, 4)
 	assert_str("\n".join(combat.problems())).contains("too small to stand apart in")
+
+func test_a_combat_fights_with_a_resolver_the_template_has() -> void:
+	var combat := _combat()
+	assert_str(String(combat.style)).is_equal("turns")
+	combat.style = &"arena"
+	assert_array(combat.problems()).is_empty()
+	combat.style = &"realtime"
+	assert_str("\n".join(combat.problems())).contains("'realtime', which no resolver answers")

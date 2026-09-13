@@ -33,7 +33,7 @@ var _style_source: SpriteStyle = null
 ## The pause menu, when it is up. It belongs to the running game - its slot list is that
 ## game's - so _teardown_game frees it.
 var _pause: PauseScreen
-var _battle: BattleScreen
+var _battle: FightScreen
 ## Who the paused screen's pages are about. Reset to the leader whenever the menu opens, so a
 ## player who looked at a companion last time does not come back to their page.
 var _pause_member: StringName = &""
@@ -1112,15 +1112,19 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 
 	_ensure_party()
 	_player.halt()
-	_battle = BattleScreen.new()
+	_battle = _fight_screen_for(_game.combat)
 	# Constructed and connected in one function, the open_pause rule: a view built in one place
 	# and wired in another is a view that eventually gets built and not wired.
 	_battle.sound_wanted.connect(_on_sound_wanted)
 	_battle.finished.connect(_on_battle_finished)
 	_mount_ui(_battle)
-	_battle.setup(BattleLogic.of(_game.combat, defs, _battle_members(), _battle_items(),
-		seen_key, _battle_seed(seen_key)),
-		_style, _ui_size(), _source)
+	var arena := _battle as ArenaScreen
+	if arena != null:
+		arena.setup(ArenaSim.of(_game.combat, defs, _battle_members(), seen_key,
+			_battle_seed(seen_key), _config), _style, _ui_size(), _source)
+	else:
+		(_battle as BattleScreen).setup(BattleLogic.of(_game.combat, defs, _battle_members(),
+			_battle_items(), seen_key, _battle_seed(seen_key)), _style, _ui_size(), _source)
 	# A fight takes the room's music over. A game naming no battle theme touches nothing at all,
 	# which is not merely a legal shape but is exactly the behaviour every fight had before this
 	# existed - so the field being empty is the old game, unchanged.
@@ -1129,8 +1133,17 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 		AudioBus.play_music(scored)
 	Router.open_overlay(Router.State.BATTLE)
 	EventBus.battle_changed.emit(
-		{"enemies": _battle.logic().foe_ids(), "open": true, "outcome": &""})
+		{"enemies": _battle.foe_ids(), "open": true, "outcome": &""})
 	return true
+
+
+## Which screen resolves a fight in this game: the one place the style word is read. It is reached
+## only after every guard in open_battle_with has run, so a style chooses a screen and can never
+## let a fight through that would otherwise have been refused (docs/DECISIONS.md, M49).
+func _fight_screen_for(combat: CombatDef) -> FightScreen:
+	if combat.style == CombatDef.STYLE_ARENA:
+		return ArenaScreen.new()
+	return BattleScreen.new()
 
 
 ## What THIS fight sounds like: the first foe that names a track, or the game's own battle
@@ -1677,8 +1690,8 @@ func _on_battle_finished(outcome: int, effects: Array) -> void:
 	# and the def's id on the way in - one field answering in two vocabularies, which nothing
 	# noticed because nothing listens. Read before the screen goes, because it is what holds them.
 	var fought: Array[StringName] = []
-	if _battle != null and _battle.logic() != null:
-		fought = _battle.logic().foe_ids()
+	if _battle != null:
+		fought = _battle.foe_ids()
 	_close_battle()
 	match outcome:
 		BattleLogic.Outcome.DEFEAT:
@@ -2173,14 +2186,19 @@ func game_is_running() -> bool:
 
 
 func battle_screen() -> BattleScreen:
+	return _battle as BattleScreen
+
+
+## Whichever screen is resolving the fight that is up - the turn fight's or the arena's - or null.
+## The flow model's `battle_screen_up` asks this rather than battle_screen(), because a fight is one
+## state whichever resolver draws it.
+func fight_screen() -> FightScreen:
 	return _battle
 
 
-## Whichever screen is resolving the fight that is up - the turn fight's, and from M50 the arena's -
-## or null. The flow model's `battle_screen_up` asks this rather than battle_screen(), because a
-## fight is one state whichever resolver draws it.
-func fight_screen() -> CanvasLayer:
-	return _battle as CanvasLayer
+## The arena's screen, when the fight that is up is fought with a sword; null otherwise.
+func arena_screen() -> ArenaScreen:
+	return _battle as ArenaScreen
 
 
 ## The title, for tests that read what it drew rather than driving keys at it.

@@ -31,7 +31,7 @@ extends RefCounted
 ## PARTY ORDER rather than a stat, and FF1 is the precedent for that too: its own order is a
 ## random shuffle that ignores everyone's numbers.
 ##
-## AND THE OTHER SIDE IS A LIST TOO. A fight holds up to `BattleScreen.MAX_FOES` of them, named
+## AND THE OTHER SIDE IS A LIST TOO. A fight holds up to `FightScreen.MAX_FOES` of them, named
 ## by one map record, and every living foe takes a turn after the whole party has gone. "One
 ## foe" was a scope line rather than a convention - Dragon Quest I is the only reference that
 ## fights one at a time, and the rest field authored formations. A fight of one is a list of
