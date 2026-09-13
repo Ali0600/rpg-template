@@ -18,6 +18,18 @@ const KNOWN := {
 
 const BASE := {"id": "proof", "style": "gb16"}
 
+## Where a planned manifest is written so the engine can be asked to read it. user://, never the
+## project, and swept after every test.
+const TITLE_SCRATCH := "user://scaffold_title_test"
+
+
+func after_test() -> void:
+	var written := "%s/proof.tres" % TITLE_SCRATCH
+	if FileAccess.file_exists(written):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(written))
+	if DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(TITLE_SCRATCH)):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TITLE_SCRATCH))
+
 
 func _plan(extra: Dictionary = {}) -> Dictionary:
 	var options := BASE.duplicate()
@@ -244,6 +256,39 @@ func test_it_refuses_an_axis_set_to_something_that_is_not_one_of_the_two() -> vo
 			options[key] = (axis as Dictionary)[key]
 		assert_int(GameScaffold.problems(options, KNOWN).size()).override_failure_message(
 			"%s was accepted" % axis).is_greater(0)
+
+
+func test_a_title_comes_back_out_of_the_manifest_exactly_whatever_it_quotes() -> void:
+	# The manifest is TEXT this planner writes, so a title is a string inside a .tres and the only
+	# reader whose opinion counts is the engine's. Measured against the unescaped writer, the two
+	# titles fail differently, which is why both are here: the first LOADED, silently titled "The ",
+	# because its quote ended the string; the second did not load at all, because its last backslash
+	# swallowed the closing quote. Quotes and backslashes together also catch escaping the two in the
+	# wrong order, which a title holding only one of them cannot see.
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(TITLE_SCRATCH))
+	var path := "%s/proof.tres" % TITLE_SCRATCH
+	for title: String in ['The "Barred" Gate \\ Part Two', 'Ends in a backslash\\']:
+		var planned := GameScaffold.plan({"id": "proof", "style": "gb16", "title": title}, KNOWN)
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		file.store_string(str(planned["data/games/proof.tres"]))
+		file.close()
+		var manifest := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as GameManifest
+		assert_str(manifest.title if manifest != null else "(it did not load)"
+			).override_failure_message("a manifest titled %s came back wrong" % JSON.stringify(title)
+			).is_equal(title)
+
+
+func test_a_title_is_one_line_because_it_is_written_into_code() -> void:
+	# The hooks file's first doc line is "## <title>'s own code". A line break in the title ends that
+	# comment, and the rest of the title becomes a line of GDScript the build then parses and runs.
+	for bad: String in ["Two\nLines", "Carriage\rReturn", "Tab\tStop", "Bell\u0007",
+			"Delete\u007f", "Next\u0085Line"]:
+		assert_str("\n".join(GameScaffold.problems(
+			{"id": "proof", "style": "gb16", "title": bad}, KNOWN))).override_failure_message(
+			"the title %s was accepted" % JSON.stringify(bad)).contains("control character")
+	# Anything a person types on one line is still a title: quotes, accents, a colon, a dash.
+	assert_array(GameScaffold.problems({"id": "proof", "style": "gb16",
+		"title": 'Élan: the "Quiet" Road — ½ way'}, KNOWN)).is_empty()
 
 
 func test_what_this_project_currently_has_is_read_off_the_disk() -> void:

@@ -58,10 +58,9 @@ one-glance menu of things still worth trying.
   escape and everyone else allows it; a hit is worth exactly what the numbers say. A designer
   can reason about that and a QA script can rely on it. Revisit hooks: the flee branch in
   `BattleLogic.press()`, and `BattleLogic.damage()`.
-- **`MOTION_MODE_FLOATING` for actors** — Godot's recommended mode for top-down, and a
-  cleaner answer to the NPC-carry bug than the narrow opt-out that shipped. It changes how
-  every body slides along every wall, so it needs playing rather than proving. Revisit hook:
-  one line in `ActorBody._init`.
+- ~~**`MOTION_MODE_FLOATING` for actors.**~~ **Taken up by M45** (#149), at the one line this
+  entry named, and measured rather than argued: along a horizontal wall the two modes differ by
+  a third. It stayed listed here as open for four milestones after it shipped.
 - ~~**A real title screen.**~~ **Taken up by M22**, and this entry sat here stale for twelve
   milestones afterwards — which is worth more than the correction. A backlog line describing
   work already done invites building it a second time, and it sits exactly where somebody looks

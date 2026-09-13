@@ -216,6 +216,26 @@ func test_every_piece_of_terrain_is_credited_where_its_style_ships() -> void:
 	assert_int(checked).override_failure_message("no terrain file was checked").is_greater(0)
 
 
+func test_every_sheet_an_imported_bank_cuts_from_is_the_one_its_sha256_names() -> void:
+	# The bank is what a reviewer reads and the sheet is a binary nobody does, so the sum is how
+	# replacing the art shows up as a changed line rather than as ground that quietly moved. It is
+	# also the sum tools/fetch_tiles.sh refuses a download against, so green here means a fresh
+	# fetch would put back exactly what is committed.
+	var checked := 0
+	for bank_id in ArtFixtures.imported_bank_ids():
+		var bank := ArtFixtures.bank(bank_id)
+		for entry: Variant in bank.files():
+			var record: Dictionary = entry
+			var path := bank.source_path(str(record.get("file", "")))
+			assert_bool(FileAccess.file_exists(path)).override_failure_message(
+				"%s is credited by the %s bank and is not on disk" % [path, bank_id]).is_true()
+			assert_str(FileAccess.get_sha256(path)).override_failure_message(
+				"%s is not the art the %s bank names - replace a sheet and its sha256 together"
+				% [path, bank_id]).is_equal(str(record.get("sha256", "")))
+			checked += 1
+	assert_int(checked).override_failure_message("no imported sheet was checked").is_greater(0)
+
+
 func test_every_imported_character_has_a_face_with_something_in_it() -> void:
 	# The import arm's half of the same rule, and it is the arm that needs it: these bodies are
 	# four different heights, and the cast wears hats, hoods and a pair of horns. A face measured

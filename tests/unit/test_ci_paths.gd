@@ -104,7 +104,8 @@ func test_the_ci_scripts_prove_themselves() -> void:
 	var scripts := _selftesting_scripts()
 	assert_int(scripts.size()).override_failure_message(
 		"no tools/*.sh carries a --selftest any more, so this ran nothing").is_greater(2)
-	for expected in ["ci_changed.sh", "mutants_scope.sh", "fetch_godot.sh"]:
+	for expected in ["ci_changed.sh", "mutants_scope.sh", "fetch_godot.sh", "pack_check.sh",
+			"fetch_tiles.sh", "lpc_compose.sh"]:
 		var found := false
 		for script in scripts:
 			if script.ends_with(expected):

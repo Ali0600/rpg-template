@@ -28,11 +28,17 @@
 		"",
 		"tools/fetch_tiles.sh fetches every file with a `url` into data/imports/tiles/lpc32/.",
 		"plants.png has none on purpose: it ships as a zip from its OpenGameArt page, so the one",
-		"sheet inside it is extracted and placed by hand, and the script says so rather than failing."
+		"sheet inside it is extracted and placed by hand, and the script says so rather than failing.",
+		"",
+		"Every file names the sha256 of its sheet, and fetch_tiles.sh puts nothing in place that",
+		"does not match it; test_imported_art holds the committed sheets to the same sums. The urls",
+		"read the LPC repository at a COMMIT, whose files were checked against the committed sheets",
+		"on 2026-09-13: a branch is whatever the next push makes it, and a commit names the bytes."
 	],
 	"files": [
 		{
 			"file": "grass.png",
+			"sha256": "9fad54558dcb0aa91859869c603e76fe362ae320e0c4b1e873266566cb0d73a0",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -45,10 +51,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/outdoor/PNG/grass.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/outdoor/PNG/grass.png"
 		},
 		{
 			"file": "dirt.png",
+			"sha256": "115ffc435f5ce95a5462c08708a158bac014ac4f6fd631af44e335b77a0a264b",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -61,10 +68,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/outdoor/PNG/dirt.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/outdoor/PNG/dirt.png"
 		},
 		{
 			"file": "water.png",
+			"sha256": "6107522405d8c27b9bab7278f5dc14cd7cc0445592f5967d748cb81ede4b0d47",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -77,10 +85,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/outdoor/PNG/water.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/outdoor/PNG/water.png"
 		},
 		{
 			"file": "house.png",
+			"sha256": "b596a455cbec21918695993a1ed2df099c2770ff4b676a74b07daa65032ca259",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -93,10 +102,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/building-exterior/house.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/building-exterior/house.png"
 		},
 		{
 			"file": "dungeon.png",
+			"sha256": "58e59996e37244f5dff6a98fd9da4e00fa55b4e4858291c06b918af9853eb3fe",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -109,10 +119,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/sewer-dungeon/dungeon.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/sewer-dungeon/dungeon.png"
 		},
 		{
 			"file": "castlefloors.png",
+			"sha256": "5244b8ee8ff88d5ce553a0cf332b8bdcbfe8394e16cfff16b93fa44357644415",
 			"authors": [
 				"Daniel Armstrong (HughSpectrum)"
 			],
@@ -125,10 +136,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/2535"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/HughSpectrum/castlefloors.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/HughSpectrum/castlefloors.png"
 		},
 		{
 			"file": "stairs.png",
+			"sha256": "6a3c889cd88fc3fd37328dbbb269369f09d88043f8b9b22b99480735a1d80396",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -141,10 +153,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/building-interior/stairs.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/building-interior/stairs.png"
 		},
 		{
 			"file": "country.png",
+			"sha256": "dab690b20c23d01d41ec2030e8bf50d6546347a1baa6f7e0767ff0e7232169e2",
 			"authors": [
 				"Lanea Zimmerman (Sharm)"
 			],
@@ -157,10 +170,11 @@
 				"https://github.com/OpenGameArt/LiberatedPixelCup",
 				"https://opengameart.org/user/1727"
 			],
-			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/master/tileset/original/Sharm/building-interior/country.png"
+			"url": "https://raw.githubusercontent.com/OpenGameArt/LiberatedPixelCup/f61104a1ecc54e7bce54b82ada7d7ba4c41bc524/tileset/original/Sharm/building-interior/country.png"
 		},
 		{
 			"file": "plants.png",
+			"sha256": "35317691a1b4c2ef5469c9971c56fc5e3134c8cf47847a3f4f9bbe653394c0cb",
 			"authors": [
 				"bluecarrot16",
 				"Guido Bos",
