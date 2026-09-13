@@ -63,7 +63,7 @@ static func atlas_name(style: String) -> String:
 ## twin and for its reason - LDtk stores a tile at `px` in pixels and an entity likewise, so a
 ## file painted on one grid and read on another moves every record without breaking the file.
 static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringArray,
-		tile_size: int = 0) -> Array[String]:
+		tile_size: int = 0, edges: Array = []) -> Array[String]:
 	var out: Array[String] = []
 	var defs: Dictionary = raw.get("defs", {})
 	var levels: Array = raw.get("levels", [])
@@ -85,15 +85,17 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 	if named != String(style):
 		out.append("map was painted against tileset '%s' and is being read as '%s' - every tile "
 			% [named, style] + "on it would come out as a different tile")
+	# The whole sheet, as TiledMap counts it and for its reason.
+	var columns := TerrainEdges.column_count(tile_ids.size(), edges)
 	var across := int(set_one.get("__cWid", 0))
 	var down := int(set_one.get("__cHei", 0))
-	if across * down != tile_ids.size():
+	if across * down != columns:
 		out.append("map was painted against %d tiles and '%s' now has %d - the bank has changed "
-			% [across * down, style, tile_ids.size()] + "under it and every id past the change "
+			% [across * down, style, columns] + "under it and every id past the change "
 			+ "is wrong")
 	if int(set_one.get("tileGridSize", 0)) <= 0:
 		out.append("tileset has no tileGridSize, so no tile on it has a size")
-	_tile_problems(levels, tile_ids, out)
+	_tile_problems(levels, columns, out)
 	return out
 
 
@@ -101,7 +103,7 @@ static func problems(raw: Dictionary, style: StringName, tile_ids: PackedStringA
 ## and for its reason: an index past the id list resolved to "" and the cell became a space, so a
 ## project painted against a wider bank came back with holes in it and nothing said why. LDtk has
 ## no flip bit on `t` - it carries flips in `f` - so there is one message here rather than two.
-static func _tile_problems(levels: Array, tile_ids: PackedStringArray, out: Array[String]) -> void:
+static func _tile_problems(levels: Array, columns: int, out: Array[String]) -> void:
 	for level_entry: Variant in levels:
 		var level: Dictionary = level_entry
 		for entry: Variant in level.get("layerInstances", []):
@@ -111,11 +113,11 @@ static func _tile_problems(levels: Array, tile_ids: PackedStringArray, out: Arra
 			var stray := -1
 			for tile_entry: Variant in layer.get("gridTiles", []):
 				var at := int((tile_entry as Dictionary).get("t", -1))
-				if at < 0 or at >= tile_ids.size():
+				if at < 0 or at >= columns:
 					stray = at if stray < 0 else stray
 			if stray >= 0:
 				out.append("layer '%s' uses tile %d, which is not one of the %d this bank has - "
-					% [str(layer.get("__identifier", "")), stray, tile_ids.size()]
+					% [str(layer.get("__identifier", "")), stray, columns]
 					+ "it would come back as an empty cell")
 
 
@@ -136,7 +138,7 @@ static func style_of(raw: Dictionary) -> String:
 ## Empty falls back to a neutral grey built from numbers, which is what a map with no style to
 ## ask gets.
 static func from_native(native: Dictionary, tile_ids: PackedStringArray,
-		tile_size: int, chrome: Dictionary = {}) -> Dictionary:
+		tile_size: int, chrome: Dictionary = {}, edges: Array = []) -> Dictionary:
 	var ground := JsonFile.to_string_array(native.get("ground", []))
 	var decor := JsonFile.to_string_array(native.get("decor", []))
 	var legend: Dictionary = native.get("legend", {})
@@ -146,14 +148,18 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 	var high := ground.size()
 	var style := str(native.get("style", "gb16"))
 	var map_id := str(native.get("id", ""))
+	var columns := TerrainEdges.column_count(tile_ids.size(), edges)
+	var map := MapData.from_dictionary(native)
+	var by_tile := TileSetFactory.edges_by_id({"edges": edges})
 
 	var layer_defs: Array = []
 	var instances: Array = []
 	var uid := LAYER_UID
 	for pair: Array in [["ground", ground], ["decor", decor]]:
 		layer_defs.append(_tile_layer_def(str(pair[0]), uid, tile_size))
+		var shaped: Dictionary = by_tile if str(pair[0]) == "ground" else {}
 		instances.append(_tile_layer(str(pair[0]), pair[1], legend, tile_ids, wide, high,
-			tile_size, uid, map_id, style))
+			tile_size, uid, map_id, style, columns, shaped, map))
 		uid += 1
 
 	var entity_defs: Array = []
@@ -194,7 +200,7 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 		"defs": {
 			"layers": layer_defs,
 			"entities": entity_defs,
-			"tilesets": [_tileset_def(style, tile_ids, tile_size)],
+			"tilesets": [_tileset_def(style, tile_ids, tile_size, columns)],
 			"enums": [], "externalEnums": [],
 			"levelFields": _level_field_defs(),
 		},
@@ -217,7 +223,8 @@ static func from_native(native: Dictionary, tile_ids: PackedStringArray,
 ## THE LEGEND IS REBUILT rather than carried, exactly as it is for Tiled: an `.ldtk` stores tile
 ## INDICES, so characters are handed out here in the order tiles are first met. That is why the
 ## round trip compares what the GAME reads rather than the text.
-static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: int) -> Dictionary:
+static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: int,
+		edges: Array = []) -> Dictionary:
 	var levels: Array = raw.get("levels", [])
 	if levels.is_empty():
 		return {}
@@ -234,7 +241,7 @@ static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: i
 		var layer: Dictionary = entry
 		var name := str(layer.get("__identifier", ""))
 		if str(layer.get("__type", "")) == "Tiles":
-			out[name] = _rows_of(layer, tile_ids, tile_size, legend, used)
+			out[name] = _rows_of(layer, tile_ids, tile_size, legend, used, edges)
 		elif RECORD_LAYERS.has(name):
 			out[name] = _records_of(layer, name, tile_size)
 	out["legend"] = legend
@@ -244,15 +251,17 @@ static func to_native(raw: Dictionary, tile_ids: PackedStringArray, tile_size: i
 # -- writing ------------------------------------------------------------------------------------
 
 
-static func _tileset_def(style: String, tile_ids: PackedStringArray, tile_size: int) -> Dictionary:
-	# One row, which is the shape gen_sprites.gd writes: every tile side by side in tiles.png.
+static func _tileset_def(style: String, _tile_ids: PackedStringArray, tile_size: int,
+		columns: int) -> Dictionary:
+	# One row, which is the shape gen_sprites.gd writes: every column side by side in tiles.png -
+	# the composed shapes too, so a shore cell's `t` points at the shape the game draws.
 	return {
-		"__cWid": tile_ids.size(), "__cHei": 1,
+		"__cWid": columns, "__cHei": 1,
 		# Beside the project file, named for the style - LDtk resolves relPath relative to the
 		# .ldtk, so a bare "tiles.png" is a tileset the editor cannot find and a map that opens
 		# with nothing drawn on it.
 		"identifier": style, "uid": TILESET_UID, "relPath": atlas_name(style), "embedAtlas": null,
-		"pxWid": tile_ids.size() * tile_size, "pxHei": tile_size,
+		"pxWid": columns * tile_size, "pxHei": tile_size,
 		"tileGridSize": tile_size, "spacing": 0, "padding": 0,
 		"tags": [], "tagsSourceEnumUid": null, "enumTags": [], "customData": [],
 		"savedSelections": [], "cachedPixelData": null,
@@ -369,9 +378,10 @@ static func _level_fields(native: Dictionary) -> Array:
 
 static func _tile_layer(name: String, rows: Array[String], legend: Dictionary,
 		tile_ids: PackedStringArray, wide: int, high: int, tile_size: int, uid: int,
-		map_id: String, style: String) -> Dictionary:
+		map_id: String, style: String, columns: int, shaped: Dictionary,
+		map: MapData) -> Dictionary:
 	var tiles: Array = []
-	var across := maxi(tile_ids.size(), 1)
+	var across := maxi(columns, 1)
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in wide:
@@ -382,6 +392,9 @@ static func _tile_layer(name: String, rows: Array[String], legend: Dictionary,
 			var at := tile_ids.find(named)
 			if named.is_empty() or at < 0:
 				continue
+			# The shape the world paints here, through the lookup it paints with - TiledMap's rule.
+			if shaped.has(named):
+				at = TerrainEdges.cell_index(shaped[named] as Array, map.around(Vector2i(x, y)), at)
 			tiles.append({
 				"px": [x * tile_size, y * tile_size],
 				# Pixel coordinates INTO THE ATLAS, which is what LDtk means by src - verified
@@ -573,7 +586,7 @@ static func _read_fields(raw: Variant) -> Dictionary:
 
 
 static func _rows_of(layer: Dictionary, tile_ids: PackedStringArray, tile_size: int,
-		legend: Dictionary, used: Dictionary) -> Array[String]:
+		legend: Dictionary, used: Dictionary, edges: Array) -> Array[String]:
 	# The characters a legend may hand out, in order. Chosen to look like the hand-written maps,
 	# because the converted file is the artifact that gets committed and reviewed.
 	const ALPHABET := ".,-#~*abcdefghijklmnopqrstuvwxyz0123456789"
@@ -594,7 +607,8 @@ static func _rows_of(layer: Dictionary, tile_ids: PackedStringArray, tile_size: 
 		for x in wide:
 			var at := int(grid.get("%d,%d" % [x, y], -1))
 			var ch := " "
-			var named: String = tile_ids[at] if at >= 0 and at < tile_ids.size() else ""
+			# Folded back to the tile the shape belongs to, TiledMap's rule.
+			var named := TerrainEdges.tile_of_column(at, tile_ids, edges)
 			if not named.is_empty():
 				if not used.has(named):
 					used[named] = ALPHABET[used.size()] if used.size() < ALPHABET.length() else "?"

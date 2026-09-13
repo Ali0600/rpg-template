@@ -46,9 +46,11 @@ func _first_map() -> Dictionary:
 		"name": maps[0].get_file().get_basename(),
 		"style": style,
 		"tile_size": int(table.data.get("tile_size", 0)),
-		# The PAINTABLE tiles, not `columns` - the atlas grew a block of composed transition
-		# shapes after them, and an editor is shown only the ids a map may name.
 		"tiles": (table.data.get("tiles", []) as Array).size(),
+		# The WHOLE sheet, composed shapes included - what an editor is shown, so shorelines open
+		# the way the game draws them.
+		"columns": int(table.data.get("columns", 0)),
+		"edges": (table.data.get("edges", []) as Array).size(),
 	}
 
 func after_test() -> void:
@@ -77,9 +79,9 @@ func test_an_exported_tiled_map_is_drawn_on_the_styles_own_grid() -> void:
 	var set_one: Dictionary = (raw["tilesets"] as Array)[0]
 	assert_int(int(set_one.get("tilewidth", 0))).override_failure_message(
 		"the tileset says its tiles are %spx" % set_one.get("tilewidth", 0)).is_equal(map["tile_size"])
-	# The atlas is one row of the whole bank, so its declared width says the same thing again in
+	# The atlas is one row of the whole sheet, so its declared width says the same thing again in
 	# another unit - a size that is right on the map and wrong here still opens as sliced art.
-	assert_int(int(set_one.get("imagewidth", 0))).is_equal(int(map["tile_size"]) * int(map["tiles"]))
+	assert_int(int(set_one.get("imagewidth", 0))).is_equal(int(map["tile_size"]) * int(map["columns"]))
 	assert_int(int(set_one.get("imageheight", 0))).is_equal(map["tile_size"])
 
 func test_an_exported_ldtk_project_is_drawn_on_the_styles_own_grid() -> void:
@@ -92,7 +94,7 @@ func test_an_exported_ldtk_project_is_drawn_on_the_styles_own_grid() -> void:
 		.is_equal(map["tile_size"])
 	var set_one: Dictionary = ((raw["defs"] as Dictionary)["tilesets"] as Array)[0]
 	assert_int(int(set_one.get("tileGridSize", 0))).is_equal(map["tile_size"])
-	assert_int(int(set_one.get("pxWid", 0))).is_equal(int(map["tile_size"]) * int(map["tiles"]))
+	assert_int(int(set_one.get("pxWid", 0))).is_equal(int(map["tile_size"]) * int(map["columns"]))
 
 func test_the_atlas_lands_beside_the_exported_maps() -> void:
 	# Found by opening one in Tiled and findable nowhere else: both editors resolve the tileset
@@ -103,18 +105,32 @@ func test_the_atlas_lands_beside_the_exported_maps() -> void:
 	assert_bool(FileAccess.file_exists(beside)).override_failure_message(
 		"no tile sheet landed at %s; every tile would open blank" % beside).is_true()
 
-func test_the_atlas_that_travels_holds_only_the_tiles_a_map_may_name() -> void:
-	# The generated sheet carries the composed transition shapes after the paintable tiles, and
-	# both translators tell the editor there are exactly `tilecount` of them. A sheet wider than
-	# that opens as a tileset full of shapes a map cannot legally spell - and the round trip
-	# never reads the image, so only this can see it.
+func test_the_whole_sheet_travels_with_the_maps() -> void:
+	# Both translators write composed shapes onto the ground and declare every column, so a sheet
+	# cropped to the plain tiles would open with every shoreline pointing past its edge - and the
+	# round trip never reads the image, so only this can see it. It WAS cropped until M48.
 	var map := _first_map()
+	assert_int(int(map["columns"])).override_failure_message(
+		"the first map's style has no composed columns, so a crop would look the same as none") \
+		.is_greater(int(map["tiles"]))
 	_run(["--out=tiled", "--dir=%s" % SCRATCH])
 	var beside := ImageFile.read_png("%s/%s" % [SCRATCH, TiledMap.atlas_name(str(map["style"]))])
 	assert_object(beside).is_not_null()
 	assert_int(beside.get_width()).override_failure_message(
-		"the exported sheet is %d wide; %d tiles at %dpx is %d"
-		% [beside.get_width(), int(map["tiles"]), int(map["tile_size"]),
-			int(map["tiles"]) * int(map["tile_size"])]) \
-		.is_equal(int(map["tiles"]) * int(map["tile_size"]))
+		"the exported sheet is %d wide; %d columns at %dpx is %d"
+		% [beside.get_width(), int(map["columns"]), int(map["tile_size"]),
+			int(map["columns"]) * int(map["tile_size"])]) \
+		.is_equal(int(map["columns"]) * int(map["tile_size"]))
 	assert_int(beside.get_height()).is_equal(int(map["tile_size"]))
+
+func test_an_exported_tiled_map_carries_a_brush_for_every_edge_block() -> void:
+	# The command, not the translator: map_io must hand its edge blocks to both directions, or
+	# every export is plain ground with no brush and every import folds nothing.
+	var map := _first_map()
+	assert_int(int(map["edges"])).is_greater(0)
+	_run(["--out=tiled", "--dir=%s" % SCRATCH])
+	var raw := _exported("%s.tmj" % map["name"])
+	var set_one: Dictionary = (raw["tilesets"] as Array)[0]
+	assert_int((set_one.get("wangsets", []) as Array).size()).override_failure_message(
+		"the export carries %d brushes and the sheet has %d edge blocks"
+		% [(set_one.get("wangsets", []) as Array).size(), int(map["edges"])]).is_equal(int(map["edges"]))

@@ -459,3 +459,19 @@ func test_a_real_fraction_still_compares_as_itself() -> void:
 func test_a_map_that_did_not_parse_is_reported_rather_than_compared() -> void:
 	var broken := MapData.from_dictionary({"id": "broken"})
 	assert_array(MapData.differences(_a_map(), broken)).is_not_empty()
+
+func test_the_neighbours_come_back_clockwise_from_north_and_empty_off_the_map() -> void:
+	# The one neighbourhood rule the world AND both editor exporters pick a shape from. Every
+	# neighbour is a different tile here, so a rotated or mirrored order cannot pass.
+	var map := _a_map({
+		"legend": {"a": "n", "b": "ne", "c": "e", "d": "se", "e": "s", "f": "sw", "g": "w",
+			"h": "nw", "o": "centre"},
+		"ground": ["hab", "goc", "fed"],
+		"decor": ["   ", "   ", "   "],
+	})
+	assert_array(Array(map.around(Vector2i(1, 1)))).is_equal(
+		["n", "ne", "e", "se", "s", "sw", "w", "nw"])
+	assert_array(Array(map.around(Vector2i(0, 0)))).override_failure_message(
+		"a corner cell reads the void as nothing, never as a tile").is_equal(
+		["", "", "n", "centre", "w", "", "", ""])
+

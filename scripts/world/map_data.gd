@@ -202,6 +202,21 @@ func decor_at(at: Vector2i) -> String:
 	return tile_at(decor, at)
 
 
+## The eight ground tiles around one cell, in `TerrainEdges`' own order. Off the map comes back as
+## "", which `ground_at` answers on purpose - so a pond against the border does not grow a shoreline
+## into the wall, and a cell in the corner needs no special case.
+##
+## ONE neighbourhood rule for everything that picks a shape from it: the world draws from this and
+## both editor exporters write from this. It lived in MapBuilder while the world was its only
+## reader, and a second copy in a translator is how an editor comes to show a shoreline the game
+## does not draw.
+func around(at: Vector2i) -> PackedStringArray:
+	var out := PackedStringArray()
+	for offset in TerrainEdges.OFFSETS:
+		out.append(ground_at(at + offset))
+	return out
+
+
 ## Tile coordinates of a named spawn, or a sentinel the caller must check. Returning (0,0)
 ## for an unknown spawn would drop the player in the corner of the map, which reads as a
 ## movement bug rather than as a missing entry.

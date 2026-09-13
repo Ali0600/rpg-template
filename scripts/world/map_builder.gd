@@ -73,21 +73,11 @@ static func build(data: MapData, style: SpriteStyle, tiles_texture: Texture2D, t
 			if coords.has(ground_tile):
 				var plain: Vector2i = coords[ground_tile]
 				built.ground.set_cell(at, 0, Vector2i(TerrainEdges.cell_index(
-					edges.get(ground_tile, []) as Array, _around(data, at), plain.x), 0))
+					edges.get(ground_tile, []) as Array, data.around(at), plain.x), 0))
 			var decor_tile := data.decor_at(at)
 			if coords.has(decor_tile):
 				built.decor.set_cell(at, 0, coords[decor_tile])
 	return built
-
-
-## The eight ground tiles around one cell, in TerrainEdges' own order. Off the map comes back
-## as "", which MapData answers deliberately - so a pond against the border does not grow a
-## shoreline into the wall, and a cell in the corner needs no special case.
-static func _around(data: MapData, at: Vector2i) -> PackedStringArray:
-	var out := PackedStringArray()
-	for offset in TerrainEdges.OFFSETS:
-		out.append(data.ground_at(at + offset))
-	return out
 
 
 static func _layer(layer_name: String, tileset: TileSet) -> TileMapLayer:

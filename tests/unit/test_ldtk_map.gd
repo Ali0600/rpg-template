@@ -401,3 +401,96 @@ func test_a_tile_layer_points_at_the_same_sheet() -> void:
 			% layer.get("__identifier", "?")).is_equal(LdtkMap.atlas_name(style))
 		found += 1
 	assert_int(found).override_failure_message("no tile layer was checked").is_greater(1)
+
+
+# -- the shapes the game draws -----------------------------------------------------------------
+
+## TiledMap's suite reads these the same way and for the same reason.
+func _edges(style: String) -> Array:
+	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+	assert_bool(file.ok).is_true()
+	return file.data.get("edges", []) as Array
+
+func _columns(style: String) -> int:
+	var file := JsonFile.read("res://assets/generated/%s/tiles.json" % style)
+	assert_bool(file.ok).is_true()
+	return int(file.data.get("columns", 0))
+
+func _ground_of(made: Dictionary) -> Dictionary:
+	var level: Dictionary = (made["levels"] as Array)[0]
+	for entry: Variant in (level["layerInstances"] as Array):
+		if str((entry as Dictionary).get("__identifier", "")) == "ground":
+			return entry
+	fail("the project has no ground layer")
+	return {}
+
+func test_every_shipped_map_survives_a_trip_through_ldtk_wearing_its_shorelines() -> void:
+	var composed := 0
+	for path in _maps():
+		var native := _native_of(path)
+		var style := str(native.get("style", "gb16"))
+		var ids := _tile_ids(style)
+		var size := _tile_size(style)
+		var made := LdtkMap.from_native(native, ids, size, {}, _edges(style))
+		for tile: Variant in _ground_of(made)["gridTiles"]:
+			if int((tile as Dictionary)["t"]) >= ids.size():
+				composed += 1
+		var back := LdtkMap.to_native(made, ids, size, _edges(style))
+		var faults := MapData.differences(MapData.load_from(path), MapData.from_dictionary(back))
+		assert_array(faults).override_failure_message(
+			"'%s' came back from LDtk as a different map:\n  %s"
+			% [path.get_file(), "\n  ".join(faults)]).is_empty()
+	assert_int(composed).override_failure_message(
+		"no shipped cell was written as a composed shape, so nothing was folded").is_greater(0)
+
+func test_a_ground_tile_points_at_the_shape_the_game_draws_there() -> void:
+	var shored := 0
+	for path in _maps():
+		var native := _native_of(path)
+		var style := str(native.get("style", "gb16"))
+		var edges := _edges(style)
+		if edges.is_empty():
+			continue
+		var ids := _tile_ids(style)
+		var size := _tile_size(style)
+		var map := MapData.load_from(path)
+		var by_tile := TileSetFactory.edges_by_id({"edges": edges})
+		var across := _columns(style)
+		for entry: Variant in _ground_of(LdtkMap.from_native(native, ids, size, {}, edges))["gridTiles"]:
+			var tile: Dictionary = entry
+			var px := JsonFile.to_int_array(tile["px"])
+			var at := Vector2i(px[0] / size, px[1] / size)
+			var named := map.ground_at(at)
+			var want := TerrainEdges.cell_index(by_tile.get(named, []) as Array, map.around(at),
+				ids.find(named))
+			assert_int(int(tile["t"])).override_failure_message(
+				"%s %s is %s and the game draws column %d there; the project says %d"
+				% [path.get_file(), at, named, want, int(tile["t"])]).is_equal(want)
+			assert_int(JsonFile.to_int_array(tile["src"])[0]).is_equal((want % across) * size)
+			if want >= ids.size():
+				shored += 1
+	assert_int(shored).is_greater(0)
+
+func test_the_tileset_declares_every_column_of_the_sheet() -> void:
+	var style := _shipped_style()
+	assert_int(_columns(style)).is_greater(_tile_ids(style).size())
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), _tile_ids(style), _tile_size(style),
+		{}, _edges(style))
+	var set_one: Dictionary = ((made["defs"] as Dictionary)["tilesets"] as Array)[0]
+	assert_int(int(set_one["__cWid"])).is_equal(_columns(style))
+	assert_int(int(set_one["pxWid"])).is_equal(_columns(style) * _tile_size(style))
+
+func test_a_composed_tile_is_accepted_and_only_one_past_the_whole_sheet_is_refused() -> void:
+	var style := _shipped_style()
+	var ids := _tile_ids(style)
+	var size := _tile_size(style)
+	var edges := _edges(style)
+	var made := LdtkMap.from_native(_native_of(_maps()[0]), ids, size, {}, edges)
+	var tiles: Array = _ground_of(made)["gridTiles"]
+	(tiles[0] as Dictionary)["t"] = _columns(style) - 1
+	assert_array(LdtkMap.problems(made, StringName(style), ids, size, edges)) \
+		.override_failure_message("the last shape on the sheet was refused").is_empty()
+	(tiles[0] as Dictionary)["t"] = _columns(style)
+	assert_str("\n".join(LdtkMap.problems(made, StringName(style), ids, size, edges))) \
+		.contains("would come back as an empty cell")
+

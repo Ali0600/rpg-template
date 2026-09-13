@@ -103,6 +103,11 @@ tools/map_io.sh --out=tiled --dir=build/map
 tools/map_io.sh --in=build/map/quest_village.tmj
 ```
 
+Ponds and paths open in the editor with the same shorelines the game draws, and Tiled gets a
+terrain brush for each one. Paint the ground around the water, not the water itself, and the
+edge shapes itself. (The brush and the game draw edges from opposite sides, so painting the water
+can't come out right.)
+
 Bring in a hand-drawn character in one of two ways. Write a text recipe that names the
 generator's layers and colours; `tools/lpc_compose.sh` fetches only the layers it needs and
 builds the same two files the browser would download. Or drop the generator's own

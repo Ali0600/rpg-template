@@ -67,6 +67,9 @@ const CORNERS: Array[int] = [NE, SE, SW, NW]
 ## at, which would leave the normalisation below with no mutant to prove it.
 const FLANKS: Array[int] = [N + E, E + S, S + W, W + N]
 const SIDES_MASK := N + E + S + W
+## All eight positions at once - four sides and four corners. What a cell surrounded by the other
+## material on every side reads as in an editor that colours positions rather than cells.
+const EVERY_POSITION := SIDES_MASK + NE + SE + SW + NW
 
 ## Top-left, top-right, bottom-left, bottom-right. A quarter is taken from the SAME quarter of
 ## whichever piece it names: the top-left of the north edge is a north edge's top-left.
@@ -126,6 +129,52 @@ static func normalise(mask: int) -> int:
 ## normalised mask is in MASKS, which is the property the coverage test pins.
 static func index_of(mask: int) -> int:
 	return MASKS.find(normalise(mask))
+
+
+## Which of a cell's eight positions TOUCH the other material, for an editor that colours the
+## sides and corners of the grid rather than the cells.
+##
+## Tiled's terrain brush is that kind of editor: a colour sits on every side and corner, and a tile
+## is chosen by the eight around it. A side touches the other material exactly when that neighbour
+## is it. A corner is shared with THREE neighbours, so it touches the other material when ANY of
+## them is - the diagonal, or either side beside it. That is the one colouring every cell of a map
+## agrees on at once, which is why a corner `normalise` drops is still coloured here: the shape
+## drawn in this cell ignores it, and the cell diagonally across does not.
+static func touching(mask: int) -> int:
+	var out := mask & SIDES_MASK
+	for i in CORNERS.size():
+		if (mask & CORNERS[i]) != 0 or (mask & FLANKS[i]) != 0:
+			out += CORNERS[i]
+	return out
+
+
+## How many columns a bank's sheet has: its plain tiles, then every edge block laid after them.
+##
+## Derived ONCE, here. An editor export declares this count four times over in two formats, and
+## `map_io` used to crop the sheet to a fifth copy of it - a count added up in several places is
+## several answers, and the one that drifts opens as a tileset sliced in the wrong place.
+static func column_count(plain: int, edges: Array) -> int:
+	var out := plain
+	for entry: Variant in edges:
+		var block: Dictionary = entry
+		out = maxi(out, int(block.get("first", 0)) + int(block.get("count", 0)))
+	return out
+
+
+## The tile a column of the sheet IS: a plain tile's own id, or the tile of the edge block the
+## column sits in - every shape in a block is its block's tile. "" past the end of the sheet.
+##
+## The inverse of what an export writes. A map painted in an editor that shows the composed shapes
+## comes back as the same one-character-per-cell map it went out as, whichever shape a cell wore.
+static func tile_of_column(column: int, plain_ids: PackedStringArray, edges: Array) -> String:
+	if column >= 0 and column < plain_ids.size():
+		return plain_ids[column]
+	for entry: Variant in edges:
+		var block: Dictionary = entry
+		var first := int(block.get("first", 0))
+		if column >= first and column < first + int(block.get("count", 0)):
+			return str(block.get("tile", ""))
+	return ""
 
 
 ## Which neighbours are the other material, as a raw mask. `around` is the eight neighbour tile
