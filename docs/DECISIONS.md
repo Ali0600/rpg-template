@@ -41,7 +41,8 @@ one-glance menu of things still worth trying.
   that contract inherits encounters, rewards, persistence and music unchanged. **Researched and
   decided in M49** (`GENRE_CONVENTIONS.md` §7d, and the entry at the bottom of this file): a screen
   behind this seam with rules as pure as `BattleLogic`'s, which leaves `Router.player_can_move()`
-  untouched. What remains is the build.
+  untouched. **M50 builds it** — the owner's three calls, the picker and the integer rules are
+  the M50 entries at the bottom of this file.
 - **Asymmetric side parts** (a satchel on one hip only). Blocked by
   `mirror_left_from_right`; revisit hook is the `left = flip_x(right)` branch in
   `sprite_compositor.gd`.
@@ -3419,3 +3420,98 @@ edit is made before any code.
   has no arena to leave. **Revisit hook:** `BattleLogic.Outcome.FLED` is already legal on the seam
   and `_on_battle_finished` handles it; at M49 `tools/flow_model.json` declared no edge for it even
   for the turn fight, so the first milestone that models a flee writes that edge first.
+
+## The arena is played on the talk button, fought alone, and shipped as a second game — *M50*
+
+Three calls the M49 entry left open, made by the owner on 2026-09-13 before any of the build.
+
+**The fork: which button swings.**
+
+- **`interact`** — Space, Enter or E, and a gamepad's A. The turn fight is already played on it, so
+  both fights use one key: no binding, no input-map change, and the controls hint stays true.
+- **A new `attack` action** — Zelda's shape, the sword on a button of its own. A ninth binding in
+  `tools/setup_input_map.gd` and `project.godot`, one more word in the hint, one more key to learn.
+- **Zelda's two item buttons** — two verbs, for a template with no item to put on either.
+
+**Chosen: `interact`.** There is nothing to talk to inside an arena, so the doubling costs nothing
+there.
+
+- A new `attack` action — `deferred — worth trying` when a game wants a second verb in the arena (a
+  shield, a thrown item). **Revisit hook:** `tools/setup_input_map.gd`, one `_action(...)` line and
+  the count it prints; `ArenaScreen._unhandled_input` is the one reader.
+- Two item buttons — `rejected — no item verb exists to put on them`.
+
+**The fork: where the arena shows up for a player.**
+
+- **A second game, both on the web behind a picker.** `data/games/quest_arena.tres` is The Barred
+  Gate with every map, enemy, companion, conversation and hook shared, and only its combat
+  definition saying `arena`. The title offers the choice.
+- **A second game, local only** — the deployed page stays the turn fight and the arena is played
+  with `--game=`.
+- **Tests only** — an in-memory manifest in the integration suites and `new_game.sh --combat=arena`.
+- **The demo switches** — The Barred Gate becomes a sword game.
+
+**Chosen: both on the web, behind a picker.** The second game is also M49's control instance: it
+varies `style` and the numbers only an arena reads, so anything a player feels differently is the
+resolver.
+
+- Local only — `rejected — the one surface where the choice is visible would be the one missing it`.
+- Tests only — `rejected — a system the demo never shows is one its owner reports as missing`.
+- The demo switches — `rejected — it retires magic, items in a fight, statuses and formations from
+  play to show one system`.
+
+**The fork: who fights.**
+
+- **The leader alone, the whole party sharing the award** — Zelda's one sword on the floor. Every
+  member earns the experience and whatever level it buys, as in a turn fight, and a companion takes
+  no damage.
+- **Every member on the floor** — each companion a body with a brain, a target of its own and hits
+  of its own taken.
+
+**Chosen: the leader alone.**
+
+- Every member on the floor — `deferred — worth trying`. **Revisit hook:** `ArenaSim` is already
+  handed every member; the work is a brain for an ally and a body per member.
+
+## A second game is picked from a row on the title, not a screen in front of it — *M50*
+
+M8 shipped a picker as its own screen before the game, and M11 deleted it with the second game,
+because what a visitor met first was "a menu asking which demo they would like". M50 ships a second
+game again, so the question comes back.
+
+- **A row on the title, appended last, shown only when nothing chose.** "Switch game" re-opens the
+  title wearing the next game's name, palette, voice, music and save slots, all of which the title
+  already reads from the one field `_offered`. `GameSelect.should_ask` returns from M8 unchanged,
+  and `--game=` still beats everything, so every scripted session sees the rows it always did.
+- **M8's screen** — a menu before the title.
+- **The last game played, remembered in `Settings`** beside the palette, so a returning player lands
+  where they left.
+
+**Chosen: a row on the title.** A visitor still meets a game, which is what M11 wanted, and reaches
+the other in one press. The row goes LAST because scripted sessions count presses and have no enum
+to name.
+
+- M8's screen — `rejected — M11's objection still stands`.
+- Remembered in `Settings` — `deferred — worth trying`. The hazard is named before anyone builds it:
+  anything that boots the world without `--game=` would start whichever game the machine last
+  played, so a suite could go red on one developer's machine and nowhere else. **Revisit hook:**
+  `Settings`, beside `palette`, and read only after the redirect `test_settings.gd` already asserts.
+
+## The arena's rules are integer — *M50*
+
+- **Integer.** Positions in 256ths of a tile, a heading of -1, 0 or 1 per axis, speeds carried
+  forward as a remainder (Bresenham's line, used as a clock), and every box a `Rect2i`.
+- **Floats**, the way the world's own movement is: `Vector2` positions moved by normalised
+  velocities.
+
+**Chosen: integer.** The world can afford floats because no gate replays a walk against a recorded
+number; the arena is replayed from a seed and a list of inputs by the balance gate and the scripted
+sessions, on a Mac and on the Linux runner. IEEE-754 pins `+ - * /`, but a compiler allowed to fuse a
+multiply and an add into one step is not promised to agree with one that does not, and a difference
+in the last place, over a thousand frames, is enough to flip a box test on one seed of twelve. It was
+not measured happening: it is designed out rather than waited for, because a difference nobody can
+reproduce on their own machine is the expensive kind, and the M49 contract already said "pure and
+integer".
+
+- Floats — `rejected — a replay that is allowed to differ between the two machines the gate runs
+  on`. **Revisit hook:** `ArenaSim.UNITS_PER_TILE`.
