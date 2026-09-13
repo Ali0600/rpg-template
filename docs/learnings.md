@@ -607,8 +607,15 @@ for `"ogg"` finds everything in the editor and nothing in the shipped build.
 audio extensions. It had never been wrong because the directory had always been empty — the
 seam was broken in exports from the day it was written, and had no payload to be broken with.
 
-**Takeaway:** discovery that walks a directory is discovery that behaves differently in a
-packaged build; resolve known paths where you can, and where you must scan, normalise the
+**And again as a point check, with no scan involved (2026-09-13).** `GameManifest.problems()` asked
+`FileAccess.file_exists` about a generated `.wav` and `QuestHooks.problems()` about an item `.tres`, so
+every web boot printed six errors calling them missing while the sessions that play those sounds and
+take that item passed in the same pack. The path was known and right; the layer it was asked of was
+wrong.
+
+**Takeaway:** anything that asks the filesystem about an imported asset behaves differently in a
+packaged build, whether it walks a directory or checks one known path. Ask the loader
+(`ResourceLoader.exists`, `load()`) about anything imported, and where you must scan, normalise the
 packed name back to its source.
 
 ## Normalising two names to one means the environment with both now counts it twice
@@ -2406,11 +2413,15 @@ Playing a build tells you the game is in it. It says nothing about the files tha
 the ones nothing loads never get a chance to fail.
 
 **Why it came up.** `tools/pack_check.sh` has exported the web pack and played six scripted sessions
-on every run since M15. On 2026-09-13 the pack still carried the test framework's 554 files, gdUnit4's
+on every run since M15. On 2026-09-13 the pack still carried the test framework's 260 files, gdUnit4's
 TCP server and runners among them: the export filter had never named `addons/`, and every session
 passed because nothing in the game loads those files. Excluding them took the pack from 7.45 MB to
-5.75 MB, and the gate now lists what the pack contains before it plays it.
+5.75 MB, and the gate now lists what the pack contains before it plays it. Its first version got that
+list wrong in a second way: it grepped the pack for `res://` paths, which are REFERENCES from the uid
+and class caches, not the file table - where Godot stores each path bare, after a length. It caught the
+framework only because those scripts have uids.
 
 **Takeaway.** Beside "does the artifact work", check what it CONTAINS against a list of what must never
 be in it, and write that list in the check rather than reading it from the build config the check is
-meant to catch.
+meant to catch. Read the container's own index rather than searching it for strings, and prove the
+reading with an entry nothing else refers to.

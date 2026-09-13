@@ -1308,7 +1308,7 @@ with no new check.sh step, and the tiles are drawn the same way for both.
 `data/imports/<style>/<character_id>/sheet.png` + `character.json` - "Download PNG" and "Export
 JSON", unmodified - under a `.gdignore`, so the editor never imports an 832x3456 input and the
 exporter never packs one (`test_imported_art` pins the marker; `pack_check.sh` refuses a
-pack naming any `data/imports` path). No `CharacterSpec` for an
+pack whose file table has a `data/imports` entry). No `CharacterSpec` for an
 imported character: the folder's name is the id, the way a `.tres`'s id is for a rig one.
 Everything known about LPC's layout is a CONSTANT in `LpcImport`, measured from the generator's
 source rather than remembered: 64px frames, 13 columns, every animation at a FIXED row whatever
@@ -1504,6 +1504,16 @@ validator that has only ever passed is decoration.
   registered by the game, never generated, and the art-drift gate passed having compared
   nothing. Results are sorted because the generator's output order must not depend on the
   filesystem.
+- **Ask the loader, not the filesystem, whether an imported or remapped asset exists.** An export
+  carries a `.wav` or `.png` as its `.import` sidecar plus the engine's converted copy, and a `.tres`
+  as a `.remap` to a binary one - never the file itself - so `FileAccess.file_exists` on those paths
+  is false in every shipped build while `load()` works. `GameManifest.problems()` and
+  `QuestHooks.problems()` asked it that way, and every web boot printed six errors about sounds and
+  an item the sessions were using. `ResourceLoader.exists` is the question for anything imported;
+  `FileAccess` is right for JSON, which is packed as-is, and for `user://`. **No res:// test can tell
+  the two apart**, so `Qa` ends every session by asking the running game's own `problems()`
+  (`_end_of_session_checks`, beside the unknown-sound check), and `pack_check.sh` plays sessions from
+  the pack.
 - **The deployed web build cannot be driven by browser automation.** Godot maps web input
   from `KeyboardEvent.code`; the automation available here sends trusted events with an empty
   `code`, and hand-built events with a correct `code` arrive untrusted and are ignored. A
@@ -1686,16 +1696,21 @@ written, and no gate could have seen it.
 
 **A pack that plays can still carry what nobody meant to ship, so `pack_check.sh` reads what it
 CONTAINS before it plays it.** The web preset's exclude filter never named `addons/`, so every web
-build carried gdUnit4's 554 files - its TCP server and its runners among them - past a gate that
+build carried gdUnit4's 260 files - its TCP server and its runners among them - past a gate that
 only asked whether the game played, which it always did, because nothing loads them. The filter now
 names `addons/gdUnit4/*` and `reports/*` (gdUnit4 writes its reports into the project, which in CI
 is the checkout the pack is exported from), and the pack went from 7.45 MB to 5.75 MB. **Not
 `addons/*`**: a game may add a plugin it really runs, and a filter that swallowed it would ship a
 build without it and nothing red. The check spells the development trees out ITSELF - `tests`,
 `tools`, `docs`, `reports`, `addons/gdUnit4`, `data/imports` - rather than reading the filter,
-because a check that read the filter would agree with it by construction. It greps the pack's file
-table, where every path is plain text, and refuses a pack whose table names no `res://data/games/`
-path, since a table it cannot read would otherwise pass as clean. `--selftest` drives the verdict
+because a check that read the filter would agree with it by construction. It reads the pack's FILE
+TABLE: 4.7.1 writes each path there without `res://`, straight after a 32-bit length, so the check
+splits the pack on NUL and matches only where a field begins. **The first version grepped for `res://`
+paths anywhere, and was reading references** - the uid and class caches name every script that has a
+uid - so it caught gdUnit4 only because those scripts carry uids, and a development file nothing refers
+to would have passed; matching bare paths anywhere instead refused a clean pack over prose inside
+packed JSON. It refuses a pack with no `data/games/` entry at a field start, since a table it cannot
+find would otherwise pass as clean. `--selftest` drives the verdict
 over packs written by hand, and `test_ci_paths.gd` runs it.
 
 `--export-pack` needs no export templates and `--main-pack` boots the pack with the stock
