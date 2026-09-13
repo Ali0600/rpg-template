@@ -103,6 +103,8 @@ func problems() -> Array[String]:
 			out.append("hooks name dialog '%s', which does not exist" % dialog_id)
 	# Same reasoning for the item: it is named here as a bare id, so a rename in data/items
 	# would leave this file asking about something nobody carries, and the warden goes quiet.
-	if not FileAccess.file_exists("res://data/items/%s.tres" % ITEM_KEY):
+	# Asked of the loader: an export carries the item as a .remap to a converted copy, so a file
+	# check reported it missing on every web boot while the warden was taking it.
+	if not ResourceLoader.exists("res://data/items/%s.tres" % ITEM_KEY):
 		out.append("hooks name item '%s', which does not exist" % ITEM_KEY)
 	return out

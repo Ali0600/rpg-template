@@ -189,14 +189,14 @@ behaving strangely.
   sub-tile autotiling that builds 47 edge shapes from 12 pieces. All of it uses integer
   arithmetic, so the output is byte-identical on macOS and Linux, and CI fails if the committed
   output drifts.
-- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,511
+- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,513
   unit and integration tests → boot → artifact drift → 25 scripted end-to-end play sessions →
   the exported package checked for test code, then played. Repository policy requires every
   action to be pinned to a SHA, `main` cannot be force-pushed or deleted, dependency alerts open
   their own fix PRs, and tokens get the least access they need. Every download the build and the
   art pipeline make is pinned to a commit or checked against a committed checksum, and the Pages
   deploy waits for the green run of the exact commit it ships.
-- Added mutation testing over the project's own quality gates: 737 mutants, each proving a rule
+- Added mutation testing over the project's own quality gates: 744 mutants, each proving a rule
   fails when it is broken. The run is split four ways, with a fast lane that runs only the
   mutants a change touches (pull-request runs went from 18 → 3 min), and a sub-second static
   check that every mutant still targets one line.

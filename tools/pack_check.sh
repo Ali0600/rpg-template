@@ -31,64 +31,89 @@ cd "$(dirname "$0")/.." || exit 1
 # to belong to the build rather than to the game.
 #
 # Measured before it was written (2026-09-13): the filter had never named addons/, and the web pack
-# carried gdUnit4's 554 files - its TCP server, its runners, its own test suites. Playing the pack
-# could not notice, because nothing loads them: every session still played.
-DEV_TREES='res://(tests|tools|docs|reports|addons/gdUnit4|data/imports)/'
+# carried gdUnit4 - 260 files, its TCP server and its runners among them. Playing the pack could not
+# notice, because nothing loads them: every session still played.
+DEV_TREES='(tests|tools|docs|reports|addons/gdUnit4|data/imports)/'
 
-# Every development-only path the pack names, one per line. A pack's file table holds each path as
-# plain text (measured on 4.7.1: `res://data/games/quest.tres` is in it verbatim), so reading it
-# needs no engine. The tail is the characters a path is made of rather than "anything printable",
-# which let the binary after a name ride along and counted one file as three.
-dev_paths_in() { # $1 pack
-  LC_ALL=C grep -a -o -E "${DEV_TREES}[[:alnum:]_.@+/-]*" "$1" 2>/dev/null | sort -u
+# The pack cut into NUL-separated fields, one per line. 4.7.1 writes every path in its file table
+# WITHOUT `res://`, straight after a 32-bit little-endian length whose high bytes are zero (measured:
+# `1c 00 00 00`, then `data/games/quest.tres.remap`), so each entry begins a field. A `res://` string
+# is a REFERENCE - the uid cache and the class cache name every script that has a uid - and a path in
+# the middle of a field is prose, like a JSON readme naming a tool. The first version of this check
+# matched `res://` anywhere, so it read references: it caught gdUnit4 only because those scripts
+# carry uids, and a development file nothing refers to would have passed. The one thing it can still
+# misread is a length-prefixed string inside a packed binary that begins with one of these trees -
+# none does today, and it would refuse rather than pass.
+pack_fields() { # $1 pack
+  LC_ALL=C tr '\000' '\n' < "$1"
 }
 
 # The verdict on what a pack CONTAINS. Separate from playing it, and before it: an artifact can
 # play perfectly and still carry things nobody meant to ship.
 contents_ok() { # $1 pack
-  local leaked count
-  # A pack this cannot read proves nothing about what is in it. An encrypted or reformatted file
-  # table names no development path because it names no path at all, and that would read as clean.
-  if ! grep -a -q 'res://data/games/' "$1"; then
-    echo "FAIL  $1 names no res://data/games/ path, so its file table was not read and its contents are unknown"
+  local fields leaked count
+  # Cut once. A `tr | grep -q` pipe can lose tr to SIGPIPE when grep stops early, and under pipefail
+  # that status would flip the verdict of the `if !` around it.
+  fields="$(pack_fields "$1")"
+  # A table this cannot find proves nothing about what is in the pack. An encrypted or reformatted
+  # directory has no entry starting a field, and would otherwise read as clean.
+  if ! LC_ALL=C grep -a -q -E '^data/games/' <<< "$fields"; then
+    echo "FAIL  $1 has no data/games/ entry in its file table, so the table was not read and its contents are unknown"
     return 1
   fi
-  leaked="$(dev_paths_in "$1")"
+  # Entries whose path length is a multiple of four have no padding, so a byte of what follows can
+  # stick to the printed name; the verdict does not depend on it.
+  leaked="$(LC_ALL=C grep -a -o -E "^${DEV_TREES}[[:alnum:]_.@+/-]*" <<< "$fields")"
   if [ -n "$leaked" ]; then
-    count="$(printf '%s\n' "$leaked" | wc -l | tr -d ' ')"
-    echo "FAIL  the pack carries $count file(s) that only build or test the game, e.g.:"
-    printf '%s\n' "$leaked" | head -5 | sed 's/^/        /'
+    leaked="$(sort -u <<< "$leaked")"
+    count="$(grep -c . <<< "$leaked")"
+    echo "FAIL  the pack's file table has $count entries that only build or test the game, e.g.:"
+    head -5 <<< "$leaked" | sed 's/^/        /'
     return 1
   fi
   return 0
 }
 
 # Drives the REAL contents_ok over packs small enough to write by hand - fetch_godot.sh's precedent.
-# The accepting case is what makes every refusal evidence of anything.
+# The accepting cases are what make every refusal evidence of anything.
 selftest() {
   local dir fail=0 out leak
+  local clean=(data/games/quest.tres.remap scripts/world/world_scene.gdc \
+    addons/a_plugin_the_game_runs/plugin.gdc data/tiles/lpc32.json)
   dir="$(mktemp -d)"
   ok() { # $1 label  $2 expected code  $3 actual code
     if [ "$2" != "$3" ]; then
       echo "  selftest FAIL: $1 (expected exit $2, got $3)"; fail=1
     else echo "  ok: $1"; fi
   }
-  table() { # $1 file  $2... the paths its file table names, NUL-separated the way a pack's are
+  # A file table the way 4.7.1 writes one: each path WITHOUT `res://`, after a 32-bit little-endian
+  # length whose high bytes are zero, then NUL padding. The length's value is immaterial to the
+  # reading; the NUL in front of every path is the whole point.
+  table() { # $1 file  $2... the paths the table names
     local file="$1" p
     shift
     printf 'GDPC' > "$file"
-    for p in "$@"; do printf '\0%s' "$p" >> "$file"; done
+    for p in "$@"; do printf '\034\000\000\000%s\000' "$p" >> "$file"; done
   }
 
-  table "$dir/clean.pck" res://data/games/quest.tres res://scripts/world/world_scene.gd \
-    res://addons/a_plugin_the_game_runs/plugin.gd res://data/tiles/lpc32.json
+  table "$dir/clean.pck" "${clean[@]}"
   contents_ok "$dir/clean.pck" >/dev/null
   ok "a pack of the game's own files is accepted, a plugin it runs included" 0 $?
 
-  for leak in res://addons/gdUnit4/src/network/GdUnitServer.gd res://tests/unit/test_saves.gd \
-      res://tools/check.sh res://docs/FLOW.md res://reports/report_1/index.html \
-      res://data/imports/lpc32/quest_wanderer/sheet.png; do
-    table "$dir/leak.pck" res://data/games/quest.tres res://scripts/world/world_scene.gd "$leak"
+  # Prose inside a packed file. data/tiles/lpc32.json's readme names tools/fetch_tiles.sh, and a
+  # search of the whole pack read that as a packed tool.
+  table "$dir/prose.pck" "${clean[@]}"
+  printf '\000\000{"_readme": ["run tools/fetch_tiles.sh", "\\"docs/GENRE_CONVENTIONS.md"]}' \
+    >> "$dir/prose.pck"
+  contents_ok "$dir/prose.pck" >/dev/null
+  ok "a development path named in a packed file's text is not a packed file" 0 $?
+
+  # The JSON fixture is the case the first version could not see: nothing else in a pack refers to
+  # it, so its table entry is the only place its path appears.
+  for leak in addons/gdUnit4/src/network/GdUnitServer.gdc tests/unit/test_saves.gdc \
+      tests/fixtures/qa/quest/talk_to_npc.json tools/check.sh docs/FLOW.md \
+      reports/report_1/index.html data/imports/lpc32/quest_wanderer/sheet.png; do
+    table "$dir/leak.pck" "${clean[@]}" "$leak"
     out="$(contents_ok "$dir/leak.pck")"
     ok "a pack carrying $leak is refused" 1 $?
     case "$out" in
@@ -96,6 +121,13 @@ selftest() {
       *) echo "  selftest FAIL: the refusal did not name $leak"; fail=1 ;;
     esac
   done
+
+  # A reference is not an entry. The uid cache names res://data/games/quest.tres in a length-prefixed
+  # field of its own, so a pack whose only games path is that reference has a table this never found.
+  printf 'GDPC\034\000\000\000res://data/games/quest.tres\000' > "$dir/reference.pck"
+  printf '\034\000\000\000scripts/world/world_scene.gdc\000' >> "$dir/reference.pck"
+  contents_ok "$dir/reference.pck" >/dev/null
+  ok "a pack whose only games path is a reference is refused as unread" 1 $?
 
   table "$dir/unreadable.pck" "no paths in here at all"
   contents_ok "$dir/unreadable.pck" >/dev/null
