@@ -2382,3 +2382,20 @@ had called the tree clean.
 lockfile. `npm ci` forces the two to agree and proves the lockfile installs from clean; then import
 the code that depends on it, because a clean lockfile is not a working import.
 
+### A variable's value belongs to the line that writes it
+
+In reverse-engineered code a label says what a variable is for, but each write gives it a different
+value in a different situation, so "what is X set to" has no answer until you have read the write for
+the situation you mean.
+
+**Why it came up.** M49 read Zelda's combat numbers out of two reverse-engineered codebases. A
+summarising fetch reported that A Link to the Past's blink counter is set to 58, which is true;
+grepping every write found it also set to 144 at six other sites in the overworld, messaging and
+item code, and only the write inside `Link_ControlHandler` is the one a hit takes. In Link's
+Awakening the collision countdown is written in several routines, and the one with a readable value
+and a comment belongs to the spike trap, so §7d cites it as the spike trap's and does not pass it
+off as what an enemy's touch does.
+
+**Takeaway.** Grep for every store of a variable, name the routine around each, and cite a value
+together with its routine; when the path you care about was not traced, say which path the number
+came from.
