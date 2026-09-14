@@ -131,7 +131,7 @@ scripts/world/actor_body.gd	s|_walker.cancel\(\)|pass|	tests/integration/test_gr
 # --- M10: saves are per game ---
 scripts/autoload/save_manager.gd	s|if data.game != game:|if false:|	tests/unit/test_saves.gd	a save from another game loads into this one's slot
 scripts/autoload/save_manager.gd	s|\tvar glance := _read\(game, slot\)|\tvar glance := _read(game, slot) if load_slot(game, slot) == null else _read(game, slot)|	tests/unit/test_saves.gd	listing the slots parks files and announces loads nobody asked for
-scripts/autoload/save_manager.gd	s|if arg.begins_with\(GameSelect.QA_ARG\):|if false:|	tests/unit/test_saves.gd	a scripted play session reads and writes a real player's saves
+scripts/data/game_select.gd	s|if arg.begins_with\(QA_ARG\):|if false:|	tests/unit/test_saves.gd	a scripted play session reads and writes a real player's saves
 scripts/autoload/save_manager.gd	s|if not problems.is_empty\(\):|if false:|	tests/unit/test_saves.gd	a save with no game is written to a directory named after nothing
 scripts/autoload/save_manager.gd	s|if held.exists and held.data == null:|if false:|	tests/unit/test_saves.gd	saving into a damaged slot destroys the bytes instead of parking them
 scripts/data/migrations.gd	s|d\["game"\] = String\(game\)|d["game"] = ""|	tests/unit/test_saves.gd	a migrated save forgets which game it belongs to
@@ -297,7 +297,7 @@ scripts/world/world_scene.gd	s|\t\tAudioBus.play\(Sfx.Cue.LOCKED\)|\t\tpass|	tes
 scripts/autoload/settings.gd	s|\t_level = \(\(_level \+ 1\) % Level.size\(\)\) as Level|\t_level = Level.NORMAL|	tests/unit/test_settings.gd	the volume row stops changing anything
 scripts/autoload/settings.gd	s|\tAudioBus.set_volume\(sound_gain\(\)\)|\tpass|	tests/unit/test_settings.gd	the menu says Quiet while nothing gets any quieter
 scripts/autoload/settings.gd	s|\tif raw < 0 or raw >= Level.size\(\):|\tif false:|	tests/unit/test_settings.gd	a settings file from the future silences the game with no way to find out why
-scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, \{"sound_level": int\(_level\), "palette": String\(_palette\)\}\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
+scripts/autoload/settings.gd	s|\tvar err := JsonFile.write\(_path, data\)|\tvar err := OK|	tests/unit/test_settings.gd	the chosen volume never survives a restart
 scripts/autoload/settings.gd	s|\t\treturn QA_PATH|\t\treturn DEFAULT_PATH|	tests/unit/test_settings.gd	a scripted play session writes the player's real settings
 scripts/ui/pause_menu.gd	s|\t\tif row == Row.OPTIONS:|\t\tif false:|	tests/unit/test_pause_menu.gd	a game with no save slots cannot reach its options
 tools/compile_all.gd	s|\t\tif at == 0 or not _is_identifier_char\(code\[at - 1\]\):|\t\tif true:|	tests/unit/test_compile_all.gd	a singleton whose name ends another identifier drops files out of the compile gate
@@ -988,3 +988,10 @@ data/games/quest_arena.tres	s|^title = "The Barred Gate: Arena"$|title = "The Ba
 scripts/ui/arena_screen.gd	s|^\t_order_by_depth\(\)$|\tpass|	tests/integration/test_arena_layout.gd	bodies are drawn in the order they were made, so a foe standing just behind the hero is drawn over his head
 scripts/ui/arena_screen.gd	s|return int\(a\[0\]\) < int\(b\[0\]\)|return int(a[0]) > int(b[0])|	tests/integration/test_arena_layout.gd	a body further up the floor is drawn in front of one below it
 scripts/ui/arena_screen.gd	s|slots.sort\(\)|pass|	tests/integration/test_arena_layout.gd	the bodies are dealt back into the places they hold in the order they were made, so a repaint leaves some drawn behind bodies they stand in front of
+scripts/data/game_select.gd	s|if arg.contains\(TEST_RUNNER\):|if false:|	tests/unit/test_game_select.gd	a run of the test runner reads the developer's own settings, so a suite can open an arena on one machine and a menu on another
+scripts/autoload/save_manager.gd	s|if GameSelect.is_scratch_run\(args\):|if false:|	tests/unit/test_saves.gd	a test run or a scripted session writes into a real player's save slots
+scripts/autoload/settings.gd	s|\tDirAccess.remove_absolute\(ProjectSettings.globalize_path\(QA_PATH\)\)|\tpass|	tests/unit/test_settings.gd	a scripted session inherits the play choices the session before it made
+scripts/autoload/settings.gd	s|_play\[axis\] = StringName\(str\(file.data.get\(String\(axis\), NO_CHOICE\)\)\)|pass|	tests/unit/test_settings.gd	a play choice written to the file is never read back, so it is forgotten at every restart
+scripts/autoload/settings.gd	s|data\[String\(axis\)\] = String\(play_choice\(axis\)\)|pass|	tests/unit/test_settings.gd	a play choice is never written, so it is forgotten at every restart
+scripts/autoload/settings.gd	s|if not PlayChoices.AXES.has\(axis\):|if false:|	tests/unit/test_settings.gd	a misspelt play choice is accepted and sits in memory answering a question no row asks
+tests/integration/test_world_party.gd	s|SaveManager.base_dir = SaveManager.dir_for\(GameSelect.args\(\)\)|SaveManager.base_dir = SaveManager.DEFAULT_DIR|	tests/unit/test_saves.gd	a suite puts the save manager back on the player's real directory, and every suite after it writes there

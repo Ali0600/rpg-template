@@ -20,7 +20,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	SaveDirs.clear(TEST_DIR)
-	SaveManager.base_dir = SaveManager.DEFAULT_DIR
+	SaveManager.base_dir = SaveManager.dir_for(GameSelect.args())
 	GameState.reset()
 
 ## A save belonging to whichever game, built without going through GameState - the suite needs
@@ -327,6 +327,33 @@ func test_a_scripted_session_gets_its_own_save_directory() -> void:
 		.is_equal(SaveManager.QA_DIR)
 	assert_str(SaveManager.dir_for(PackedStringArray(["--game=quest"]))).is_equal(SaveManager.DEFAULT_DIR)
 	assert_str(SaveManager.dir_for(PackedStringArray([]))).is_equal(SaveManager.DEFAULT_DIR)
+
+
+func test_a_run_of_the_test_runner_gets_the_scratch_directory_too() -> void:
+	var runner := PackedStringArray(["-s", "addons/gdUnit4/bin/GdUnitCmdTool.gd", "-a", "tests"])
+	assert_str(SaveManager.dir_for(runner)).is_equal(SaveManager.QA_DIR)
+	assert_str(SaveManager.dir_for(GameSelect.args())).override_failure_message(
+		"this test run saves into the player's own directory").is_equal(SaveManager.QA_DIR)
+
+
+func test_no_suite_puts_the_save_manager_back_on_the_players_directory() -> void:
+	# A suite that moves the directory aside and then restores it to DEFAULT_DIR undoes the
+	# redirect for every suite that runs after it, in whatever order the runner happens to pick.
+	# Read out of the suites' own text, and the needle is built so this file's own lines are not it.
+	var needle := "SaveManager.base_dir" + " = "
+	var moves := 0
+	var offenders: Array[String] = []
+	for path in ContentScan.files_of("res://tests", "gd"):
+		for line in FileAccess.get_file_as_string(path).split("\n"):
+			if not line.contains(needle):
+				continue
+			moves += 1
+			if line.contains("DEFAULT_DIR"):
+				offenders.append(path)
+	assert_int(moves).override_failure_message(
+		"the scan found no suite moving the save directory, so it proves nothing").is_greater(5)
+	assert_array(offenders).override_failure_message(
+		"these suites point the save manager at the player's real saves: %s" % [offenders]).is_empty()
 
 
 func test_a_version_3_save_is_carried_forward() -> void:

@@ -30,6 +30,27 @@ const ARG := "--game="
 ## already owns "what did the command line ask for", which is the same question.
 const QA_ARG := "--qa-script="
 
+## What the test runner's command line always names: the CLI tool (`-s addons/gdUnit4/bin/...`)
+## and the editor's runner scene (`res://addons/gdUnit4/src/core/runners/...`) both carry it. A
+## flag of this project's own is not an option, because the runner refuses arguments it does not
+## know.
+const TEST_RUNNER := "addons/gdUnit4/"
+
+
+## Whether this run must keep its hands off the player's own saves and settings: a scripted
+## session, or any run of the test runner. One predicate, asked by both files that keep the
+## player's things, so the two cannot disagree about what a test run is. Since M51 a setting
+## decides which screen a fight opens, so a suite reading the developer's own file would open an
+## arena where it expects a menu - on one machine and nowhere else. Pure over the arguments, so
+## every launch shape can be proven without arranging a process.
+static func is_scratch_run(args_in: PackedStringArray) -> bool:
+	for arg in args_in:
+		if arg.begins_with(QA_ARG):
+			return true
+		if arg.contains(TEST_RUNNER):
+			return true
+	return false
+
 
 ## The precedence, as a pure function so it can be proven with literal arrays rather than by
 ## arranging a filesystem and a project setting. Returns "" when nothing chooses.
