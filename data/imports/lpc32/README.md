@@ -54,9 +54,17 @@ refused by name. `recipe.json` lands beside the two files, so the character can 
 5. Paste the URL from the address bar into the table below, so the character can be reopened
    and edited later — the hash after `#` is the whole recipe.
 
-Only the **walk** rows (8–11) are read today; idle is the walk cycle's standing frame. Other
-animations on the sheet are ignored, not refused, so a later clip (slash, hurt) is one more row
-in `LpcImport`'s table rather than a re-export.
+The **walk** rows (8–11) are always read; idle is the walk cycle's standing frame. The **slash**
+rows (12–15) are read too when a sheet draws them facing all four ways, into the six columns after
+the walk, as a clip that plays once; a slash drawn facing only some ways is refused. The anchor is
+measured from the walk alone, so a lunge or a blade held low never moves where a character stands.
+Other animations on the sheet are ignored, not refused.
+
+A recipe composed with `tools/lpc_compose.sh` asks for the slash with `"animations": ["walk",
+"slash"]`, and a layer may say `"only": ["slash"]` to be drawn in the swing and nowhere else - which
+is how `quest_wanderer` carries a dagger in the arena and none in the village or in his portrait.
+Both keys are the composer's own. The web app has no way to say either, and draws a weapon in every
+animation it has.
 
 ## Recipes
 

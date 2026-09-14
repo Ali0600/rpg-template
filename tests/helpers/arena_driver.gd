@@ -6,8 +6,17 @@ extends RefCounted
 ##
 ## TWO POLICIES, AND BOTH ARE LOAD-BEARING. PERFECT lines up, swings when the blade will land, waits
 ## out a foe's flash at arm's length and steps away from anything about to touch it; CHARGE walks
-## straight at the nearest foe and swings on every frame it can. A shipped fight PERFECT loses is a
-## wall, and one CHARGE wins has no skill in it.
+## straight at the nearest foe and swings once it has walked into it. A shipped fight PERFECT loses is
+## a wall, and one CHARGE wins has no skill in it.
+##
+## WHEN CHARGE SWINGS WAS MEASURED INTO ITS SHAPE. Swinging on every frame roots it where it stands,
+## because a swing holds the player still. Swinging whenever a foe came within a quarter tile was the
+## next try, and that player won every shipped fight on twelve seeds without once being touched,
+## exactly as PERFECT did (measured 2026-09-14): the blade reaches three quarters of a tile past the
+## body and a touch reaches none, so swinging a moment early IS using the sword's reach. A gate made
+## of those two policies said nothing about skill, and no enemy speed or chase period separated them -
+## a faster Keeper beat PERFECT first. What a careless player lacks is reach, so that is what CHARGE
+## lacks.
 ##
 ## Every choice is read from the sim's own probes. The scripted harness plays PERFECT too and cannot
 ## name this class - tests/ is not in the exported pack - so the choice is kept small enough to
@@ -17,10 +26,6 @@ enum Policy { PERFECT, CHARGE }
 
 ## Units of slack in lining up: inside it, the cross axis counts as lined up.
 const ALIGN := 24
-## How close CHARGE lets a foe's body get to its own before it swings: a quarter of a tile. Any
-## further and it roots itself out of reach - a swing holds the player still - which is not
-## charging but standing.
-const CHARGE_RANGE := 64
 
 
 class Choice extends RefCounted:
@@ -48,10 +53,10 @@ static func choose(sim: ArenaSim, policy: Policy) -> Choice:
 		return out
 	var gap := sim.foe_pos(target) - sim.player_pos()
 	if policy == Policy.CHARGE:
-		# Straight at it, diagonal and all, and swinging whenever it is close - facing it or not,
+		# Straight at it, diagonal and all, and swinging once it is touching it - facing it or not,
 		# flashing or not.
 		out.move = Vector2(signi(gap.x), signi(gap.y))
-		out.swing = sim.player_box().grow(CHARGE_RANGE).intersects(sim.foe_box(target))
+		out.swing = sim.player_box().intersects(sim.foe_box(target))
 		return out
 	if sim.shoved():
 		return out

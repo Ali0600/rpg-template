@@ -454,6 +454,17 @@ func swinging() -> bool:
 	return _swing_left > 0
 
 
+## Which of `steps` pictures of a swing belongs on screen now, or -1 when the sword is away. A swing
+## is painted on swing_frames - 1 frames - the countdown runs at the end of the tick that started
+## it - and the pictures are spread across exactly those, so the last is showing as the sword goes.
+func swing_step(steps: int) -> int:
+	if _swing_left <= 0 or steps <= 0:
+		return -1
+	var painted := maxi(_combat.swing_frames - 1, 1)
+	var shown := _combat.swing_frames - 1 - _swing_left
+	return mini(shown * steps / painted, steps - 1)
+
+
 ## The box the sword covers when it is out: `swing_reach_tiles` deep from the leading edge of the
 ## player's body, as wide as the body, on the side they face.
 func sword_box() -> Rect2i:

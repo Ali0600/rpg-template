@@ -230,3 +230,71 @@ func test_a_character_drawn_low_in_its_cell_still_gets_a_face_inside_it() -> voi
 	assert_bool(Rect2i(Vector2i.ZERO, Vector2i(FRAME, FRAME)).encloses(meta.portrait)) \
 		.override_failure_message("the face runs outside the cell it was cut from").is_true()
 	assert_array(meta.problems(Vector2i(FRAME * 9, FRAME * 4))).is_empty()
+
+
+# -- the slash ---------------------------------------------------------------------------------
+
+## Where the universal sheet keeps each SLASH direction, as the generator's source states it.
+const SLASH_ROWS := {12: Dir.D.UP, 13: Dir.D.LEFT, 14: Dir.D.DOWN, 15: Dir.D.RIGHT}
+
+## A full-height sheet with the walk markers at `ground` and a slash block: every slash cell marked
+## in its direction's colour at (32, MARK_Y) and at (column, `low`), so a slash reaching lower than
+## the walk's feet can be staged. `drawn` names the slash rows that get anything at all.
+func _sheet_with_slash(ground := 58, low := 63, drawn: Array = [12, 13, 14, 15]) -> Image:
+	var img := _sheet(54, ground)
+	for lpc_row: int in SLASH_ROWS.keys():
+		if not drawn.has(lpc_row):
+			continue
+		var color := _color_of(SLASH_ROWS[lpc_row])
+		for col in 6:
+			img.set_pixel(col * FRAME + 32, lpc_row * FRAME + MARK_Y, color)
+			img.set_pixel(col * FRAME + col, lpc_row * FRAME + low, color)
+	return img
+
+func test_a_drawn_slash_becomes_columns_9_to_14_in_canonical_rows_and_plays_once() -> void:
+	var style := _style()
+	style.slash_fps = 11
+	var built := LpcImport.build(_sheet_with_slash(), _recipe(), style, "hero")
+	var img: Image = built["image"]
+	var meta: SheetMeta = built["meta"]
+	assert_int(img.get_width()).is_equal(15 * FRAME)
+	assert_int(meta.columns).is_equal(15)
+	assert_str(str(meta.frames_of("slash"))).is_equal("[9, 10, 11, 12, 13, 14]")
+	var clip: Dictionary = meta.animations["slash"]
+	assert_bool(bool(clip["loop"])).is_false()
+	assert_int(int(clip["fps"])).override_failure_message("the slash does not play at the style's slash speed").is_equal(11)
+	for r in CANONICAL.size():
+		var dir: int = CANONICAL[r]
+		for col in 6:
+			assert_str(img.get_pixel((9 + col) * FRAME + 32, r * FRAME + MARK_Y).to_html(false)).override_failure_message(
+				"slash column %d of canonical row %d should carry the %s frames" % [col, r, Dir.name_of(dir)]) \
+				.is_equal(_color_of(dir).to_html(false))
+	assert_array(meta.problems(img.get_size())).is_empty()
+
+func test_a_slash_reaching_below_the_feet_does_not_move_the_ground_line() -> void:
+	# The whole cast is placed by its anchor, and the arena sizes its floor window from it: a lunge
+	# or a blade held low must not move where this character stands.
+	var meta: SheetMeta = LpcImport.build(_sheet_with_slash(58, 63), _recipe(), _style(), "hero")["meta"]
+	assert_int(meta.anchor.y).override_failure_message("the slash was measured as the ground").is_equal(58)
+
+func test_a_walk_only_sheet_imports_exactly_as_it_always_did() -> void:
+	var built := LpcImport.build(_sheet(54), _recipe(), _style(), "hero")
+	var meta: SheetMeta = built["meta"]
+	assert_int((built["image"] as Image).get_width()).is_equal(9 * FRAME)
+	assert_int(meta.columns).is_equal(9)
+	assert_bool(meta.animations.has("slash")).is_false()
+	assert_bool(LpcImport.has_slash(_sheet(54))).is_false()
+	assert_bool(LpcImport.has_slash(_sheet(12))).override_failure_message(
+		"a sheet too short to reach the slash rows claims to draw one").is_false()
+	assert_bool(LpcImport.has_slash(_sheet_with_slash())).is_true()
+
+func test_a_slash_drawn_facing_only_some_ways_is_refused_by_row() -> void:
+	var problems := LpcImport.problems(_sheet_with_slash(58, 63, [12, 13, 14]), _recipe(), _style())
+	assert_str(str(problems)).contains("slash row 15")
+	assert_array(LpcImport.problems(_sheet_with_slash(), _recipe(), _style())).is_empty()
+
+func test_the_slash_plays_through_the_factory_once() -> void:
+	var built := LpcImport.build(_sheet_with_slash(), _recipe(), _style(), "hero")
+	var frames := SpriteFramesFactory.build(ImageTexture.create_from_image(built["image"]), built["meta"])
+	assert_int(frames.get_frame_count(&"slash_left")).is_equal(6)
+	assert_bool(frames.get_animation_loop(&"slash_left")).is_false()

@@ -568,6 +568,23 @@ draw from `derive("arena")` (`docs/DECISIONS.md`, M50). It calls `BattleLogic`'s
 seal are one set of lines for both resolvers: a second copy of "the award sums the formation" is the
 one that forgets to sum. `tests/helpers/arena_driver.gd` is its `BattleDriver`, PERFECT and CHARGE.
 
+**The arena is balanced by playing it, and the careless player is judged as a RATE.**
+`test_battle_content` plays every shipped encounter through `ArenaSim` with the formation the map
+names and the party the player is guaranteed: PERFECT beats the Keeper at level 2 on every one of
+twelve seeds, and CHARGE beats him on at most 6 of 48. Both halves of that shape were measured
+(`docs/DECISIONS.md`, M50). CHARGE swings only once it has WALKED INTO a foe, because swinging a
+quarter tile early is using the sword's reach: that player won every shipped fight untouched,
+exactly as PERFECT did, and no enemy speed or chase period separated the two. And an arena is
+bodies wandering at random, so walking into the Keeper does win now and then - "never" over twelve
+seeds would have been tuned to those twelve. **Two drivers that share the habit the difficulty lives
+in are one driver**, and no data change can make them two.
+
+**The Barred Gate: Arena (`data/games/quest_arena.tres`) is a CONTROL INSTANCE, held there by a
+test.** Its manifest differs from `quest.tres` in `id`, `title` and `combat` only, and its fighter
+from `quest_combat.tres` in `id`, `style` and the arena's own numbers, listed by name in
+`ARENA_FIELDS`. The curves staying equal is what keeps every level beat of the quest true with a
+sword. The enemies' arena numbers live on the shared `EnemyDef`s, which the turn fight never reads.
+
 **Which screen opens is `CombatDef.style`, and `FightScreen` is what both screens are.** `turns`,
 the default, or `arena`, refused by name; only the manifest's combat is read, and a companion's is
 ignored like its timing fields. `world_scene._fight_screen_for` reads it after every guard in
@@ -580,6 +597,19 @@ and its margins read from every sheet's own anchor, so a body pressed into a wal
 window in either kind of art. It READS the move actions through `Locomotion.read_input()` each
 frame and takes `interact` as a PRESS, so holding it is one swing. A body flickers two frames on and
 two off for as long as it is protected, and a felled foe leaves the floor.
+
+**The swing is the art's own, and the floor is the ground the fight began on** (`docs/DECISIONS.md`,
+M50; §7d, where both Zeldas draw the sword as a sprite stepped by the hitbox's own counter and Zelda
+II picks its fight scene from the terrain). A leader whose sheet draws LPC's `slash` plays it one
+picture at a time from `ArenaSim.swing_step` through `SpriteView.hold_frame`, so the picture and the
+hitbox are one count; art with no slash - the rig's - shows a drawn edge sweeping the sword's reach
+instead, and never both. The floor is laid, behind everything on it, with the tile under the map
+record whose fight this is (`world_scene._arena_ground`, `TileSetFactory.walkable_region`); a key no
+record answers to, or a tile nobody could stand on, keeps the plain window, which is also what every
+standalone test gets. The drawn slash and the ground carry `ArenaScreen.FIELD`, which is how the
+layout audit tells a floor layer from a collision. The help line names both verbs, and
+`READOUT_CAPACITY` 999 is the widest leader readout the panel is laid out for: declared there,
+measured by `test_arena_layout`, refused past by `test_battle_content`.
 
 **Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
 and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
@@ -1339,7 +1369,10 @@ Everything known about LPC's layout is a CONSTANT in `LpcImport`, measured from 
 source rather than remembered: 64px frames, 13 columns, every animation at a FIXED row whatever
 was enabled (walk is always rows 8-11, so a sheet is addressed and never searched), rows within a
 block running up, left, down, right - NOT this template's order, so the walk block is RE-CUT into
-canonical rows rather than relabelled - and frame 0 the standing pose. Idle is that standing
+canonical rows rather than relabelled - and frame 0 the standing pose. The slash, LPC rows 12-15,
+is cut into the six columns after the walk only when a sheet draws it facing all four ways, as a clip
+that plays once, and nothing is MEASURED from it: a lunge must not move the ground line the whole
+cast is placed by, so the anchor stays the walk's. Idle is that standing
 frame, as the rig's is: the generator's own idle rows are drawn for only some assets, and a hat
 that vanishes when a character stops walking is worse than no breathing.
 
@@ -1464,7 +1497,12 @@ validator that has only ever passed is decoration.
   and message lengths, and it describes ONE fight shape: M29 changed the Keeper from a duel to a
   trio and every such chain stopped ending the fight, half a script away from what moved.
   `press_until_state` is the opposite and is still right for playing BADLY on purpose - only the
-  first press of a cue counts, so mashing never lands one.
+  first press of a cue counts, so mashing never lands one. **In an arena `fight_well` plays
+  ArenaDriver's PERFECT through the real keys** - holding the move actions and pressing `interact` -
+  and states that choice a second time, in `Qa._arena_choice`, because `Qa` ships and
+  `tests/helpers` does not: an autoload naming `ArenaDriver` would not load in a packed build.
+  `test_qa_ops` holds the two to one answer on every branch the choice takes. `assert_game` is how a
+  session that PICKED its game proves which one it got.
 - **Authoring a session by SLICING another one cuts on the step that opens the leg**, never on a
   repeated marker. Taking "everything up to the last `assert_state battle`" kept the source
   script's own spell leg, so the new script's cursor landed two rows off and cast the wrong
@@ -1658,7 +1696,10 @@ composes them the way the browser does. `LpcCompose` is the generator's renderin
 measured from its source: per-body-type paths, zPos order, palette-by-index recolour at the
 generator's own +/-1 tolerance, file-variant items named by colour. It writes the SAME two files
 the web app downloads plus the recipe beside them, and runs `LpcImport.problems()` on what it made
-before writing anything. An authoring convenience, never a gate: the drift gate still compares
+before writing anything. A recipe may ask for `"animations": ["walk", "slash"]`, and a layer may say
+`"only": ["slash"]` - a weapon drawn in the swing and nowhere else, which the browser cannot express;
+a recipe naming neither plans exactly what it always did, byte for byte. An authoring convenience,
+never a gate: the drift gate still compares
 committed inputs to committed outputs and never reaches the network. `--preview=<png>` draws the
 four directions through `LpcImport.build`, so what is looked at is what the game loads - and LOOK
 FOR PROBLEMS: two of the first four designs were re-cut after their previews, one for a fringe
@@ -1849,7 +1890,9 @@ is the same rule for the same reason.
 
 Drive the real game from a script, or photograph it. QA scripts live under
 `tests/fixtures/qa/<game>/` and `check.sh` runs every one with `--game=<that directory>`, so
-a new script needs no edit to the gate:
+a new script needs no edit to the gate. A directory that names no game - `menu/` - runs with no
+`--game=` at all, which is the deployed page's shape and the only way a session meets the title's
+Switch game row; `pack_check.sh` and `mutate_check.sh` apply the same rule:
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/quest/talk_to_npc.json --game=quest

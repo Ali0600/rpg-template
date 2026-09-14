@@ -26,6 +26,8 @@ func _combat() -> CombatDef:
 	out.style = CombatDef.STYLE_ARENA
 	out.xp_curve = [10]
 	out.arena_tiles = ArenaScreen.FLOOR_MAX_TILES
+	# The widest readout the panel is laid out for, so every audit below measures it beside the help.
+	out.base_hp = ArenaScreen.READOUT_CAPACITY
 	return out
 
 
@@ -41,9 +43,19 @@ func _enemy(foe_name: String, character: StringName) -> EnemyDef:
 	return out
 
 
+## The grass cut from a style's own generated atlas: the ground a fight on grass is laid with.
+func _grass(style_id: String) -> Texture2D:
+	var meta := JsonFile.read("res://assets/generated/%s/tiles.json" % style_id)
+	var cut := AtlasTexture.new()
+	cut.atlas = load("res://assets/generated/%s/tiles.png" % style_id) as Texture2D
+	cut.region = Rect2(TileSetFactory.walkable_region(meta.data, "grass"))
+	return cut
+
+
 ## An arena at capacity - the widest floor this screen declares and a full formation, the longest
-## name first - in `style_id`'s art, mounted the way the world mounts it.
-func _screen(style_id: String) -> ArenaScreen:
+## name first, on grass unless told otherwise - in `style_id`'s art, mounted the way the world mounts
+## it.
+func _screen(style_id: String, grounded := true) -> ArenaScreen:
 	var style := load("res://data/styles/%s.tres" % style_id) as SpriteStyle
 	var screen := ArenaScreen.new()
 	UiScale.mount(screen, self, style)
@@ -51,9 +63,10 @@ func _screen(style_id: String) -> ArenaScreen:
 	var foes := [_enemy("The Keeper", &"quest_keeper"), _enemy("Slink", &"quest_slink"),
 		_enemy("Slink", &"quest_slink")]
 	assert_int(foes.size()).is_equal(FightScreen.MAX_FOES)
-	var sim := ArenaSim.of(combat, foes, [BattleHelpers.leader(combat)], "map/foe", 7,
-		GameConfig.new())
-	screen.setup(sim, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(StringName(style_id)))
+	var sim := ArenaSim.of(combat, foes, [BattleHelpers.leader(combat, ArenaScreen.READOUT_CAPACITY)],
+		"map/foe", 7, GameConfig.new())
+	screen.setup(sim, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(StringName(style_id)),
+		_grass(style_id) if grounded else null)
 	_screens.append(screen)
 	return screen
 
@@ -128,9 +141,10 @@ func _described(node: Node) -> String:
 	return "a " + node.get_class()
 
 
-## On the floor, a body or the blade: things whose overlapping is the fight rather than a fault.
+## On the floor, a body or one of the floor's own layers - the drawn slash, the ground - which the
+## screen tags as such: things whose overlapping is the fight rather than a fault.
 func _is_field(child: Node) -> bool:
-	return child is SpriteView or (child is ColorRect and UiChrome.kind_of(child) == &"")
+	return child is SpriteView or child.has_meta(ArenaScreen.FIELD)
 
 
 func _assert_laid_out(screen: ArenaScreen, case_name: String) -> void:
@@ -183,9 +197,17 @@ func test_the_arena_fits_its_window_in_both_kinds_of_art_with_the_player_at_ever
 			var wall: Array = entry
 			var screen := _screen(style_id)
 			_stage(screen, wall[1], wall[2], wall[3])
-			assert_bool(screen._blade.visible).override_failure_message(
-				"%s, %s: the blade is not drawn, so the audit says nothing about it"
-				% [style_id, wall[0]]).is_true()
+			if screen._player_view.frames_in(ArenaScreen.SLASH) > 0:
+				# Art that draws its own swing: the hero is caught mid-slash, measured as the body he
+				# is, and nothing is drawn over him.
+				assert_str(String(screen._player_view.clip())).override_failure_message(
+					"%s, %s: the hero is not swinging the blade his art draws" % [style_id, wall[0]]
+					).is_equal("slash")
+				assert_bool(screen._blade.visible).is_false()
+			else:
+				assert_bool(screen._blade.visible).override_failure_message(
+					"%s, %s: the drawn slash is not shown, so the audit says nothing about it"
+					% [style_id, wall[0]]).is_true()
 			_assert_laid_out(screen, "%s, %s" % [style_id, wall[0]])
 
 func test_the_bar_is_the_foe_the_fight_is_about() -> void:
@@ -217,3 +239,119 @@ func test_a_body_that_moved_walks_and_one_that_did_not_stands() -> void:
 	screen.sim().tick(Vector2.ZERO, false)
 	screen._paint()
 	assert_str(String(screen._player_view.clip())).is_equal("idle")
+
+
+## Three foes pressed into far corners, clear of a player swinging up from the middle of the floor.
+const FAR := [Vector2i(80, 48), Vector2i(4016, 48), Vector2i(4016, 976)]
+
+func test_the_leader_of_one_art_swings_its_own_blade_and_the_other_gets_a_drawn_one() -> void:
+	# The pair the per-wall audit rests on: without it, "the hero's art draws a slash" could quietly
+	# become false for both styles and every wall case would take the drawn-slash branch.
+	assert_int(_screen("lpc32")._player_view.frames_in(ArenaScreen.SLASH)).override_failure_message(
+		"the lpc32 hero's sheet draws no slash").is_greater(1)
+	assert_int(_screen("dusk16")._player_view.frames_in(ArenaScreen.SLASH)).is_equal(0)
+
+func test_a_hero_whose_art_swings_plays_every_picture_of_it_in_order() -> void:
+	var screen := _screen("lpc32")
+	_stage(screen, Vector2i(2048, 560), Dir.D.UP, FAR)
+	var shown: Array[int] = []
+	while screen.sim().swinging() and shown.size() < 40:
+		assert_str(String(screen._player_view.clip())).is_equal("slash")
+		var frame := screen._player_view.current_frame()
+		if shown.is_empty() or shown[shown.size() - 1] != frame:
+			shown.append(frame)
+		screen.sim().tick(Vector2.ZERO, false)
+		screen._paint()
+	assert_str(str(shown)).override_failure_message(
+		"the swing showed pictures %s" % [shown]).is_equal("[0, 1, 2, 3, 4, 5]")
+	assert_str(String(screen._player_view.clip())).override_failure_message(
+		"the hero is still holding a slash after the sword went away").is_equal("idle")
+
+func test_a_drawn_slash_sweeps_across_the_reach_and_stays_inside_it() -> void:
+	# Art with no swing of its own shows one as a bright edge crossing the sword's reach. It has to
+	# move, or it is the flat block it replaced, and it has to stay inside the reach it shows.
+	var screen := _screen("dusk16")
+	_stage(screen, Vector2i(2048, 560), Dir.D.UP, FAR)
+	var edges: Array[float] = []
+	while screen.sim().swinging() and edges.size() < 40:
+		assert_bool(screen._blade.visible).is_true()
+		var reach := Rect2(Vector2.ZERO, screen._blade.size).grow(0.001)
+		for part: Control in [screen._blade_trail, screen._blade_edge]:
+			assert_bool(reach.encloses(Rect2(part.position, part.size))).override_failure_message(
+				"part of the drawn slash at %s is outside the reach %s" % [Rect2(part.position, part.size), reach]
+				).is_true()
+		edges.append(screen._blade_edge.position.x)
+		screen.sim().tick(Vector2.ZERO, false)
+		screen._paint()
+	assert_int(edges.size()).is_greater(2)
+	assert_float(edges[edges.size() - 1]).override_failure_message(
+		"facing up, the edge should cross left to right; it went %s" % [edges]).is_greater(edges[0])
+	# And it is drawn over the swinger: a rig sprite is 32 design pixels wide around a body box of 10,
+	# so beneath the body the reach is almost wholly hidden by the body it comes out of.
+	assert_int(screen._blade.get_index()).override_failure_message(
+		"the drawn slash is drawn under the hero swinging it").is_greater(screen._player_view.get_index())
+
+
+func test_the_ground_covers_the_play_area_exactly_and_is_drawn_behind_everything() -> void:
+	for style_id: String in ["dusk16", "lpc32"]:
+		var screen := _screen(style_id)
+		var ground := screen._ground
+		assert_object(ground).override_failure_message("%s: no ground was laid" % style_id).is_not_null()
+		# The floor here is 16 by 4 tiles at 16 design pixels each: 256 by 64, from the floor's origin.
+		assert_vector(ground.position).is_equal(screen._origin)
+		assert_vector(ground.size).override_failure_message(
+			"%s: the ground is %s, not the play area" % [style_id, ground.size]).is_equal(Vector2(256, 64))
+		assert_int(ground.get_index()).override_failure_message(
+			"%s: the ground is drawn over something on the floor" % style_id).is_equal(0)
+		var covered := {}
+		for node in ground.get_children():
+			var piece := node as TextureRect
+			assert_vector(piece.size).is_equal(Vector2(16, 16))
+			covered[piece.position] = true
+		for y in 4:
+			for x in 16:
+				assert_bool(covered.has(Vector2(x * 16, y * 16))).override_failure_message(
+					"%s: no ground at tile (%d, %d)" % [style_id, x, y]).is_true()
+
+func test_a_fight_with_no_ground_is_drawn_on_the_bare_window() -> void:
+	var screen := _screen("dusk16", false)
+	assert_object(screen._ground).is_null()
+	assert_array(SceneHelpers.find_all_by_class(screen._floor.panel, "TextureRect")).is_empty()
+
+func test_every_style_lays_its_ground_one_texture_pixel_to_a_whole_number_of_window_pixels() -> void:
+	# A tile of TILE_PX design pixels, on a layer scaled by the world scale. Anything but a whole number
+	# of window pixels per texture pixel resamples the ground, and grass shimmers as the eye tracks it.
+	var checked := 0
+	for path in ContentScan.files_of("res://data/styles", "tres"):
+		var style := load(path) as SpriteStyle
+		var per_texel := float(UiScale.scale_of(style) * ArenaScreen.TILE_PX) / float(style.tile_size)
+		assert_float(per_texel).override_failure_message(
+			"'%s' draws its ground at %s window pixels a texture pixel" % [style.id, per_texel]
+			).is_equal(roundf(per_texel))
+		assert_float(per_texel).is_greater_equal(1.0)
+		checked += 1
+	assert_int(checked).is_greater(1)
+
+
+func _binds(action: StringName, key: int) -> bool:
+	for event in InputMap.action_get_events(action):
+		var pressed := event as InputEventKey
+		if pressed != null and (pressed.physical_keycode == key or pressed.keycode == key):
+			return true
+	return false
+
+func test_the_help_line_names_moving_and_swinging_on_keys_that_are_bound() -> void:
+	var screen := _screen("dusk16")
+	assert_str(screen._help.text).is_equal(ArenaScreen.HELP)
+	assert_bool(screen._help.visible).is_true()
+	assert_str(screen._leader_bar.numbers.text).override_failure_message(
+		"the audits are not measuring the widest readout").is_equal("999/999")
+	var words := ArenaScreen.HELP.to_lower().split(" ", false)
+	for word: String in ["wasd", "move", "e", "swing"]:
+		assert_bool(words.has(word)).override_failure_message(
+			"the help line '%s' does not say '%s'" % [ArenaScreen.HELP, word]).is_true()
+	# Every key it names does what it says: a shop here once told players to press a key nothing binds.
+	assert_bool(_binds(&"interact", KEY_E)).override_failure_message("E does not swing").is_true()
+	for pair: Array in [[&"move_up", KEY_W], [&"move_left", KEY_A], [&"move_down", KEY_S], [&"move_right", KEY_D]]:
+		assert_bool(_binds(pair[0], int(pair[1]))).override_failure_message(
+			"%s is not on its WASD key" % pair[0]).is_true()

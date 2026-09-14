@@ -19,7 +19,9 @@
 #
 # The generator is read at a COMMIT, never at a branch. Every layer the committed cast was composed
 # from was fetched on 2026-09-02 while master was the commit below, and all 75 of them were checked
-# byte for byte against that commit on 2026-09-13. A branch is whatever the next push makes it; a
+# byte for byte against that commit on 2026-09-13; the hero's ten slash files - one for each of his
+# eight layers and the dagger's two - were fetched from the same commit on 2026-09-14. A branch is
+# whatever the next push makes it; a
 # commit names the bytes, which is the reason CI pins every action to a SHA. There is no list of
 # per-file sums on top: git's own content address already is one, and 75 digests beside it would be
 # a second copy of what the commit says. To move to newer art, change the commit and re-run the

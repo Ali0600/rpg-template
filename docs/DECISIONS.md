@@ -5,6 +5,9 @@ one-glance menu of things still worth trying.
 
 ## Backlog — alternatives worth trying later
 
+- **A boss that holds its ground in the arena** — a per-enemy field that keeps a struck boss
+  within reach, weighed when the arena's balance gate was written (M50). Revisit hook: `EnemyDef`
+  beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove.
 - **An AI sprite source** (PixelLab or similar) for higher-fidelity art. Revisit hook:
   `scripts/spritegen/sprite_source.gd` — implement the interface, emit PNG + sheet.json,
   and the game does not change. Direction aliases for compass-named rows already exist in
@@ -3408,7 +3411,8 @@ edit is made before any code.
   the arena's stream.
 - Both values are proven on a fixture manifest that varies only `style`, M39's control-instance
   rule. Whether the demo itself carries an arena, which `demo-must-show-the-feature` argues for, is
-  the build's question.
+  the build's question. *Answered in M50: it does, as The Barred Gate: Arena beside the turn game,
+  picked on the title.*
 
 - The map — `rejected — one predicate with three readers, and a decided placement reopened`.
 - No arena — `rejected — it forfeits the seam and needs a respawn model`.
@@ -3515,3 +3519,102 @@ integer".
 
 - Floats — `rejected — a replay that is allowed to differ between the two machines the gate runs
   on`. **Revisit hook:** `ArenaSim.UNITS_PER_TILE`.
+
+## The arena's balance gate lets a careless player win one seed in eight — *M50*
+
+The turn fight's gate asserts both ends on every one of twelve seeds: timing beats the Keeper and
+mashing loses to him. The arena was measured the same way on 2026-09-14, before any threshold was
+written, and neither half kept that shape.
+
+- The careless driver as first built swung whenever a foe came within a quarter tile, and it won
+  every shipped fight on twelve seeds without once being touched, exactly as the skilled one did.
+  The blade reaches three quarters of a tile past the body and a touch reaches none, so swinging a
+  moment early IS using the reach. No enemy speed or chase period separated the two either: a
+  faster, more eager Keeper beat the skilled driver first. So CHARGE now swings only once it has
+  walked into what it is fighting, and the enemy numbers stayed where they started.
+- That player loses to the Keeper at level 2 on most seeds, not all of them: 44 of 48, and 45 or 46
+  at every flash length tried from 32 frames to 48. The skilled driver won all 48, at every level.
+
+**The fork: what the gate asserts about the careless player.**
+
+- **A rate over 48 seeds** — it may beat the Keeper at most 6 times. A change that made the sword's
+  reach decorative moves that count to most of the 48.
+- **Every one of twelve seeds**, the turn gate's shape — seeds 1 to 12 hold 11 losses, and tuning
+  until they hold 12 fits the numbers to twelve particular seeds rather than to the fight.
+- **A boss that is not knocked back** — a per-enemy field keeping the Keeper within reach after a
+  blow. Unmeasured: nothing yet says the careless player's few wins come from the shove.
+
+**Chosen: a rate over 48 seeds.** An arena is bodies wandering at random, so "almost never" is the
+fact, and "never" would be a claim about which seeds were picked.
+
+- Every one of twelve seeds — `rejected — tuned to the seeds, not the fight`.
+- A boss that holds its ground — `deferred — worth trying` when a game wants one. **Revisit hook:**
+  `EnemyDef` beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove; its effect
+  shows in `CARELESS_WINS_ALLOWED` in `tests/unit/test_battle_content.gd`.
+
+## The arena's swing is the art's own slash, and a drawn one only where the art has none — *M50*
+
+The arena's first photographs showed the sword as a flat block over its reach. §7d found that both
+Zeldas draw the sword as a sprite stepped by the counter that paces its hitbox, with nothing trailing
+an ordinary swing.
+
+- **The art's own slash** — LPC's `slash` animation, rows 12-15, composed with a weapon layer and
+  held one picture at a time from the swing's own frames.
+- **A drawn slash for every style** — a sweep over the reach in the window colours, and no art.
+- **A small sword drawn by the procedural rig** — a weapon part in every rig and every style.
+
+**Chosen: the art's own slash**, the owner's pick on 2026-09-14, with a drawn sweep where the art has
+none. At the pinned generator commit only the **dagger** draws its slash on the 64px frames the rest
+of a character uses; every other sword draws on 128 or 192px frames below the universal sheet.
+
+- A drawn slash for every style — `rejected — it hides a swing the artists drew`; kept only as the
+  fallback for art without one.
+- A sword drawn by the rig — `rejected — a weapon part in every rig and style, for a fallback`.
+- Oversize swords (arming sword, longsword, saber, rapier) — `deferred — worth trying`; the arming
+  sword has a bronze variant matching the game's Bronze sword. **Revisit hook:** `SheetMeta.cell` is
+  one cell size per sheet, so a 128px swing beside 64px walking cannot be described; the work starts
+  at `LpcCompose.CLIP_ROWS` and `LpcImport`.
+- **Unjudged by hand:** the dagger's drawn reach is shorter than the 0.75-tile hitbox. **Revisit
+  hook:** `CombatDef.swing_reach_tiles`.
+
+## A recipe layer may be drawn in some of its animations only — *M50*
+
+- **A layer `only` key**, which only this composer reads.
+- **The dagger in every animation**, the browser's behaviour.
+- **A second character id for fights**, sheets for an armed hero beside the unarmed one.
+
+**Chosen: `only`.** Drawn in every animation, the hero walks the village armed, and his portrait - cut
+from a walk frame - holds a blade.
+
+- The dagger in every animation — `rejected — a weapon on somebody with none equipped`.
+- A second character id — `rejected — two sheets for one person, free to drift apart`.
+
+## An arena is fought on the ground under its encounter — *M50*
+
+- **The ground tile under the map record the player walked into**, read from the map.
+- **A `ground` field on the enemy record** — a second statement of what the map already says.
+- **A floor tile on `CombatDef`** — one floor for every fight a game has, wherever it happens.
+
+**Chosen: the ground under the record**, the owner's pick on 2026-09-14. Zelda II picks its side-view
+scene from the terrain its fight began on (§7d). A solid or decorative tile, a key that names no
+record, and a caller with no map all keep the plain window.
+
+- A field on the record — `rejected — two statements of one fact`.
+- A floor on `CombatDef` — `deferred — worth trying` for a game whose fights happen somewhere else
+  entirely. **Revisit hook:** `world_scene._arena_ground`.
+
+## The arena's help line names both verbs, laid out for a three-digit readout — *M50*
+
+- **"WASD to move    E to swing"**, with the leader's bar shortened so a 999/999 readout still clears
+  it.
+- **"E to swing"**, as first built.
+- **The controls hint's own wording**, "WASD / arrows to walk".
+- **A second row** for the help.
+
+**Chosen: both verbs, in the house style** every other screen's help line uses.
+
+- "E to swing" — `rejected — names half of what a player does there`.
+- The hint's wording — `rejected — "look" is the map's verb, and the line is too wide to sit beside
+  a readout`.
+- A second row — `rejected — dusk16's floor window and panel already reach 174 of the 180 design
+  pixels`.

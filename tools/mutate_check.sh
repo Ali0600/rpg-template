@@ -49,9 +49,14 @@ run_suite() {
     tests/fixtures/qa/*)
       # The game is the directory the script lives in, exactly as check.sh derives it, so this
       # needs no list of its own to go stale.
-      local game
+      local game flag=""
       game=$(basename "$(dirname "$1")")
-      "$GODOT" --headless $GODOT_FRAMES --path . -- --qa-script="res://$1" --game="$game" \
+      # A directory that names no game runs with no --game=, check.sh's rule: it is how a session
+      # meets the title's Switch game row, and --game=menu would boot nothing at all.
+      if [ -f "data/games/$game.tres" ]; then
+        flag="--game=$game"
+      fi
+      "$GODOT" --headless $GODOT_FRAMES --path . -- --qa-script="res://$1" $flag \
         >/dev/null 2>&1
       if [ $? -eq 0 ]; then printf '1 0 0 0'; else printf '1 1 0 0'; fi
       return

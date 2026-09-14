@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="GameManifest" load_steps=7 format=3]
+
+; The Barred Gate, fought with a sword - the second game this build ships, and M49's control
+; instance (docs/DECISIONS.md, M50). Same maps, same people, same conversations, same hooks, same
+; config, same voice, same music: only the id, the title and the combat definition differ, and
+; test_battle_content fails the build the day anything else does. A difference nobody chose turns
+; every difference a player feels into a suspected defect.
+;
+; The title differs because a player picks between the two on the title screen's Switch game row,
+; and two games with one name would make that row look like it did nothing.
+
+[ext_resource type="Script" path="res://scripts/data/game_manifest.gd" id="1_manifest"]
+[ext_resource type="Resource" path="res://data/game_config.tres" id="2_config"]
+[ext_resource type="Script" path="res://games/quest/quest_hooks.gd" id="3_hooks"]
+[ext_resource type="Resource" path="res://data/combat/quest_arena_combat.tres" id="4_combat"]
+[ext_resource type="Resource" path="res://data/sounds/dusk16.tres" id="5_sound"]
+
+[ext_resource type="Resource" path="res://data/party/scrapper.tres" id="9_party"]
+
+[resource]
+script = ExtResource("1_manifest")
+id = &"quest_arena"
+title = "The Barred Gate: Arena"
+start_map = &"quest_village"
+start_spawn = &"start"
+player_character = &"quest_wanderer"
+title_music = &"barred_gate"
+battle_music = &"skirmish"
+victory_music = &"triumph"
+game_over_music = &"dirge"
+config = ExtResource("2_config")
+party = Array[Resource]([ExtResource("9_party")])
+combat = ExtResource("4_combat")
+sound_style = ExtResource("5_sound")
+hooks = ExtResource("3_hooks")
+controls_hint = "WASD / arrows to walk    E or space to look    Esc to pause"

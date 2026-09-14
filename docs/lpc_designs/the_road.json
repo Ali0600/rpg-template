@@ -3,7 +3,8 @@
 	"style": "lpc32",
 	"name": "The Road",
 	"body_type": "male",
-	"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone.",
+	"animations": ["walk", "slash"],
+	"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone. He swings a dagger in the arena, and only there: the dagger is drawn in the slash alone, so he walks the village unarmed and his portrait holds no blade. It is the one sword in the generator that draws its swing on the same 64px frames as the rest of him.",
 	"layers": [
 		{
 			"def": "body/body",
@@ -33,6 +34,11 @@
 		{
 			"def": "torso/cape/cape_solid",
 			"recolor": "charcoal"
+		},
+		{
+			"def": "weapons/sword/weapon_sword_dagger",
+			"variant": "dagger",
+			"only": ["slash"]
 		}
 	]
 }

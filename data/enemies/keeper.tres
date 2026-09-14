@@ -38,6 +38,10 @@
 ; Its formation is where the whole system is visible at once: the same Ember is doubled
 ; against the Gloom standing beside it and halved against this. UNJUDGED BY EAR.
 
+; IN THE ARENA (M50) it is slow and relentless: a tile and a half a second, re-aiming every 24
+; frames, with a footprint a tile across, so it is the one thing on the floor that cannot be walked
+; round without meaning to. UNJUDGED BY HAND; the balance gate plays it, both ways.
+
 [ext_resource type="Script" path="res://scripts/data/enemy_def.gd" id="1_enemy"]
 
 [resource]
@@ -56,3 +60,6 @@ resistances = {
 }
 music = &"vigil"
 moves = [{ "name": "Bar", "power": 0 }, { "name": "Crush", "power": 4 }]
+speed_tiles_per_second = 1.5
+chase_every_frames = 24
+body_tiles = Vector2(1, 0.75)

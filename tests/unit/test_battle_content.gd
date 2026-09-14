@@ -628,3 +628,164 @@ func test_two_tonics_are_what_sits_between_those_two_outcomes() -> void:
 		"the tonic stopped healing, so the Item command has nothing behind it").is_greater(0)
 	assert_int(tonic.battle_heal * 2).is_between(
 		combat.max_hp(2) / 4, combat.max_hp(2))
+
+# -- the arena --------------------------------------------------------------------------------
+#
+# The Barred Gate: Arena is the same game fought with a sword, so its fights are balanced by the
+# same kind of instrument one resolver along: ArenaSim played to the end by ArenaDriver, over the
+# formation the map names and the party the player is guaranteed. The leader fights alone and the
+# party shares the award, which ArenaSim.of already does with the party it is handed.
+
+const ARENA_PATH := "res://data/games/quest_arena.tres"
+## Every number the arena added to CombatDef: the only ones the arena's fighter may differ in from
+## the quest's. Written out rather than read from the class, so the control test below cannot be
+## widened by adding a field.
+const ARENA_FIELDS := ["swing_frames", "swing_reach_tiles", "hurt_frames", "foe_hurt_frames",
+	"push_tiles", "foe_push_tiles", "push_frames", "wander_min_frames", "wander_max_frames",
+	"arena_tiles"]
+## Seeds the careless player is judged over, and how many of them it may win. Measured 2026-09-14:
+## walking into the Keeper at level 2 won 4 of 48, and 2 or 3 at every flash length tried from 32
+## frames to 48.
+const CARELESS_SEEDS := 48
+const CARELESS_WINS_ALLOWED := 6
+
+func _arena() -> GameManifest:
+	return load(ARENA_PATH) as GameManifest
+
+func _arena_fight(record_id: String, level: int, seed_value: int) -> ArenaSim:
+	var manifest := _arena()
+	var found := _encounter(record_id)
+	var map: MapData = found["map"]
+	return ArenaSim.of(manifest.combat, _defs_of(record_id),
+		BattleHelpers.party_of(manifest, _guaranteed_party(manifest, map.id), level),
+		"%s/%s" % [map.id, record_id], seed_value, manifest.config)
+
+## The stored properties two resources disagree about, by name.
+func _differing(a: Resource, b: Resource) -> Array[String]:
+	var out: Array[String] = []
+	for prop: Dictionary in a.get_property_list():
+		if int(prop["usage"]) & PROPERTY_USAGE_STORAGE == 0:
+			continue
+		var field: String = prop["name"]
+		if a.get(field) != b.get(field):
+			out.append(field)
+	return out
+
+func test_the_arena_game_differs_from_the_quest_only_where_it_was_chosen_to() -> void:
+	# M11's control-instance rule as a gate. A second game that varies a knob nobody chose turns
+	# every difference a player feels into a suspected defect, so the two manifests may differ in
+	# their id, their title and which fighter they name - and the two fighters in their id, their
+	# style and the arena's own numbers. The curves staying equal is what keeps every level beat
+	# of the quest true in the arena.
+	var quest := _quest()
+	var arena := _arena()
+	assert_array(_differing(quest, arena)).override_failure_message(
+		"the two games differ in %s; only id, title and combat were chosen" % str(_differing(quest, arena))
+		).contains_exactly_in_any_order(["id", "title", "combat"])
+	var chosen: Array = ["id", "style"] + ARENA_FIELDS
+	var fighters := _differing(quest.combat, arena.combat)
+	assert_array(fighters).contains(["style"])
+	for field in fighters:
+		assert_bool(chosen.has(field)).override_failure_message(
+			"the arena's fighter differs from the quest's in '%s', which is not an arena number" % field
+			).is_true()
+
+func test_every_arena_a_game_ships_fits_the_floor_the_screen_draws() -> void:
+	# The capacity rule's third part, for the arena: ArenaScreen DECLARES the widest floor it draws,
+	# test_arena_layout MEASURES a screen built at it, and this refuses data past it. Over every
+	# shipped game, so a third game whose fighter says `arena` is held to the same room.
+	var checked := 0
+	for manifest in GameSelect.manifests():
+		if manifest.combat == null or manifest.combat.style != CombatDef.STYLE_ARENA:
+			continue
+		checked += 1
+		var tiles := manifest.combat.arena_tiles
+		assert_bool(tiles.x <= ArenaScreen.FLOOR_MAX_TILES.x and tiles.y <= ArenaScreen.FLOOR_MAX_TILES.y
+			).override_failure_message("'%s' asks for a %s floor and the screen draws at most %s"
+			% [manifest.id, tiles, ArenaScreen.FLOOR_MAX_TILES]).is_true()
+	assert_int(checked).override_failure_message(
+		"no shipped game fights in the arena, so the loop above proved nothing").is_greater(0)
+
+func test_the_arena_boss_is_won_by_reach_and_lost_by_walking_into_him() -> void:
+	# The arena's whole difficulty statement, made of the fight the way the turn fight's is.
+	#
+	# The careless player is judged as a RATE over forty-eight seeds, where the turn fight's masher
+	# loses every one of twelve. A turn fight is a menu; an arena is a room of bodies wandering at
+	# random, and walking into the Keeper does beat him now and then - on 4 seeds of 48 when this was
+	# written, and on 2 or 3 at every shorter flash tried. A claim that it never wins would have been
+	# tuned to twelve particular seeds; that it almost never does is the fact. A change that made the
+	# sword's reach decorative moves that count to most of the forty-eight.
+	for seed_value in range(1, 13):
+		var won := ArenaDriver.play(_arena_fight(BOSS, BOSS_LEVEL, seed_value),
+			ArenaDriver.Policy.PERFECT)
+		assert_bool(won.ended).override_failure_message(
+			"the arena Keeper fight did not finish within the frame cap on seed %d" % seed_value).is_true()
+		assert_int(won.outcome).override_failure_message(
+			"a player who uses the sword's reach LOSES to the Keeper on seed %d, %d health left"
+			% [seed_value, won.leader_hp]).is_equal(BattleLogic.Outcome.VICTORY)
+	var careless_wins := 0
+	for seed_value in range(1, CARELESS_SEEDS + 1):
+		var lost := ArenaDriver.play(_arena_fight(BOSS, BOSS_LEVEL, seed_value),
+			ArenaDriver.Policy.CHARGE)
+		assert_bool(lost.ended).is_true()
+		if lost.outcome == BattleLogic.Outcome.VICTORY:
+			careless_wins += 1
+	assert_int(careless_wins).override_failure_message(
+		"a player who walks into the Keeper beat him on %d of %d seeds - the sword's reach is decorative"
+		% [careless_wins, CARELESS_SEEDS]).is_less_equal(CARELESS_WINS_ALLOWED)
+
+func test_no_shipped_formation_is_unwinnable_with_a_sword() -> void:
+	# The turn fight's version of this plays one seed; an arena wanders at random, so it plays twelve.
+	var combat := _arena().combat
+	var top := combat.xp_curve.size() + 1
+	var played := 0
+	for entry: Variant in _encounters():
+		var record_id: String = (entry as Dictionary)["id"]
+		played += 1
+		for seed_value in range(1, 13):
+			var report := ArenaDriver.play(_arena_fight(record_id, top, seed_value),
+				ArenaDriver.Policy.PERFECT)
+			assert_bool(report.ended).override_failure_message(
+				"the arena '%s' fight did not finish on seed %d" % [record_id, seed_value]).is_true()
+			assert_int(report.outcome).override_failure_message(
+				"'%s' cannot be won with the sword at level %d on seed %d"
+				% [record_id, top, seed_value]).is_equal(BattleLogic.Outcome.VICTORY)
+	assert_int(played).override_failure_message(
+		"no encounter was played, so nothing above was checked").is_greater(1)
+
+func test_every_arena_fight_is_won_by_the_sword_and_can_be_lost_to_a_touch() -> void:
+	# A win is only evidence about the sword if the sword did the winning, and a loss only evidence
+	# about the foes if they did the hurting: a formation that never moved would be beaten by both
+	# policies for the wrong reason. So what happened is COUNTED, per shipped fight - every foe
+	# struck at least once by the player who plays well, and the careless one touched at least once.
+	var played := 0
+	for entry: Variant in _encounters():
+		var record_id: String = (entry as Dictionary)["id"]
+		var foes := _defs_of(record_id).size()
+		played += 1
+		var well := ArenaDriver.play(_arena_fight(record_id, BOSS_LEVEL, 3), ArenaDriver.Policy.PERFECT)
+		assert_int(well.hits).override_failure_message(
+			"'%s' fields %d foes and the sword landed %d times" % [record_id, foes, well.hits]
+			).is_greater_equal(foes)
+		var careless := ArenaDriver.play(_arena_fight(record_id, BOSS_LEVEL, 3),
+			ArenaDriver.Policy.CHARGE)
+		assert_int(careless.touches).override_failure_message(
+			"nothing in '%s' ever touched a player who walked into it" % record_id).is_greater(0)
+	assert_int(played).is_greater(1)
+
+
+func test_no_arena_game_s_leader_outgrows_the_readout_its_screen_is_laid_out_for() -> void:
+	# The third part of READOUT_CAPACITY's rule: ArenaScreen declares it, test_arena_layout measures a
+	# leader at it beside the help line, and this refuses a shipped arena game whose leader could grow
+	# past it - the top of the curve being the most health anybody reaches.
+	var checked := 0
+	for manifest in GameSelect.manifests():
+		if manifest.combat == null or manifest.combat.style != CombatDef.STYLE_ARENA:
+			continue
+		checked += 1
+		var top := manifest.combat.xp_curve.size() + 1
+		assert_int(manifest.combat.max_hp(top)).override_failure_message(
+			"'%s' lets its leader reach %d health; the arena's panel is laid out for %d"
+			% [manifest.id, manifest.combat.max_hp(top), ArenaScreen.READOUT_CAPACITY]
+			).is_less_equal(ArenaScreen.READOUT_CAPACITY)
+	assert_int(checked).is_greater(0)

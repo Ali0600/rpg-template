@@ -166,6 +166,24 @@
 				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more",
 				"https://opengameart.org/content/lpc-expanded-simple-shirts"
 			]
+		},
+		{
+			"authors": [
+				"bluecarrot16",
+				"Johannes Sjölund (wulax)",
+				"Matthew Krohn (makrohn)"
+			],
+			"file": "weapon/sword/dagger",
+			"licenses": [
+				"OGA-BY 3.0",
+				"CC-BY-SA 3.0",
+				"GPL 3.0"
+			],
+			"notes": "",
+			"urls": [
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+				"https://opengameart.org/content/lpc-extended-weapon-animations"
+			]
 		}
 	],
 	"generatedBy": "tools/lpc_compose.gd",
@@ -176,8 +194,18 @@
 			"zPos": 10
 		},
 		{
+			"def": "body/body",
+			"path": "spritesheets/body/bodies/male/slash.png",
+			"zPos": 10
+		},
+		{
 			"def": "head/heads/human/heads_human_male",
 			"path": "spritesheets/head/heads/human/male/walk.png",
+			"zPos": 100
+		},
+		{
+			"def": "head/heads/human/heads_human_male",
+			"path": "spritesheets/head/heads/human/male/slash.png",
 			"zPos": 100
 		},
 		{
@@ -186,8 +214,18 @@
 			"zPos": 120
 		},
 		{
+			"def": "hair/short/hair_plain",
+			"path": "spritesheets/hair/plain/adult/slash.png",
+			"zPos": 120
+		},
+		{
 			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
 			"path": "spritesheets/torso/clothes/longsleeve/longsleeve/male/walk.png",
+			"zPos": 35
+		},
+		{
+			"def": "torso/shirts/longsleeve/torso_clothes_longsleeve",
+			"path": "spritesheets/torso/clothes/longsleeve/longsleeve/male/slash.png",
 			"zPos": 35
 		},
 		{
@@ -196,8 +234,18 @@
 			"zPos": 20
 		},
 		{
+			"def": "legs/pants/legs_pants",
+			"path": "spritesheets/legs/pants/male/slash.png",
+			"zPos": 20
+		},
+		{
 			"def": "feet/boots/feet_boots_basic",
 			"path": "spritesheets/feet/boots/basic/male/walk.png",
+			"zPos": 25
+		},
+		{
+			"def": "feet/boots/feet_boots_basic",
+			"path": "spritesheets/feet/boots/basic/male/slash.png",
 			"zPos": 25
 		},
 		{
@@ -207,11 +255,35 @@
 		},
 		{
 			"def": "torso/cape/cape_solid",
+			"path": "spritesheets/cape/solid/fg/slash.png",
+			"zPos": 85
+		},
+		{
+			"def": "torso/cape/cape_solid",
 			"path": "spritesheets/cape/solid/bg/walk.png",
 			"zPos": 5
+		},
+		{
+			"def": "torso/cape/cape_solid",
+			"path": "spritesheets/cape/solid/bg/slash.png",
+			"zPos": 5
+		},
+		{
+			"def": "weapons/sword/weapon_sword_dagger",
+			"path": "spritesheets/weapon/sword/dagger/slash/dagger.png",
+			"zPos": 140
+		},
+		{
+			"def": "weapons/sword/weapon_sword_dagger",
+			"path": "spritesheets/weapon/sword/dagger/behind/slash/dagger.png",
+			"zPos": 9
 		}
 	],
 	"recipe": {
+		"animations": [
+			"walk",
+			"slash"
+		],
 		"body_type": "male",
 		"id": "quest_wanderer",
 		"layers": [
@@ -243,10 +315,17 @@
 			{
 				"def": "torso/cape/cape_solid",
 				"recolor": "charcoal"
+			},
+			{
+				"def": "weapons/sword/weapon_sword_dagger",
+				"only": [
+					"slash"
+				],
+				"variant": "dagger"
 			}
 		],
 		"name": "The Road",
-		"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone.",
+		"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone. He swings a dagger in the arena, and only there: the dagger is drawn in the slash alone, so he walks the village unarmed and his portrait holds no blade. It is the one sword in the generator that draws its swing on the same 64px frames as the rest of him.",
 		"style": "lpc32"
 	},
 	"selections": {
@@ -291,6 +370,12 @@
 			"name": "Basic Boots",
 			"recolor": "leather",
 			"variant": null
+		},
+		"weapon": {
+			"itemId": "weapon_sword_dagger",
+			"name": "Dagger",
+			"recolor": null,
+			"variant": "dagger"
 		}
 	},
 	"version": 2

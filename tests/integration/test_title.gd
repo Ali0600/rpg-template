@@ -8,19 +8,38 @@ extends GdUnitTestSuite
 const GAME := "res://data/games/quest.tres"
 
 var _world: Node2D
+## The project setting as this suite found it, put back after every test: it is process-wide, and a
+## suite that left a game named in it would boot the next suite's world straight into that game.
+var _setting_before: Variant = ""
 
 func before_test() -> void:
 	GameState.reset()
 	Router.reset()
+	_setting_before = ProjectSettings.get_setting(GameSelect.SETTING, "")
 
 func after_test() -> void:
 	if _world != null and is_instance_valid(_world):
 		_world.free()
 	_world = null
+	ProjectSettings.set_setting(GameSelect.SETTING, _setting_before)
 	GameState.reset()
 	Router.reset()
 
+## Boots the world with this suite's game NAMED in the project setting - a build whose config/game
+## says which game it is. Since M50 the build carries two games, and a world booted with nothing
+## chosen takes the offering path instead: every test here would then be proving that path while
+## claiming this one, which is how a mutant on the chosen boot's own line survived the full sweep.
 func _boot() -> Node2D:
+	ProjectSettings.set_setting(GameSelect.SETTING, String(_manifest().id))
+	return _instance()
+
+## Boots the world the way the deployed page does: nothing on the command line, nothing in the
+## setting, and every game the build carries.
+func _boot_offering() -> Node2D:
+	ProjectSettings.set_setting(GameSelect.SETTING, "")
+	return _instance()
+
+func _instance() -> Node2D:
 	var scene := load("res://scenes/world/world.tscn") as PackedScene
 	_world = scene.instantiate() as Node2D
 	add_child(_world)
@@ -38,6 +57,35 @@ func test_the_game_opens_on_a_title_rather_than_in_a_map() -> void:
 		"the game booted straight into the world").is_equal(Router.State.TITLE)
 	var screen: TitleScreen = world.title_screen()
 	assert_object(screen).is_not_null()
+
+
+func test_a_build_that_names_its_game_offers_nothing_to_switch_to() -> void:
+	# The control for the offering boot below: a game named in config/game boots that game's title,
+	# and the Switch game row is not on it.
+	var world := _boot()
+	var screen: TitleScreen = world.title_screen()
+	assert_object(screen).is_not_null()
+	# The LAST row, asked what it does: top_pick names a row's purpose whether or not the menu has
+	# that row, so asking it about ROW_GAME answers Switch game on every title there is.
+	var menu := screen.menu()
+	assert_int(menu.top_pick(menu.row_count() - 1).kind).override_failure_message(
+		"a build that names its game still offers to switch it").is_not_equal(SlotMenu.Kind.SWITCH_GAME)
+
+
+func test_the_deployed_boot_offers_every_game_on_a_title() -> void:
+	# What the web page does: two games ship and nothing chooses, so the world OFFERS them - a title
+	# rather than a map, with a row that switches between them.
+	assert_int(GameSelect.manifests().size()).override_failure_message(
+		"the build carries one game, so this is not the offering boot").is_greater(1)
+	var world := _boot_offering()
+	assert_int(Router.state()).override_failure_message(
+		"with two games and nothing chosen, the world booted straight into one").is_equal(Router.State.TITLE)
+	var screen: TitleScreen = world.title_screen()
+	assert_object(screen).is_not_null()
+	var menu := screen.menu()
+	assert_int(menu.top_pick(menu.row_count() - 1).kind).override_failure_message(
+		"the title offers no way to the other game").is_equal(SlotMenu.Kind.SWITCH_GAME)
+	assert_int(world._choices.size()).is_equal(GameSelect.manifests().size())
 
 
 func test_the_title_wears_the_games_own_name() -> void:

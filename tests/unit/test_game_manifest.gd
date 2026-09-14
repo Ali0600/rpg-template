@@ -246,3 +246,16 @@ func test_a_valid_party_is_accepted() -> void:
 	manifest.combat = load("res://data/combat/quest_combat.tres") as CombatDef
 	manifest.party = [_member(&"scrapper")]
 	assert_array(manifest.problems()).is_empty()
+
+
+func test_no_two_shipped_games_share_a_title() -> void:
+	# A player tells games apart on the title screen's Switch game row by nothing but the name at the
+	# top of it, so two games with one title make that row look like a press that did nothing.
+	var seen := {}
+	var games := GameSelect.manifests()
+	assert_int(games.size()).is_greater(0)
+	for manifest in games:
+		assert_bool(seen.has(manifest.title)).override_failure_message(
+			"'%s' and '%s' are both called '%s'" % [seen.get(manifest.title, ""), manifest.id,
+				manifest.title]).is_false()
+		seen[manifest.title] = manifest.id

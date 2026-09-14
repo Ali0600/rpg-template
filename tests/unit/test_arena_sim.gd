@@ -383,3 +383,23 @@ func test_a_cue_is_handed_over_once() -> void:
 	sim.tick(Vector2.ZERO, true)
 	assert_array(sim.take_sounds()).is_not_empty()
 	assert_array(sim.take_sounds()).is_empty()
+
+
+func test_a_swing_steps_through_its_pictures_and_answers_none_once_the_sword_is_away() -> void:
+	# The screen shows a swing as pictures and the rules count it in frames. A 13-frame swing is
+	# painted on 12 of them - the countdown runs at the end of the tick that started it - so six
+	# pictures spread over those twelve are two frames each.
+	var combat := _combat()
+	combat.swing_frames = 13
+	var sim := _sim([_foe()], combat)
+	var far: Array[Vector2i] = [Vector2i(256, 256)]
+	sim.stage(MID, D.RIGHT, far)
+	assert_int(sim.swing_step(6)).is_equal(-1)
+	var seen: Array[int] = []
+	sim.tick(Vector2.ZERO, true)
+	while sim.swinging() and seen.size() < 40:
+		seen.append(sim.swing_step(6))
+		sim.tick(Vector2.ZERO, false)
+	assert_str(str(seen)).is_equal("[0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]")
+	assert_int(sim.swing_step(6)).override_failure_message(
+		"a sword put away still names a picture").is_equal(-1)

@@ -1,0 +1,210 @@
+{
+	"_readme": [
+		"The hollow's first fight, fought with a sword - The Barred Gate: Arena, which this directory names.",
+		"Everything up to the fight is two_in_the_hollow.json's own road, step for step, taken from it",
+		"when this was written: the same maps, the same companion, the same gap. What changes is the",
+		"encounter, which opens the arena because this game's CombatDef says so, and fight_well plays it.",
+		"It is the only session that drives the arena through a real encounter on a real map."
+	],
+	"steps": [
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "fetch Rook: south to the well, west to the wall, south to her"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 60
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": true
+		},
+		{
+			"op": "assert_hp",
+			"member": "scrapper",
+			"value": 24
+		},
+		{
+			"op": "note",
+			"text": "north up the wall and through the west door. The hold CARRIES past the warp - an arriving leg keeps walking in the next map - so the next leg re-anchors against the hollow's own geometry rather than assuming where this one stopped."
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "note",
+			"text": "south down the east side until the wall, then west along the only row that reaches the gap the slink is standing in"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "note",
+			"text": "the slink pair, fought with the sword. fight_well plays the arena the way the balance gate's PERFECT does - lines up on the nearest foe, swings when the blade will land, waits out a flash at arm's length and steps away from a touch - through the real keys"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "fight_well"
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "a swing is a sound only the arena makes, so it is what proves the fight that just ended was the arena rather than the turn fight"
+		},
+		{
+			"op": "assert_sound",
+			"id": "swing",
+			"expect": true
+		},
+		{
+			"op": "assert_sound",
+			"id": "hit",
+			"expect": true
+		},
+		{
+			"op": "note",
+			"text": "the whole party earns the award - the turn fight's rule, through the same lines - but only the leader stood on the floor, so Rook's health is exactly what it was when she joined"
+		},
+		{
+			"op": "assert_xp",
+			"value": 10
+		},
+		{
+			"op": "assert_xp",
+			"member": "scrapper",
+			"value": 10
+		},
+		{
+			"op": "assert_hp",
+			"member": "scrapper",
+			"value": 24
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		}
+	]
+}

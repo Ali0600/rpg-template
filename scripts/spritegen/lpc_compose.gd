@@ -25,11 +25,15 @@ extends RefCounted
 
 const SHEETS := "spritesheets/"
 const WALK := "walk"
+const SLASH := "slash"
 const FRAME := LpcImport.FRAME
 const SHEET_WIDE := LpcImport.SHEET_COLUMNS * FRAME
 const SHEET_ROWS := 54
-const WALK_WIDE := LpcImport.WALK_FRAMES * FRAME
 const WALK_TALL := 4 * FRAME
+## The universal sheet row each animation this composer draws starts at, and how many frames its
+## file is - LpcImport's constants, so the layout is stated in one place. Every file is four rows.
+const CLIP_ROWS := {WALK: LpcImport.WALK_ROW, SLASH: LpcImport.SLASH_ROW}
+const CLIP_FRAMES := {WALK: LpcImport.WALK_FRAMES, SLASH: LpcImport.SLASH_FRAMES}
 ## Per channel, on 0-255 values: the generator's own matching rule.
 const TOLERANCE := 1
 ## What a definition with no `animations` list covers - the original LPC set.
@@ -40,8 +44,10 @@ const MATERIALS: Array[String] = ["body", "hair", "cloth", "eye"]
 
 
 ## Resolves a recipe against the catalogue. Returns {"problems": Array[String], "layers":
-## Array (each {"def", "path", "z", "remaps", "credits", "order"}), "selections": Dictionary}.
-##	 recipe:   {"id", "body_type", "layers": [{"def", "recolor"?, "variant"?, "eyes"?}, ...]}
+## Array (each {"def", "clip", "path", "z", "remaps", "credits", "order"}), "selections": Dictionary}.
+##	 recipe:   {"id", "body_type", "animations"?, "layers": [{"def", "recolor"?, "variant"?, "eyes"?,
+##	           "only"?}, ...]} - `animations` defaults to the walk alone, and a layer's `only` names
+##	           the animations it is drawn in, which the browser has no way to say.
 ##	 defs:	   def key -> the definition Dictionary (sheet_definitions/<key>.json)
 ##	 palettes: material -> {"base": String, "variants": {name: [hex, ...]}}
 static func plan(recipe: Dictionary, defs: Dictionary, palettes: Dictionary, style: SpriteStyle) -> Dictionary:
@@ -55,6 +61,7 @@ static func plan(recipe: Dictionary, defs: Dictionary, palettes: Dictionary, sty
 	if not wanted is Array or (wanted as Array).is_empty():
 		problems.append("recipe has no layers")
 		return {"problems": problems, "layers": layers, "selections": selections}
+	var clips := _clips_of(recipe, problems)
 
 	var order := 0
 	for entry: Variant in wanted as Array:
@@ -67,8 +74,23 @@ static func plan(recipe: Dictionary, defs: Dictionary, palettes: Dictionary, sty
 			problems.append("no definition for '%s' (expected sheet_definitions/%s.json)" % [key, key])
 			continue
 		var d: Dictionary = defs[key]
-		if not _covers_walk(d):
-			problems.append("'%s' has no walk animation; it covers %s" % [key, d.get("animations")])
+		# A layer may be drawn in only some of the recipe's animations - a weapon that appears in the
+		# swing and not on somebody walking round a village. The browser cannot say that: it draws
+		# every layer in every animation the layer has.
+		var only := JsonFile.to_string_array(want.get("only", []))
+		for clip in only:
+			if not clips.has(clip):
+				problems.append("'%s' is drawn only in %s, and the recipe draws %s" % [key, only, clips])
+		var drawn_in: Array[String] = []
+		for clip in clips:
+			if only.is_empty() or only.has(clip):
+				drawn_in.append(clip)
+		var uncovered := drawn_in.is_empty()
+		for clip in drawn_in:
+			if not _covers(d, clip):
+				problems.append("'%s' has no %s animation; it covers %s" % [key, clip, d.get("animations")])
+				uncovered = true
+		if uncovered:
 			continue
 
 		var variant_file := ""
@@ -99,28 +121,32 @@ static func plan(recipe: Dictionary, defs: Dictionary, palettes: Dictionary, sty
 				var drawn: Array = layer.keys().filter(func(k: Variant) -> bool: return str(k) != "zPos")
 				problems.append("'%s' (%s) has no art for body type '%s'; it draws %s" % [key, layer_key, body_type, drawn])
 				continue
-			var path := SHEETS + base_path + WALK
-			if not variant_file.is_empty():
-				path += "/" + variant_file
-			path += ".png"
-			var credits := _credits_for(d, path)
-			for c: Dictionary in credits:
-				var licenses := JsonFile.to_string_array(c["licenses"])
-				var allowed := false
-				for l in licenses:
-					if LpcImport.license_allowed(l, style):
-						allowed = true
-				if not allowed:
-					problems.append("'%s' is licensed %s; style '%s' accepts %s" % [c["file"], licenses, style.id, style.licenses])
-			layers.append({
-				"def": key,
-				"path": path,
-				"z": int(layer.get("zPos", 100)),
-				"remaps": remaps,
-				"credits": credits,
-				"order": order,
-			})
-			order += 1
+			for clip in drawn_in:
+				var path := SHEETS + base_path + clip
+				if not variant_file.is_empty():
+					path += "/" + variant_file
+				path += ".png"
+				var credits := _credits_for(d, path)
+				for c: Dictionary in credits:
+					var licenses := JsonFile.to_string_array(c["licenses"])
+					var allowed := false
+					for l in licenses:
+						if LpcImport.license_allowed(l, style):
+							allowed = true
+					if not allowed:
+						var refusal := "'%s' is licensed %s; style '%s' accepts %s" % [c["file"], licenses, style.id, style.licenses]
+						if not problems.has(refusal):
+							problems.append(refusal)
+				layers.append({
+					"def": key,
+					"clip": clip,
+					"path": path,
+					"z": int(layer.get("zPos", 100)),
+					"remaps": remaps,
+					"credits": credits,
+					"order": order,
+				})
+				order += 1
 	return {"problems": problems, "layers": layers, "selections": selections}
 
 
@@ -135,8 +161,9 @@ static func files_of(planned: Dictionary) -> Array[String]:
 	return out
 
 
-## Draws the plan onto a full-size universal sheet: every layer's walk file, remapped, blended
-## in zPos order into rows 8-11. images: path -> Image. Returns {"image", "problems"}.
+## Draws the plan onto a full-size universal sheet: every layer's file for each animation it is
+## drawn in, remapped, blended in zPos order into that animation's rows (walk 8-11, slash 12-15).
+## images: path -> Image. Returns {"image", "problems"}.
 static func compose(planned: Dictionary, images: Dictionary) -> Dictionary:
 	var problems: Array[String] = []
 	var canvas := Image.create_empty(SHEET_WIDE, SHEET_ROWS * FRAME, false, Image.FORMAT_RGBA8)
@@ -152,13 +179,19 @@ static func compose(planned: Dictionary, images: Dictionary) -> Dictionary:
 		if img == null:
 			problems.append("no image for %s" % path)
 			continue
+		var clip := str(layer.get("clip", WALK))
 		if img.get_height() != WALK_TALL or img.get_width() % FRAME != 0:
-			problems.append("%s is %s; a walk file is %d rows of %dpx frames" % [path, img.get_size(), 4, FRAME])
+			problems.append("%s is %s; a %s file is %d rows of %dpx frames" % [path, img.get_size(), clip, 4, FRAME])
+			continue
+		var frames := int(CLIP_FRAMES[clip])
+		if img.get_width() < frames * FRAME:
+			problems.append("%s is %d px wide; a %s file is %d frames of %dpx" % [path, img.get_width(), clip, frames, FRAME])
 			continue
 		var painted := remapped(img, layer["remaps"])
-		var wide := mini(painted.get_width(), WALK_WIDE)
+		var wide := mini(painted.get_width(), frames * FRAME)
+		var row := int(CLIP_ROWS[clip])
 		# blend, not blit: a shirt over a body must keep the body where the shirt is transparent.
-		canvas.blend_rect(painted, Rect2i(0, 0, wide, WALK_TALL), Vector2i(0, LpcImport.WALK_ROW * FRAME))
+		canvas.blend_rect(painted, Rect2i(0, 0, wide, WALK_TALL), Vector2i(0, row * FRAME))
 	return {"image": canvas, "problems": problems}
 
 
@@ -220,13 +253,30 @@ static func _near(a: Color, b: Color) -> bool:
 	return absi(a.r8 - b.r8) <= TOLERANCE and absi(a.g8 - b.g8) <= TOLERANCE and absi(a.b8 - b.b8) <= TOLERANCE
 
 
-static func _covers_walk(d: Dictionary) -> bool:
+## The animations a recipe draws, the walk always first. A recipe that names none draws the walk
+## alone - every recipe written before the slash was, and every character that never swings.
+static func _clips_of(recipe: Dictionary, problems: Array[String]) -> Array[String]:
+	var out: Array[String] = [WALK]
+	if not recipe.has("animations"):
+		return out
+	var asked := JsonFile.to_string_array(recipe.get("animations", []))
+	if not asked.has(WALK):
+		problems.append("recipe animations %s leave out the walk, which every character is drawn in" % [asked])
+	for clip in asked:
+		if not CLIP_ROWS.has(clip):
+			problems.append("recipe asks for a '%s' animation; this composer draws %s" % [clip, CLIP_ROWS.keys()])
+		elif not out.has(clip):
+			out.append(clip)
+	return out
+
+
+static func _covers(d: Dictionary, clip: String) -> bool:
 	var anims: Variant = d.get("animations", null)
 	if anims == null:
-		return true	 # the classic six, walk among them
+		return CLASSIC_SIX.has(clip)
 	if not anims is Array:
 		return false
-	return JsonFile.to_string_array(anims).has(WALK)
+	return JsonFile.to_string_array(anims).has(clip)
 
 
 ## "layer_1", "layer_2", ... in numeric order.

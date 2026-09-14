@@ -47,7 +47,7 @@ secondary sources only, marked wherever it is cited. Neither is a reference for 
 | [Inventory](#4-inventory) | List, counts, description, a use verb | List, counts, description, **no use verb** | **partial** — [use is a game's business](DECISIONS.md) |
 | [Shop](#5-shops) | Windows over the world, keeper, quantity, prices, a headed list | All of it, and the columns are named since M42 | **met** (M18.1, chrome M42) |
 | [Dialog](#6-dialog) | Bottom window, revealed text, choices, a named speaker, a portrait | Framed box, speaker in its header, the speaker's face, reveal, choice band, size-gated | **met** (M42) — no advance indicator, [named](#6-dialog) |
-| [Battle](#7-battle) | Random encounters, turn menu, a party; in an action RPG, a sword on the field | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md); a real-time resolver [researched](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) and its shape [decided](DECISIONS.md) (M49); what its screen shows [read the same way](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) before it was built (M50) |
+| [Battle](#7-battle) | Random encounters, turn menu, a party; in an action RPG, a sword on the field | Visible enemies, timed presses, **a party** | **met** (M27) for the party; encounters and timing [diverge deliberately](DECISIONS.md); a real-time resolver [researched](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) and its shape [decided](DECISIONS.md) (M49); what its screen shows [read the same way](#7d-action-combat-the-sword-the-arena-and-the-fixed-step) before it was built, then built behind the same seam and shipped as a second game, The Barred Gate: Arena, picked on the title (M50) |
 | [Save/load](#8-saveload) | Save points or inns; menu save later in the era | Slots from the pause menu, anywhere | **diverges deliberately** |
 | [Progression](#9-progression) | Level, XP curve, stats from level, gear as modifier | All of it | **met** |
 | [Towns & NPCs](#10-towns-and-npcs) | Walking townsfolk, shops, an inn | Static, wander and patrol NPCs; a shop; an inn | **met** (M21) |
@@ -783,9 +783,45 @@ and Ni no Kuni's target are the precedent for drawing it. A foe that has just be
 for exactly as long as it cannot be struck again, and so does the player; there is no hurt pose,
 because no sheet in this template has one.
 
+**How the swing is drawn, what the fight stands on, and what the screen names.** Added in M50,
+after the arena's first photographs showed a flat block for a sword and a bare panel for a floor. From
+the same three codebases at the same commits (zelda3 `fbbb3f9`, Link's Awakening `880d24c`, Zelda II
+`c4c3a4c`).
+
+- **(a) A sword is a sprite the art draws, stepped by the counter that paces its hitbox.** A Link to
+  the Past's `LinkOam_Main` (`src/player_oam.c`) draws the sword as OAM tiles of its own, at a
+  position read from `kDrawSword_y` and `kDrawSword_x` per direction and step, indexed by
+  `button_b_frames` - the counter the swing advances through `kSpinAttackDelays` (`src/player.c`) and
+  `CalculateSwordHitBox` reads. An ordinary swing is nine drawn steps and nothing trails it: the
+  swing sparkle belongs to the stronger swords, and the charge sparkles to the spin attack. Link's
+  Awakening does the same in three steps: one index built from `hLinkDirection` and
+  `wSwordAnimationState` picks the sword's direction, its drawn offsets and its hitbox in
+  `UpdateLinkAnimation` (`src/code/bank2.asm`), and `func_020_4AB3` (`src/code/bank20.asm`) writes the
+  two sprites.
+- **(a) A fight is fought on the ground it began on.** A Link to the Past has no battle mode at all:
+  `kMainRouting` (`src/misc.c`) runs enemies inside `Module07_Dungeon` and `Module09_Overworld`, over
+  the room's own layers. Zelda II, which does cut to a side-view scene, picks the scene from the
+  terrain: touching an overworld enemy sets `$0748` (`src/prg0.asm`), and
+  `bank7_Determine_the_Random_Battle_according_to_Links_position_in_OW` (`src/prg7.asm`) indexes a
+  table of scenes by `$0563`, "Type of terrain Link is facing in OW" - desert, grass, forest, swamp,
+  graveyard, road, lava.
+- **(a) Zelda names a button beside the thing it uses, and prints no controls line.** Link's
+  Awakening's status bar puts a tile before each item slot, commented `B[   ] A[   ]`
+  (`src/code/bank20.asm`); A Link to the Past's item menu draws Y, X, L and R beside the equipped item
+  and A beside its "DO" (`src/hud.c`). Neither says how to move.
+
+**What the arena takes from it, second pass.** The swing is the art's own: a hero whose sheet draws
+LPC's slash plays it, one picture per step of the swing's own frames, which is both Zeldas' shape. Art
+with no swing of its own - the procedural rig's - shows a bright edge sweeping the reach instead. The
+floor is the ground under the encounter the player walked into: Zelda II's terrain-picked scene, and
+in a Zelda without scenes the ground the fight was always on. The help line is this template's own
+convention rather than a borrowing - every screen here names its keys, because a shop once named a
+key nothing binds - and Zelda's letters beside its slots are the closest the references come.
+
 **Unverified, and named rather than guessed:** how a Ni no Kuni fight begins; the values Link's
 Awakening writes when an enemy touches Link and when the sword strikes an enemy (only the spike
-trap's were traced); what unit A Link to the Past's `0x9d` hit timer counts in; and whether its
+trap's were traced); what unit A Link to the Past's `0x9d` hit timer counts in; whether Link's Awakening's `$BD` and `$BB` status-bar tiles
+are drawn as the letters B and A, which its tilemap and comment agree on but whose glyphs nobody looked at; and whether its
 swing's delay counter starts at zero, which the twelve-frame figure assumes. No 2D action RPG outside
 Zelda has a public disassembly documenting any of this (Secret of Mana's is a tracking issue rather
 than code, and none turned up for Crystalis or Ys), so a second lineage could not be checked.

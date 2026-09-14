@@ -39,6 +39,9 @@ scripts/spritegen/tile_set_factory.gd	s|if not bool\(e.get\(\"solid\", false\)\)
 scripts/world/sprite_view.gd	s|_sprite.centered = false|_sprite.centered = true|	tests/integration/test_sprite_view_scene.gd	the sprite origin stops being the character's feet
 scripts/world/sprite_view.gd	s|_sprite.offset = -Vector2\(meta.anchor\)|_sprite.offset = Vector2.ZERO|	tests/integration/test_sprite_view_scene.gd	the measured anchor stops positioning the sprite
 scripts/world/sprite_view.gd	s|if clip_name == _clip and dir == _facing:|if false:|	tests/integration/test_sprite_view_scene.gd	an unchanged pose is re-issued every frame
+scripts/world/sprite_view.gd	s|_sprite.pause\(\)|pass|	tests/integration/test_sprite_view_scene.gd	a held frame keeps playing on the clip's own clock
+scripts/world/sprite_view.gd	s|_sprite.set_frame_and_progress\(clampi\(index, 0, total - 1\), 0.0\)|pass|	tests/integration/test_sprite_view_scene.gd	a hold shows whichever frame the clip happened to be on
+scripts/world/sprite_view.gd	s|^\t\t_sprite.play\(\)$|\t\tpass|	tests/integration/test_sprite_view_scene.gd	a view held once never plays again
 scripts/ui/sprite_lab.gd	s|if not _gate.accept\(event\):|if false:|	tests/integration/test_sprite_view_scene.gd	one input event is acted on twice
 
 # --- M3: movement, maps and game flow ---
@@ -383,6 +386,7 @@ scripts/ui/game_over_menu.gd	s|\treturn ROW_TITLE \+ 1|\treturn Row.size()|	test
 scripts/ui/title_screen.gd	s|\t\t\tload_requested.emit\(pick.slot\)|\t\t\tpass|	tests/integration/test_title.gd	Continue is pressed at the title and no save is ever loaded
 scripts/ui/title_screen.gd	s|\t\t\tnew_game_requested.emit\(\)|\t\t\tpass|	tests/fixtures/qa/quest/the_title_screen.json	New game is pressed and the title just sits there
 scripts/world/world_scene.gd	s|\tif not open_title\(\):|\tif true:|	tests/integration/test_title.gd	the game boots straight into a map and the title is never seen
+scripts/world/world_scene.gd	s|\tif open_title\(\):|\tif false:|	tests/integration/test_title.gd	with two games and nothing chosen, the world starts the first one instead of offering both on a title
 scripts/world/world_scene.gd	s|TitleMenu.of\(_slot_summaries_for\(_offered\), _choices|TitleMenu.of([] as Array[SlotSummary], _choices|	tests/integration/test_title.gd	the title never sees the saves, so Continue is refused to a player who has one
 scripts/world/world_scene.gd	s|^\topen_title\(\)$|\tpass|	tests/integration/test_title.gd	the game-over screen's Title row leads nowhere
 scripts/world/world_scene.gd	s|\treturn restore\(data\)|\treturn enter_map(_game.start_map, _game.start_spawn)|	tests/integration/test_title.gd	Continue starts a new game wearing the save's name
@@ -632,10 +636,10 @@ scripts/ui/sprite_lab.gd	s|_refresh_imported\(\)$|pass|	tests/integration/test_s
 scripts/spritegen/lpc_compose.gd	s|const TOLERANCE := 1|const TOLERANCE := 2|	tests/unit/test_lpc_compose.gd	the recolour matches two units off, painting colours the artist never keyed
 scripts/spritegen/lpc_compose.gd	s|return int\(a\[\"z\"\]\) < int\(b\[\"z\"\]\)|return int(a[\"order\"]) < int(b[\"order\"])|	tests/unit/test_lpc_compose.gd	layers draw in recipe order, so hair behind the body lands in front of the shirt
 scripts/spritegen/lpc_compose.gd	s|var t: Color = to\[i\]|var t: Color = to[(i + 1) % to.size()]|	tests/unit/test_lpc_compose.gd	the remap is off by one tone, so every shadow becomes a highlight
-scripts/spritegen/lpc_compose.gd	s|Vector2i\(0, LpcImport.WALK_ROW \* FRAME\)|Vector2i(0, 0)|	tests/unit/test_lpc_compose.gd	the walk block lands at the top of the sheet, where the importer never looks
+scripts/spritegen/lpc_compose.gd	s|var row := int\(CLIP_ROWS\[clip\]\)|var row := 0|	tests/unit/test_lpc_compose.gd	every animation lands at the top of the sheet, where the importer never looks
 scripts/spritegen/lpc_compose.gd	s|return matching if not matching.is_empty\(\) else all|return all|	tests/unit/test_lpc_compose.gd	every file of a definition is credited, including art the character does not wear
 scripts/spritegen/lpc_compose.gd	s|if base_path.is_empty\(\):|if false:|	tests/unit/test_lpc_compose.gd	a layer with no art for the body type is planned anyway, drawing nothing in silence
-scripts/spritegen/lpc_compose.gd	s|if not _covers_walk\(d\):|if false:|	tests/unit/test_lpc_compose.gd	a definition without a walk cycle is accepted, and the character walks headless
+scripts/spritegen/lpc_compose.gd	s|if not _covers\(d, clip\):|if false:|	tests/unit/test_lpc_compose.gd	a definition missing an animation the recipe draws it in is accepted, and the character walks or swings headless
 scripts/spritegen/lpc_compose.gd	s|if not allowed:|if false:|	tests/unit/test_lpc_compose.gd	the composer ignores the style's licences, leaving the importer as the only gate
 scripts/data/sprite_style.gd	s|if world_scale < 1:|if false:|	tests/unit/test_rig_and_style.gd	a style drawn at no scale at all is accepted, and the world it opens has no size
 scripts/util/ui_scale.gd	s|const DESIGN_SIZE := Vector2i\(320, 180\)|const DESIGN_SIZE := Vector2i(320, 176)|	tests/unit/test_ui_scale.gd	the size every screen is laid out for drifts from the one the game boots at
@@ -657,6 +661,10 @@ tests/helpers/warp_graph.gd	s|changed = true|pass|	tests/unit/test_map_content.g
 scripts/ui/sprite_lab.gd	s|UiScale.apply\(get_window\(\), _style\)|pass|	tests/integration/test_sprite_lab_scene.gd	the lab shows a 64px cast in a window built for 16px art
 scripts/spritegen/lpc_compose.gd	s|base = parts\[parts.size\(\) - 1\]|pass|	tests/unit/test_lpc_compose.gd	a beast head is remapped from human skin, so its colour silently never changes
 scripts/spritegen/lpc_compose.gd	s|if scheme != PALETTE_VERSION:|if false:|	tests/unit/test_lpc_compose.gd	art drawn in a palette scheme nobody fetched is remapped from whatever was loaded
+scripts/spritegen/lpc_compose.gd	s|var row := int\(CLIP_ROWS\[clip\]\)|var row := LpcImport.WALK_ROW|	tests/unit/test_lpc_compose.gd	every animation lands in the walk rows, so a swing is drawn over the stride
+scripts/spritegen/lpc_compose.gd	s|if only.is_empty\(\) or only.has\(clip\):|if true:|	tests/unit/test_lpc_compose.gd	a layer drawn only in the swing is drawn in the walk too, so the hero walks the village armed
+scripts/spritegen/lpc_compose.gd	s|var out: Array\[String\] = \[WALK\]|var out: Array[String] = [WALK, SLASH]|	tests/unit/test_lpc_compose.gd	every recipe asks for a swing, so the whole cast is composed from slash art nobody chose
+scripts/spritegen/lpc_compose.gd	s|if img.get_width\(\) < frames \* FRAME:|if false:|	tests/unit/test_lpc_compose.gd	a slash file too narrow for six frames composes a swing with empty frames
 scripts/ui/battle_screen.gd	s|var step := _drawn_width\(\) / STAGGER_WIDTH|var step := 1.0|	tests/integration/test_battle_layout.gd	a party of 64px fighters is stepped as far apart as one of 32px, so they stand in each other
 tests/unit/test_imported_art.gd	s|const MAX_GROUND_SPREAD := 2|const MAX_GROUND_SPREAD := 64|	tests/unit/test_imported_art.gd	the ground-line spread is allowed a whole cell, so a cape measured as a foot passes
 tools/mutants_scope.sh	s|  grep -qE "\$HARNESS_RE" "\$1"|  true|	tests/unit/test_ci_paths.gd	every change reads as a harness change, so the pull request lane sweeps everything and is the full sweep wearing a fast name
@@ -733,6 +741,10 @@ scripts/spritegen/sprite_compositor.gd	s|\tfor y in img.get_height\(\):|\tfor y 
 scripts/spritegen/sprite_compositor.gd	s|\treturn Rect2i\(clampi\(anchor_x - size / 2, 0, wide\), clampi\(top, 0, tall\), size, size\)|\treturn Rect2i(0, 0, size, size)|	tests/unit/test_lpc_import.gd	every face is the top-left corner of the cell rather than the character in it
 scripts/spritegen/sheet_builder.gd	s|\t\t\tif dir == Dir.D.DOWN and col == 0:|\t\t\tif dir == Dir.D.DOWN and col == 1:|	tests/unit/test_sprite_contract.gd	a face is cut from a walking frame rather than the standing one
 scripts/spritegen/lpc_import.gd	s|\t\tsheet.get_region\(Rect2i\(0, Dir.ALL.find\(Dir.D.DOWN\) \* cell.y, cell.x, cell.y\)\),|\t\tsheet.get_region(Rect2i(0, cell.y, cell.x, cell.y)),|	tests/unit/test_lpc_import.gd	an imported face is measured off the row beside the one facing you
+scripts/spritegen/lpc_import.gd	s|if slashes:|if false:|	tests/unit/test_lpc_import.gd	a sheet that draws a slash imports without one
+scripts/spritegen/lpc_import.gd	s|if _block_ground\(image, SLASH_ROW \+ i, SLASH_FRAMES\) < 0:|if false:|	tests/unit/test_lpc_import.gd	a slash drawn facing only some ways imports, and the hero swings at nothing half the time
+scripts/spritegen/lpc_import.gd	s|sheet.blit_rect\(src, cut, Vector2i\(\(WALK_FRAMES \+ col\) \* cell.x, row \* cell.y\)\)|sheet.blit_rect(src, cut, Vector2i((WALK_FRAMES + col) * cell.x, row * cell.y)); ground = maxi(ground, SpriteCompositor.ground_row(src.get_region(cut)))|	tests/unit/test_lpc_import.gd	a swing is measured as the ground, so everyone who swings stands lower than the rest of the cast
+scripts/spritegen/lpc_import.gd	s|"fps": style.slash_fps|"fps": style.walk_fps|	tests/unit/test_lpc_import.gd	the swing plays at walking pace
 scripts/spritegen/sheet_meta.gd	s|^const VERSION := 2$|const VERSION := 1|	tests/unit/test_sprite_contract.gd	the build reads a sheet version that predates the face it needs
 scripts/spritegen/sheet_meta.gd	s|\tif portrait.size.x <= 0 or portrait.size.y <= 0:|\tif false:|	tests/unit/test_sprite_contract.gd	a sheet with no face at all is accepted, and every menu draws an empty square
 scripts/spritegen/sheet_meta.gd	s|\telif anchor.x < portrait.position.x or anchor.x >= portrait.end.x:|\telif false:|	tests/unit/test_sprite_contract.gd	a face measured off some other character's column is accepted
@@ -911,6 +923,8 @@ scripts/ui/arena_sim.gd	s|BattleLogic.gold_of\(_foes\)\)|0)|	tests/unit/test_are
 scripts/ui/arena_sim.gd	s|if _last_struck >= 0 and not foe_down\(_last_struck\):|if false:|	tests/unit/test_arena_sim.gd	the bar ignores the blow and always shows the nearest foe
 scripts/ui/arena_sim.gd	s|if _outcome != BattleLogic.Outcome.NONE:|if false:|	tests/unit/test_arena_sim.gd	a finished fight keeps running
 scripts/ui/arena_sim.gd	s|\t_sounds.clear\(\)|\tpass|	tests/unit/test_arena_sim.gd	a cue handed over plays again every frame
+scripts/ui/arena_sim.gd	s|return mini\(shown \* steps / painted, steps - 1\)|return 0|	tests/unit/test_arena_sim.gd	the swing is drawn frozen on its first picture
+scripts/ui/arena_sim.gd	s|if _swing_left <= 0 or steps <= 0:|if false:|	tests/unit/test_arena_sim.gd	a sword put away still names a picture of its swing
 scripts/data/combat_def.gd	s|if swing_frames <= 0:|if false:|	tests/unit/test_combat_def.gd	a sword that is never out ships
 scripts/data/combat_def.gd	s|if hurt_frames <= 0 or foe_hurt_frames <= 0:|if false:|	tests/unit/test_combat_def.gd	a hit that protects for no frames ships, so one touch lands every frame
 scripts/data/combat_def.gd	s|elif push_frames > mini\(hurt_frames, foe_hurt_frames\):|elif false:|	tests/unit/test_combat_def.gd	a shove outlasting its protection ships, sliding a body into the next hit
@@ -919,9 +933,10 @@ scripts/data/combat_def.gd	s|if arena_tiles.x < 2 or arena_tiles.y < 2:|if false
 scripts/data/enemy_def.gd	s|if speed_tiles_per_second < 0.0:|if false:|	tests/unit/test_enemy_def.gd	an enemy that moves backwards ships
 scripts/data/enemy_def.gd	s|if chase_every_frames < 0:|if false:|	tests/unit/test_enemy_def.gd	an enemy chasing on a negative period ships
 scripts/data/enemy_def.gd	s|if body_tiles.x <= 0.0 or body_tiles.y <= 0.0:|if false:|	tests/unit/test_enemy_def.gd	an enemy with no body to touch ships
-tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).grow\(CHARGE_RANGE\).intersects\(sim.foe_box\(target\)\)|out.swing = false|	tests/unit/test_arena_driver.gd	the unskilled policy never swings, so every fight looks unwinnable for the wrong reason
+tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).intersects\(sim.foe_box\(target\)\)|out.swing = false|	tests/unit/test_arena_driver.gd	the unskilled policy never swings, so every fight looks unwinnable for the wrong reason
 tests/helpers/arena_driver.gd	s|if danger >= 0 and sim.player_hurt\(\) == 0:|if false:|	tests/unit/test_arena_driver.gd	the skilled policy walks into what is about to touch it
 tests/helpers/arena_driver.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_arena_driver.gd	the skilled policy stands still swinging at air
+tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).intersects\(sim.foe_box\(target\)\)|out.swing = sim.player_box().grow(64).intersects(sim.foe_box(target))|	tests/unit/test_arena_driver.gd	the careless policy swings a moment before a touch, which is using the sword's reach, so the balance gate stops measuring skill
 scripts/world/locomotion.gd	s|return &"move_left"|return \&"move_right"|	tests/unit/test_locomotion.gd	a harness pressing left holds right
 
 # M50 - the arena's screen: the style word, the screen the world chooses by it, what the scaffold writes, and what the floor draws.
@@ -943,3 +958,30 @@ scripts/ui/arena_screen.gd	s|var shown := _sim.shown_foe\(\)|var shown := 0|	tes
 scripts/ui/arena_screen.gd	s|set_pose\(&"walk" if moved else &"idle", facing\)|set_pose(\&"idle", facing)|	tests/integration/test_arena_layout.gd	a body slides across the floor standing still
 scripts/ui/arena_screen.gd	s|var box := _sim.sword_box\(\).intersection\(_sim.floor_rect\(\)\)|var box := _sim.sword_box()|	tests/integration/test_arena_layout.gd	the blade is drawn through the wall and out of its window
 scripts/ui/arena_screen.gd	s|_before.y = maxf\(_before.y, ceilf\(float\(meta.anchor.y\) \* drawn\)\)|pass|	tests/integration/test_arena_layout.gd	the floor leaves no room above its top row, so a body there is drawn out of its window
+scripts/ui/arena_screen.gd	s|_hero_slashes = _player_view.frames_in\(SLASH\) > 0|_hero_slashes = false|	tests/integration/test_arena_layout.gd	the hero never swings the blade his art draws, and a drawn slash covers him instead
+scripts/ui/arena_screen.gd	s|var slash_at := _sim.swing_step\(_player_view.frames_in\(SLASH\)\) if _hero_slashes else -1|var slash_at := -1|	tests/integration/test_arena_layout.gd	the hero stands still while his sword is out
+scripts/ui/arena_screen.gd	s|if not _sim.swinging\(\) or _hero_slashes:|if not _sim.swinging():|	tests/integration/test_arena_layout.gd	a drawn slash is laid over the swing the artists drew
+scripts/ui/arena_screen.gd	s|_blade.visible = true|pass|	tests/integration/test_arena_layout.gd	art with no swing of its own shows nothing when it swings
+scripts/ui/arena_screen.gd	s|var offset := float\(maxi\(_sim.swing_step\(travel \+ 1\), 0\)\)|var offset := 0.0|	tests/integration/test_arena_layout.gd	the drawn slash stands still for the whole swing, which is the flat block again
+scripts/ui/arena_screen.gd	s|_blade.set_meta\(FIELD, true\)|pass|	tests/integration/test_arena_layout.gd	the drawn slash is not marked as part of the fight, so it reads as colliding with the body it comes out of
+scripts/world/world_scene.gd	s|_source, _arena_ground\(seen_key\)\)|_source, null)|	tests/integration/test_world_arena.gd	every arena is fought on a bare window, wherever it began
+scripts/world/world_scene.gd	s|if Interaction.seen_key\(GameState.current_map, str\(record.get\("id", ""\)\)\) != seen_key:|if false:|	tests/integration/test_world_arena.gd	every fight on a map is fought on the ground under its first record
+scripts/world/map_builder.gd	s|built.tiles_texture = tiles_texture|pass|	tests/integration/test_world_arena.gd	a built map forgets the atlas it was painted from, so no arena gets its ground
+scripts/spritegen/tile_set_factory.gd	s|if bool\(e.get\("solid", false\)\) or bool\(e.get\("decor", false\)\) or cell <= 0:|if cell <= 0:|	tests/unit/test_tiles.gd	an arena can be laid with water or a table
+scripts/ui/arena_screen.gd	s|if ground != null:|if false:|	tests/integration/test_arena_layout.gd	the ground under the encounter is never drawn
+scripts/ui/arena_screen.gd	s|out.size = Vector2\(tiles \* TILE_PX\)|out.size = Vector2(tiles * TILE_PX * 2)|	tests/integration/test_arena_layout.gd	the ground spills past the play area into the margins
+scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(out, 0\)|pass|	tests/integration/test_arena_layout.gd	the ground is drawn over the bodies and the slash
+scripts/ui/arena_screen.gd	s|piece.position = Vector2\(x \* TILE_PX, y \* TILE_PX\)|piece.position = Vector2.ZERO|	tests/integration/test_arena_layout.gd	every tile of ground is stacked in one corner
+scripts/ui/arena_screen.gd	s|const HELP := "WASD to move    E to swing"|const HELP := "E to swing"|	tests/integration/test_arena_layout.gd	the help line stops saying how to move
+scripts/ui/arena_screen.gd	s|const LEADER_BAR_WIDTH := 40.0|const LEADER_BAR_WIDTH := 60.0|	tests/integration/test_arena_layout.gd	a three-digit health readout runs into the help line
+scripts/ui/arena_screen.gd	s|const READOUT_CAPACITY := 999|const READOUT_CAPACITY := 9|	tests/unit/test_battle_content.gd	the panel is laid out for less health than the arena game's leader reaches
+scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(_blade, _floor.panel.get_child_count\(\) - 1\)|pass|	tests/integration/test_arena_layout.gd	the drawn slash is drawn under the body swinging it, which hides nearly all of it
+scripts/autoload/qa.gd	s|if arena != null:|if false:|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	fight_well never plays an arena, so a session stands in one until its frame cap
+scripts/autoload/qa.gd	s|for node in scene.find_children\("", "ArenaScreen", true, false\):|for node in scene.find_children("", "BattleScreen", true, false):|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	the harness looks for the turn fight's screen in the arena and finds nothing to play
+scripts/autoload/qa.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_qa_ops.gd	the harness's arena play stops agreeing with the balance gate's PERFECT
+scripts/autoload/qa.gd	s|if String\(GameState.game\) != wanted:|if false:|	tests/unit/test_qa_ops.gd	a session asserting which game is running passes whatever game it is
+scripts/world/world_scene.gd	s|if not asking.is_empty\(\):|if false:|	tests/fixtures/qa/menu/pick_the_arena.json	with two games and nothing choosing, the boot refuses instead of offering the title's Switch game row
+tools/pack_check.sh	s|if \[ -f "\$2/data/games/\$1\.tres" \]; then|if true; then|	tests/unit/test_ci_paths.gd	a packed session in a directory naming no game is handed one, so no packed run ever meets the picker
+data/combat/quest_arena_combat.tres	s|^style = &"arena"$|style = \&"turns"|	tests/unit/test_battle_content.gd	the arena game quietly fights with menus
+data/combat/quest_arena_combat.tres	s|^arena_tiles = Vector2i\(14, 4\)$|arena_tiles = Vector2i(40, 4)|	tests/unit/test_battle_content.gd	the arena game asks for a floor wider than the screen draws
+data/games/quest_arena.tres	s|^title = "The Barred Gate: Arena"$|title = "The Barred Gate"|	tests/unit/test_game_manifest.gd	two games share a title, and Switch game looks like a press that did nothing

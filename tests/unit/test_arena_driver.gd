@@ -80,6 +80,19 @@ func test_charge_swings_at_whatever_is_close_whichever_way_it_faces() -> void:
 	assert_int(report.hits).is_equal(0)
 	assert_int(report.touches).is_equal(1)
 
+func test_charge_does_not_swing_until_it_has_walked_into_the_foe() -> void:
+	# Swinging a moment before a touch is using the sword's reach, and reach is exactly the skill the
+	# balance gate needs CHARGE to lack. The player's box runs from 1200 to 1360; a foe standing at
+	# 1480 starts at 1400, forty units clear of it, with the blade able to land from here.
+	var sim := _sim(_foe(999, 1))
+	sim.stage(Vector2i(1280, 768), D.RIGHT, [Vector2i(1480, 768)])
+	assert_bool(sim.sword_reaches(0)).override_failure_message(
+		"the staging no longer puts the foe inside the blade's reach, so this proves nothing").is_true()
+	var choice := ArenaDriver.choose(sim, ArenaDriver.Policy.CHARGE)
+	assert_bool(choice.swing).override_failure_message(
+		"CHARGE swung at a foe it had not walked into, so it is using the sword's reach").is_false()
+	assert_vector(choice.move).is_equal(Vector2(1.0, 0.0))
+
 func test_a_fight_stopped_at_its_cap_says_it_did_not_end() -> void:
 	var report := ArenaDriver.play(_sim(_foe(999)), ArenaDriver.Policy.PERFECT, 5)
 	assert_bool(report.ended).is_false()

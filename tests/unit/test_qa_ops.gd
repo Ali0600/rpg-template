@@ -184,3 +184,55 @@ func test_every_session_ends_by_asking_the_running_game_for_its_problems() -> vo
 	Qa._end_of_session_checks()
 	assert_str("\n".join(Qa._failures)).override_failure_message(
 		"the end of a session did not ask about the game that ran").contains("not_a_game")
+
+
+func test_asserting_which_game_is_running_can_fail() -> void:
+	GameState.game = &"quest_arena"
+	assert_bool(_complains({"op": "assert_game", "id": "quest_arena"})).is_false()
+	assert_bool(_complains({"op": "assert_game", "id": "quest"})).override_failure_message(
+		"a session asserting the wrong game passed").is_true()
+
+
+func test_the_harness_plays_the_arena_the_way_the_driver_s_perfect_does() -> void:
+	# The harness cannot name ArenaDriver - tests/ is not in the exported pack, and a shipped autoload
+	# naming a class that is not there fails to load - so it states PERFECT's choice again. This holds
+	# the two to one answer over every branch the choice takes. Floor units: MID is (1280, 768), and a
+	# player facing right there reaches x 1360 to 1552 with the sword.
+	var combat := CombatDef.new()
+	combat.id = &"agreement"
+	combat.xp_curve = [10]
+	combat.arena_tiles = Vector2i(10, 6)
+	# [what it is, player, facing, foe, what happens first: 0 nothing, 1 a swing, 2 a still frame]
+	var cases := [
+		["far away and off the line", Vector2i(256, 256), Dir.D.RIGHT, Vector2i(2048, 1280), 0],
+		["in reach", Vector2i(1280, 768), Dir.D.RIGHT, Vector2i(1480, 768), 0],
+		["about to be touched", Vector2i(1280, 768), Dir.D.RIGHT, Vector2i(1116, 768), 0],
+		["lined up but out of reach", Vector2i(1280, 768), Dir.D.UP, Vector2i(1296, 200), 0],
+		["mid-swing", Vector2i(1280, 768), Dir.D.RIGHT, Vector2i(1480, 768), 1],
+		["shoved by a touch", Vector2i(1280, 768), Dir.D.RIGHT, Vector2i(1300, 768), 2],
+	]
+	for entry: Variant in cases:
+		var c: Array = entry
+		var foe := EnemyDef.new()
+		foe.id = &"agree"
+		foe.name = "Agree"
+		foe.character = &"quest_slink"
+		foe.max_hp = 99
+		foe.attack = 3
+		foe.moves = [{"name": "Bump", "power": 0}]
+		foe.speed_tiles_per_second = 2.0
+		foe.chase_every_frames = 5
+		var sim := ArenaSim.of(combat, [foe], [BattleHelpers.leader(combat)], "map/foe", 7,
+			GameConfig.new())
+		var spots: Array[Vector2i] = [c[3]]
+		sim.stage(c[1], c[2], spots)
+		if int(c[4]) > 0:
+			sim.tick(Vector2.ZERO, int(c[4]) == 1)
+		var expected := ArenaDriver.choose(sim, ArenaDriver.Policy.PERFECT)
+		var actual := Qa._arena_choice(sim)
+		assert_vector(actual["move"] as Vector2).override_failure_message(
+			"%s: the harness moves %s where PERFECT moves %s" % [c[0], actual["move"], expected.move]
+			).is_equal(expected.move)
+		assert_bool(bool(actual["swing"])).override_failure_message(
+			"%s: the harness swings %s where PERFECT swings %s" % [c[0], actual["swing"], expected.swing]
+			).is_equal(expected.swing)
