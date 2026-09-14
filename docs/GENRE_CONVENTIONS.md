@@ -1594,6 +1594,48 @@ palette).
 **Gap:** text speed, which EarthBound, Pokémon and FF6 all offer and this template does not.
 Recorded with its hook rather than built: `DialogBox` reveals one character per frame.
 
+### 16c. Options that change how the game plays
+
+Added in M51, from the two disassemblies §16b already reads, cloned at pinned commits this time
+(`pret/pokered` at `a1a22aa`, `everything8215/ff6` at `8130132`), and one prose source.
+
+**What the references let a player change about play, and when a change takes hold.**
+
+- **(a) Final Fantasy VI: the pace of a fight, read when the fight begins.** Config's first row is
+  `Bat.Mode`, Active or Wait, and below it `Bat.Speed` and `Msg.Speed` (1 to 6), `Cmd.Set`,
+  `Gauge`, `Sound`, `Cursor` and `Reequip` (`src/menu/menu_text.en.inc:334, 347, 350-357`). Active
+  or Wait is one bit, `$08` of `$1d4d`, flipped by `ChangeConfigOption_00`
+  (`src/menu/config.asm:888-898`). The battle engine copies it as a fight starts:
+  `src/battle/init.asm:69-81` reads `$1d4d`, sets `w7e3a8f` when the bit is on ("enable wait
+  mode") and turns the low three bits into the battle speed constant `w7e3a90`, and the ATB clock
+  reads the copy (`src/battle/atb.asm:11`). Config is a state of the field menu (§16b), so a change
+  takes hold at the next fight.
+- **(a) Pokémon Red/Blue: two rules of a fight, read at the moment each applies.** `BATTLE STYLE`
+  and `BATTLE ANIMATION` are bits 6 and 7 of `wOptions` (`constants/ram_constants.asm:35-36`).
+  The style is read each time a trainer is about to send out its next Pokémon, where Set skips the
+  "will you switch?" prompt (`engine/battle/core.asm:1375-1377`), and the animation each time a
+  move plays (`engine/battle/animations.asm:422-425`). The option menu is reached from the title
+  and the start menu (`home/start_menu.asm:76`), so a change applies the next time the bit is read.
+- **(b) Sea of Stars: difficulty as switches.** Its Relics change the rules of play - the Amulet of
+  Storytelling doubles health and heals after a fight, the Artful Gambit takes almost all of it
+  away - and once collected "can be toggled on and off at any time" (Can I Play That). They sit on
+  the Status page, per §16b.
+
+**What no reference does: let a player switch the fight SYSTEM.** Every setting above changes how
+a fight is paced, how it is shown or how hard it is. None of these games offers a second way to
+resolve an encounter, so the template's Fights row is a divergence, stated rather than borrowed: it
+exists because this template ships two resolvers behind one seam (§7d, and M49 in `DECISIONS.md`),
+and a player choosing between them is the template's own claim made visible.
+
+**What this template does.** Options gains three rows about play, after Sound and Window: Fights
+(turns or the sword), Movement (free, or one tile per press) and Saving (anywhere, or at save
+points only). Each can be changed at any time from the title or the pause menu and takes hold the
+next time it is read, which is FF6's and Pokémon's rule: a fight style at the next fight, movement
+and saving when the page closes. A game's data still states the default, and a row that would
+offer only one value is not drawn. Saving at save points only is §8's difficulty mechanic, and
+Sea of Stars is the precedent for handing a difficulty switch to the player. See `DECISIONS.md`,
+M51.
+
 ---
 
 ## Sources
@@ -1621,12 +1663,19 @@ behaves anyway:
 - [everything8215/ff6](https://github.com/everything8215/ff6) — `src/menu/config.asm`,
   `src/menu/field_menu.asm`, `src/menu/menu_text.en.inc` (Config as a field-menu state; the
   `Window` pattern list, the `Color` R/G/B bars, the `Font`/`Window` target toggle and `Reset`)
+- For §16c (M51), the same two repositories pinned: `pret/pokered` at `a1a22aa` —
+  `constants/ram_constants.asm` (`BIT_BATTLE_SHIFT`, `BIT_BATTLE_ANIMATION`),
+  `engine/battle/core.asm` and `engine/battle/animations.asm` (where each bit is read);
+  `everything8215/ff6` at `8130132` — `src/menu/config.asm` (`DrawActiveWaitText`,
+  `ChangeConfigOption_00`), `src/battle/init.asm` (the config byte copied as a fight starts),
+  `src/battle/atb.asm` (the copy read), `src/menu/menu_text.en.inc` (the Config rows)
 - [Legends of Localization — EarthBound / MOTHER 2: New Game](https://legendsoflocalization.com/comparisons/earthbound/new-game/)
   — the window *flavour* chosen during new-game setup (prose, secondhand for the claim that it
   cannot be changed afterwards, which is **not** asserted here because no reachable source
   settled it)
 - [Can I Play That — Sea of Stars accessibility review](https://caniplaythat.com/2023/11/01/sea-of-stars-accessibility-review/)
-  — accessibility as collectible Relics rather than options rows (prose)
+  — accessibility as collectible Relics rather than options rows, and (§16c) that they "can be
+  toggled on and off at any time" (prose)
 
 Music and save-integrity research (§14 and §8, added in M32):
 

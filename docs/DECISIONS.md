@@ -5,6 +5,9 @@ one-glance menu of things still worth trying.
 
 ## Backlog — alternatives worth trying later
 
+- **A game that locks a play choice** — a hard mode that cannot be turned off, or a game that does
+  not offer the sword, weighed when Options gained rows about play (M51). Revisit hook:
+  `PlayChoices`, where each row's offered values are derived.
 - **A boss that holds its ground in the arena** — a per-enemy field that keeps a struck boss
   within reach, weighed when the arena's balance gate was written (M50). Revisit hook: `EnemyDef`
   beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove.
@@ -3464,6 +3467,9 @@ resolver.
 - The demo switches — `rejected — it retires magic, items in a fight, statuses and formations from
   play to show one system`.
 
+*Reversed by M51, on the owner's call of 2026-09-14:* one game again, with the sword reached from a
+Fights row in Options, and The Barred Gate: Arena retired. See the M51 entry at the bottom.
+
 **The fork: who fights.**
 
 - **The leader alone, the whole party sharing the award** — Zelda's one sword on the floor. Every
@@ -3500,6 +3506,9 @@ to name.
   anything that boots the world without `--game=` would start whichever game the machine last
   played, so a suite could go red on one developer's machine and nowhere else. **Revisit hook:**
   `Settings`, beside `palette`, and read only after the redirect `test_settings.gd` already asserts.
+
+*After M51* one game ships, so there is no game to remember. The hazard this names is real for M51's
+own play choices, which DO live in `Settings`, and the M51 entry is where it is answered.
 
 ## The arena's rules are integer — *M50*
 
@@ -3640,3 +3649,61 @@ sort is stable.
 
 Left as it is: the drawn slash, for art with no swing of its own, stays over every body, including one
 standing in front of the swinger. **Revisit hook:** `ArenaScreen._order_by_depth`.
+
+## How to play is the player's to choose, from Options — *M51*
+
+Asked by the owner on 2026-09-14, after the arena had shipped as a second game behind a title row:
+"instead of it being a different game, why not allow the user to choose from a menu of some sort...
+can't that be changed on the spot?"
+
+**The fork: where a choice about how to play lives.**
+
+- **A game per choice**, M50's shape. Each combination is its own manifest, save slots and title
+  row, so two axes make four games.
+- **A choice per save, made at New game**, EarthBound's shape (§16b). Stored in the save, which
+  means a version bump and a migration, brought back by loading, and fixed for the run.
+- **A setting in Options, changeable at any time**, Sea of Stars' shape (§16c). Stored beside the
+  volume and the palette in `Settings`, outside every save.
+
+**Chosen: a setting in Options, the owner's call.** Three rows appended after Window - Fights (turns
+or the sword), Movement (free or one tile per press) and Saving (anywhere or at save points only) -
+each taking hold the next time it is read, which is FF6's and Pokémon's rule (§16c): a fight style at
+the next fight, movement and saving when the page closes. A game's data still states the default,
+and a row that would offer fewer than two values is not drawn, the pause menu's Save-row rule.
+
+- A game per choice — `rejected — games multiply with the choices, and the sword sat behind a row
+  that swapped the whole title`.
+- A choice per save — `rejected — the owner asked for a change on the spot`.
+
+**This reverses two earlier calls, and says so.**
+
+- On 2026-09-01, planning the systems axes, the owner chose a developer's scaffold wizard over a
+  player-facing pick, which is what `tools/new_game.sh` became in M47. That call was made in
+  conversation and never recorded here as a fork. The wizard stays: it writes a game's defaults, and
+  the player now picks among what the build can honour.
+- M50 shipped the arena as a second game behind a title row (the entry "The arena is played on the
+  talk button, fought alone, and shipped as a second game"). The Barred Gate: Arena is retired and the
+  arena is reached from the Fights row.
+
+**Why this is not M11's fault again.** M11's rule is that a second instance may not vary a knob nobody
+asked to turn, because one unexplained difference makes every difference a suspected defect. A row
+the player pressed is the opposite of unexplained. The control-instance test that held the two games
+apart goes with the second game; both fight styles are still proven on an in-memory manifest.
+
+**The hazard M50 named, answered.** M50 deferred remembering the last game in `Settings` because
+anything booting the world "would start whichever game the machine last played, so a suite could go
+red on one developer's machine and nowhere else". A fight style in `Settings` is exactly that hazard.
+So the redirect that already moves saves and settings aside under `--qa-script=` extends to any run of
+the test runner, and the scripted sessions' settings file is emptied at boot the way their saves
+already are: sessions run one after another, and one that chose the sword would otherwise hand it to
+every session after it.
+
+- **Art as a player choice** — offered on 2026-09-14 and declined by the owner on 2026-09-15,
+  `deferred — not wanted now`. What it would cost, so it is not worked out twice: only `lpc32` and
+  `dusk16` draw the quest's whole cast (`gb16` and `nes16` draw none of it); a change mid-run means
+  re-entering the map at the player's fractional tile and resizing the window between 640x360 and
+  320x180; and the player's sprite and config are bound once, in `ActorBody.setup`. **Revisit hook:**
+  the style load in `world_scene.enter_map`, and `_style_for`.
+- **A game that locks a choice** (a hard mode that cannot be turned off, a game with no sword) —
+  `deferred — worth trying`. **Revisit hook:** `PlayChoices`, where each row's offered values are
+  derived.
