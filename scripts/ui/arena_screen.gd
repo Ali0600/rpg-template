@@ -190,7 +190,6 @@ func _build_floor(wide: float, source: SpriteSource, drawn: float, ground: Textu
 	_floor = UiChrome.frame(_style, Rect2(Vector2(roundf((wide - outer.x) / 2.0), FLOOR_Y), outer))
 	add_child(_floor.panel)
 	_origin = _floor.inner().position + _before
-	# The drawn slash first, so a body is drawn over it rather than under it.
 	_blade = Control.new()
 	_blade.set_meta(FIELD, true)
 	_blade.visible = false
@@ -208,6 +207,11 @@ func _build_floor(wide: float, source: SpriteSource, drawn: float, ground: Textu
 	_hero_slashes = _player_view.frames_in(SLASH) > 0
 	for i in _sim.foe_count():
 		_foe_views.append(_make_view(source, _sim.foe_character(i), drawn))
+	# The drawn slash goes OVER the bodies. A rig character is drawn twice its cell, 32 design pixels
+	# wide around a body box of 10, so a reach starting at the body's edge sits almost wholly inside
+	# the swinger's own sprite - under it, the first photograph showed two pixels of edge and nothing
+	# at all facing up.
+	_floor.panel.move_child(_blade, _floor.panel.get_child_count() - 1)
 	if ground != null:
 		_ground = _make_ground(ground, tiles)
 	return FLOOR_Y + outer.y

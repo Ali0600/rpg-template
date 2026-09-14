@@ -286,6 +286,10 @@ func test_a_drawn_slash_sweeps_across_the_reach_and_stays_inside_it() -> void:
 	assert_int(edges.size()).is_greater(2)
 	assert_float(edges[edges.size() - 1]).override_failure_message(
 		"facing up, the edge should cross left to right; it went %s" % [edges]).is_greater(edges[0])
+	# And it is drawn over the swinger: a rig sprite is 32 design pixels wide around a body box of 10,
+	# so beneath the body the reach is almost wholly hidden by the body it comes out of.
+	assert_int(screen._blade.get_index()).override_failure_message(
+		"the drawn slash is drawn under the hero swinging it").is_greater(screen._player_view.get_index())
 
 
 func test_the_ground_covers_the_play_area_exactly_and_is_drawn_behind_everything() -> void:
