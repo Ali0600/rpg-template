@@ -237,3 +237,10 @@ func test_a_save_written_on_one_map_lands_on_the_same_tile_of_a_bigger_one() -> 
 		"the state says the player stands at %s and the body stands at %s"
 		% [GameState.player_position, world.player().global_position]
 		).is_equal(world.player().global_position)
+	# And the body walks, and is drawn, by the map it is now in. A player bound only when first built
+	# kept the 16px town's config and sheet, so it crossed this 32px yard at half the tiles a second.
+	assert_float(world.player().config.walk_speed_px()).override_failure_message(
+		"the player crosses a 32px map at %spx a second, a 16px map's speed"
+		% world.player().config.walk_speed_px()).is_equal(world._config.walk_speed_px())
+	assert_vector(Vector2(world.player().view.cell_size())).is_equal(
+		Vector2((load("res://data/styles/lpc32.tres") as SpriteStyle).cell_size))

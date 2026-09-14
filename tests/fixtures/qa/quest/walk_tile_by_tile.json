@@ -1,0 +1,288 @@
+{
+	"_readme": [
+		"The road to the hollow's first fight, walked one tile per press - the Movement row on the",
+		"Options page turned to Tiles before the run begins. No shipped session had ever moved this way",
+		"on a real map before M51, so this is the one that says the walker survives the demo's own",
+		"walls, bodies, doors and encounters: the same held legs two_in_the_hollow.json walks, each",
+		"stopped by geometry rather than by a count, and a whole tile asserted where each one ends.",
+		"A --qa-script run empties its settings file at boot, so the choice made here is the only one."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits, Options - two move_ups reach Options, one onto Continue and one that wraps round the top."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "options_at_title"
+		},
+		{
+			"op": "note",
+			"text": "the page's rows: Sound, Window, Fights, Movement, Saving - three presses down reach Movement, and one press turns Free into Tiles"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "options_at_title"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "back on Options: two presses down wrap onto Continue and then New game, and the run begins"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "fetch Rook: south to the well, west to the wall, south to her - each leg held until a wall or a body stops it, a tile at a time"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "note",
+			"text": "stopped by Rook's own body at [1,8], so the player stands on the tile north of her, on its centre"
+		},
+		{
+			"op": "assert_position",
+			"tile": [1, 7]
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 60
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": true
+		},
+		{
+			"op": "note",
+			"text": "north up the wall and through the west door, which a step meets by landing on it. The hold carries past the warp, so the next leg re-anchors against the hollow's own geometry."
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "note",
+			"text": "south until the wall, then west along the only row that reaches the gap the slink is standing in - and the fight opens on the tile the last step LANDS on, beside it"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "assert_position",
+			"tile": [4, 4]
+		},
+		{
+			"op": "fight_well"
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_xp",
+			"value": 10
+		},
+		{
+			"op": "note",
+			"text": "and the player is still on the tile the fight began on: a fight does not move anybody"
+		},
+		{
+			"op": "assert_position",
+			"tile": [4, 4]
+		}
+	]
+}

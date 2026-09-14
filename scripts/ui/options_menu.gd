@@ -24,14 +24,18 @@ extends RefCounted
 
 ## The rows, in the order they are drawn. Appended to, never reordered: a scripted play session
 ## lands on a row by counting presses and has no enum to name.
-enum Row { SOUND, WINDOW, FIGHTS }
+enum Row { SOUND, WINDOW, FIGHTS, MOVEMENT, SAVING }
 
 ## What a press answered. LEAVE is cancel's answer rather than a silent close, so the screen has
 ## one thing to read rather than two. Appended to as well.
-enum Kind { NONE, SOUND, WINDOW, LEAVE, FIGHTS }
+enum Kind { NONE, SOUND, WINDOW, LEAVE, FIGHTS, MOVEMENT, SAVING }
 
 ## The play axis each play row is about - the one place a row is tied to an axis.
-const PLAY_ROWS: Dictionary = {Row.FIGHTS: PlayChoices.FIGHTS}
+const PLAY_ROWS: Dictionary = {
+	Row.FIGHTS: PlayChoices.FIGHTS,
+	Row.MOVEMENT: PlayChoices.MOVEMENT,
+	Row.SAVING: PlayChoices.SAVING,
+}
 
 
 ## One answer, carried as a value - the PauseMenu.Pick shape, so a caller reads a field rather
@@ -118,6 +122,10 @@ func confirm() -> Pick:
 			return Pick.of(Kind.WINDOW)
 		Row.FIGHTS:
 			return Pick.of(Kind.FIGHTS, PlayChoices.FIGHTS)
+		Row.MOVEMENT:
+			return Pick.of(Kind.MOVEMENT, PlayChoices.MOVEMENT)
+		Row.SAVING:
+			return Pick.of(Kind.SAVING, PlayChoices.SAVING)
 	return Pick.of(Kind.NONE)
 
 
@@ -135,6 +143,10 @@ func label(at: int) -> String:
 			return "Window: %s" % _window if not _window.is_empty() else "Window"
 		Row.FIGHTS:
 			return _play_label("Fights", PlayChoices.FIGHTS)
+		Row.MOVEMENT:
+			return _play_label("Movement", PlayChoices.MOVEMENT)
+		Row.SAVING:
+			return _play_label("Saving", PlayChoices.SAVING)
 	return ""
 
 

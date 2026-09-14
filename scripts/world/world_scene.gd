@@ -249,6 +249,38 @@ func _play_words() -> Dictionary:
 	return out
 
 
+## The running game's config bound to `tile_size`, with the player's movement and saving choices laid
+## over the COPY. at() duplicates, so the manifest's own resource - shared with everything else that
+## reads it - is never written.
+func _effective_config(tile_size: int) -> GameConfig:
+	var out := _game.config.at(tile_size)
+	out.grid_step = _play_value(PlayChoices.MOVEMENT) == PlayChoices.MOVE_GRID
+	out.save_policy = _play_value(PlayChoices.SAVING)
+	return out
+
+
+## The movement and saving choices put into effect over a running game, as the Options page closes:
+## the config is bound again, and every body that walks is rebound to it - the player, and the
+## townsfolk, who would otherwise go on stepping by the old rule. Moving tile by tile, the player is
+## put on a cell centre they can stand on; a townsperson needs no such thing, because nothing reads
+## where one stands between steps, and its next step starts from a centre anyway. Enemies are left as
+## they are, because they never walk. The saving choice needs nothing more: the pause menu reads the
+## config each time it opens.
+func _apply_play_choices() -> void:
+	if _game == null or _built == null or _player == null:
+		return
+	_config = _effective_config(_built.tile_size)
+	_player.rebind(_config, _source, _game.player_character)
+	_player.snap_to_grid()
+	for entry: Variant in _npcs.values():
+		var record: Dictionary = entry
+		var body := record.get("body") as ActorBody
+		if body == null:
+			continue
+		body.rebind(_config, _source, StringName(str(record.get("character", ""))))
+	GameState.set_player(_player.global_position, _player.facing)
+
+
 ## What the Window row says. A palette's own name, or the word for none of them - worded HERE
 ## because the page may not ask the Registry what a palette is called.
 func _palette_word() -> String:
@@ -524,8 +556,9 @@ func enter_map(map_id: StringName, spawn_id: StringName, at_tile: Vector2 = NO_S
 	GameState.tile_size = _built.tile_size
 	# The ONE place a config learns how big a tile is, beside the state that records the same
 	# fact from the same source. On every map entry rather than once at boot, because a warp can
-	# cross into a map drawn at another scale.
-	_config = _game.config.at(_built.tile_size)
+	# cross into a map drawn at another scale. The player's movement and saving choices are laid
+	# over that copy (M51).
+	_config = _effective_config(_built.tile_size)
 	_spawn_player(data, spawn_id, at_tile)
 	_spawn_npcs(data)
 	_spawn_enemies(data)
@@ -573,14 +606,22 @@ func _spawn_player(data: MapData, spawn_id: StringName, at_tile: Vector2) -> voi
 		_player = ActorBody.new()
 		_player.name = "Player"
 		_player.setup(_config, _source, _game.player_character)
-	elif _player.get_parent() != null:
-		_player.get_parent().remove_child(_player)
+	else:
+		# Rebound on EVERY entry rather than only when first built: the config this map binds may be
+		# at another tile size, or carry a movement choice made since, and the sheet is this style's.
+		# A player who kept the first map's config crossed a 32px map at a 16px map's speed.
+		_player.rebind(_config, _source, _game.player_character)
+		if _player.get_parent() != null:
+			_player.get_parent().remove_child(_player)
 	# The player joins the y-sorted layer, not the map root: it has to sort against the decor
 	# tiles, or it is permanently in front of or behind every bush in the map.
 	_built.sorted.add_child(_player)
 	# place(), not assign-then-halt. With a grid step in flight the halt would resolve it
 	# against the cell the player left, in the map they left, and teleport them back there.
 	_player.place(at, GameState.player_facing)
+	# A restored place is wherever the player stood, which moving tile by tile need not be a cell
+	# centre. A no-op moving freely, and on a spawn, which is a centre already.
+	_player.snap_to_grid()  # a restored place, onto a centre
 	# Seeded with the spawn tile so a spawn placed ON a warp does not immediately re-trigger
 	# it - which is exactly what a two-way door between maps looks like.
 	_last_tile = MapData.world_to_tile(at, _built.tile_size)
@@ -746,6 +787,12 @@ func _drive_npcs() -> void:
 ## player between them forever.
 func _check_triggers() -> void:
 	if _built == null:
+		return
+	# Moving tile by tile, a door or an encounter is met by LANDING on its tile. The tile under the
+	# feet changes half way through a step, and a fight opened there halts the player - which
+	# abandons the step and puts them back on the tile they left, a hop backwards into every fight.
+	# Checked before the tile is remembered, so the landing frame is still the first frame on it.
+	if _player.stepping():
 		return
 	var tile := _player.tile(_built.tile_size)
 	if tile == _last_tile:
@@ -1993,6 +2040,10 @@ func _close_options() -> void:
 	_options.queue_free()
 	_options = null
 	Router.close_overlay()
+	# Movement and saving take hold as the page closes over a running game. Deferred for the reason
+	# the page is freed rather than dropped: this is still inside its input handler.
+	if _game != null:
+		_apply_play_choices.call_deferred()
 
 
 ## The title's Options row. Opened INLINE, the credits' rule: the title is a base state, so
