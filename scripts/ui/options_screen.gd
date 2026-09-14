@@ -27,6 +27,10 @@ signal sound_requested
 ## exist is a content question this class may not ask.
 signal window_requested
 
+## The player asked for the next value on a play row (M51), named by its PlayChoices axis. Which
+## values the running game offers is a manifest question, so the world answers it.
+signal play_requested(axis: StringName)
+
 ## The player is done. The world closes the overlay and decides what is underneath; this never
 ## closes itself, for the reason no view here frees itself.
 signal left
@@ -78,10 +82,10 @@ func setup(menu: OptionsMenu, style: SpriteStyle, viewport_size: Vector2i,
 
 
 ## New words on the rows, cursor untouched - after the world has changed a value and worded it.
-func refresh(sound: String, window: String) -> void:
+func refresh(sound: String, window: String, play: Dictionary = {}) -> void:
 	if _menu == null:
 		return
-	_menu.refresh(sound, window)
+	_menu.refresh(sound, window, play)
 	_paint()
 
 
@@ -206,7 +210,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Turns one answer into one signal.
 ##
-## Neither change COMMITS: the page stays up, the world changes the value and hands back the new
+## No change COMMITS: the page stays up, the world changes the value and hands back the new
 ## words, and the row says what it now is. That is the save row's rule, and here it is most of the
 ## point - a player picking a window colour is comparing, which means pressing more than once.
 func _act(pick: OptionsMenu.Pick) -> void:
@@ -219,6 +223,9 @@ func _act(pick: OptionsMenu.Pick) -> void:
 		OptionsMenu.Kind.WINDOW:
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 			window_requested.emit()
+		OptionsMenu.Kind.FIGHTS:
+			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
+			play_requested.emit(pick.axis)
 		OptionsMenu.Kind.LEAVE:
 			_committed = true
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))

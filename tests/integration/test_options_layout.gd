@@ -36,8 +36,18 @@ func _open(over_world: bool, sound := "Normal", window := "Parchment") -> Option
 	var screen := OptionsScreen.new()
 	add_child(screen)
 	_built.append(screen)
-	screen.setup(OptionsMenu.of(sound, window), _style(), VIEWPORT, over_world)
+	# With every play row the page can draw, so the audits measure it at its tallest.
+	screen.setup(OptionsMenu.of(sound, window, _every_play_row()), _style(), VIEWPORT, over_world)
 	return screen
+
+
+## A word for every play axis a row exists for, from what the shipped game offers.
+func _every_play_row() -> Dictionary:
+	var quest := load("res://data/games/quest.tres") as GameManifest
+	var out := {}
+	for axis: StringName in OptionsMenu.PLAY_ROWS.values():
+		out[axis] = PlayChoices.word(PlayChoices.offered(quest, axis)[0])
+	return out
 
 
 ## Every visible Panel and non-empty Label, with the rect it actually DRAWS in - a label measured
@@ -155,15 +165,24 @@ func test_every_word_this_page_can_be_handed_fits_without_being_trimmed() -> voi
 	assert_int(windows.size()).override_failure_message(
 		"no palettes were found, so the widest row was never measured").is_greater(2)
 
+	# Every word any play row can say, on every row there is for play: the words PlayChoices owns.
+	var plays: Array[Dictionary] = []
+	for axis: StringName in OptionsMenu.PLAY_ROWS.values():
+		for value: StringName in PlayChoices.WORDS:
+			plays.append({axis: PlayChoices.word(value)})
+	assert_int(plays.size()).override_failure_message(
+		"no play words were found, so the play rows were never measured").is_greater(1)
+
 	var over: Array[String] = []
 	for level: int in Settings.Level.values():
 		for window in windows:
-			var menu := OptionsMenu.of(str(Settings.NAMES[level]), window)
-			for at in menu.size():
-				var line := menu.label(at)
-				var wide := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
-				if wide > room:
-					over.append("'%s' is %.0fpx in a %.0fpx row" % [line, wide, room])
+			for play in plays:
+				var menu := OptionsMenu.of(str(Settings.NAMES[level]), window, play)
+				for at in menu.size():
+					var line := menu.label(at)
+					var wide := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
+					if wide > room:
+						over.append("'%s' is %.0fpx in a %.0fpx row" % [line, wide, room])
 	assert_array(over).override_failure_message(
 		"rows the page would trim, each of which stops saying what it is:\n  "
 		+ "\n  ".join(over)).is_empty()

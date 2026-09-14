@@ -1,32 +1,52 @@
 extends GdUnitTestSuite
-## The options page's rules: two rows, a wrapping cursor, and what a press on each one means.
+## The options page's rules: its rows, a wrapping cursor, and what a press on each one means.
 ##
 ## Pure - no tree, no font, no singleton. What this cannot answer is whether a row FITS, which is
 ## test_options_layout.gd's job with the real font; the two together are the whole gate.
 
 func _menu() -> OptionsMenu:
-	return OptionsMenu.of("Normal", "Parchment")
+	return OptionsMenu.of("Normal", "Parchment", {PlayChoices.FIGHTS: "Turns"})
 
 
 func test_the_cursor_opens_on_the_first_row() -> void:
-	assert_int(_menu().index()).is_equal(OptionsMenu.Row.SOUND)
+	assert_int(_menu().row_at(_menu().index())).is_equal(OptionsMenu.Row.SOUND)
 
 
-func test_both_rows_say_what_the_setting_currently_is() -> void:
-	# A row reading only "Sound" is a row a player has to press to learn anything from. Both
-	# carry their value, which is also what makes the page readable without a cursor on it.
+func test_every_row_says_what_the_setting_currently_is() -> void:
+	# A row reading only "Sound" is a row a player has to press to learn anything from. Every one
+	# carries its value, which is also what makes the page readable without a cursor on it.
 	var menu := _menu()
-	assert_str(menu.label(OptionsMenu.Row.SOUND)).is_equal("Sound: Normal")
-	assert_str(menu.label(OptionsMenu.Row.WINDOW)).is_equal("Window: Parchment")
+	assert_str(menu.label(0)).is_equal("Sound: Normal")
+	assert_str(menu.label(1)).is_equal("Window: Parchment")
+	assert_str(menu.label(2)).is_equal("Fights: Turns")
 
 
 func test_a_row_told_nothing_still_draws_its_name() -> void:
 	# A blank label renders as an empty line, which reads as a page that failed to draw rather
 	# than as a setting with no value.
-	var menu := OptionsMenu.of("", "")
+	var menu := OptionsMenu.of("", "", {PlayChoices.FIGHTS: ""})
+	assert_int(menu.size()).is_equal(3)
 	for at in menu.size():
 		assert_str(menu.label(at)).override_failure_message(
 			"row %d drew nothing at all" % at).is_not_empty()
+
+
+func test_a_play_row_is_drawn_only_when_the_world_hands_it_a_word() -> void:
+	# A game that cannot fight has nothing to choose about fighting, and the world says so by leaving
+	# the axis out. The page draws the rows it was handed and no others.
+	var bare := OptionsMenu.of("Normal", "Parchment")
+	assert_int(bare.size()).override_failure_message(
+		"a page handed no play words still drew a play row").is_equal(2)
+	assert_bool(bare.rows().has(OptionsMenu.Row.FIGHTS)).is_false()
+	var fights := _menu()
+	assert_int(fights.size()).is_equal(3)
+	assert_int(fights.row_at(2)).is_equal(OptionsMenu.Row.FIGHTS)
+
+
+func test_a_word_for_an_axis_no_row_is_about_draws_no_row() -> void:
+	# The world words every axis the game offers; the page draws the rows it has. A word for an axis
+	# with no row is carried and ignored rather than drawn as a row with no name.
+	assert_int(OptionsMenu.of("Normal", "Parchment", {&"no_such_axis": "Maybe"}).size()).is_equal(2)
 
 
 func test_new_words_arrive_without_moving_the_cursor() -> void:
@@ -35,9 +55,10 @@ func test_new_words_arrive_without_moving_the_cursor() -> void:
 	# Rebuilding would send them back to the top row every time.
 	var menu := _menu()
 	menu.move(1)
-	menu.refresh("Loud", "Mint")
-	assert_int(menu.index()).is_equal(OptionsMenu.Row.WINDOW)
-	assert_str(menu.label(OptionsMenu.Row.WINDOW)).is_equal("Window: Mint")
+	menu.refresh("Loud", "Mint", {PlayChoices.FIGHTS: "Sword"})
+	assert_int(menu.row_at(menu.index())).is_equal(OptionsMenu.Row.WINDOW)
+	assert_str(menu.label(1)).is_equal("Window: Mint")
+	assert_str(menu.label(2)).is_equal("Fights: Sword")
 
 
 func test_the_cursor_wraps_both_ways() -> void:
@@ -74,6 +95,19 @@ func test_every_row_answers_a_kind_of_its_own() -> void:
 	assert_int(seen.size()).is_equal(menu.size())
 
 
+func test_a_play_row_says_which_axis_it_is_about() -> void:
+	# The world answers one signal for every play row, so the row has to carry its axis - a press
+	# on Fights that named no axis would change nothing, or the wrong thing.
+	var menu := _menu()
+	menu.move(2)
+	var pick := menu.confirm()
+	assert_int(pick.kind).is_equal(OptionsMenu.Kind.FIGHTS)
+	assert_str(String(pick.axis)).is_equal(String(PlayChoices.FIGHTS))
+	menu.move(1)
+	assert_str(String(menu.confirm().axis)).override_failure_message(
+		"a row that is not about play named an axis").is_empty()
+
+
 func test_cancel_asks_to_leave_from_any_row() -> void:
 	# From any row, because cancel is not about what the cursor is on - a page that only closed
 	# from its first row would trap a player who had moved down.
@@ -86,5 +120,6 @@ func test_cancel_asks_to_leave_from_any_row() -> void:
 
 
 func test_the_page_never_answers_for_a_row_it_does_not_have() -> void:
-	assert_str(_menu().label(OptionsMenu.Row.size())).is_empty()
+	assert_str(_menu().label(_menu().size())).is_empty()
 	assert_str(_menu().label(-1)).is_empty()
+	assert_int(_menu().row_at(_menu().size())).is_equal(-1)

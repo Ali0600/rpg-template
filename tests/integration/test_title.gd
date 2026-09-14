@@ -6,6 +6,9 @@ extends GdUnitTestSuite
 ## drive Continue. This can write a slot and rebuild the title inside one process.
 
 const GAME := "res://data/games/quest.tres"
+## Two games that exist only to stage a build carrying more than one, which the shipped build no
+## longer does (M51): The Barred Gate's own manifest under two ids and two titles.
+const FIXTURE_GAMES := "res://tests/fixtures/games"
 
 var _world: Node2D
 ## The project setting as this suite found it, put back after every test: it is process-wide, and a
@@ -22,21 +25,26 @@ func after_test() -> void:
 		_world.free()
 	_world = null
 	ProjectSettings.set_setting(GameSelect.SETTING, _setting_before)
+	# Process-wide like the setting, and a suite left reading the fixtures would find no quest.
+	GameSelect.root = GameSelect.DIR
 	GameState.reset()
 	Router.reset()
 
 ## Boots the world with this suite's game NAMED in the project setting - a build whose config/game
-## says which game it is. Since M50 the build carries two games, and a world booted with nothing
-## chosen takes the offering path instead: every test here would then be proving that path while
-## claiming this one, which is how a mutant on the chosen boot's own line survived the full sweep.
+## says which game it is. Named rather than left to "the only game there is", so every test here keeps
+## proving the chosen boot on the day a build carries two games: in M50, while two shipped, a world
+## booted with nothing chosen took the offering path instead, and a mutant on the chosen boot's own
+## line survived the full sweep.
 func _boot() -> Node2D:
 	ProjectSettings.set_setting(GameSelect.SETTING, String(_manifest().id))
 	return _instance()
 
 ## Boots the world the way the deployed page does: nothing on the command line, nothing in the
-## setting, and every game the build carries.
-func _boot_offering() -> Node2D:
+## setting, and every game `root` carries. Pointed BEFORE the world is instanced, because its _ready
+## is what reads the games.
+func _boot_offering(root := GameSelect.DIR) -> Node2D:
 	ProjectSettings.set_setting(GameSelect.SETTING, "")
+	GameSelect.root = root
 	return _instance()
 
 func _instance() -> Node2D:
@@ -72,12 +80,28 @@ func test_a_build_that_names_its_game_offers_nothing_to_switch_to() -> void:
 		"a build that names its game still offers to switch it").is_not_equal(SlotMenu.Kind.SWITCH_GAME)
 
 
-func test_the_deployed_boot_offers_every_game_on_a_title() -> void:
-	# What the web page does: two games ship and nothing chooses, so the world OFFERS them - a title
-	# rather than a map, with a row that switches between them.
+func test_the_deployed_boot_of_one_game_opens_its_title_with_nothing_to_switch_to() -> void:
+	# What the web page does since M51: one game ships and nothing chooses, so the only game there is
+	# boots its title - and a Switch game row with nowhere to go is not on it.
 	assert_int(GameSelect.manifests().size()).override_failure_message(
-		"the build carries one game, so this is not the offering boot").is_greater(1)
+		"the build carries more than one game again; this test is about the build that carries one"
+		).is_equal(1)
 	var world := _boot_offering()
+	assert_int(Router.state()).is_equal(Router.State.TITLE)
+	var screen: TitleScreen = world.title_screen()
+	assert_object(screen).is_not_null()
+	var menu := screen.menu()
+	assert_int(menu.top_pick(menu.row_count() - 1).kind).override_failure_message(
+		"a build with one game offers to switch it").is_not_equal(SlotMenu.Kind.SWITCH_GAME)
+
+
+func test_a_build_with_two_games_and_nothing_chosen_offers_both_on_a_title() -> void:
+	# The template's rule for a build that carries more than one game (M50): nothing chose, so a person
+	# does - a title rather than a map, with a row that switches between them. Staged on fixture games,
+	# because the shipped build carries one.
+	var world := _boot_offering(FIXTURE_GAMES)
+	assert_int(GameSelect.manifests().size()).override_failure_message(
+		"the fixture directory does not hold two games, so this is not the offering boot").is_equal(2)
 	assert_int(Router.state()).override_failure_message(
 		"with two games and nothing chosen, the world booted straight into one").is_equal(Router.State.TITLE)
 	var screen: TitleScreen = world.title_screen()
@@ -85,7 +109,7 @@ func test_the_deployed_boot_offers_every_game_on_a_title() -> void:
 	var menu := screen.menu()
 	assert_int(menu.top_pick(menu.row_count() - 1).kind).override_failure_message(
 		"the title offers no way to the other game").is_equal(SlotMenu.Kind.SWITCH_GAME)
-	assert_int(world._choices.size()).is_equal(GameSelect.manifests().size())
+	assert_int(world._choices.size()).is_equal(2)
 
 
 func test_the_title_wears_the_games_own_name() -> void:

@@ -940,8 +940,8 @@ tests/helpers/arena_driver.gd	s|out.swing = sim.player_box\(\).intersects\(sim.f
 scripts/world/locomotion.gd	s|return &"move_left"|return \&"move_right"|	tests/unit/test_locomotion.gd	a harness pressing left holds right
 
 # M50 - the arena's screen: the style word, the screen the world chooses by it, what the scaffold writes, and what the floor draws.
-scripts/world/world_scene.gd	s|if combat.style == CombatDef.STYLE_ARENA:|if false:|	tests/integration/test_world_arena.gd	a game whose combat says arena opens the turn fight
-scripts/world/world_scene.gd	s|if combat.style == CombatDef.STYLE_ARENA:|if true:|	tests/integration/test_world_battles.gd	a turn-based game opens the arena
+scripts/world/world_scene.gd	s|if _play_value\(PlayChoices.FIGHTS\) == CombatDef.STYLE_ARENA:|if false:|	tests/integration/test_world_arena.gd	a game whose combat says arena opens the turn fight
+scripts/world/world_scene.gd	s|if _play_value\(PlayChoices.FIGHTS\) == CombatDef.STYLE_ARENA:|if true:|	tests/integration/test_world_battles.gd	a turn-based game opens the arena
 scripts/data/combat_def.gd	s|if not STYLES.has\(style\):|if false:|	tests/unit/test_combat_def.gd	a style no resolver answers ships, and loads as a fight nobody draws
 scripts/data/combat_def.gd	s|const STYLES: Array\[StringName\] = \[STYLE_TURNS, STYLE_ARENA\]|const STYLES: Array[StringName] = [STYLE_TURNS]|	tests/unit/test_game_scaffold.gd	the game stops answering a style the scaffold still writes
 scripts/util/game_scaffold.gd	s|const COMBATS: Array\[String\] = \["none", "turns", "arena"\]|const COMBATS: Array[String] = ["none", "turns"]|	tests/unit/test_game_scaffold.gd	the scaffold cannot write a style the game answers
@@ -976,15 +976,13 @@ scripts/ui/arena_screen.gd	s|const HELP := "WASD to move    E to swing"|const HE
 scripts/ui/arena_screen.gd	s|const LEADER_BAR_WIDTH := 40.0|const LEADER_BAR_WIDTH := 60.0|	tests/integration/test_arena_layout.gd	a three-digit health readout runs into the help line
 scripts/ui/arena_screen.gd	s|const READOUT_CAPACITY := 999|const READOUT_CAPACITY := 9|	tests/unit/test_battle_content.gd	the panel is laid out for less health than the arena game's leader reaches
 scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(_blade, _floor.panel.get_child_count\(\) - 1\)|pass|	tests/integration/test_arena_layout.gd	the drawn slash is drawn under the body swinging it, which hides nearly all of it
-scripts/autoload/qa.gd	s|if arena != null:|if false:|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	fight_well never plays an arena, so a session stands in one until its frame cap
-scripts/autoload/qa.gd	s|for node in scene.find_children\("", "ArenaScreen", true, false\):|for node in scene.find_children("", "BattleScreen", true, false):|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	the harness looks for the turn fight's screen in the arena and finds nothing to play
+scripts/autoload/qa.gd	s|if arena != null:|if false:|	tests/fixtures/qa/quest/two_in_the_hollow_by_the_sword.json	fight_well never plays an arena, so a session stands in one until its frame cap
+scripts/autoload/qa.gd	s|for node in scene.find_children\("", "ArenaScreen", true, false\):|for node in scene.find_children("", "BattleScreen", true, false):|	tests/fixtures/qa/quest/two_in_the_hollow_by_the_sword.json	the harness looks for the turn fight's screen in the arena and finds nothing to play
 scripts/autoload/qa.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_qa_ops.gd	the harness's arena play stops agreeing with the balance gate's PERFECT
 scripts/autoload/qa.gd	s|if String\(GameState.game\) != wanted:|if false:|	tests/unit/test_qa_ops.gd	a session asserting which game is running passes whatever game it is
-scripts/world/world_scene.gd	s|if not asking.is_empty\(\):|if false:|	tests/fixtures/qa/menu/pick_the_arena.json	with two games and nothing choosing, the boot refuses instead of offering the title's Switch game row
+scripts/world/world_scene.gd	s|if not asking.is_empty\(\):|if false:|	tests/integration/test_title.gd	with two games and nothing choosing, the boot refuses instead of offering the title's Switch game row
 tools/pack_check.sh	s|if \[ -f "\$2/data/games/\$1\.tres" \]; then|if true; then|	tests/unit/test_ci_paths.gd	a packed session in a directory naming no game is handed one, so no packed run ever meets the picker
-data/combat/quest_arena_combat.tres	s|^style = &"arena"$|style = \&"turns"|	tests/unit/test_battle_content.gd	the arena game quietly fights with menus
-data/combat/quest_arena_combat.tres	s|^arena_tiles = Vector2i\(14, 4\)$|arena_tiles = Vector2i(40, 4)|	tests/unit/test_battle_content.gd	the arena game asks for a floor wider than the screen draws
-data/games/quest_arena.tres	s|^title = "The Barred Gate: Arena"$|title = "The Barred Gate"|	tests/unit/test_game_manifest.gd	two games share a title, and Switch game looks like a press that did nothing
+data/combat/quest_combat.tres	s|^arena_tiles = Vector2i\(14, 4\)$|arena_tiles = Vector2i(40, 4)|	tests/unit/test_battle_content.gd	the game's fighter asks for an arena floor wider than the screen draws
 scripts/ui/arena_screen.gd	s|^\t_order_by_depth\(\)$|\tpass|	tests/integration/test_arena_layout.gd	bodies are drawn in the order they were made, so a foe standing just behind the hero is drawn over his head
 scripts/ui/arena_screen.gd	s|return int\(a\[0\]\) < int\(b\[0\]\)|return int(a[0]) > int(b[0])|	tests/integration/test_arena_layout.gd	a body further up the floor is drawn in front of one below it
 scripts/ui/arena_screen.gd	s|slots.sort\(\)|pass|	tests/integration/test_arena_layout.gd	the bodies are dealt back into the places they hold in the order they were made, so a repaint leaves some drawn behind bodies they stand in front of
@@ -995,3 +993,16 @@ scripts/autoload/settings.gd	s|_play\[axis\] = StringName\(str\(file.data.get\(S
 scripts/autoload/settings.gd	s|data\[String\(axis\)\] = String\(play_choice\(axis\)\)|pass|	tests/unit/test_settings.gd	a play choice is never written, so it is forgotten at every restart
 scripts/autoload/settings.gd	s|if not PlayChoices.AXES.has\(axis\):|if false:|	tests/unit/test_settings.gd	a misspelt play choice is accepted and sits in memory answering a question no row asks
 tests/integration/test_world_party.gd	s|SaveManager.base_dir = SaveManager.dir_for\(GameSelect.args\(\)\)|SaveManager.base_dir = SaveManager.DEFAULT_DIR|	tests/unit/test_saves.gd	a suite puts the save manager back on the player's real directory, and every suite after it writes there
+scripts/util/play_choices.gd	s|if manifest.combat != null:|if true:|	tests/unit/test_play_choices.gd	a game with no combat is offered a choice about how to fight
+scripts/util/play_choices.gd	s|return chosen if offered_values.has\(chosen\) else own|return chosen|	tests/unit/test_play_choices.gd	a play word no game offers takes effect anyway
+scripts/util/play_choices.gd	s|return offered_values\[\(offered_values.find\(current\) \+ 1\) % offered_values.size\(\)\]|return current|	tests/unit/test_play_choices.gd	a press on a play row changes nothing
+scripts/util/play_choices.gd	s|return values.size\(\) >= 2|return not values.is_empty()|	tests/unit/test_play_choices.gd	a row cycling among one value counts as a choice, so a key that does nothing is drawn
+scripts/util/play_choices.gd	s|return MOVE_GRID if manifest.config.grid_step else MOVE_FREE|return MOVE_FREE|	tests/unit/test_play_choices.gd	a game that declares one tile per press is read as moving freely
+scripts/ui/options_menu.gd	s|if _play.has\(PLAY_ROWS\[row\]\):|if true:|	tests/unit/test_options_menu.gd	a play row is drawn for a game that offers nothing to choose on it
+scripts/ui/options_menu.gd	s|return Pick.of\(Kind.FIGHTS, PlayChoices.FIGHTS\)|return Pick.of(Kind.NONE)|	tests/unit/test_options_menu.gd	the Fights row does nothing when pressed
+scripts/ui/options_screen.gd	s|\t\t\tplay_requested.emit\(pick.axis\)|\t\t\tpass|	tests/fixtures/qa/quest/two_in_the_hollow_by_the_sword.json	the Fights row is pressed and the world never hears it, so the sword is never chosen
+scripts/world/world_scene.gd	s|\tSettings.choose_play\(axis, PlayChoices.next\(values, _play_value\(axis\)\)\)|\tpass|	tests/integration/test_world_play_choices.gd	a play row is pressed and nothing is chosen
+scripts/world/world_scene.gd	s|if PlayChoices.choosable\(_play_offered\(axis\)\):|if true:|	tests/integration/test_world_play_choices.gd	a game that cannot fight is offered a Fights row
+scripts/world/world_scene.gd	s|return _game if _game != null else _offered|return _game|	tests/integration/test_world_play_choices.gd	the title's options page offers no play rows, because no game is running there yet
+scripts/world/world_scene.gd	s|\t_options.play_requested.connect\(_on_options_play\)|\tpass|	tests/fixtures/qa/quest/two_in_the_hollow_by_the_sword.json	the Fights row is pressed and nobody is listening
+scripts/data/game_select.gd	s|for res in ContentScan.resources\(root\):|for res in ContentScan.resources(DIR):|	tests/integration/test_title.gd	no suite can stage a build with two games, so offering them on the title is never proven

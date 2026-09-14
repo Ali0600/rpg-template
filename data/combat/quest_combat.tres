@@ -41,6 +41,11 @@
 ; decide to spend, not a second attack button - and an inn refills it, which is what gives the
 ; four gold a night a second reason to exist. UNJUDGED BY EAR: the gates spend the purse every
 ; run and cannot say whether the price bites.
+;
+; The arena's numbers, since M51 retired The Barred Gate: Arena and made the sword a player's choice
+; in Options: every one is the template's default, from the Zelda disassemblies
+; (docs/GENRE_CONVENTIONS.md §7d), except the floor - fourteen tiles by four, two short of the widest
+; the screen draws. UNJUDGED BY HAND: none has been held against a controller.
 
 [ext_resource type="Script" path="res://scripts/data/combat_def.gd" id="1_combat"]
 
@@ -60,3 +65,4 @@ attack_cue_frames = 72
 defend_cue_frames = 84
 timed_window_frames = 24
 message_frames = 45
+arena_tiles = Vector2i(14, 4)

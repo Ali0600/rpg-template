@@ -79,12 +79,15 @@ there is more than one game and nothing picked between them, and the world then 
 last, that reopens it on the next game - name, look, voice, music and slots all come from `_offered`
 already - with the cursor still on the row. `resolve()`, which has nobody to ask, still refuses, and
 the world does not call it while offering, or every boot would print that refusal. The shipped
-`config/game` is empty because the deployed page should ask; naming a game there boots it and hides
-the row, and `--game=` beats both, which is why no scripted session in a game's own directory ever
-meets it. A guessed game presents as the game you meant to run behaving strangely, which is the whole
-reason for any of this. **A suite that boots `world.tscn` with nothing chosen is now on the
-offering path**, because two games ship: a suite about the chosen-game boot names its game in
-`application/config/game` and puts the setting back after (`test_title`). Until it did, `test_title`
+`config/game` is empty, so a build carrying one game boots it and a build carrying two asks; naming a
+game there boots it and hides the row, and `--game=` beats both, which is why no scripted session in a
+game's own directory ever meets it. A guessed game presents as the game you meant to run behaving
+strangely, which is the whole reason for any of this. **Since M51 the build ships ONE game**, so the
+deployed page opens its title with no Switch game row, and how to fight is a row on the Options page
+instead (below). The rule is kept, and proven on two fixture manifests under `tests/fixtures/games/`:
+`test_title` points `GameSelect.root` at them BEFORE it instances the world, because `_ready` reads
+them. A suite about the chosen-game boot still names its game in `application/config/game`, so it
+keeps proving that boot the day a build carries two again. In M50, while two shipped, `test_title`
 went through the picker while claiming the one-game boot, and only the full mutation sweep noticed.
 
 **A NEW GAME IS A COMMAND, AND `GameScaffold` DECIDES IT WITH NO DISK IN SIGHT.** `plan(options,
@@ -414,6 +417,17 @@ minimised it to five steps on the first run that reached it. **A state whose leg
 something nobody wrote down is not one state** - and the tell was already in the model file, whose
 entry declared neither `game_running` nor `no_game_running` because neither was always true.
 
+**Rows about how the game PLAYS go on the same page, and a row that would offer one value is not
+drawn** (M51). `PlayChoices` is the one list of axes (fights, movement, saving): what a manifest
+offers on each, what it declares, which value is in effect (`effective`, the ONE fallback for an
+unknown or unoffered word, and a silent one, because the settings file is the player's across every
+game), and the word a row shows. The world hands `OptionsMenu` a dictionary of axis -> word for every
+axis the game in view offers two or more values on - the game on OFFER at the title, the running one
+over the world (`_manifest_in_view`) - and the menu draws a row for each axis it has a row for,
+appended after Window. A press emits `play_requested(axis)`, the world writes `PlayChoices.next` of
+the value in effect, and nothing is rebuilt: a pick is read where it is used, so it takes hold the
+next time it is read - a fight style when the next fight opens.
+
 **A row that carries a VALUE and a row that opens a PAGE are different rows.** `PauseMenu.Row.SOUND`
 was the volume, so the menu had to be handed the word "Normal" and `PauseScreen` needed a special
 case in `_label_for` to draw it. It is `Row.OPTIONS` now, the label table has a word for every row,
@@ -582,16 +596,20 @@ bodies wandering at random, so walking into the Keeper does win now and then - "
 seeds would have been tuned to those twelve. **Two drivers that share the habit the difficulty lives
 in are one driver**, and no data change can make them two.
 
-**The Barred Gate: Arena (`data/games/quest_arena.tres`) is a CONTROL INSTANCE, held there by a
-test.** Its manifest differs from `quest.tres` in `id`, `title` and `combat` only, and its fighter
-from `quest_combat.tres` in `id`, `style` and the arena's own numbers, listed by name in
-`ARENA_FIELDS`. The curves staying equal is what keeps every level beat of the quest true with a
-sword. The enemies' arena numbers live on the shared `EnemyDef`s, which the turn fight never reads.
+**How a fight is fought is the PLAYER's choice, and a game's `CombatDef.style` is its default**
+(`docs/DECISIONS.md`, M51). The Barred Gate: Arena, a second game that differed only in its fighter,
+is retired: the arena is reached from a Fights row on the Options page, and The Barred Gate's own
+fighter carries the arena's numbers (`arena_tiles` is the only one off the default). One fighter for
+both resolvers is what keeps every level beat of the quest true with a sword, because `ArenaSim`
+reads a fighter's numbers and never its `style`. The enemies' arena numbers live on the shared
+`EnemyDef`s, which the turn fight never reads.
 
-**Which screen opens is `CombatDef.style`, and `FightScreen` is what both screens are.** `turns`,
-the default, or `arena`, refused by name; only the manifest's combat is read, and a companion's is
-ignored like its timing fields. `world_scene._fight_screen_for` reads it after every guard in
-`open_battle_with` has run, so a style chooses a screen and can never let a refused fight through.
+**Which screen opens is the fight style in effect, and `FightScreen` is what both screens are.**
+`turns`, the default, or `arena`, refused by name in data; only the manifest's combat is read, and a
+companion's is ignored like its timing fields. `world_scene._fight_screen_for` reads
+`_play_value(PlayChoices.FIGHTS)` - the player's word when the game offers it, the game's own
+otherwise - after every guard in `open_battle_with` has run, so a style chooses a screen and can never
+let a refused fight through, and a choice made in Options takes hold at the next fight.
 `FightScreen` holds the two signals, `LAYER`, the `_committed` latch, `MAX_FOES` (a formation is a map
 rule) and `fighter_scale`; `BattleScreen` and `ArenaScreen` extend it, and `fight_screen()` is
 whichever is up. `ArenaScreen` is three windows - a banner with one bar for `ArenaSim.shown_foe()`,
@@ -1514,7 +1532,7 @@ validator that has only ever passed is decoration.
   and states that choice a second time, in `Qa._arena_choice`, because `Qa` ships and
   `tests/helpers` does not: an autoload naming `ArenaDriver` would not load in a packed build.
   `test_qa_ops` holds the two to one answer on every branch the choice takes. `assert_game` is how a
-  session that PICKED its game proves which one it got.
+  session that picked its game proves which one it got; none does while one game ships (M51).
 - **Authoring a session by SLICING another one cuts on the step that opens the leg**, never on a
   repeated marker. Taking "everything up to the last `assert_state battle`" kept the source
   script's own spell leg, so the new script's cursor landed two rows off and cast the wrong
@@ -1902,9 +1920,10 @@ is the same rule for the same reason.
 
 Drive the real game from a script, or photograph it. QA scripts live under
 `tests/fixtures/qa/<game>/` and `check.sh` runs every one with `--game=<that directory>`, so
-a new script needs no edit to the gate. A directory that names no game - `menu/` - runs with no
-`--game=` at all, which is the deployed page's shape and the only way a session meets the title's
-Switch game row; `pack_check.sh` and `mutate_check.sh` apply the same rule:
+a new script needs no edit to the gate. A directory that names no game runs with no `--game=` at
+all, which is the deployed page's shape and the only way a session meets the title's Switch game row
+(none does since M51 retired the second game); `pack_check.sh` and `mutate_check.sh` apply the same
+rule:
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/quest/talk_to_npc.json --game=quest
