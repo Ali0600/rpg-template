@@ -598,6 +598,19 @@ window in either kind of art. It READS the move actions through `Locomotion.read
 frame and takes `interact` as a PRESS, so holding it is one swing. A body flickers two frames on and
 two off for as long as it is protected, and a felled foe leaves the floor.
 
+**The swing is the art's own, and the floor is the ground the fight began on** (`docs/DECISIONS.md`,
+M50; §7d, where both Zeldas draw the sword as a sprite stepped by the hitbox's own counter and Zelda
+II picks its fight scene from the terrain). A leader whose sheet draws LPC's `slash` plays it one
+picture at a time from `ArenaSim.swing_step` through `SpriteView.hold_frame`, so the picture and the
+hitbox are one count; art with no slash - the rig's - shows a drawn edge sweeping the sword's reach
+instead, and never both. The floor is laid, behind everything on it, with the tile under the map
+record whose fight this is (`world_scene._arena_ground`, `TileSetFactory.walkable_region`); a key no
+record answers to, or a tile nobody could stand on, keeps the plain window, which is also what every
+standalone test gets. The drawn slash and the ground carry `ArenaScreen.FIELD`, which is how the
+layout audit tells a floor layer from a collision. The help line names both verbs, and
+`READOUT_CAPACITY` 999 is the widest leader readout the panel is laid out for: declared there,
+measured by `test_arena_layout`, refused past by `test_battle_content`.
+
 **Both sides are a LIST, and one map record names the formation.** A record keeps its `enemy`
 and gains an optional `group`, so the body you walk into is the first foe and the rest ride with
 it - Super Mario RPG's shape, where one touched sprite opens a formation the ROM already knew
@@ -1356,7 +1369,10 @@ Everything known about LPC's layout is a CONSTANT in `LpcImport`, measured from 
 source rather than remembered: 64px frames, 13 columns, every animation at a FIXED row whatever
 was enabled (walk is always rows 8-11, so a sheet is addressed and never searched), rows within a
 block running up, left, down, right - NOT this template's order, so the walk block is RE-CUT into
-canonical rows rather than relabelled - and frame 0 the standing pose. Idle is that standing
+canonical rows rather than relabelled - and frame 0 the standing pose. The slash, LPC rows 12-15,
+is cut into the six columns after the walk only when a sheet draws it facing all four ways, as a clip
+that plays once, and nothing is MEASURED from it: a lunge must not move the ground line the whole
+cast is placed by, so the anchor stays the walk's. Idle is that standing
 frame, as the rig's is: the generator's own idle rows are drawn for only some assets, and a hat
 that vanishes when a character stops walking is worse than no breathing.
 
@@ -1680,7 +1696,10 @@ composes them the way the browser does. `LpcCompose` is the generator's renderin
 measured from its source: per-body-type paths, zPos order, palette-by-index recolour at the
 generator's own +/-1 tolerance, file-variant items named by colour. It writes the SAME two files
 the web app downloads plus the recipe beside them, and runs `LpcImport.problems()` on what it made
-before writing anything. An authoring convenience, never a gate: the drift gate still compares
+before writing anything. A recipe may ask for `"animations": ["walk", "slash"]`, and a layer may say
+`"only": ["slash"]` - a weapon drawn in the swing and nowhere else, which the browser cannot express;
+a recipe naming neither plans exactly what it always did, byte for byte. An authoring convenience,
+never a gate: the drift gate still compares
 committed inputs to committed outputs and never reaches the network. `--preview=<png>` draws the
 four directions through `LpcImport.build`, so what is looked at is what the game loads - and LOOK
 FOR PROBLEMS: two of the first four designs were re-cut after their previews, one for a fringe
