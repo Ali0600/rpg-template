@@ -39,6 +39,9 @@ scripts/spritegen/tile_set_factory.gd	s|if not bool\(e.get\(\"solid\", false\)\)
 scripts/world/sprite_view.gd	s|_sprite.centered = false|_sprite.centered = true|	tests/integration/test_sprite_view_scene.gd	the sprite origin stops being the character's feet
 scripts/world/sprite_view.gd	s|_sprite.offset = -Vector2\(meta.anchor\)|_sprite.offset = Vector2.ZERO|	tests/integration/test_sprite_view_scene.gd	the measured anchor stops positioning the sprite
 scripts/world/sprite_view.gd	s|if clip_name == _clip and dir == _facing:|if false:|	tests/integration/test_sprite_view_scene.gd	an unchanged pose is re-issued every frame
+scripts/world/sprite_view.gd	s|_sprite.pause\(\)|pass|	tests/integration/test_sprite_view_scene.gd	a held frame keeps playing on the clip's own clock
+scripts/world/sprite_view.gd	s|_sprite.set_frame_and_progress\(clampi\(index, 0, total - 1\), 0.0\)|pass|	tests/integration/test_sprite_view_scene.gd	a hold shows whichever frame the clip happened to be on
+scripts/world/sprite_view.gd	s|^\t\t_sprite.play\(\)$|\t\tpass|	tests/integration/test_sprite_view_scene.gd	a view held once never plays again
 scripts/ui/sprite_lab.gd	s|if not _gate.accept\(event\):|if false:|	tests/integration/test_sprite_view_scene.gd	one input event is acted on twice
 
 # --- M3: movement, maps and game flow ---
@@ -920,6 +923,8 @@ scripts/ui/arena_sim.gd	s|BattleLogic.gold_of\(_foes\)\)|0)|	tests/unit/test_are
 scripts/ui/arena_sim.gd	s|if _last_struck >= 0 and not foe_down\(_last_struck\):|if false:|	tests/unit/test_arena_sim.gd	the bar ignores the blow and always shows the nearest foe
 scripts/ui/arena_sim.gd	s|if _outcome != BattleLogic.Outcome.NONE:|if false:|	tests/unit/test_arena_sim.gd	a finished fight keeps running
 scripts/ui/arena_sim.gd	s|\t_sounds.clear\(\)|\tpass|	tests/unit/test_arena_sim.gd	a cue handed over plays again every frame
+scripts/ui/arena_sim.gd	s|return mini\(shown \* steps / painted, steps - 1\)|return 0|	tests/unit/test_arena_sim.gd	the swing is drawn frozen on its first picture
+scripts/ui/arena_sim.gd	s|if _swing_left <= 0 or steps <= 0:|if false:|	tests/unit/test_arena_sim.gd	a sword put away still names a picture of its swing
 scripts/data/combat_def.gd	s|if swing_frames <= 0:|if false:|	tests/unit/test_combat_def.gd	a sword that is never out ships
 scripts/data/combat_def.gd	s|if hurt_frames <= 0 or foe_hurt_frames <= 0:|if false:|	tests/unit/test_combat_def.gd	a hit that protects for no frames ships, so one touch lands every frame
 scripts/data/combat_def.gd	s|elif push_frames > mini\(hurt_frames, foe_hurt_frames\):|elif false:|	tests/unit/test_combat_def.gd	a shove outlasting its protection ships, sliding a body into the next hit

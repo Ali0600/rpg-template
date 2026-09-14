@@ -137,3 +137,41 @@ func test_one_press_toggles_the_pose_exactly_once() -> void:
 	await runner.await_input_processed()
 	await runner.simulate_frames(2)
 	assert_str(String(view.clip())).is_equal("walk")
+
+
+func test_a_held_frame_is_the_frame_asked_for_and_does_not_play_on() -> void:
+	# The arena shows the frame of a swing its own counter names, not whichever one an fps clock has
+	# reached - so a hold lands on the index asked for and does not move on by itself.
+	var view: SpriteView = auto_free(SceneHelpers.view_for(&"hero"))
+	add_child(view)
+	await await_idle_frame()
+	var sprite := SceneHelpers.find_by_class(view, "AnimatedSprite2D") as AnimatedSprite2D
+	view.hold_frame(&"walk", Dir.D.LEFT, 2)
+	assert_str(String(view.current_animation())).is_equal(String(Dir.anim_name(&"walk", Dir.D.LEFT)))
+	assert_int(view.current_frame()).override_failure_message(
+		"the hold shows frame %d, not the frame asked for" % view.current_frame()).is_equal(2)
+	assert_bool(sprite.is_playing()).override_failure_message(
+		"a held frame is still playing on the clip's own clock").is_false()
+	view.hold_frame(&"walk", Dir.D.LEFT, 99)
+	assert_int(view.current_frame()).override_failure_message(
+		"a hold past the end of the clip does not show its last frame").is_equal(view.frames_in(&"walk") - 1)
+
+func test_a_pose_asked_for_after_a_hold_plays_again() -> void:
+	# Even the pose it was holding: a swing that ends on its walk frame must go back to walking.
+	var view: SpriteView = auto_free(SceneHelpers.view_for(&"hero"))
+	add_child(view)
+	await await_idle_frame()
+	var sprite := SceneHelpers.find_by_class(view, "AnimatedSprite2D") as AnimatedSprite2D
+	view.hold_frame(&"walk", Dir.D.DOWN, 1)
+	view.set_pose(&"walk", Dir.D.DOWN)
+	assert_bool(sprite.is_playing()).override_failure_message(
+		"a view held once never plays again").is_true()
+
+func test_frames_in_counts_a_clip_and_answers_nought_for_one_the_sheet_does_not_draw() -> void:
+	var view: SpriteView = auto_free(SceneHelpers.view_for(&"hero"))
+	add_child(view)
+	await await_idle_frame()
+	var meta: SheetMeta = FileSpriteSource.create(&"gb16").sheet(&"hero")["meta"]
+	assert_int(view.frames_in(&"walk")).is_equal(meta.frames_of("walk").size())
+	assert_int(view.frames_in(&"walk")).is_greater(1)
+	assert_int(view.frames_in(&"slash")).is_equal(0)

@@ -18,6 +18,8 @@ var _meta: SheetMeta
 var _facing: int = Dir.D.DOWN
 var _clip: StringName = &"idle"
 var _play_count := 0
+## True while a frame is being held by hold_frame rather than played by the clip's own clock.
+var _held := false
 
 
 func _ready() -> void:
@@ -68,11 +70,40 @@ func clip() -> StringName:
 ## contract this class should lean on, and a future `stop(); play()` here would turn a
 ## per-frame call into a walk cycle frozen on frame 0.
 func set_pose(clip_name: StringName, dir: int) -> void:
+	if _held:
+		_held = false
+		_sprite.play()
 	if clip_name == _clip and dir == _facing:
 		return
 	_clip = clip_name
 	_facing = dir
 	_play()
+
+
+## Shows one frame of a clip and holds it there, for a caller whose own clock decides which frame
+## it is - the arena, whose swing is counted in physics frames rather than played at a speed. An
+## index past the clip's end shows its last frame. The next set_pose lets the clip run again.
+func hold_frame(clip_name: StringName, dir: int, index: int) -> void:
+	if _sprite.sprite_frames == null:
+		return
+	if clip_name != _clip or dir != _facing:
+		_clip = clip_name
+		_facing = dir
+		_play()
+	var total := _sprite.sprite_frames.get_frame_count(Dir.anim_name(_clip, _facing))
+	if total <= 0:
+		return
+	_held = true
+	_sprite.pause()
+	_sprite.set_frame_and_progress(clampi(index, 0, total - 1), 0.0)
+
+
+## How many frames a clip of this character's sheet has, and nought for a clip the sheet does not
+## draw - which is how a caller asks whether it can be shown at all.
+func frames_in(clip_name: StringName) -> int:
+	if _meta == null:
+		return 0
+	return _meta.frames_of(String(clip_name)).size()
 
 
 ## How many times an animation has actually been (re)started. The guard above changes HOW the
