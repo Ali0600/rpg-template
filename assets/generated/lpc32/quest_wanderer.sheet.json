@@ -11,6 +11,18 @@
 			],
 			"loop": true
 		},
+		"slash": {
+			"fps": 12,
+			"frames": [
+				9,
+				10,
+				11,
+				12,
+				13,
+				14
+			],
+			"loop": false
+		},
 		"walk": {
 			"fps": 8,
 			"frames": [
@@ -31,7 +43,7 @@
 		64
 	],
 	"character": "quest_wanderer",
-	"columns": 9,
+	"columns": 15,
 	"directions": [
 		"down",
 		"left",

@@ -821,6 +821,23 @@
 				"https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
 				"https://opengameart.org/user/1727"
 			]
+		},
+		{
+			"authors": [
+				"Johannes Sjölund (wulax)",
+				"Matthew Krohn (makrohn)",
+				"bluecarrot16"
+			],
+			"file": "weapon/sword/dagger",
+			"licenses": [
+				"CC-BY-SA 3.0",
+				"GPL 3.0",
+				"OGA-BY 3.0"
+			],
+			"urls": [
+				"https://opengameart.org/content/lpc-extended-weapon-animations",
+				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
+			]
 		}
 	],
 	"generator": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
