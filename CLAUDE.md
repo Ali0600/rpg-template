@@ -1268,12 +1268,18 @@ pressing, so opening on "Start again" turns one more press into a restarted run.
 session found that one within a minute.
 
 **A setting is not a save.** `Settings` owns `user://settings.json` - global, outside every
-slot, surviving a new game and a deleted save. It carries no version: one field, an
-unrecognised value falls back to the default, and the next write repairs the file. Redirected
-under `--qa-script` exactly as saves are, and `test_settings.gd` ASSERTS the redirect is in
-effect before touching anything - a suite that cycles the volume would otherwise write the
-player's real preference, and the mutation harness runs that suite with the code deliberately
-broken.
+slot, surviving a new game and a deleted save. It carries no version: an unrecognised value falls
+back to the default, and the next write repairs the file. Since M51 it holds a word per play choice
+(`PlayChoices.AXES`: fights, movement, saving) beside the volume and the palette, and a setting now
+decides which screen a fight opens - so it is redirected for a scripted session AND for any run of
+the test runner, through ONE predicate, `GameSelect.is_scratch_run`, which `SaveManager.dir_for`
+asks too. The runner's command line always names `addons/gdUnit4/` (measured: the `-s` path is in
+`OS.get_cmdline_args()`), and a flag of our own is not an option because the runner refuses
+arguments it does not know. The scratch settings file is emptied at boot the way the scratch saves
+are: sessions run one after another, and one that chose the sword would hand it to every session
+after it. `test_settings.gd` still ASSERTS the redirect is in effect before touching anything, and
+no suite may put `SaveManager.base_dir` back to `DEFAULT_DIR` in its teardown - that undid the
+redirect for every suite after it, and `test_saves` reads the suites' text for it.
 
 **Do not give an autoload a name that ends another identifier.** `compile_all.gd` decides what
 to skip by looking for `Name.`, and `Settings.` occurs inside `ProjectSettings.` - nine files

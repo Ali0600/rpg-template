@@ -171,3 +171,71 @@ func test_a_qa_run_never_touches_the_real_file() -> void:
 	assert_str(Settings.path_for(qa)).is_equal(Settings.QA_PATH)
 	assert_str(Settings.path_for(PackedStringArray([]))).is_equal(Settings.DEFAULT_PATH)
 	assert_str(Settings.QA_PATH).is_not_equal(Settings.DEFAULT_PATH)
+
+
+func test_a_run_of_the_test_runner_never_reads_the_real_file_either() -> void:
+	# Since M51 a setting decides which screen a fight opens, so a suite reading the developer's own
+	# file would pass on one machine and fail on another. Asked of this very process too, which is
+	# the outcome rather than the rule: the file every suite here boots against is the scratch one.
+	var runner := PackedStringArray(["-s", "addons/gdUnit4/bin/GdUnitCmdTool.gd", "-a", "tests"])
+	assert_str(Settings.path_for(runner)).is_equal(Settings.QA_PATH)
+	assert_str(Settings.path_for(GameSelect.args())).override_failure_message(
+		"this test run reads the developer's own settings file").is_equal(Settings.QA_PATH)
+
+
+func test_no_play_choice_is_made_to_begin_with() -> void:
+	# The game's own, on every axis: what a player who never opens Options gets.
+	for axis: StringName in PlayChoices.AXES:
+		assert_str(String(Settings.play_choice(axis))).is_equal(String(Settings.NO_CHOICE))
+
+
+func test_a_play_choice_survives_a_restart_and_each_axis_keeps_its_own() -> void:
+	assert_bool(Settings.choose_play(PlayChoices.FIGHTS, &"arena")).is_true()
+	assert_bool(Settings.choose_play(PlayChoices.MOVEMENT, &"grid")).is_true()
+	Settings.use_path(SCRATCH)
+	assert_str(String(Settings.play_choice(PlayChoices.FIGHTS))).override_failure_message(
+		"the fight style chosen did not survive being read back").is_equal("arena")
+	assert_str(String(Settings.play_choice(PlayChoices.MOVEMENT))).is_equal("grid")
+	assert_str(String(Settings.play_choice(PlayChoices.SAVING))).override_failure_message(
+		"an axis nobody chose on came back holding somebody else's word").is_equal(
+			String(Settings.NO_CHOICE))
+
+
+func test_changing_the_volume_or_the_window_keeps_the_play_choices() -> void:
+	# Every field lives in one file, and a write that forgot one is only noticed after a restart.
+	assert_bool(Settings.choose_play(PlayChoices.SAVING, &"at_point")).is_true()
+	Settings.cycle_sound()
+	Settings.cycle_palette([&"mint"] as Array[StringName])
+	Settings.use_path(SCRATCH)
+	assert_str(String(Settings.play_choice(PlayChoices.SAVING))).is_equal("at_point")
+
+
+func test_an_impossible_volume_does_not_take_the_play_choices_down_with_it() -> void:
+	assert_int(JsonFile.write(SCRATCH, {"sound_level": 99, "fights": "arena"})).is_equal(OK)
+	Settings.use_path(SCRATCH)
+	assert_int(Settings.sound_level()).is_equal(Settings.DEFAULT_LEVEL)
+	assert_str(String(Settings.play_choice(PlayChoices.FIGHTS))).override_failure_message(
+		"an unreadable volume threw the fight style away too").is_equal("arena")
+
+
+func test_a_play_choice_on_an_axis_nobody_offers_is_refused() -> void:
+	# Refused rather than kept: a misspelt axis would sit in memory answering a question no row asks.
+	assert_bool(Settings.choose_play(&"fightz", &"arena")).is_false()
+	assert_str(String(Settings.play_choice(&"fightz"))).is_equal(String(Settings.NO_CHOICE))
+
+
+func test_the_scripted_runs_file_is_emptied_when_a_run_begins() -> void:
+	# Scripted sessions run one after another, each in its own process, and every one of them reads
+	# the same scratch file - so one that chose the sword would hand it to every session after it.
+	# The precondition first: this run's own path IS the scratch file, so the fresh instance below
+	# can only ever remove that one, whatever is wrong with the code under test.
+	assert_str(Settings.path_for(GameSelect.args())).is_equal(Settings.QA_PATH)
+	assert_int(JsonFile.write(Settings.QA_PATH, {"fights": "arena"})).is_equal(OK)
+	var fresh := (load("res://scripts/autoload/settings.gd") as GDScript).new() as Node
+	add_child(fresh)
+	assert_bool(FileAccess.file_exists(Settings.QA_PATH)).override_failure_message(
+		"a run began and left the last run's choices in the scratch file").is_false()
+	assert_str(str(fresh.call("play_choice", PlayChoices.FIGHTS))).is_equal("")
+	fresh.free()
+	# The fresh instance pushed its own volume to the bus; the autoload's goes back.
+	Settings.set_sound_level(Settings.sound_level())

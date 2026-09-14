@@ -28,7 +28,7 @@ func after_test() -> void:
 		_world.free()
 	_world = null
 	SaveDirs.clear(TEST_DIR)
-	SaveManager.base_dir = SaveManager.DEFAULT_DIR
+	SaveManager.base_dir = SaveManager.dir_for(GameSelect.args())
 	GameState.reset()
 	Router.reset()
 

@@ -86,3 +86,23 @@ func test_the_shipped_project_boots_a_game_or_offers_them() -> void:
 			"the project ships games but neither boots one nor offers them").is_not_null()
 	else:
 		assert_int(offered.size()).is_equal(GameSelect.ids().size())
+
+
+func test_a_scripted_session_and_the_test_runner_keep_off_the_players_own_files() -> void:
+	# Both launch shapes of the runner - the CLI tool check.sh and the mutation harness use, and the
+	# scene the editor's panel starts - and a scripted session. A plain run, and one that only names
+	# its game, are the player's own.
+	assert_bool(GameSelect.is_scratch_run(PackedStringArray(["--qa-script=res://x.json"]))).is_true()
+	assert_bool(GameSelect.is_scratch_run(PackedStringArray(
+		["-s", "addons/gdUnit4/bin/GdUnitCmdTool.gd", "-a", "tests", "--ignoreHeadlessMode", "-c"]))
+		).override_failure_message("a run of the test runner reads the developer's own files").is_true()
+	assert_bool(GameSelect.is_scratch_run(PackedStringArray(
+		["--path", "/project", "res://addons/gdUnit4/src/core/runners/GdUnitTestRunner.tscn"]))).is_true()
+	assert_bool(GameSelect.is_scratch_run(_no_args())).is_false()
+	assert_bool(GameSelect.is_scratch_run(PackedStringArray(["--game=quest"]))).is_false()
+
+
+func test_this_run_is_itself_a_scratch_run() -> void:
+	# The outcome rather than the rule: the command line this suite was really started with.
+	assert_bool(GameSelect.is_scratch_run(GameSelect.args())).override_failure_message(
+		"the test run's own command line is not recognised: %s" % [GameSelect.args()]).is_true()

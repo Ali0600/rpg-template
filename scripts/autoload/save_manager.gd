@@ -43,11 +43,11 @@ func _ready() -> void:
 
 
 ## Where saves live for this run, as a pure function of the command line so it can be proven
-## without arranging a process.
+## without arranging a process. A scripted session and any run of the test runner both get the
+## scratch directory, through the predicate the settings file asks too.
 static func dir_for(args: PackedStringArray) -> String:
-	for arg in args:
-		if arg.begins_with(GameSelect.QA_ARG):
-			return QA_DIR
+	if GameSelect.is_scratch_run(args):
+		return QA_DIR
 	return DEFAULT_DIR
 
 
