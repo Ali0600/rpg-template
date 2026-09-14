@@ -972,6 +972,9 @@ scripts/ui/arena_screen.gd	s|if ground != null:|if false:|	tests/integration/tes
 scripts/ui/arena_screen.gd	s|out.size = Vector2\(tiles \* TILE_PX\)|out.size = Vector2(tiles * TILE_PX * 2)|	tests/integration/test_arena_layout.gd	the ground spills past the play area into the margins
 scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(out, 0\)|pass|	tests/integration/test_arena_layout.gd	the ground is drawn over the bodies and the slash
 scripts/ui/arena_screen.gd	s|piece.position = Vector2\(x \* TILE_PX, y \* TILE_PX\)|piece.position = Vector2.ZERO|	tests/integration/test_arena_layout.gd	every tile of ground is stacked in one corner
+scripts/ui/arena_screen.gd	s|const HELP := "WASD to move    E to swing"|const HELP := "E to swing"|	tests/integration/test_arena_layout.gd	the help line stops saying how to move
+scripts/ui/arena_screen.gd	s|const LEADER_BAR_WIDTH := 40.0|const LEADER_BAR_WIDTH := 60.0|	tests/integration/test_arena_layout.gd	a three-digit health readout runs into the help line
+scripts/ui/arena_screen.gd	s|const READOUT_CAPACITY := 999|const READOUT_CAPACITY := 9|	tests/unit/test_battle_content.gd	the panel is laid out for less health than the arena game's leader reaches
 scripts/autoload/qa.gd	s|if arena != null:|if false:|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	fight_well never plays an arena, so a session stands in one until its frame cap
 scripts/autoload/qa.gd	s|for node in scene.find_children\("", "ArenaScreen", true, false\):|for node in scene.find_children("", "BattleScreen", true, false):|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	the harness looks for the turn fight's screen in the arena and finds nothing to play
 scripts/autoload/qa.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_qa_ops.gd	the harness's arena play stops agreeing with the balance gate's PERFECT

@@ -772,3 +772,20 @@ func test_every_arena_fight_is_won_by_the_sword_and_can_be_lost_to_a_touch() -> 
 		assert_int(careless.touches).override_failure_message(
 			"nothing in '%s' ever touched a player who walked into it" % record_id).is_greater(0)
 	assert_int(played).is_greater(1)
+
+
+func test_no_arena_game_s_leader_outgrows_the_readout_its_screen_is_laid_out_for() -> void:
+	# The third part of READOUT_CAPACITY's rule: ArenaScreen declares it, test_arena_layout measures a
+	# leader at it beside the help line, and this refuses a shipped arena game whose leader could grow
+	# past it - the top of the curve being the most health anybody reaches.
+	var checked := 0
+	for manifest in GameSelect.manifests():
+		if manifest.combat == null or manifest.combat.style != CombatDef.STYLE_ARENA:
+			continue
+		checked += 1
+		var top := manifest.combat.xp_curve.size() + 1
+		assert_int(manifest.combat.max_hp(top)).override_failure_message(
+			"'%s' lets its leader reach %d health; the arena's panel is laid out for %d"
+			% [manifest.id, manifest.combat.max_hp(top), ArenaScreen.READOUT_CAPACITY]
+			).is_less_equal(ArenaScreen.READOUT_CAPACITY)
+	assert_int(checked).is_greater(0)

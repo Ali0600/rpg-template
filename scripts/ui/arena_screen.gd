@@ -32,10 +32,16 @@ const BANNER_HEIGHT := 24.0
 const FLOOR_Y := 32.0
 const PANEL_GAP := 4.0
 const FOE_BAR_WIDTH := 80.0
-const LEADER_BAR_WIDTH := 60.0
+## Shorter than the foe's, so a three-digit readout beside it still clears the help line.
+const LEADER_BAR_WIDTH := 40.0
+## The largest health figure the leader's panel is laid out for. A DECLARED capacity: the layout
+## audit measures a leader at it beside the help line, and the content gate refuses an arena game
+## whose leader could grow past it.
+const READOUT_CAPACITY := 999
 ## A protected body is shown this many frames and hidden this many, for as long as it lasts.
 const FLICKER_SPAN := 2
-const HELP := "E to swing"
+## Both verbs, on the keys they are bound to, in the help line every other screen here uses.
+const HELP := "WASD to move    E to swing"
 ## The clip an imported hero swings with, cut from the LPC generator's own slash rows.
 const SLASH := &"slash"
 ## Tagged on the floor's own layers - the drawn slash, and the ground - so the layout audit treats

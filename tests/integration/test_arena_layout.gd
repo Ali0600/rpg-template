@@ -26,6 +26,8 @@ func _combat() -> CombatDef:
 	out.style = CombatDef.STYLE_ARENA
 	out.xp_curve = [10]
 	out.arena_tiles = ArenaScreen.FLOOR_MAX_TILES
+	# The widest readout the panel is laid out for, so every audit below measures it beside the help.
+	out.base_hp = ArenaScreen.READOUT_CAPACITY
 	return out
 
 
@@ -61,8 +63,8 @@ func _screen(style_id: String, grounded := true) -> ArenaScreen:
 	var foes := [_enemy("The Keeper", &"quest_keeper"), _enemy("Slink", &"quest_slink"),
 		_enemy("Slink", &"quest_slink")]
 	assert_int(foes.size()).is_equal(FightScreen.MAX_FOES)
-	var sim := ArenaSim.of(combat, foes, [BattleHelpers.leader(combat)], "map/foe", 7,
-		GameConfig.new())
+	var sim := ArenaSim.of(combat, foes, [BattleHelpers.leader(combat, ArenaScreen.READOUT_CAPACITY)],
+		"map/foe", 7, GameConfig.new())
 	screen.setup(sim, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(StringName(style_id)),
 		_grass(style_id) if grounded else null)
 	_screens.append(screen)
@@ -325,3 +327,27 @@ func test_every_style_lays_its_ground_one_texture_pixel_to_a_whole_number_of_win
 		assert_float(per_texel).is_greater_equal(1.0)
 		checked += 1
 	assert_int(checked).is_greater(1)
+
+
+func _binds(action: StringName, key: int) -> bool:
+	for event in InputMap.action_get_events(action):
+		var pressed := event as InputEventKey
+		if pressed != null and (pressed.physical_keycode == key or pressed.keycode == key):
+			return true
+	return false
+
+func test_the_help_line_names_moving_and_swinging_on_keys_that_are_bound() -> void:
+	var screen := _screen("dusk16")
+	assert_str(screen._help.text).is_equal(ArenaScreen.HELP)
+	assert_bool(screen._help.visible).is_true()
+	assert_str(screen._leader_bar.numbers.text).override_failure_message(
+		"the audits are not measuring the widest readout").is_equal("999/999")
+	var words := ArenaScreen.HELP.to_lower().split(" ", false)
+	for word: String in ["wasd", "move", "e", "swing"]:
+		assert_bool(words.has(word)).override_failure_message(
+			"the help line '%s' does not say '%s'" % [ArenaScreen.HELP, word]).is_true()
+	# Every key it names does what it says: a shop here once told players to press a key nothing binds.
+	assert_bool(_binds(&"interact", KEY_E)).override_failure_message("E does not swing").is_true()
+	for pair: Array in [[&"move_up", KEY_W], [&"move_left", KEY_A], [&"move_down", KEY_S], [&"move_right", KEY_D]]:
+		assert_bool(_binds(pair[0], int(pair[1]))).override_failure_message(
+			"%s is not on its WASD key" % pair[0]).is_true()
