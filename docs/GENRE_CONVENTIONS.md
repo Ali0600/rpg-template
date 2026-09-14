@@ -1580,7 +1580,7 @@ which is why the flavour names are about colour and nothing about shape.
 An `Options` row on the title **and** in the pause menu, opening one screen — Pokémon's placement,
 because this template has a title screen that FF6 does not and a player should not have to start a
 run to turn the sound down. Its rows are **Sound** (four named steps) and **Window** (a named
-palette).
+palette), and since M51 rows about how the game plays follow them (§16c).
 
 - **Divergence 1: named palettes, not three colour bars.** FF6 edits one window's RGB, and this
   template's window is not one colour: `SpriteStyle.UI_ROLES` is eight roles, and a screen reads

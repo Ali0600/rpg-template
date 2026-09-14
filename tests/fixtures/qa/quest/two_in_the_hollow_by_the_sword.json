@@ -1,15 +1,111 @@
 {
 	"_readme": [
-		"The hollow's first fight, fought with a sword - The Barred Gate: Arena, which this directory names.",
-		"Everything up to the fight is two_in_the_hollow.json's own road, step for step, taken from it",
-		"when this was written: the same maps, the same companion, the same gap. What changes is the",
-		"encounter, which opens the arena because this game's CombatDef says so, and fight_well plays it.",
+		"The hollow's first fight, fought with the sword a player chooses on the Options page.",
+		"Since M51 the sword is a choice rather than a second game: this session opens Options at the",
+		"title, turns Fights from Turns to Sword, and then walks two_in_the_hollow.json's own road, step",
+		"for step. The encounter opens the arena because the choice says so, and fight_well plays it.",
 		"It is the only session that drives the arena through a real encounter on a real map."
 	],
 	"steps": [
 		{
+			"op": "note",
+			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits, Options - two move_ups reach Options, one onto Continue and one that wraps round the top."
+		},
+		{
 			"op": "assert_state",
 			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "options_at_title"
+		},
+		{
+			"op": "note",
+			"text": "the page's rows: Sound, Window, Fights - two presses down reach Fights, and one press turns Turns into Sword. A --qa-script run empties its settings file at boot, so this is the only choice in force."
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "options_at_title"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "back on Options: two presses down wrap onto Continue and then New game, and the run begins"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
 		},
 		{
 			"op": "press",

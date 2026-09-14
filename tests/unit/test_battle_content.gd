@@ -631,72 +631,35 @@ func test_two_tonics_are_what_sits_between_those_two_outcomes() -> void:
 
 # -- the arena --------------------------------------------------------------------------------
 #
-# The Barred Gate: Arena is the same game fought with a sword, so its fights are balanced by the
-# same kind of instrument one resolver along: ArenaSim played to the end by ArenaDriver, over the
-# formation the map names and the party the player is guaranteed. The leader fights alone and the
-# party shares the award, which ArenaSim.of already does with the party it is handed.
+# Since M51 the sword is a choice a player makes in Options, so every encounter The Barred Gate ships
+# can be fought in the arena, with the game's own fighter. Its fights are balanced by the same kind of
+# instrument one resolver along: ArenaSim played to the end by ArenaDriver, over the formation the map
+# names and the party the player is guaranteed. The leader fights alone and the party shares the
+# award, which ArenaSim.of already does with the party it is handed. ArenaSim reads a fighter's
+# numbers and never its `style`, so the curve the turn fight is balanced against is the arena's too,
+# and every level beat of the quest stays true with a sword.
 
-const ARENA_PATH := "res://data/games/quest_arena.tres"
-## Every number the arena added to CombatDef: the only ones the arena's fighter may differ in from
-## the quest's. Written out rather than read from the class, so the control test below cannot be
-## widened by adding a field.
-const ARENA_FIELDS := ["swing_frames", "swing_reach_tiles", "hurt_frames", "foe_hurt_frames",
-	"push_tiles", "foe_push_tiles", "push_frames", "wander_min_frames", "wander_max_frames",
-	"arena_tiles"]
 ## Seeds the careless player is judged over, and how many of them it may win. Measured 2026-09-14:
 ## walking into the Keeper at level 2 won 4 of 48, and 2 or 3 at every flash length tried from 32
 ## frames to 48.
 const CARELESS_SEEDS := 48
 const CARELESS_WINS_ALLOWED := 6
 
-func _arena() -> GameManifest:
-	return load(ARENA_PATH) as GameManifest
-
 func _arena_fight(record_id: String, level: int, seed_value: int) -> ArenaSim:
-	var manifest := _arena()
+	var manifest := _quest()
 	var found := _encounter(record_id)
 	var map: MapData = found["map"]
 	return ArenaSim.of(manifest.combat, _defs_of(record_id),
 		BattleHelpers.party_of(manifest, _guaranteed_party(manifest, map.id), level),
 		"%s/%s" % [map.id, record_id], seed_value, manifest.config)
 
-## The stored properties two resources disagree about, by name.
-func _differing(a: Resource, b: Resource) -> Array[String]:
-	var out: Array[String] = []
-	for prop: Dictionary in a.get_property_list():
-		if int(prop["usage"]) & PROPERTY_USAGE_STORAGE == 0:
-			continue
-		var field: String = prop["name"]
-		if a.get(field) != b.get(field):
-			out.append(field)
-	return out
-
-func test_the_arena_game_differs_from_the_quest_only_where_it_was_chosen_to() -> void:
-	# M11's control-instance rule as a gate. A second game that varies a knob nobody chose turns
-	# every difference a player feels into a suspected defect, so the two manifests may differ in
-	# their id, their title and which fighter they name - and the two fighters in their id, their
-	# style and the arena's own numbers. The curves staying equal is what keeps every level beat
-	# of the quest true in the arena.
-	var quest := _quest()
-	var arena := _arena()
-	assert_array(_differing(quest, arena)).override_failure_message(
-		"the two games differ in %s; only id, title and combat were chosen" % str(_differing(quest, arena))
-		).contains_exactly_in_any_order(["id", "title", "combat"])
-	var chosen: Array = ["id", "style"] + ARENA_FIELDS
-	var fighters := _differing(quest.combat, arena.combat)
-	assert_array(fighters).contains(["style"])
-	for field in fighters:
-		assert_bool(chosen.has(field)).override_failure_message(
-			"the arena's fighter differs from the quest's in '%s', which is not an arena number" % field
-			).is_true()
-
-func test_every_arena_a_game_ships_fits_the_floor_the_screen_draws() -> void:
+func test_every_game_that_can_fight_fits_the_arena_floor_the_screen_draws() -> void:
 	# The capacity rule's third part, for the arena: ArenaScreen DECLARES the widest floor it draws,
-	# test_arena_layout MEASURES a screen built at it, and this refuses data past it. Over every
-	# shipped game, so a third game whose fighter says `arena` is held to the same room.
+	# test_arena_layout MEASURES a screen built at it, and this refuses data past it. Every shipped game
+	# that can fight, because since M51 any of them can be fought with the sword.
 	var checked := 0
 	for manifest in GameSelect.manifests():
-		if manifest.combat == null or manifest.combat.style != CombatDef.STYLE_ARENA:
+		if manifest.combat == null:
 			continue
 		checked += 1
 		var tiles := manifest.combat.arena_tiles
@@ -736,7 +699,7 @@ func test_the_arena_boss_is_won_by_reach_and_lost_by_walking_into_him() -> void:
 
 func test_no_shipped_formation_is_unwinnable_with_a_sword() -> void:
 	# The turn fight's version of this plays one seed; an arena wanders at random, so it plays twelve.
-	var combat := _arena().combat
+	var combat := _quest().combat
 	var top := combat.xp_curve.size() + 1
 	var played := 0
 	for entry: Variant in _encounters():
@@ -774,13 +737,14 @@ func test_every_arena_fight_is_won_by_the_sword_and_can_be_lost_to_a_touch() -> 
 	assert_int(played).is_greater(1)
 
 
-func test_no_arena_game_s_leader_outgrows_the_readout_its_screen_is_laid_out_for() -> void:
+func test_no_leader_outgrows_the_readout_the_arena_is_laid_out_for() -> void:
 	# The third part of READOUT_CAPACITY's rule: ArenaScreen declares it, test_arena_layout measures a
-	# leader at it beside the help line, and this refuses a shipped arena game whose leader could grow
-	# past it - the top of the curve being the most health anybody reaches.
+	# leader at it beside the help line, and this refuses a shipped game whose leader could grow past it
+	# - the top of the curve being the most health anybody reaches. Every game that can fight, because
+	# since M51 any of them can be fought with the sword.
 	var checked := 0
 	for manifest in GameSelect.manifests():
-		if manifest.combat == null or manifest.combat.style != CombatDef.STYLE_ARENA:
+		if manifest.combat == null:
 			continue
 		checked += 1
 		var top := manifest.combat.xp_curve.size() + 1

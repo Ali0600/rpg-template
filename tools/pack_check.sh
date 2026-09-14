@@ -264,10 +264,12 @@ ran=0
 # generated file out of the pack. Every other gate in this project runs against res://, where
 # assets/generated is simply a directory - so "credits.json did not get packed" is a defect only
 # this can see, and it is the shape M14 shipped in the audio seam.
-# pick_the_arena is here because it is the only session that proves what the deployed page does with
-# two games: it runs with no --game=, meets the title's Switch game row, and starts the other game.
+# two_in_the_hollow_by_the_sword is here because it is the only session that chooses the sword on the
+# Options page and fights with it, so the Fights row and the arena's screen are proven in the artifact
+# a player downloads rather than only in res://.
 for session in quest/the_game_makes_noise quest/talk_to_npc quest/warp_between_maps \
-    quest/save_and_load quest/read_the_credits quest/change_the_options menu/pick_the_arena; do
+    quest/save_and_load quest/read_the_credits quest/change_the_options \
+    quest/two_in_the_hollow_by_the_sword; do
   name="${session#*/}"
   script="$ROOT/tests/fixtures/qa/$session.json"
   [ -f "$script" ] || { echo "FAIL  no such play script: $script"; fail=1; continue; }

@@ -16,6 +16,11 @@ extends RefCounted
 
 const DIR := "res://data/games"
 
+## Where manifests are read from: DIR, except while a suite points it at fixture games to stage a
+## build that carries more than one, which the shipped build no longer does (M51). A var for
+## MapData.root's reason, and set BEFORE a world is instanced, because the world's _ready reads it.
+static var root := DIR
+
 ## Committed in project.godot next to run/main_scene, so it rides in the exported .pck and
 ## the editor, CI and the web build all read the same fact.
 const SETTING := "application/config/game"
@@ -77,7 +82,7 @@ static func should_ask(game_ids: Array[String], args_in: PackedStringArray, sett
 ## Every game manifest on disk, sorted by id.
 static func manifests() -> Array[GameManifest]:
 	var out: Array[GameManifest] = []
-	for res in ContentScan.resources(DIR):
+	for res in ContentScan.resources(root):
 		var manifest := res as GameManifest
 		if manifest != null and not String(manifest.id).is_empty():
 			out.append(manifest)
@@ -129,7 +134,7 @@ static func resolve() -> GameManifest:
 	var chosen := choose(available, args(), str(ProjectSettings.get_setting(SETTING, "")))
 	if chosen.is_empty():
 		if available.is_empty():
-			push_error("GameSelect: no game manifests in %s" % DIR)
+			push_error("GameSelect: no game manifests in %s" % root)
 		else:
 			push_error("GameSelect: %d games (%s) and nothing chose between them - set %s in project.godot or pass %s<id>"
 				% [available.size(), ", ".join(available), SETTING, ARG])
@@ -140,5 +145,5 @@ static func resolve() -> GameManifest:
 	for manifest in all:
 		if String(manifest.id) == chosen:
 			return manifest
-	push_error("GameSelect: no game with id '%s' in %s (have: %s)" % [chosen, DIR, ", ".join(available)])
+	push_error("GameSelect: no game with id '%s' in %s (have: %s)" % [chosen, root, ", ".join(available)])
 	return null

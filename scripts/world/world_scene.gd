@@ -205,11 +205,48 @@ func _on_options_window() -> void:
 	_refresh_options()
 
 
-## The words on the options rows, from the two places that own them.
+## The player pressed a play row (M51). Which values the game offers is a manifest question, so it
+## is asked here; the next one is written and the row says what it now is. Nothing is rebuilt: a
+## fight style takes hold at the next fight, the only moment it is read.
+func _on_options_play(axis: StringName) -> void:
+	var values := _play_offered(axis)
+	Settings.choose_play(axis, PlayChoices.next(values, _play_value(axis)))
+	_refresh_options()
+
+
+## The words on the options rows, from the places that own them.
 func _refresh_options() -> void:
 	if _options == null:
 		return
-	_options.refresh(Settings.sound_name(), _palette_word())
+	_options.refresh(Settings.sound_name(), _palette_word(), _play_words())
+
+
+## The game the play rows are about: the one running, or at the title the one on offer - the only
+## one that exists there, the slot list's own reason (_slot_summaries_for).
+func _manifest_in_view() -> GameManifest:
+	return _game if _game != null else _offered
+
+
+## What the game in view offers on `axis`.
+func _play_offered(axis: StringName) -> Array[StringName]:
+	return PlayChoices.offered(_manifest_in_view(), axis)
+
+
+## The value in effect on `axis`: the player's word when the game in view offers it, and the game's
+## own otherwise. PlayChoices.effective is where that fallback is written; this is where it is asked.
+func _play_value(axis: StringName) -> StringName:
+	return PlayChoices.effective(Settings.play_choice(axis), _play_offered(axis),
+		PlayChoices.declared(_manifest_in_view(), axis))
+
+
+## A word for each axis the game in view offers a real choice on. The page draws a row for the ones
+## it has a row for.
+func _play_words() -> Dictionary:
+	var out := {}
+	for axis: StringName in PlayChoices.AXES:
+		if PlayChoices.choosable(_play_offered(axis)):
+			out[axis] = PlayChoices.word(_play_value(axis))
+	return out
 
 
 ## What the Window row says. A palette's own name, or the word for none of them - worded HERE
@@ -1124,7 +1161,7 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 
 	_ensure_party()
 	_player.halt()
-	_battle = _fight_screen_for(_game.combat)
+	_battle = _fight_screen_for()
 	# Constructed and connected in one function, the open_pause rule: a view built in one place
 	# and wired in another is a view that eventually gets built and not wired.
 	_battle.sound_wanted.connect(_on_sound_wanted)
@@ -1173,11 +1210,13 @@ func _arena_ground(seen_key: String) -> Texture2D:
 	return null
 
 
-## Which screen resolves a fight in this game: the one place the style word is read. It is reached
-## only after every guard in open_battle_with has run, so a style chooses a screen and can never
-## let a fight through that would otherwise have been refused (docs/DECISIONS.md, M49).
-func _fight_screen_for(combat: CombatDef) -> FightScreen:
-	if combat.style == CombatDef.STYLE_ARENA:
+## Which screen resolves this fight: the one place the style word is read. It is reached only after
+## every guard in open_battle_with has run, so a style chooses a screen and can never let a fight
+## through that would otherwise have been refused (docs/DECISIONS.md, M49). Since M51 the word is the
+## player's when they chose one this game offers, and the game's own otherwise - read here, as a fight
+## opens, which is why a choice made in Options takes hold at the next fight.
+func _fight_screen_for() -> FightScreen:
+	if _play_value(PlayChoices.FIGHTS) == CombatDef.STYLE_ARENA:
 		return ArenaScreen.new()
 	return BattleScreen.new()
 
@@ -1936,10 +1975,11 @@ func open_options(over_world: bool = false) -> bool:
 	_options.sound_wanted.connect(_on_sound_wanted)
 	_options.sound_requested.connect(_on_options_sound)
 	_options.window_requested.connect(_on_options_window)
+	_options.play_requested.connect(_on_options_play)
 	_options.left.connect(_close_options)
 	_mount_ui(_options)
-	_options.setup(OptionsMenu.of(Settings.sound_name(), _palette_word()), _style, _ui_size(),
-		over_world)
+	_options.setup(OptionsMenu.of(Settings.sound_name(), _palette_word(), _play_words()), _style,
+		_ui_size(), over_world)
 	# Two states rather than one with a flag: what is underneath decides where leaving goes, and
 	# a state whose legal exit depends on something unwritten is what the flow model refuses.
 	Router.open_overlay(Router.State.OPTIONS if over_world else Router.State.OPTIONS_AT_TITLE)

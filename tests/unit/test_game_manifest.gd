@@ -250,7 +250,8 @@ func test_a_valid_party_is_accepted() -> void:
 
 func test_no_two_shipped_games_share_a_title() -> void:
 	# A player tells games apart on the title screen's Switch game row by nothing but the name at the
-	# top of it, so two games with one title make that row look like a press that did nothing.
+	# top of it, so two games with one title make that row look like a press that did nothing. While
+	# one game ships (M51) there is nothing to compare; it is kept for the build that carries two.
 	var seen := {}
 	var games := GameSelect.manifests()
 	assert_int(games.size()).is_greater(0)
