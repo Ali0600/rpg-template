@@ -3551,3 +3551,70 @@ fact, and "never" would be a claim about which seeds were picked.
 - A boss that holds its ground — `deferred — worth trying` when a game wants one. **Revisit hook:**
   `EnemyDef` beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove; its effect
   shows in `CARELESS_WINS_ALLOWED` in `tests/unit/test_battle_content.gd`.
+
+## The arena's swing is the art's own slash, and a drawn one only where the art has none — *M50*
+
+The arena's first photographs showed the sword as a flat block over its reach. §7d found that both
+Zeldas draw the sword as a sprite stepped by the counter that paces its hitbox, with nothing trailing
+an ordinary swing.
+
+- **The art's own slash** — LPC's `slash` animation, rows 12-15, composed with a weapon layer and
+  held one picture at a time from the swing's own frames.
+- **A drawn slash for every style** — a sweep over the reach in the window colours, and no art.
+- **A small sword drawn by the procedural rig** — a weapon part in every rig and every style.
+
+**Chosen: the art's own slash**, the owner's pick on 2026-09-14, with a drawn sweep where the art has
+none. At the pinned generator commit only the **dagger** draws its slash on the 64px frames the rest
+of a character uses; every other sword draws on 128 or 192px frames below the universal sheet.
+
+- A drawn slash for every style — `rejected — it hides a swing the artists drew`; kept only as the
+  fallback for art without one.
+- A sword drawn by the rig — `rejected — a weapon part in every rig and style, for a fallback`.
+- Oversize swords (arming sword, longsword, saber, rapier) — `deferred — worth trying`; the arming
+  sword has a bronze variant matching the game's Bronze sword. **Revisit hook:** `SheetMeta.cell` is
+  one cell size per sheet, so a 128px swing beside 64px walking cannot be described; the work starts
+  at `LpcCompose.CLIP_ROWS` and `LpcImport`.
+- **Unjudged by hand:** the dagger's drawn reach is shorter than the 0.75-tile hitbox. **Revisit
+  hook:** `CombatDef.swing_reach_tiles`.
+
+## A recipe layer may be drawn in some of its animations only — *M50*
+
+- **A layer `only` key**, which only this composer reads.
+- **The dagger in every animation**, the browser's behaviour.
+- **A second character id for fights**, sheets for an armed hero beside the unarmed one.
+
+**Chosen: `only`.** Drawn in every animation, the hero walks the village armed, and his portrait - cut
+from a walk frame - holds a blade.
+
+- The dagger in every animation — `rejected — a weapon on somebody with none equipped`.
+- A second character id — `rejected — two sheets for one person, free to drift apart`.
+
+## An arena is fought on the ground under its encounter — *M50*
+
+- **The ground tile under the map record the player walked into**, read from the map.
+- **A `ground` field on the enemy record** — a second statement of what the map already says.
+- **A floor tile on `CombatDef`** — one floor for every fight a game has, wherever it happens.
+
+**Chosen: the ground under the record**, the owner's pick on 2026-09-14. Zelda II picks its side-view
+scene from the terrain its fight began on (§7d). A solid or decorative tile, a key that names no
+record, and a caller with no map all keep the plain window.
+
+- A field on the record — `rejected — two statements of one fact`.
+- A floor on `CombatDef` — `deferred — worth trying` for a game whose fights happen somewhere else
+  entirely. **Revisit hook:** `world_scene._arena_ground`.
+
+## The arena's help line names both verbs, laid out for a three-digit readout — *M50*
+
+- **"WASD to move    E to swing"**, with the leader's bar shortened so a 999/999 readout still clears
+  it.
+- **"E to swing"**, as first built.
+- **The controls hint's own wording**, "WASD / arrows to walk".
+- **A second row** for the help.
+
+**Chosen: both verbs, in the house style** every other screen's help line uses.
+
+- "E to swing" — `rejected — names half of what a player does there`.
+- The hint's wording — `rejected — "look" is the map's verb, and the line is too wide to sit beside
+  a readout`.
+- A second row — `rejected — dusk16's floor window and panel already reach 174 of the 180 design
+  pixels`.
