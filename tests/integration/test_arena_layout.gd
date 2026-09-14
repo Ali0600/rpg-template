@@ -300,6 +300,20 @@ func _place_still(screen: ArenaScreen, player_at: Vector2i, foes_at: Array) -> v
 	screen.sim().stage(player_at, Dir.D.UP, spots)
 	screen._paint()
 
+## Every pair of bodies on the floor, whatever the screen holds: the one whose feet stand lower is drawn
+## after the other. Over all of them rather than the two a test staged side by side, because a sort that
+## gets the staged pair right can still leave the rest in any order.
+func _assert_front_to_back(screen: ArenaScreen, case_name: String) -> void:
+	var bodies: Array = [[screen.sim().player_box().end.y, screen._player_view]]
+	for i in screen._foe_views.size():
+		bodies.append([screen.sim().foe_box(i).end.y, screen._foe_views[i]])
+	for a: Array in bodies:
+		for b: Array in bodies:
+			if int(a[0]) > int(b[0]):
+				assert_int((a[1] as Node).get_index()).override_failure_message(
+					"%s: a body standing on row %d is drawn behind one on row %d" % [case_name, a[0], b[0]]
+					).is_greater((b[1] as Node).get_index())
+
 func test_a_body_lower_on_the_floor_is_drawn_in_front_of_one_above_it() -> void:
 	# Floor units, every body in this fixture 160 by 96: a player centred at y 600 stands on row 648, a
 	# foe centred at y 540 on row 588, and the two boxes overlap, which is where the order shows.
@@ -310,6 +324,7 @@ func test_a_body_lower_on_the_floor_is_drawn_in_front_of_one_above_it() -> void:
 	assert_int(screen.sim().foe_box(0).end.y).is_equal(588)
 	assert_int(screen._player_view.get_index()).override_failure_message(
 		"the hero stands below the foe and is drawn behind it").is_greater(screen._foe_views[0].get_index())
+	_assert_front_to_back(screen, "the hero in front")
 	assert_int(screen._ground.get_index()).override_failure_message(
 		"ordering the bodies put one under the ground").is_equal(0)
 	assert_int(screen._blade.get_index()).override_failure_message(
@@ -321,6 +336,7 @@ func test_a_body_lower_on_the_floor_is_drawn_in_front_of_one_above_it() -> void:
 	assert_int(behind.sim().foe_box(0).end.y).is_equal(648)
 	assert_int(behind._player_view.get_index()).override_failure_message(
 		"the hero stands above the foe and is drawn in front of it").is_less(behind._foe_views[0].get_index())
+	_assert_front_to_back(behind, "the hero behind")
 
 func test_bodies_standing_level_are_drawn_in_slot_order_frame_after_frame() -> void:
 	# Two foes on one row: neither is nearer, so the later slot is drawn in front, and stays in front on
@@ -332,6 +348,7 @@ func test_bodies_standing_level_are_drawn_in_slot_order_frame_after_frame() -> v
 		assert_int(screen._foe_views[1].get_index()).override_failure_message(
 			"paint %d: two foes on one row were drawn out of slot order" % paint
 			).is_greater(screen._foe_views[0].get_index())
+		_assert_front_to_back(screen, "paint %d" % paint)
 		screen._paint()
 
 

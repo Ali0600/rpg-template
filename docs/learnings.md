@@ -2470,3 +2470,20 @@ now names its game in `application/config/game` and restores it, and the picker 
 
 **Takeaway.** When a test depends on a default the content decides, pin the input that picks the path,
 and give the other path a test of its own.
+
+### A step that runs every frame can make a one-time step unfalsifiable
+
+When something re-establishes an order (or a value) on every frame, any setup code that put it there
+once at build time stops mattering: deleting the setup changes nothing a test can see, so the rule it
+stood for has quietly lost its only proof.
+
+**Why it came up.** M50.1 made the arena re-order its bodies by depth on every paint, packing them
+straight after the ground. The drawn slash had been moved to the end of the floor once, when the floor
+was built, and a mutant deleting that move had always been caught. After the change it survived in
+CI: packing the bodies pushed the slash to the end anyway. The fix was to have the bodies swap only
+among the places they already held, so the build still decides where the ground and the slash go, and
+each of those rules can fail again on its own. The local run had proven only the three new mutants;
+`tools/mutants_scope.sh` would have selected the old one too.
+
+**Takeaway.** When new code re-applies something every frame, run the existing mutants on the code it
+now overlaps, and make the new step touch only what it owns.

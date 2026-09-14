@@ -987,4 +987,4 @@ data/combat/quest_arena_combat.tres	s|^arena_tiles = Vector2i\(14, 4\)$|arena_ti
 data/games/quest_arena.tres	s|^title = "The Barred Gate: Arena"$|title = "The Barred Gate"|	tests/unit/test_game_manifest.gd	two games share a title, and Switch game looks like a press that did nothing
 scripts/ui/arena_screen.gd	s|^\t_order_by_depth\(\)$|\tpass|	tests/integration/test_arena_layout.gd	bodies are drawn in the order they were made, so a foe standing just behind the hero is drawn over his head
 scripts/ui/arena_screen.gd	s|return int\(a\[0\]\) < int\(b\[0\]\)|return int(a[0]) > int(b[0])|	tests/integration/test_arena_layout.gd	a body further up the floor is drawn in front of one below it
-scripts/ui/arena_screen.gd	s|var first := 1 if _ground != null else 0|var first := 0|	tests/integration/test_arena_layout.gd	ordering the bodies puts one under the ground
+scripts/ui/arena_screen.gd	s|slots.sort\(\)|pass|	tests/integration/test_arena_layout.gd	the bodies are dealt back into the places they hold in the order they were made, so a repaint leaves some drawn behind bodies they stand in front of
