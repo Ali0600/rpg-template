@@ -17,6 +17,8 @@ extends RefCounted
 ##	   always rows 8-11 - so a sheet is addressed, never searched;
 ##	 - within a block the rows run up, left, down, right: NOT this template's order, which is
 ##	   why the walk block is re-cut into canonical rows rather than merely relabelled;
+##	 - the slash is rows 12-15, six frames, and is cut into the columns after the walk ONLY when
+##	   a sheet draws it: a character composed walk-only imports exactly as it always did;
 ##	 - walk frame 0 is the standing pose and frames 1-8 are the cycle. Idle is that standing
 ##	   frame, exactly as the procedural rig's is: the generator's own idle rows exist only for
 ##	   assets that have been redrawn for them, and a hat that vanishes the moment a character
@@ -34,6 +36,10 @@ const WALK_ROW := 8
 ## Columns the walk block occupies: the standing pose plus the eight-frame cycle.
 const WALK_FRAMES := 9
 const WALK_CYCLE: Array[int] = [1, 2, 3, 4, 5, 6, 7, 8]
+## The first of the four slash rows, and its frames: the generator's own `slash` animation config
+## (sources/state/constants.ts ANIMATION_CONFIGS: row 12, cycle 0-5, at the pinned commit).
+const SLASH_ROW := 12
+const SLASH_FRAMES := 6
 ## Row order INSIDE an LPC animation block, top to bottom.
 const LPC_ROW_ORDER: Array[int] = [Dir.D.UP, Dir.D.LEFT, Dir.D.DOWN, Dir.D.RIGHT]
 const SOURCE := "lpc"
@@ -104,6 +110,11 @@ static func problems(image: Image, recipe: Dictionary, style: SpriteStyle) -> Ar
 				if _block_ground(image, WALK_ROW + i) < 0:
 					out.append("walk row %d (%s) is blank - was the sheet exported with Walk enabled?"
 						% [WALK_ROW + i, Dir.name_of(LPC_ROW_ORDER[i])])
+			if has_slash(image):
+				for i in LPC_ROW_ORDER.size():
+					if _block_ground(image, SLASH_ROW + i, SLASH_FRAMES) < 0:
+						out.append("slash row %d (%s) is blank - a sheet that draws a slash draws it facing all four ways"
+							% [SLASH_ROW + i, Dir.name_of(LPC_ROW_ORDER[i])])
 	var credits := credits_of(recipe)
 	if credits.is_empty():
 		out.append("the export carries no credits list; every LPC layer must be credited")
@@ -122,6 +133,20 @@ static func problems(image: Image, recipe: Dictionary, style: SpriteStyle) -> Ar
 	return out
 
 
+## Whether a sheet draws the slash: anything at all on its four slash rows. A sheet too short to
+## reach them draws none. The size guard changes no answer - reading past the end of an image hands
+## back nothing, which reads as blank - and exists so a walk-only sheet asks without the engine
+## printing an error for every cell, which is why no mutant is aimed at it.
+static func has_slash(image: Image) -> bool:
+	var reaches := image.get_height() >= (SLASH_ROW + LPC_ROW_ORDER.size()) * FRAME
+	if not reaches or image.get_width() < SLASH_FRAMES * FRAME:
+		return false
+	for i in LPC_ROW_ORDER.size():
+		if _block_ground(image, SLASH_ROW + i, SLASH_FRAMES) >= 0:
+			return true
+	return false
+
+
 ## {"image": Image, "meta": SheetMeta, "credits": Array} - the same pair SheetBuilder.build
 ## returns, plus the credits that must travel with it. Call problems() first; this trusts its
 ## input the way the compositor does.
@@ -130,7 +155,9 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 	src.convert(Image.FORMAT_RGBA8)
 	var cell := Vector2i(FRAME, FRAME)
 	var rows := Dir.ALL.size()
-	var sheet := Image.create_empty(cell.x * WALK_FRAMES, cell.y * rows, false, Image.FORMAT_RGBA8)
+	var slashes := has_slash(src)
+	var columns := WALK_FRAMES + (SLASH_FRAMES if slashes else 0)
+	var sheet := Image.create_empty(cell.x * columns, cell.y * rows, false, Image.FORMAT_RGBA8)
 
 	var ground := -1
 	for row in rows:
@@ -143,9 +170,22 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 			sheet.blit_rect(src, from, Vector2i(col * cell.x, row * cell.y))
 			ground = maxi(ground, SpriteCompositor.ground_row(src.get_region(from)))
 
+	# The slash, when the sheet draws one, goes in the columns after the walk, in the same canonical
+	# rows. Nothing is MEASURED from it: a lunge, or a blade held below the feet, must not move the
+	# ground line the whole cast is placed by - the anchor stays the walk's.
+	var swing: Array[int] = []
+	if slashes:
+		for row in rows:
+			var slash_row := SLASH_ROW + LPC_ROW_ORDER.find(Dir.ALL[row])
+			for col in SLASH_FRAMES:
+				var cut := Rect2i(col * cell.x, slash_row * cell.y, cell.x, cell.y)
+				sheet.blit_rect(src, cut, Vector2i((WALK_FRAMES + col) * cell.x, row * cell.y))
+		for col in SLASH_FRAMES:
+			swing.append(WALK_FRAMES + col)
+
 	var meta := SheetMeta.new()
 	meta.cell = cell
-	meta.columns = WALK_FRAMES
+	meta.columns = columns
 	meta.rows = rows
 	meta.directions = Dir.ALL.duplicate()
 	# Measured, not declared - SheetBuilder's rule. LPC bodies stand a few rows above the
@@ -161,6 +201,9 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 		"idle": {"frames": [0], "fps": style.idle_fps, "loop": true},
 		"walk": {"frames": WALK_CYCLE.duplicate(), "fps": style.walk_fps, "loop": true},
 	}
+	if not swing.is_empty():
+		# Played once: a swing that looped would read as the blade still out after it was put away.
+		meta.animations["slash"] = {"frames": swing, "fps": style.slash_fps, "loop": false}
 	meta.source = SOURCE
 	meta.style = String(style.id)
 	meta.character = character_id
@@ -258,11 +301,11 @@ static func license_notice(style: SpriteStyle, recipes: Array) -> String:
 	return "\n".join(lines) + "\n"
 
 
-## The lowest row with an opaque pixel anywhere across one LPC row's walk frames, or -1 when
-## the whole row is blank.
-static func _block_ground(image: Image, lpc_row: int) -> int:
+## The lowest row with an opaque pixel anywhere across the first `columns` frames of one LPC row,
+## or -1 when they are all blank.
+static func _block_ground(image: Image, lpc_row: int, columns := WALK_FRAMES) -> int:
 	var ground := -1
-	for col in WALK_FRAMES:
+	for col in columns:
 		var cell := image.get_region(Rect2i(col * FRAME, lpc_row * FRAME, FRAME, FRAME))
 		ground = maxi(ground, SpriteCompositor.ground_row(cell))
 	return ground

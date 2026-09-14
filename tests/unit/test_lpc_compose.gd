@@ -239,3 +239,110 @@ func test_the_export_credits_every_used_file_once_and_the_importer_accepts_it() 
 	var sheet: Image = LpcCompose.compose(planned, images)["image"]
 	assert_array(LpcImport.problems(sheet, doc, _style())).is_empty()
 	assert_str(str(LpcCompose.files_of(planned))).is_equal('["spritesheets/hair/pony/bg/walk.png", "spritesheets/hair/pony/fg/walk.png", "spritesheets/torso/shirt/male/walk.png"]')
+
+
+# -- the slash ---------------------------------------------------------------------------------
+
+## A weapon in the manner of the generator's dagger: one file per colour, drawn in walk and slash.
+func _dagger() -> Dictionary:
+	return {"name": "Dagger", "type_name": "weapon", "variants": ["dagger"],
+		"layer_1": {"zPos": 140, "male": "weapon/dagger/"},
+		"animations": ["walk", "slash"],
+		"credits": [{"file": "weapon/dagger", "authors": ["g"], "licenses": ["OGA-BY 3.0"], "urls": []}]}
+
+func _slash_defs() -> Dictionary:
+	var defs := _defs()
+	defs["shirt"]["animations"] = ["walk", "slash"]
+	defs["dagger"] = _dagger()
+	return defs
+
+func _slash_recipe(layers: Array) -> Dictionary:
+	var recipe := _recipe(layers)
+	recipe["animations"] = ["walk", "slash"]
+	return recipe
+
+## A slash file painted one colour: `wide` px of 64px frames, four rows.
+func _slash(hex: String, wide := 384) -> Image:
+	var img := Image.create_empty(wide, 256, false, Image.FORMAT_RGBA8)
+	img.fill(Color(hex))
+	return img
+
+func _paths(planned: Dictionary) -> String:
+	return str((planned["layers"] as Array).map(func(l: Dictionary) -> String: return str(l["path"])))
+
+func test_a_recipe_that_names_no_animations_plans_the_walk_alone() -> void:
+	# Every recipe written before the slash, and every character that never swings: their committed
+	# sheets stay byte-identical only while nothing plans a slash for them.
+	var planned := LpcCompose.plan(_recipe([{"def": "shirt", "recolor": "navy"}]), _slash_defs(), _palettes(), _style())
+	assert_array(planned["problems"]).is_empty()
+	assert_str(_paths(planned)).is_equal('["spritesheets/torso/shirt/male/walk.png"]')
+
+func test_a_recipe_asking_for_the_slash_plans_each_layer_s_slash_file_after_its_walk() -> void:
+	var planned := LpcCompose.plan(_slash_recipe([{"def": "shirt", "recolor": "navy"}]), _slash_defs(), _palettes(), _style())
+	assert_array(planned["problems"]).is_empty()
+	assert_str(_paths(planned)).is_equal(
+		'["spritesheets/torso/shirt/male/walk.png", "spritesheets/torso/shirt/male/slash.png"]')
+
+func test_a_layer_drawn_only_in_the_slash_is_not_planned_for_the_walk() -> void:
+	# The dagger appears in the swing and nowhere else, or the hero walks the village armed and his
+	# portrait - cut from a walk frame - holds a blade.
+	var planned := LpcCompose.plan(_slash_recipe([{"def": "shirt", "recolor": "navy"},
+		{"def": "dagger", "variant": "dagger", "only": ["slash"]}]), _slash_defs(), _palettes(), _style())
+	assert_array(planned["problems"]).is_empty()
+	var dagger := {"layers": (planned["layers"] as Array).filter(
+		func(l: Dictionary) -> bool: return str(l["def"]) == "dagger")}
+	assert_str(_paths(dagger)).is_equal('["spritesheets/weapon/dagger/slash/dagger.png"]')
+
+func test_a_layer_without_an_animation_the_recipe_draws_it_in_is_refused_by_name() -> void:
+	# The hair covers the walk alone. Planned into a slash it would leave the character bald for the
+	# length of every swing, and the browser would say nothing about it.
+	var problems: Array = LpcCompose.plan(_slash_recipe([{"def": "hair", "recolor": "white"}]),
+		_slash_defs(), _palettes(), _style())["problems"]
+	assert_str("\n".join(problems)).contains("'hair' has no slash animation")
+
+func test_a_layer_drawn_only_in_an_animation_the_recipe_does_not_draw_is_refused() -> void:
+	var problems: Array = LpcCompose.plan(_recipe([{"def": "dagger", "variant": "dagger", "only": ["slash"]}]),
+		_slash_defs(), _palettes(), _style())["problems"]
+	assert_str("\n".join(problems)).contains("'dagger' is drawn only in")
+
+func test_an_animation_this_composer_has_no_row_for_is_refused_and_so_is_leaving_out_the_walk() -> void:
+	var recipe := _recipe([{"def": "shirt", "recolor": "navy"}])
+	recipe["animations"] = ["walk", "thrust"]
+	assert_str("\n".join(LpcCompose.plan(recipe, _slash_defs(), _palettes(), _style())["problems"])).contains("'thrust'")
+	recipe["animations"] = ["slash"]
+	assert_str("\n".join(LpcCompose.plan(recipe, _slash_defs(), _palettes(), _style())["problems"])).contains(
+		"leave out the walk")
+
+func test_compose_draws_the_slash_into_rows_12_to_15_and_a_slash_only_layer_stays_out_of_the_walk() -> void:
+	var planned := LpcCompose.plan(_slash_recipe([{"def": "shirt", "recolor": "navy"},
+		{"def": "dagger", "variant": "dagger", "only": ["slash"]}]), _slash_defs(), _palettes(), _style())
+	var images := {
+		"spritesheets/torso/shirt/male/walk.png": _walk("#200000"),
+		"spritesheets/torso/shirt/male/slash.png": _slash("#300000"),
+		"spritesheets/weapon/dagger/slash/dagger.png": _slash("#00ff00"),
+	}
+	var composed := LpcCompose.compose(planned, images)
+	assert_array(composed["problems"]).is_empty()
+	var img: Image = composed["image"]
+	# Rows are literals from the generator's table: the slash block is LPC rows 12-15, the walk 8-11.
+	assert_str(img.get_pixel(5, 12 * 64 + 5).to_html(false)).is_equal("00ff00")	# the dagger, over the shirt
+	assert_str(img.get_pixel(5, 15 * 64 + 60).to_html(false)).is_equal("00ff00")
+	assert_str(img.get_pixel(5, 8 * 64 + 5).to_html(false)).override_failure_message(
+		"the walk does not show the shirt alone").is_equal("000020")
+	assert_float(img.get_pixel(6 * 64 + 5, 12 * 64 + 5).a).is_equal(0.0)	# six frames, not nine
+	assert_float(img.get_pixel(5, 16 * 64 + 5).a).is_equal(0.0)			# nothing below the block
+
+func test_compose_refuses_a_slash_file_narrower_than_six_frames() -> void:
+	var planned := LpcCompose.plan(_slash_recipe([{"def": "shirt", "recolor": "navy"}]), _slash_defs(), _palettes(), _style())
+	var images := {
+		"spritesheets/torso/shirt/male/walk.png": _walk("#200000"),
+		"spritesheets/torso/shirt/male/slash.png": _slash("#300000", 320),
+	}
+	assert_str("\n".join(LpcCompose.compose(planned, images)["problems"])).contains("a slash file is 6 frames")
+
+func test_the_export_credits_a_file_once_across_the_animations_it_is_drawn_in() -> void:
+	var recipe := _slash_recipe([{"def": "shirt", "recolor": "navy"}])
+	var planned := LpcCompose.plan(recipe, _slash_defs(), _palettes(), _style())
+	var files: Array = (LpcCompose.export_json(recipe, planned)["credits"] as Array).map(
+		func(c: Dictionary) -> String: return str(c["file"]))
+	assert_str(str(files)).is_equal('["torso/shirt/male"]')

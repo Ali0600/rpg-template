@@ -129,6 +129,9 @@ const UI_ROLES: Array[String] = ["panel", "border", "header", "select", "text", 
 @export var walk_frames: int = 4
 @export var walk_fps: int = 8
 @export var idle_fps: int = 4
+## How fast an imported slash plays when something plays it by the clock. UNJUDGED, and the arena
+## does not read it: there the swing's own frames choose which slash frame is shown.
+@export var slash_fps: int = 12
 
 ## Per walk frame, how far the upper body lifts. The passing poses rise a pixel, which is
 ## what makes a four-frame walk read as a walk instead of a shuffle. Parts marked
