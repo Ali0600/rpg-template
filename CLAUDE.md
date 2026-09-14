@@ -82,7 +82,10 @@ the world does not call it while offering, or every boot would print that refusa
 `config/game` is empty because the deployed page should ask; naming a game there boots it and hides
 the row, and `--game=` beats both, which is why no scripted session in a game's own directory ever
 meets it. A guessed game presents as the game you meant to run behaving strangely, which is the whole
-reason for any of this.
+reason for any of this. **A suite that boots `world.tscn` with nothing chosen is now on the
+offering path**, because two games ship: a suite about the chosen-game boot names its game in
+`application/config/game` and puts the setting back after (`test_title`). Until it did, `test_title`
+went through the picker while claiming the one-game boot, and only the full mutation sweep noticed.
 
 **A NEW GAME IS A COMMAND, AND `GameScaffold` DECIDES IT WITH NO DISK IN SIGHT.** `plan(options,
 known)` answers project-relative path -> TEXT and `problems(options, known)` refuses by name;

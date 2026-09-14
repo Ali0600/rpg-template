@@ -2456,3 +2456,17 @@ on 44 seeds of 48, and the skilled driver lost on none.
 
 **Takeaway.** Before tuning data to separate two drivers, name the habit the difficulty depends on and
 check that the two policies really differ on it; a gap you cannot tune open is usually in the drivers.
+
+### Adding content can move a test onto a different path
+
+A test that boots "whatever the build does by default" follows the data, so shipping one more piece of
+content can re-route it through code it was never written about, and it keeps passing.
+
+**Why it came up.** `test_title` booted the world with nothing chosen and asserted a title appeared.
+With one game shipped that was the single-game boot. The day The Barred Gate: Arena shipped (M50), the
+same boot went through the new picker instead, which also opens a title. Every assertion still held,
+and CI's full mutation sweep found the mutant that breaks the single-game boot surviving. The suite
+now names its game in `application/config/game` and restores it, and the picker boot has its own test.
+
+**Takeaway.** When a test depends on a default the content decides, pin the input that picks the path,
+and give the other path a test of its own.
