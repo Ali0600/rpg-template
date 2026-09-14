@@ -33,7 +33,7 @@ both, and the build fails if the committed pixels differ.
 **The gate.** Every rule the template makes is a test. Every test ships with a mutant — a
 deliberate break in the code — that proves the test fails when the rule is broken.
 `tools/check.sh` runs lint, parse, compile, 1,660 tests, a boot check, an artifact drift check
-(generated files must match what is committed), 28 scripted play sessions and the exported
+(generated files must match what is committed), 30 scripted play sessions and the exported
 package, in that order. It runs the same way locally and in CI.
 
 ## The game it ships with
@@ -169,7 +169,7 @@ behaving strangely.
 | `games/<id>/` | A game's own code, if it has any. |
 | `assets/generated/` | Build output of `tools/gen_sprites.gd` and `gen_sounds.gd`. Never edit it by hand. |
 | `tools/` | Headless scripts and the gate. |
-| `tests/` | 109 test suites for gdUnit4 (a Godot test framework), fixtures, 28 play sessions, and the targets the mutation harness aims at. |
+| `tests/` | 109 test suites for gdUnit4 (a Godot test framework), fixtures, 30 play sessions, and the targets the mutation harness aims at. |
 
 - [CLAUDE.md](CLAUDE.md) — the engineering contract
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the seams, and what each one protects
@@ -194,7 +194,7 @@ behaving strangely.
   arithmetic, so the output is byte-identical on macOS and Linux, and CI fails if the committed
   output drifts.
 - Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,660
-  unit and integration tests → boot → artifact drift → 28 scripted end-to-end play sessions →
+  unit and integration tests → boot → artifact drift → 30 scripted end-to-end play sessions →
   the exported package checked for test code, then played. Repository policy requires every
   action to be pinned to a SHA, `main` cannot be force-pushed or deleted, dependency alerts open
   their own fix PRs, and tokens get the least access they need. Every download the build and the
