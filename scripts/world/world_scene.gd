@@ -1133,7 +1133,7 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 	var arena := _battle as ArenaScreen
 	if arena != null:
 		arena.setup(ArenaSim.of(_game.combat, defs, _battle_members(), seen_key,
-			_battle_seed(seen_key), _config), _style, _ui_size(), _source)
+			_battle_seed(seen_key), _config), _style, _ui_size(), _source, _arena_ground(seen_key))
 	else:
 		(_battle as BattleScreen).setup(BattleLogic.of(_game.combat, defs, _battle_members(),
 			_battle_items(), seen_key, _battle_seed(seen_key)), _style, _ui_size(), _source)
@@ -1147,6 +1147,30 @@ func open_battle_with(defs: Array, seen_key: String) -> bool:
 	EventBus.battle_changed.emit(
 		{"enemies": _battle.foe_ids(), "open": true, "outcome": &""})
 	return true
+
+
+## The ground an arena is fought on: the tile under the map record whose fight this is, cut from the
+## map's own atlas - Zelda II's side-view scene picked by the terrain its fight began on
+## (docs/DECISIONS.md, M50). Null for a key no record on this map answers to, or a tile nobody could
+## stand on, and the arena keeps its plain window.
+func _arena_ground(seen_key: String) -> Texture2D:
+	if _built == null or _built.tiles_texture == null:
+		return null
+	for entry: Variant in _built.data.enemies:
+		var record: Dictionary = entry
+		if Interaction.seen_key(GameState.current_map, str(record.get("id", ""))) != seen_key:
+			continue
+		var at := JsonFile.to_int_array(record.get("tile", []))
+		if at.size() != 2:
+			return null
+		var region := TileSetFactory.walkable_region(_built.tiles_meta, _built.data.ground_at(Vector2i(at[0], at[1])))
+		if not region.has_area():
+			return null
+		var cut := AtlasTexture.new()
+		cut.atlas = _built.tiles_texture
+		cut.region = Rect2(region)
+		return cut
+	return null
 
 
 ## Which screen resolves a fight in this game: the one place the style word is read. It is reached

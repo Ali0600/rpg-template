@@ -41,9 +41,19 @@ func _enemy(foe_name: String, character: StringName) -> EnemyDef:
 	return out
 
 
+## The grass cut from a style's own generated atlas: the ground a fight on grass is laid with.
+func _grass(style_id: String) -> Texture2D:
+	var meta := JsonFile.read("res://assets/generated/%s/tiles.json" % style_id)
+	var cut := AtlasTexture.new()
+	cut.atlas = load("res://assets/generated/%s/tiles.png" % style_id) as Texture2D
+	cut.region = Rect2(TileSetFactory.walkable_region(meta.data, "grass"))
+	return cut
+
+
 ## An arena at capacity - the widest floor this screen declares and a full formation, the longest
-## name first - in `style_id`'s art, mounted the way the world mounts it.
-func _screen(style_id: String) -> ArenaScreen:
+## name first, on grass unless told otherwise - in `style_id`'s art, mounted the way the world mounts
+## it.
+func _screen(style_id: String, grounded := true) -> ArenaScreen:
 	var style := load("res://data/styles/%s.tres" % style_id) as SpriteStyle
 	var screen := ArenaScreen.new()
 	UiScale.mount(screen, self, style)
@@ -53,7 +63,8 @@ func _screen(style_id: String) -> ArenaScreen:
 	assert_int(foes.size()).is_equal(FightScreen.MAX_FOES)
 	var sim := ArenaSim.of(combat, foes, [BattleHelpers.leader(combat)], "map/foe", 7,
 		GameConfig.new())
-	screen.setup(sim, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(StringName(style_id)))
+	screen.setup(sim, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(StringName(style_id)),
+		_grass(style_id) if grounded else null)
 	_screens.append(screen)
 	return screen
 
@@ -273,3 +284,44 @@ func test_a_drawn_slash_sweeps_across_the_reach_and_stays_inside_it() -> void:
 	assert_int(edges.size()).is_greater(2)
 	assert_float(edges[edges.size() - 1]).override_failure_message(
 		"facing up, the edge should cross left to right; it went %s" % [edges]).is_greater(edges[0])
+
+
+func test_the_ground_covers_the_play_area_exactly_and_is_drawn_behind_everything() -> void:
+	for style_id: String in ["dusk16", "lpc32"]:
+		var screen := _screen(style_id)
+		var ground := screen._ground
+		assert_object(ground).override_failure_message("%s: no ground was laid" % style_id).is_not_null()
+		# The floor here is 16 by 4 tiles at 16 design pixels each: 256 by 64, from the floor's origin.
+		assert_vector(ground.position).is_equal(screen._origin)
+		assert_vector(ground.size).override_failure_message(
+			"%s: the ground is %s, not the play area" % [style_id, ground.size]).is_equal(Vector2(256, 64))
+		assert_int(ground.get_index()).override_failure_message(
+			"%s: the ground is drawn over something on the floor" % style_id).is_equal(0)
+		var covered := {}
+		for node in ground.get_children():
+			var piece := node as TextureRect
+			assert_vector(piece.size).is_equal(Vector2(16, 16))
+			covered[piece.position] = true
+		for y in 4:
+			for x in 16:
+				assert_bool(covered.has(Vector2(x * 16, y * 16))).override_failure_message(
+					"%s: no ground at tile (%d, %d)" % [style_id, x, y]).is_true()
+
+func test_a_fight_with_no_ground_is_drawn_on_the_bare_window() -> void:
+	var screen := _screen("dusk16", false)
+	assert_object(screen._ground).is_null()
+	assert_array(SceneHelpers.find_all_by_class(screen._floor.panel, "TextureRect")).is_empty()
+
+func test_every_style_lays_its_ground_one_texture_pixel_to_a_whole_number_of_window_pixels() -> void:
+	# A tile of TILE_PX design pixels, on a layer scaled by the world scale. Anything but a whole number
+	# of window pixels per texture pixel resamples the ground, and grass shimmers as the eye tracks it.
+	var checked := 0
+	for path in ContentScan.files_of("res://data/styles", "tres"):
+		var style := load(path) as SpriteStyle
+		var per_texel := float(UiScale.scale_of(style) * ArenaScreen.TILE_PX) / float(style.tile_size)
+		assert_float(per_texel).override_failure_message(
+			"'%s' draws its ground at %s window pixels a texture pixel" % [style.id, per_texel]
+			).is_equal(roundf(per_texel))
+		assert_float(per_texel).is_greater_equal(1.0)
+		checked += 1
+	assert_int(checked).is_greater(1)

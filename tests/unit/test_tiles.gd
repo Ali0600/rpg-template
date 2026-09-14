@@ -193,3 +193,19 @@ func test_every_style_produces_the_same_tile_vocabulary() -> void:
 		assert_array(ids).override_failure_message(
 			"%s and %s do not paint from the same vocabulary" % [named, style_id]).is_equal(first)
 	assert_int(ArtFixtures.style_ids().size()).is_greater(1)
+
+
+func test_only_a_tile_a_body_can_stand_on_gives_a_region_to_lay_a_floor_with() -> void:
+	# An arena is laid with the ground its encounter stood on. Water, a wall or a table is not ground,
+	# and neither is a name the table does not have: those answer nothing, and the arena keeps its
+	# plain window rather than fighting on a pond.
+	var meta := {"tile_size": 32, "tiles": [
+		{"id": "grass", "index": 0, "solid": false, "decor": false},
+		{"id": "water", "index": 3, "solid": true, "decor": false},
+		{"id": "rug", "index": 5, "solid": false, "decor": true},
+		{"id": "path", "index": 7, "solid": false, "decor": false}]}
+	assert_str(str(TileSetFactory.walkable_region(meta, "path"))).is_equal(str(Rect2i(224, 0, 32, 32)))
+	assert_str(str(TileSetFactory.walkable_region(meta, "grass"))).is_equal(str(Rect2i(0, 0, 32, 32)))
+	for refused: String in ["water", "rug", "lava"]:
+		assert_bool(TileSetFactory.walkable_region(meta, refused).has_area()).override_failure_message(
+			"'%s' gave a region to lay a floor with" % refused).is_false()

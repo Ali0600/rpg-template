@@ -21,6 +21,10 @@ class Built:
 	var decor: TileMapLayer
 	var data: MapData
 	var tile_size: int
+	## The atlas the map was painted from and its table, kept for anything else that draws this map's
+	## ground - an arena fought on the tile under its encounter.
+	var tiles_texture: Texture2D
+	var tiles_meta: Dictionary = {}
 	var problems: Array[String] = []
 
 	func ok() -> bool:
@@ -31,6 +35,8 @@ static func build(data: MapData, style: SpriteStyle, tiles_texture: Texture2D, t
 	var built := Built.new()
 	built.data = data
 	built.tile_size = style.tile_size
+	built.tiles_texture = tiles_texture
+	built.tiles_meta = tiles_meta
 
 	var known: Array[String] = TileSetFactory.solid_ids(tiles_meta)
 	for key: Variant in TileSetFactory.coords_by_id(tiles_meta).keys():

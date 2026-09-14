@@ -964,6 +964,14 @@ scripts/ui/arena_screen.gd	s|if not _sim.swinging\(\) or _hero_slashes:|if not _
 scripts/ui/arena_screen.gd	s|_blade.visible = true|pass|	tests/integration/test_arena_layout.gd	art with no swing of its own shows nothing when it swings
 scripts/ui/arena_screen.gd	s|var offset := float\(maxi\(_sim.swing_step\(travel \+ 1\), 0\)\)|var offset := 0.0|	tests/integration/test_arena_layout.gd	the drawn slash stands still for the whole swing, which is the flat block again
 scripts/ui/arena_screen.gd	s|_blade.set_meta\(FIELD, true\)|pass|	tests/integration/test_arena_layout.gd	the drawn slash is not marked as part of the fight, so it reads as colliding with the body it comes out of
+scripts/world/world_scene.gd	s|_source, _arena_ground\(seen_key\)\)|_source, null)|	tests/integration/test_world_arena.gd	every arena is fought on a bare window, wherever it began
+scripts/world/world_scene.gd	s|if Interaction.seen_key\(GameState.current_map, str\(record.get\("id", ""\)\)\) != seen_key:|if false:|	tests/integration/test_world_arena.gd	every fight on a map is fought on the ground under its first record
+scripts/world/map_builder.gd	s|built.tiles_texture = tiles_texture|pass|	tests/integration/test_world_arena.gd	a built map forgets the atlas it was painted from, so no arena gets its ground
+scripts/spritegen/tile_set_factory.gd	s|if bool\(e.get\("solid", false\)\) or bool\(e.get\("decor", false\)\) or cell <= 0:|if cell <= 0:|	tests/unit/test_tiles.gd	an arena can be laid with water or a table
+scripts/ui/arena_screen.gd	s|if ground != null:|if false:|	tests/integration/test_arena_layout.gd	the ground under the encounter is never drawn
+scripts/ui/arena_screen.gd	s|out.size = Vector2\(tiles \* TILE_PX\)|out.size = Vector2(tiles * TILE_PX * 2)|	tests/integration/test_arena_layout.gd	the ground spills past the play area into the margins
+scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(out, 0\)|pass|	tests/integration/test_arena_layout.gd	the ground is drawn over the bodies and the slash
+scripts/ui/arena_screen.gd	s|piece.position = Vector2\(x \* TILE_PX, y \* TILE_PX\)|piece.position = Vector2.ZERO|	tests/integration/test_arena_layout.gd	every tile of ground is stacked in one corner
 scripts/autoload/qa.gd	s|if arena != null:|if false:|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	fight_well never plays an arena, so a session stands in one until its frame cap
 scripts/autoload/qa.gd	s|for node in scene.find_children\("", "ArenaScreen", true, false\):|for node in scene.find_children("", "BattleScreen", true, false):|	tests/fixtures/qa/quest_arena/two_in_the_hollow_by_the_sword.json	the harness looks for the turn fight's screen in the arena and finds nothing to play
 scripts/autoload/qa.gd	s|if sim.sword_reaches\(target\):|if true:|	tests/unit/test_qa_ops.gd	the harness's arena play stops agreeing with the balance gate's PERFECT

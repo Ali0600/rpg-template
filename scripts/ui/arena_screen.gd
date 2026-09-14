@@ -66,6 +66,8 @@ var _blade_edge: ColorRect = null
 ## drew and nothing is drawn over him.
 var _hero_slashes := false
 var _player_view: SpriteView = null
+## The ground the fight began on, laid under everything on the floor, or null for a bare window.
+var _ground: Control = null
 var _foe_views: Array[SpriteView] = []
 var _panel: UiChrome.Frame = null
 var _leader_name: Label = null
@@ -76,11 +78,12 @@ var _gate := InputGate.new()
 var _swing_pressed := false
 
 
+## `ground` is a texture of the tile the encounter stood on, or null for today's plain window.
 func setup(sim: ArenaSim, style: SpriteStyle, viewport_size: Vector2i,
-		source: SpriteSource) -> void:
+		source: SpriteSource, ground: Texture2D = null) -> void:
 	_sim = sim
 	_style = style
-	_build(viewport_size, source)
+	_build(viewport_size, source, ground)
 	_paint()
 
 
@@ -123,7 +126,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # -- building ------------------------------------------------------------------------------------
 
 
-func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
+func _build(viewport_size: Vector2i, source: SpriteSource, ground: Texture2D) -> void:
 	# Opaque, for BattleScreen's reason: a fight is somewhere else.
 	_backdrop = ColorRect.new()
 	_backdrop.color = _style.ui_color("panel")
@@ -135,7 +138,7 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	_build_banner(wide)
 	var drawn := FightScreen.fighter_scale(_style)
 	_measure_overhang(source, drawn)
-	var floor_bottom := _build_floor(wide, source, drawn)
+	var floor_bottom := _build_floor(wide, source, drawn, ground)
 	_build_panel(wide, band, floor_bottom + PANEL_GAP)
 
 
@@ -173,7 +176,7 @@ func _measure_overhang(source: SpriteSource, drawn: float) -> void:
 
 
 ## The floor window, centred, and everything on it. Answers where the window ends.
-func _build_floor(wide: float, source: SpriteSource, drawn: float) -> float:
+func _build_floor(wide: float, source: SpriteSource, drawn: float, ground: Texture2D) -> float:
 	var tiles := _sim.floor_rect().size / ArenaSim.UNITS_PER_TILE
 	var play := Vector2(tiles * TILE_PX)
 	var chrome := float(UiChrome.BORDER + UiChrome.PAD) * 2.0
@@ -199,7 +202,36 @@ func _build_floor(wide: float, source: SpriteSource, drawn: float) -> float:
 	_hero_slashes = _player_view.frames_in(SLASH) > 0
 	for i in _sim.foe_count():
 		_foe_views.append(_make_view(source, _sim.foe_character(i), drawn))
+	if ground != null:
+		_ground = _make_ground(ground, tiles)
 	return FLOOR_Y + outer.y
+
+
+## The floor laid with the ground the fight began on, one tile per TILE_PX square, behind everything
+## else on the floor. It covers the play area only: the margins past it are room for bodies drawn
+## beyond their feet, not more ground to stand on. A 32px tile on a 16 design pixel square on a 2x
+## layer is one texture pixel to one window pixel, which test_arena_layout holds for every style.
+func _make_ground(ground: Texture2D, tiles: Vector2i) -> Control:
+	var out := Control.new()
+	out.set_meta(FIELD, true)
+	out.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	out.position = _origin
+	out.size = Vector2(tiles * TILE_PX)
+	for y in tiles.y:
+		for x in tiles.x:
+			var piece := TextureRect.new()
+			piece.texture = ground
+			# Before the size, or the texture's own 32px is the minimum and the square grows back to it.
+			piece.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			piece.stretch_mode = TextureRect.STRETCH_SCALE
+			piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			piece.position = Vector2(x * TILE_PX, y * TILE_PX)
+			piece.size = Vector2(TILE_PX, TILE_PX)
+			out.add_child(piece)
+	_floor.panel.add_child(out)
+	# Built last and drawn first: under the drawn slash and every body.
+	_floor.panel.move_child(out, 0)
+	return out
 
 
 func _build_panel(wide: float, band: float, top: float) -> void:

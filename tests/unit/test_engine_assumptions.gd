@@ -248,3 +248,24 @@ func test_a_search_by_class_name_finds_a_subclass_of_that_class() -> void:
 	assert_int(found.size()).is_equal(1)
 	assert_object(found[0]).is_same(screen)
 	parent.free()
+
+
+func test_a_texture_rect_that_ignores_its_texture_keeps_the_size_it_is_given() -> void:
+	# The arena lays a 32px tile on a 16 design pixel square. A TextureRect's minimum size is its
+	# texture's unless it is told to ignore it, and a Control never shrinks below its minimum - so
+	# without EXPAND_IGNORE_SIZE every square of ground would grow back to 32 and overlap its neighbours.
+	var atlas := ImageTexture.create_from_image(Image.create_empty(64, 32, false, Image.FORMAT_RGBA8))
+	var cut := AtlasTexture.new()
+	cut.atlas = atlas
+	cut.region = Rect2(32, 0, 32, 32)
+	var ignoring := TextureRect.new()
+	ignoring.texture = cut
+	ignoring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ignoring.size = Vector2(16, 16)
+	var keeping := TextureRect.new()
+	keeping.texture = cut
+	keeping.size = Vector2(16, 16)
+	assert_vector(ignoring.size).is_equal(Vector2(16, 16))
+	assert_vector(keeping.size).is_equal(Vector2(32, 32))
+	ignoring.free()
+	keeping.free()

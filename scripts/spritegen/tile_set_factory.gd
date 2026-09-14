@@ -92,6 +92,21 @@ static func edges_by_id(meta: Dictionary) -> Dictionary:
 	return out
 
 
+## Where a tile a body can stand on sits in the atlas - one neither solid nor decor - or an empty
+## rect for any other tile and for one the table does not name. An arena's floor is laid from it, so
+## a fight is never fought on water or a table.
+static func walkable_region(meta: Dictionary, id: String) -> Rect2i:
+	var cell := int(meta.get("tile_size", 0))
+	for entry: Variant in meta.get("tiles", []) as Array:
+		var e: Dictionary = entry
+		if str(e.get("id", "")) != id:
+			continue
+		if bool(e.get("solid", false)) or bool(e.get("decor", false)) or cell <= 0:
+			return Rect2i()
+		return Rect2i(int(e.get("index", 0)) * cell, 0, cell, cell)
+	return Rect2i()
+
+
 static func solid_ids(meta: Dictionary) -> Array[String]:
 	var out: Array[String] = []
 	for entry: Variant in meta.get("tiles", []) as Array:

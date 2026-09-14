@@ -287,3 +287,55 @@ func test_an_arena_nobody_closes_reports_its_result_once() -> void:
 	assert_int(counted[0]).override_failure_message(
 		"an arena left on screen reported its result %d times" % counted[0]).is_equal(1)
 	screen.free()
+
+
+# -- the ground ------------------------------------------------------------------------------------
+
+
+## The region a tile id takes in the running style's own atlas: the expectation, read from the
+## generated table rather than from anything the screen was handed.
+func _region_of(id: String) -> Rect2:
+	var meta := JsonFile.read("res://assets/generated/%s/tiles.json" % _world._style.id)
+	return Rect2(TileSetFactory.walkable_region(meta.data, id))
+
+
+## The atlas region the open arena's floor is laid with, or an empty rect when it has none.
+func _ground_region() -> Rect2:
+	var screen: ArenaScreen = _world.arena_screen()
+	if screen == null or screen._ground == null or screen._ground.get_child_count() == 0:
+		return Rect2()
+	var piece := screen._ground.get_child(0) as TextureRect
+	return (piece.texture as AtlasTexture).region
+
+
+func _fight_record_on(map_id: StringName, spawn: StringName, record_id: String) -> void:
+	assert_bool(_world.enter_map(map_id, spawn)).is_true()
+	await _steps(2)
+	assert_object(_world.fight_screen()).override_failure_message(
+		"arriving at '%s' opened a fight by itself, so this staging proves nothing" % map_id).is_null()
+	assert_bool(_world.open_battle_with([_enemy()], Interaction.seen_key(map_id, record_id))).is_true()
+
+
+func test_a_fight_is_fought_on_the_ground_under_the_record_it_came_from() -> void:
+	# The hollow's SECOND record rather than its first: slink_gate stands on plain grass and
+	# slink_stash on the other grass, so a floor taken from whichever record comes first is caught.
+	await _boot()
+	await _fight_record_on(&"quest_hollow", &"from_village", "slink_stash")
+	var expected := _region_of("grass_alt")
+	assert_bool(expected.has_area()).is_true()
+	assert_str(str(_ground_region())).override_failure_message(
+		"the slink_stash fight was laid with %s, not the grass_alt it stood on" % _ground_region()
+		).is_equal(str(expected))
+
+
+func test_the_cave_s_gloom_is_fought_on_the_cave_path() -> void:
+	await _boot()
+	await _fight_record_on(&"quest_cave", &"west_gate", "gloom")
+	assert_str(str(_ground_region())).is_equal(str(_region_of("path")))
+
+
+func test_a_fight_no_record_on_the_map_answers_to_keeps_the_plain_window() -> void:
+	await _boot()
+	assert_bool(_world.open_battle_with([_enemy()], "quest_village/foe")).is_true()
+	var screen: ArenaScreen = _world.arena_screen()
+	assert_object(screen._ground).is_null()
