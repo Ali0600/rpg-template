@@ -292,6 +292,49 @@ func test_a_drawn_slash_sweeps_across_the_reach_and_stays_inside_it() -> void:
 		"the drawn slash is drawn under the hero swinging it").is_greater(screen._player_view.get_index())
 
 
+## Puts every body exactly where a test says and repaints, with no tick: a tick wanders the foes and
+## shoves whatever the sword or a touch reaches, which is noise when the question is where feet stand.
+func _place_still(screen: ArenaScreen, player_at: Vector2i, foes_at: Array) -> void:
+	var spots: Array[Vector2i] = []
+	spots.assign(foes_at)
+	screen.sim().stage(player_at, Dir.D.UP, spots)
+	screen._paint()
+
+func test_a_body_lower_on_the_floor_is_drawn_in_front_of_one_above_it() -> void:
+	# Floor units, every body in this fixture 160 by 96: a player centred at y 600 stands on row 648, a
+	# foe centred at y 540 on row 588, and the two boxes overlap, which is where the order shows.
+	var screen := _screen("lpc32")
+	_place_still(screen, Vector2i(2048, 600), [Vector2i(2088, 540), FAR[1], FAR[2]])
+	assert_bool(screen.sim().player_box().intersects(screen.sim().foe_box(0))).is_true()
+	assert_int(screen.sim().player_box().end.y).is_equal(648)
+	assert_int(screen.sim().foe_box(0).end.y).is_equal(588)
+	assert_int(screen._player_view.get_index()).override_failure_message(
+		"the hero stands below the foe and is drawn behind it").is_greater(screen._foe_views[0].get_index())
+	assert_int(screen._ground.get_index()).override_failure_message(
+		"ordering the bodies put one under the ground").is_equal(0)
+	assert_int(screen._blade.get_index()).override_failure_message(
+		"ordering the bodies put one over the drawn slash").is_equal(screen._floor.panel.get_child_count() - 1)
+	# The same two, rows swapped, on a screen of their own.
+	var behind := _screen("lpc32")
+	_place_still(behind, Vector2i(2048, 540), [Vector2i(2088, 600), FAR[1], FAR[2]])
+	assert_int(behind.sim().player_box().end.y).is_equal(588)
+	assert_int(behind.sim().foe_box(0).end.y).is_equal(648)
+	assert_int(behind._player_view.get_index()).override_failure_message(
+		"the hero stands above the foe and is drawn in front of it").is_less(behind._foe_views[0].get_index())
+
+func test_bodies_standing_level_are_drawn_in_slot_order_frame_after_frame() -> void:
+	# Two foes on one row: neither is nearer, so the later slot is drawn in front, and stays in front on
+	# every paint - an order that could change between frames would flicker one body over the other.
+	var screen := _screen("dusk16")
+	_place_still(screen, Vector2i(2048, 900), [Vector2i(800, 500), Vector2i(3000, 500), FAR[0]])
+	assert_int(screen.sim().foe_box(0).end.y).is_equal(screen.sim().foe_box(1).end.y)
+	for paint in 3:
+		assert_int(screen._foe_views[1].get_index()).override_failure_message(
+			"paint %d: two foes on one row were drawn out of slot order" % paint
+			).is_greater(screen._foe_views[0].get_index())
+		screen._paint()
+
+
 func test_the_ground_covers_the_play_area_exactly_and_is_drawn_behind_everything() -> void:
 	for style_id: String in ["dusk16", "lpc32"]:
 		var screen := _screen(style_id)

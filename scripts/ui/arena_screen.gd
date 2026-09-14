@@ -306,6 +306,31 @@ func _paint() -> void:
 		_place(_foe_views[i], _sim.foe_box(i), _sim.foe_facing(i), _sim.foe_moved(i),
 			_sim.foe_hurt(i))
 	_paint_blade()
+	_order_by_depth()
+
+
+## The bodies, drawn front to back by where their feet stand, the way the map's own y-sort draws them -
+## done here as the floor's child order, because the layout audit reads a window's children and a test
+## can read an index where it could never read what a y-sorting node decided. Between the ground,
+## which stays first, and the drawn slash, which stays last and so over every body.
+func _order_by_depth() -> void:
+	var bodies: Array[SpriteView] = [_player_view]
+	bodies.append_array(_foe_views)
+	var keyed: Array = []
+	for rank in bodies.size():
+		var box := _sim.player_box() if rank == 0 else _sim.foe_box(rank - 1)
+		# The slot is folded into the key, so no two keys are equal - feet level, the later slot in
+		# front - and the order never rests on whether the engine's sort is stable.
+		keyed.append([box.end.y * bodies.size() + rank, bodies[rank]])
+	keyed.sort_custom(_drawn_earlier)
+	var first := 1 if _ground != null else 0
+	for i in keyed.size():
+		var pair: Array = keyed[i]
+		_floor.panel.move_child(pair[1] as SpriteView, first + i)
+
+
+static func _drawn_earlier(a: Array, b: Array) -> bool:
+	return int(a[0]) < int(b[0])
 
 
 ## `slash_at` is the picture of a swing to hold, or -1 to walk or stand.

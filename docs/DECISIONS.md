@@ -3618,3 +3618,25 @@ record, and a caller with no map all keep the plain window.
   a readout`.
 - A second row — `rejected — dusk16's floor window and panel already reach 174 of the 180 design
   pixels`.
+
+## The arena draws its bodies front to back, as the floor's child order — *M50.1*
+
+- **The floor's children re-ordered on every paint** by where each body's feet stand, with the ground
+  first and the drawn slash last.
+- **A sorting node with `y_sort_enabled`** holding the bodies, the tool the map already uses.
+- **Creation order**, as M50 shipped it: the player first, then the foes in slot order.
+
+**Chosen: the child order.** M50 drew a foe standing just above the hero over the hero's head, because
+the hero's view was made first. A sorting node would fix the picture and hide it from every check: the
+layout audit reads each window's direct children, so bodies inside a node of their own would stop
+being measured, and which y-sorted child the renderer draws last is visible only in a photograph. A
+child's index is a number a test can assert. When two bodies' feet are level the later slot is drawn
+in front, and the slot is folded into the sort key, so the order never rests on whether the engine's
+sort is stable.
+
+- A y-sorting node — `rejected — hides the bodies from the layout audit, and its order shows only in a
+  picture`.
+- Creation order — `rejected — a foe standing behind the hero drawn over his head`.
+
+Left as it is: the drawn slash, for art with no swing of its own, stays over every body, including one
+standing in front of the swinger. **Revisit hook:** `ArenaScreen._order_by_depth`.

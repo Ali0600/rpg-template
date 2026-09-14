@@ -599,7 +599,10 @@ the floor, the leader's health - with the floor at 16 design pixels a tile, `FLO
 and its margins read from every sheet's own anchor, so a body pressed into a wall stays inside its
 window in either kind of art. It READS the move actions through `Locomotion.read_input()` each
 frame and takes `interact` as a PRESS, so holding it is one swing. A body flickers two frames on and
-two off for as long as it is protected, and a felled foe leaves the floor.
+two off for as long as it is protected, and a felled foe leaves the floor. Bodies are drawn front to
+back by where their feet stand, re-ordered on every paint as the floor's own CHILD ORDER - the map's
+y-sort, done where the layout audit reads a window's children and a test can read an index - with
+the ground under them all and the drawn slash over them (`docs/DECISIONS.md`, M50.1).
 
 **The swing is the art's own, and the floor is the ground the fight began on** (`docs/DECISIONS.md`,
 M50; §7d, where both Zeldas draw the sword as a sprite stepped by the hitbox's own counter and Zelda
