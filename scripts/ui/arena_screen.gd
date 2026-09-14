@@ -306,6 +306,36 @@ func _paint() -> void:
 		_place(_foe_views[i], _sim.foe_box(i), _sim.foe_facing(i), _sim.foe_moved(i),
 			_sim.foe_hurt(i))
 	_paint_blade()
+	_order_by_depth()
+
+
+## The bodies, drawn front to back by where their feet stand, the way the map's own y-sort draws them -
+## done here as the floor's child order, because the layout audit reads a window's children and a test
+## can read an index where it could never read what a y-sorting node decided. It moves the bodies and
+## nothing else: the ground under them and the drawn slash over them stay where _build_floor put them,
+## so each of those is still a rule of its own rather than something this happens to restore.
+func _order_by_depth() -> void:
+	var bodies: Array[SpriteView] = [_player_view]
+	bodies.append_array(_foe_views)
+	var keyed: Array = []
+	var slots: Array[int] = []
+	for rank in bodies.size():
+		var box := _sim.player_box() if rank == 0 else _sim.foe_box(rank - 1)
+		# The slot is folded into the key, so no two keys are equal - feet level, the later slot in
+		# front - and the order never rests on whether the engine's sort is stable.
+		keyed.append([box.end.y * bodies.size() + rank, bodies[rank]])
+		slots.append(bodies[rank].get_index())
+	keyed.sort_custom(_drawn_earlier)
+	# The bodies trade the places they already hold, filled lowest first. They are one run of children,
+	# made one after another, so filling a place in turn shifts only bodies still waiting for theirs.
+	slots.sort()
+	for i in keyed.size():
+		var pair: Array = keyed[i]
+		_floor.panel.move_child(pair[1] as SpriteView, slots[i])
+
+
+static func _drawn_earlier(a: Array, b: Array) -> bool:
+	return int(a[0]) < int(b[0])
 
 
 ## `slash_at` is the picture of a swing to hold, or -1 to walk or stand.

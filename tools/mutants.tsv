@@ -985,3 +985,6 @@ tools/pack_check.sh	s|if \[ -f "\$2/data/games/\$1\.tres" \]; then|if true; then
 data/combat/quest_arena_combat.tres	s|^style = &"arena"$|style = \&"turns"|	tests/unit/test_battle_content.gd	the arena game quietly fights with menus
 data/combat/quest_arena_combat.tres	s|^arena_tiles = Vector2i\(14, 4\)$|arena_tiles = Vector2i(40, 4)|	tests/unit/test_battle_content.gd	the arena game asks for a floor wider than the screen draws
 data/games/quest_arena.tres	s|^title = "The Barred Gate: Arena"$|title = "The Barred Gate"|	tests/unit/test_game_manifest.gd	two games share a title, and Switch game looks like a press that did nothing
+scripts/ui/arena_screen.gd	s|^\t_order_by_depth\(\)$|\tpass|	tests/integration/test_arena_layout.gd	bodies are drawn in the order they were made, so a foe standing just behind the hero is drawn over his head
+scripts/ui/arena_screen.gd	s|return int\(a\[0\]\) < int\(b\[0\]\)|return int(a[0]) > int(b[0])|	tests/integration/test_arena_layout.gd	a body further up the floor is drawn in front of one below it
+scripts/ui/arena_screen.gd	s|slots.sort\(\)|pass|	tests/integration/test_arena_layout.gd	the bodies are dealt back into the places they hold in the order they were made, so a repaint leaves some drawn behind bodies they stand in front of
