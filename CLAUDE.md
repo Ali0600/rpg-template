@@ -425,8 +425,10 @@ game), and the word a row shows. The world hands `OptionsMenu` a dictionary of a
 axis the game in view offers two or more values on - the game on OFFER at the title, the running one
 over the world (`_manifest_in_view`) - and the menu draws a row for each axis it has a row for,
 appended after Window. A press emits `play_requested(axis)`, the world writes `PlayChoices.next` of
-the value in effect, and nothing is rebuilt: a pick is read where it is used, so it takes hold the
-next time it is read - a fight style when the next fight opens.
+the value in effect, and a pick takes hold the next time it is read: a fight style when the next
+fight opens, movement and saving as the page closes over a running game, where
+`_apply_play_choices` binds the config again (`_effective_config`: the choices laid over the `at()`
+copy, never the manifest's own resource) and rebinds the player and every NPC to it.
 
 **A row that carries a VALUE and a row that opens a PAGE are different rows.** `PauseMenu.Row.SOUND`
 was the volume, so the menu had to be handed the word "Normal" and `PauseScreen` needed a special
@@ -537,6 +539,16 @@ through `velocity` + `move_and_slide` and produce the same `Locomotion.Step`, so
 downstream can tell which is running. `ActorBody.place(at, facing)` is the ONE way an actor is
 teleported — it cancels a step in flight *before* assigning the position, because abandoning
 one afterwards resolves it against the cell the actor left, in the map it left.
+
+**Since M51 the player picks the mode, and every map entry REBINDS the player.** `ActorBody.rebind`
+is what `setup` calls, and what `enter_map` now calls for a player who already exists - which also
+fixed a player who kept the first map's config and sheet after a warp or a load into a map at another
+tile size. `ActorBody.snap_to_grid` stands a body that moves tile by tile on a cell centre it can
+step to, its OWN cell first and then the nearest around it, because a body touching an NPC from the
+south has its feet inside that NPC's cell; the world calls it after a restore and after a mid-run
+switch. And moving tile by tile, `_check_triggers` waits for the step to LAND: the tile under the
+feet changes half way through a step, and an encounter opened there halted the player back onto the
+tile they had left.
 
 **Items are a template noun, and every effect has ONE sink.** `ItemDef` under `data/items/`
 (picked up by `Registry` from its `class_name`), `Inventory` pure beside it, and a snapshot
@@ -986,6 +998,11 @@ It governs WRITING only. Loading stays a pause-and-title verb under both, becaus
 makes saving a journey does not also make quitting one. The row is HIDDEN rather than refused:
 a capability the game does not have is the `requires_item` case, which hides, not the
 `spend_gold` case, which quotes a price out loud and says no.
+
+**The player may choose it too, since M51**: a Saving row on the Options page, laid over the config
+copy by `_effective_config` and read where it always was - `_saves_from_the_menu()`, each time the
+pause menu opens - so it takes hold as the Options page closes. The game's own `save_policy` is the
+default a player who never chose gets.
 
 **Hiding a row means the cursor index is no longer the Row.** `PauseMenu._top_rows()` is the one
 place that list is derived and `top_row(at)` the one place a cursor is turned back into a Row;

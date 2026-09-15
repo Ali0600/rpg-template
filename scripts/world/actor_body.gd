@@ -68,15 +68,52 @@ func _ready() -> void:
 
 
 func setup(config_value: GameConfig, source: SpriteSource, character_id: StringName) -> bool:
-	config = config_value
-	_walker = GridWalker.new(config) if config.grid_step_px() > 0 else null
-	_meter = StepMeter.new(config.footstep_px()) if config.footstep_px() > 0.0 else null
 	if view.get_parent() == null:
 		add_child(view)
 	if _shape.get_parent() == null:
 		add_child(_shape)
+	return rebind(config_value, source, character_id)
+
+
+## Binds the rules this actor moves by and the sheet it is drawn from, again. setup() is the first
+## time; the world calls this on every map entry, because a map at another tile size binds another
+## config and a map in another style is another sheet, and when the player's movement choice changes
+## (M51). One function, so building an actor and rebinding one cannot come to disagree about what a
+## config gives it.
+func rebind(config_value: GameConfig, source: SpriteSource, character_id: StringName) -> bool:
+	config = config_value
+	_walker = GridWalker.new(config) if config.grid_step_px() > 0 else null
+	_meter = StepMeter.new(config.footstep_px()) if config.footstep_px() > 0.0 else null
 	_apply_shape()
 	return view.apply_source(source, character_id)
+
+
+## Puts an actor that moves tile by tile on a cell centre it can stand on. A no-op moving freely.
+##
+## Needed wherever free movement can hand one over - a movement choice made mid-run, a save written
+## while moving freely - because "not stepping means on a centre" is the invariant grid movement rests
+## on, and the walker's next step starts from the centre of the cell the feet are in. Its OWN cell
+## first; then the nearest of the four around it. Asked the way a step is (can the body move there
+## from where it stands), because a body touching an NPC from the south has its feet inside that NPC's
+## cell, and the centre of it is the NPC.
+func snap_to_grid() -> void:
+	if _walker == null or not is_inside_tree():
+		return
+	var g := config.grid_step_px()
+	var at := global_position
+	var own := MapData.world_to_tile(at, g)
+	var around: Array[Vector2] = []
+	for side: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		around.append(MapData.tile_to_world(own + side, g))
+	around.sort_custom(func(a: Vector2, b: Vector2) -> bool:
+		return a.distance_squared_to(at) < b.distance_squared_to(at))
+	var spots: Array[Vector2] = [MapData.tile_to_world(own, g)]
+	spots.append_array(around)
+	for spot in spots:
+		if _reachable(spot - at):
+			place(spot)
+			return
+	push_warning("ActorBody: '%s' has no cell centre it can stand on; left where it is" % name)
 
 
 func _apply_shape() -> void:

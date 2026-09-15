@@ -5,7 +5,11 @@ extends GdUnitTestSuite
 ## test_options_layout.gd's job with the real font; the two together are the whole gate.
 
 func _menu() -> OptionsMenu:
-	return OptionsMenu.of("Normal", "Parchment", {PlayChoices.FIGHTS: "Turns"})
+	return OptionsMenu.of("Normal", "Parchment", {
+		PlayChoices.FIGHTS: "Turns",
+		PlayChoices.MOVEMENT: "Free",
+		PlayChoices.SAVING: "Anywhere",
+	})
 
 
 func test_the_cursor_opens_on_the_first_row() -> void:
@@ -19,13 +23,16 @@ func test_every_row_says_what_the_setting_currently_is() -> void:
 	assert_str(menu.label(0)).is_equal("Sound: Normal")
 	assert_str(menu.label(1)).is_equal("Window: Parchment")
 	assert_str(menu.label(2)).is_equal("Fights: Turns")
+	assert_str(menu.label(3)).is_equal("Movement: Free")
+	assert_str(menu.label(4)).is_equal("Saving: Anywhere")
 
 
 func test_a_row_told_nothing_still_draws_its_name() -> void:
 	# A blank label renders as an empty line, which reads as a page that failed to draw rather
 	# than as a setting with no value.
-	var menu := OptionsMenu.of("", "", {PlayChoices.FIGHTS: ""})
-	assert_int(menu.size()).is_equal(3)
+	var menu := OptionsMenu.of("", "", {PlayChoices.FIGHTS: "", PlayChoices.MOVEMENT: "",
+		PlayChoices.SAVING: ""})
+	assert_int(menu.size()).is_equal(5)
 	for at in menu.size():
 		assert_str(menu.label(at)).override_failure_message(
 			"row %d drew nothing at all" % at).is_not_empty()
@@ -33,14 +40,15 @@ func test_a_row_told_nothing_still_draws_its_name() -> void:
 
 func test_a_play_row_is_drawn_only_when_the_world_hands_it_a_word() -> void:
 	# A game that cannot fight has nothing to choose about fighting, and the world says so by leaving
-	# the axis out. The page draws the rows it was handed and no others.
+	# the axis out. The page draws the rows it was handed and no others, in Row order.
 	var bare := OptionsMenu.of("Normal", "Parchment")
 	assert_int(bare.size()).override_failure_message(
 		"a page handed no play words still drew a play row").is_equal(2)
-	assert_bool(bare.rows().has(OptionsMenu.Row.FIGHTS)).is_false()
-	var fights := _menu()
-	assert_int(fights.size()).is_equal(3)
-	assert_int(fights.row_at(2)).is_equal(OptionsMenu.Row.FIGHTS)
+	var peaceful := OptionsMenu.of("Normal", "Parchment", {PlayChoices.MOVEMENT: "Free",
+		PlayChoices.SAVING: "Anywhere"})
+	assert_array(peaceful.rows()).contains_exactly(
+		[OptionsMenu.Row.SOUND, OptionsMenu.Row.WINDOW, OptionsMenu.Row.MOVEMENT, OptionsMenu.Row.SAVING])
+	assert_str(peaceful.label(2)).is_equal("Movement: Free")
 
 
 func test_a_word_for_an_axis_no_row_is_about_draws_no_row() -> void:
@@ -55,10 +63,12 @@ func test_new_words_arrive_without_moving_the_cursor() -> void:
 	# Rebuilding would send them back to the top row every time.
 	var menu := _menu()
 	menu.move(1)
-	menu.refresh("Loud", "Mint", {PlayChoices.FIGHTS: "Sword"})
+	menu.refresh("Loud", "Mint", {PlayChoices.FIGHTS: "Sword", PlayChoices.MOVEMENT: "Tiles",
+		PlayChoices.SAVING: "Save points"})
 	assert_int(menu.row_at(menu.index())).is_equal(OptionsMenu.Row.WINDOW)
 	assert_str(menu.label(1)).is_equal("Window: Mint")
 	assert_str(menu.label(2)).is_equal("Fights: Sword")
+	assert_str(menu.label(4)).is_equal("Saving: Save points")
 
 
 func test_the_cursor_wraps_both_ways() -> void:
@@ -95,15 +105,17 @@ func test_every_row_answers_a_kind_of_its_own() -> void:
 	assert_int(seen.size()).is_equal(menu.size())
 
 
-func test_a_play_row_says_which_axis_it_is_about() -> void:
-	# The world answers one signal for every play row, so the row has to carry its axis - a press
-	# on Fights that named no axis would change nothing, or the wrong thing.
+func test_every_play_row_says_which_axis_it_is_about() -> void:
+	# The world answers one signal for every play row, so the row has to carry its axis - a press on
+	# Movement that named Fights would change the wrong thing, and one naming nothing nothing at all.
 	var menu := _menu()
-	menu.move(2)
-	var pick := menu.confirm()
-	assert_int(pick.kind).is_equal(OptionsMenu.Kind.FIGHTS)
-	assert_str(String(pick.axis)).is_equal(String(PlayChoices.FIGHTS))
-	menu.move(1)
+	var expected := {2: PlayChoices.FIGHTS, 3: PlayChoices.MOVEMENT, 4: PlayChoices.SAVING}
+	for at: int in expected:
+		while menu.index() != at:
+			menu.move(1)
+		assert_str(String(menu.confirm().axis)).override_failure_message(
+			"row %d names the wrong axis" % at).is_equal(String(expected[at]))
+	menu.move(-3)
 	assert_str(String(menu.confirm().axis)).override_failure_message(
 		"a row that is not about play named an axis").is_empty()
 

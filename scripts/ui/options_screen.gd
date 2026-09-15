@@ -223,7 +223,7 @@ func _act(pick: OptionsMenu.Pick) -> void:
 		OptionsMenu.Kind.WINDOW:
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 			window_requested.emit()
-		OptionsMenu.Kind.FIGHTS:
+		OptionsMenu.Kind.FIGHTS, OptionsMenu.Kind.MOVEMENT, OptionsMenu.Kind.SAVING:
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 			play_requested.emit(pick.axis)
 		OptionsMenu.Kind.LEAVE:
