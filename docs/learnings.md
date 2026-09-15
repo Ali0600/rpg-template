@@ -2487,3 +2487,32 @@ each of those rules can fail again on its own. The local run had proven only the
 
 **Takeaway.** When new code re-applies something every frame, run the existing mutants on the code it
 now overlaps, and make the new step touch only what it owns.
+
+### Taking a knockback away changes who is in reach, not only how far a foe slides
+
+When a struck enemy stops being pushed back it stays inside the attacker's reach, and then the order a
+frame resolves blows and touches decides the fight.
+
+**Why it came up.** M50.1 tried a Keeper who holds his ground in the arena. The careless driver, which
+walks into a foe and swings once touching, went from beating him on 4 seeds of 48 to 47. The sword is
+resolved before the touch each frame, a flashing foe cannot bite, and a foe that is never shoved is
+still overlapping when its flash ends - so the careless player struck again first, every time. No
+single Keeper number brought it back under the limit of 6.
+
+**Takeaway.** Before removing a rule that separates two bodies, work out what the frame order lets the
+one left in reach do, and measure it against the driver that plays badly as well as the one that
+plays well.
+
+### A trigger keyed on the tile under the feet fires half way through a step
+
+In tile-by-tile movement the tile a body's position rounds to changes half way through each step, so
+anything that fires "on arriving at a tile" fires before the body has arrived.
+
+**Why it came up.** M51 let the player choose to move one tile per press. Walking into an enemy that
+way opened the fight half way through the last step; the fight halts the player, halting abandons the
+step, and an abandoned step goes back to the tile it left - a hop backwards into every fight. Doors
+had the same flaw and hid it, because a warp places the player anyway. The triggers now wait while a
+step is in flight, and are checked before the tile is remembered, so the landing frame still counts.
+
+**Takeaway.** When a discrete mode rides on continuous positions, define "arrived" by the mode's own
+state (the step landed), never by where the position happens to round.

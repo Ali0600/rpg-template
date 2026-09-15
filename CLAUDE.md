@@ -1846,6 +1846,11 @@ frames, and an unpinned main loop spends them differently. Pass it whenever a se
 watched or screenshotted, which is also the answer to "why does the player walk so slowly in
 that window".
 
+**`mutants_scope.sh` reads the COMMITTED diff against `origin/main`**, so uncommitted work selects
+nothing and says `no changes against origin/main`: commit first, or pass `--files`. Before pushing,
+prove every row it selects, not only the rows you added - M50.1's depth order made an EXISTING mutant
+equivalent, and only CI's sweep noticed.
+
 **The mutation sweep is split by WHERE it runs, never weakened.** A pull request proves the
 mutants its own diff could have broken (`mutants_scope.sh`: rows that mutate a file it touched,
 name a suite it touched, or were added by it); every merge to `main` re-runs all of them, where
