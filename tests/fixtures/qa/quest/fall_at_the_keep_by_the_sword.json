@@ -1,0 +1,795 @@
+{
+	"_readme": [
+		"The arena game's road to the Keeper, lost: the sword chosen on the Options page, the hollow's two",
+		"fights won with it, the key taken, and then the Keeper never struck. What only this session reaches",
+		"is a defeat IN THE ARENA through the real world - the game-over screen and its own music, Continue",
+		"refused with nothing saved, and a fresh run that really is fresh."
+	],
+	"steps": [
+		{
+			"op": "note",
+			"text": "the title, with nothing saved, so the cursor opens on New game. Rows: Continue, New game, Credits, Options - two move_ups reach Options, one onto Continue and one that wraps round the top."
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_up"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "options_at_title"
+		},
+		{
+			"op": "note",
+			"text": "the page's rows: Sound, Window, Fights, Movement, Saving - two presses down reach Fights, and one press turns Turns into Sword. A --qa-script run empties its settings file at boot, so this is the only choice in force."
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "options_at_title"
+		},
+		{
+			"op": "press",
+			"action": "cancel"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "title"
+		},
+		{
+			"op": "note",
+			"text": "back on Options: two presses down wrap onto Continue and then New game, and the run begins"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 4
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "note",
+			"text": "the warden opens the game now - hear her out before anything else"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "note",
+			"text": "the village, carrying nothing and owed an explanation"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				5,
+				5
+			]
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "fetch Rook first: since M29 both roads out of the village refuse a player travelling alone, because everything past them is sized for two. South until the water stops us, west to the wall, south until SHE stops us."
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 60
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_flag",
+			"key": "rook_joins",
+			"expect": true
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "north up the wall and through the west door, which opens now that she is along. The warden's conversation and the barred keep gate both moved out of this script - talk_to_npc still walks the first, and the_road_needs_two walks every locked door in the game, including the two this milestone added."
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_hollow"
+		},
+		{
+			"op": "note",
+			"text": "south down the east side until the wall, then west into the pair standing in the gap"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 300
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 5
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "sound_mark"
+		},
+		{
+			"op": "fight_well"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "a swing and a hit are sounds only the arena makes, so they are what prove the fight that just ended was fought with the sword"
+		},
+		{
+			"op": "assert_sound",
+			"id": "swing",
+			"expect": true
+		},
+		{
+			"op": "assert_sound",
+			"id": "hit",
+			"expect": true
+		},
+		{
+			"op": "note",
+			"text": "beaten, and its body is gone from the gap"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "note",
+			"text": "hp AFTER a fight that did not level anyone. In the arena only the leader stands on the floor, and the sword's reach kept this pair off him entirely - the turn session reads 18 here, where both slinks got a blow in."
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "note",
+			"text": "and the first xp assertion in this script - assert_level cannot see xp, because three different totals all read as level 3. The award sums the formation: 5 and 5"
+		},
+		{
+			"op": "assert_xp",
+			"value": 10
+		},
+		{
+			"op": "note",
+			"text": "and the coin that fight dropped - asserted HERE because before it the purse is zero whether drops work or not"
+		},
+		{
+			"op": "assert_gold",
+			"value": 4
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "note",
+			"text": "a fight stops you where you stood, which is rarely on a tile centre - and the gap below is one tile wide, so an off-centre body clips the wall beside it. Re-anchor on the west wall, then three tiles east puts us squarely on the gap's column."
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				4
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "note",
+			"text": "south through the gap; the second one is beside the stash"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 80
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "fight_well"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "two slinks is exactly a level, which is exactly what the keep will want"
+		},
+		{
+			"op": "assert_level",
+			"value": 2
+		},
+		{
+			"op": "assert_hp",
+			"value": 24
+		},
+		{
+			"op": "note",
+			"text": "re-anchor again after the fight: south wall, then west wall, then one tile north puts the stash's bush directly east of us"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				1,
+				6
+			]
+		},
+		{
+			"op": "note",
+			"text": "press east into the bush the stash lives on"
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 6
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 1
+		},
+		{
+			"op": "note",
+			"text": "and it opens once: pressing again does nothing at all"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "note",
+			"text": "back out of the hollow: the bush pins us to the west, so south wall, east wall, then west onto the gap's column again and north through it"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 60
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 200
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				10,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_left",
+			"frames": 120
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				7
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_up",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				3
+			]
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 20
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_position",
+			"tile": [
+				4,
+				4
+			]
+		},
+		{
+			"op": "note",
+			"text": "east along row 4 and out. An arriving hold carries the player onward into the next map, and here that is exactly what we want: the hollow's door opens onto the village's row 5, and row 5 runs east to the gate - so ONE held key does both legs, and the gate now opens on the key we are carrying."
+		},
+		{
+			"op": "hold",
+			"action": "move_right",
+			"frames": 400
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_keep"
+		},
+		{
+			"op": "note",
+			"text": "the keep's inner wall leaves one way east, and the thing the gate was barred against is standing in it"
+		},
+		{
+			"op": "hold",
+			"action": "move_down",
+			"frames": 100
+		},
+		{
+			"op": "release_all"
+		},
+		{
+			"op": "wait",
+			"frames": 3
+		},
+		{
+			"op": "assert_state",
+			"state": "battle"
+		},
+		{
+			"op": "note",
+			"text": "the Keeper brings his own theme into the arena too: the music is the encounter's, whichever screen resolves it"
+		},
+		{
+			"op": "assert_music",
+			"id": "vigil",
+			"now": true
+		},
+		{
+			"op": "note",
+			"text": "and now lose, by never swinging. A player who never swings cannot win, so the fight can end only one way. The presses are cancel, which the arena does not read and the world does not take while a fight is up - so this waits for the game over without choosing a move."
+		},
+		{
+			"op": "note",
+			"text": "measured at 22 presses when this was written, so the limit is a little under three times that: tight enough that a Keeper who stopped winning would fail here rather than stand in the arena until a frame cap"
+		},
+		{
+			"op": "press_until_state",
+			"action": "cancel",
+			"state": "game_over",
+			"limit": 60
+		},
+		{
+			"op": "assert_state",
+			"state": "game_over"
+		},
+		{
+			"op": "note",
+			"text": "and the run has its own sound. This used to be SILENCE, on a comment claiming every game this borrows from cuts the music at a game over - Final Fantasy I ships 'Dead Music' in 1987. now:true asks what is playing this frame rather than what was asked for, which is the only way to tell a theme that started from one that was requested."
+		},
+		{
+			"op": "assert_music",
+			"id": "dirge",
+			"now": true
+		},
+		{
+			"op": "note",
+			"text": "the run is over, and the only ways on are a save or a fresh start. There is no save, so Continue is refused and says so - press it anyway and nothing happens"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 20
+		},
+		{
+			"op": "assert_state",
+			"state": "game_over"
+		},
+		{
+			"op": "note",
+			"text": "start again: down one, confirm"
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 30
+		},
+		{
+			"op": "note",
+			"text": "and a fresh run begins the story again - the warden has not met this one"
+		},
+		{
+			"op": "assert_state",
+			"state": "dialog"
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_state",
+			"state": "world"
+		},
+		{
+			"op": "assert_map",
+			"map": "quest_village"
+		},
+		{
+			"op": "note",
+			"text": "a fresh run really is fresh - level one, empty bag, nothing beaten"
+		},
+		{
+			"op": "assert_level",
+			"value": 1
+		},
+		{
+			"op": "assert_hp",
+			"value": 20
+		},
+		{
+			"op": "assert_xp",
+			"value": 0
+		},
+		{
+			"op": "assert_item",
+			"id": "gate_key",
+			"count": 0
+		},
+		{
+			"op": "assert_flag",
+			"key": "lit_the_lantern",
+			"expect": false
+		}
+	]
+}
