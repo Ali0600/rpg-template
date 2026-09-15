@@ -175,10 +175,15 @@ func _measure_overhang(source: SpriteSource, drawn: float) -> void:
 		if sheet.is_empty():
 			continue
 		var meta: SheetMeta = sheet["meta"]
-		_before.x = maxf(_before.x, ceilf(float(meta.anchor.x) * drawn))
-		_before.y = maxf(_before.y, ceilf(float(meta.anchor.y) * drawn))
-		_after.x = maxf(_after.x, ceilf(float(meta.cell.x - meta.anchor.x) * drawn))
-		_after.y = maxf(_after.y, ceilf(float(meta.cell.y - meta.anchor.y) * drawn))
+		# Over every clip, not the sheet's one cell: a swing drawn on a grid of its own reaches further
+		# past the feet than the walk does, and it is drawn while the hero is pressed into a wall.
+		for clip in meta.clip_names():
+			var at := meta.anchor_of(clip)
+			var box := meta.cell_of(clip)
+			_before.x = maxf(_before.x, ceilf(float(at.x) * drawn))
+			_before.y = maxf(_before.y, ceilf(float(at.y) * drawn))
+			_after.x = maxf(_after.x, ceilf(float(box.x - at.x) * drawn))
+			_after.y = maxf(_after.y, ceilf(float(box.y - at.y) * drawn))
 
 
 ## The floor window, centred, and everything on it. Answers where the window ends.

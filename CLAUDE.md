@@ -1397,6 +1397,16 @@ translator faking floats.
 as art: `SpriteFramesFactory` turns that pair into a `SpriteFrames` at runtime. This is the
 seam that lets a procedural rig, a downloaded pack or an AI generator feed the same game.
 
+**A clip may be drawn on a grid of its own** (M50.2). An animation can carry `cell`, `origin` and
+`anchor`, read through `SheetMeta.cell_of`/`origin_of`/`anchor_of`, because an LPC sword swings on
+frames bigger than the walk. `SpriteView` sets its offset per clip in `_play()`, so the feet stay on
+the node's origin in every clip, and its `cell_size()`/`anchor()` answer for the clip being SHOWN -
+which is what a layout audit has to measure, since it is the swing that must fit. `ArenaScreen` takes
+the floor's margins over every clip for the same reason. The texture must be EXACTLY the box the grids
+make, never at least it: a minimum lets a sheet pass with the part that matters never read. Every key
+is optional and absent means the sheet's own, so a sheet without one reads and writes back as the same
+text (`test_sprite_contract` holds that over every committed sheet) and `VERSION` did not move.
+
 **A style's sheets come from the rig or from an IMPORT, and `sheets_from` is the whole switch.**
 `SpriteStyle.sheets_from` is `rig` (the procedural generator, composed per `CharacterSpec`) or
 `lpc` (sheets the Universal LPC Spritesheet Character Generator exported, converted by
