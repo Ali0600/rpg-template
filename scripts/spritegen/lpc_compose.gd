@@ -28,12 +28,21 @@ const WALK := "walk"
 const SLASH := "slash"
 const FRAME := LpcImport.FRAME
 const SHEET_WIDE := LpcImport.SHEET_COLUMNS * FRAME
-const SHEET_ROWS := 54
+const SHEET_ROWS := LpcImport.SHEET_ROWS
 const WALK_TALL := 4 * FRAME
 ## The universal sheet row each animation this composer draws starts at, and how many frames its
 ## file is - LpcImport's constants, so the layout is stated in one place. Every file is four rows.
 const CLIP_ROWS := {WALK: LpcImport.WALK_ROW, SLASH: LpcImport.SLASH_ROW}
 const CLIP_FRAMES := {WALK: LpcImport.WALK_FRAMES, SLASH: LpcImport.SLASH_FRAMES}
+## The generator's swings drawn on frames bigger than a character's (sources/custom-animations.ts at
+## the pinned commit), by name, with their frame size. Each is six frames on four rows in LPC's row
+## order and its base animation is the slash, so a layer drawing one draws this composer's slash - in
+## a BLOCK of its own under the universal sheet, where the generator puts it, never in rows 12-15.
+const CUSTOM_SLASHES := {"slash_128": 128, "slash_oversize": 192}
+const BLOCK_FRAMES := LpcImport.SLASH_FRAMES
+const BLOCK_ROWS := 4
+## Where the generator draws the first block: straight under the universal sheet.
+const BLOCK_Y := SHEET_ROWS * FRAME
 ## Per channel, on 0-255 values: the generator's own matching rule.
 const TOLERANCE := 1
 ## What a definition with no `animations` list covers - the original LPC set.
@@ -44,7 +53,8 @@ const MATERIALS: Array[String] = ["body", "hair", "cloth", "eye"]
 
 
 ## Resolves a recipe against the catalogue. Returns {"problems": Array[String], "layers":
-## Array (each {"def", "clip", "path", "z", "remaps", "credits", "order"}), "selections": Dictionary}.
+## Array (each {"def", "clip", "path", "z", "remaps", "credits", "order", "custom", "frame_size"}),
+## "selections": Dictionary}.
 ##	 recipe:   {"id", "body_type", "animations"?, "layers": [{"def", "recolor"?, "variant"?, "eyes"?,
 ##	           "only"?}, ...]} - `animations` defaults to the walk alone, and a layer's `only` names
 ##	           the animations it is drawn in, which the browser has no way to say.
@@ -116,16 +126,43 @@ static func plan(recipe: Dictionary, defs: Dictionary, palettes: Dictionary, sty
 
 		for layer_key in _layer_keys(d):
 			var layer: Dictionary = d[layer_key]
+			var custom := str(layer.get("custom_animation", ""))
+			# A custom animation this composer does not draw - a backswing, a thrust - is nobody's here,
+			# so none of its files are fetched.
+			if not custom.is_empty() and not CUSTOM_SLASHES.has(custom):
+				continue
+			# Which of the recipe's animations THIS layer draws. A custom swing layer draws the slash and
+			# nothing else; a standard layer draws what its definition lists. A sword carried in the walk
+			# by one pair of layers and swung by another is asked only for the files it has.
+			var clips_here: Array[String] = []
+			if custom.is_empty():
+				for clip in drawn_in:
+					if _standard_covers(d, clip):
+						clips_here.append(clip)
+			elif drawn_in.has(SLASH):
+				clips_here.append(SLASH)
+			if clips_here.is_empty():
+				continue
 			var base_path := str(layer.get(body_type, ""))
 			if base_path.is_empty():
-				var drawn: Array = layer.keys().filter(func(k: Variant) -> bool: return str(k) != "zPos")
+				var drawn: Array = layer.keys().filter(func(k: Variant) -> bool:
+					return str(k) != "zPos" and str(k) != "custom_animation")
 				problems.append("'%s' (%s) has no art for body type '%s'; it draws %s" % [key, layer_key, body_type, drawn])
 				continue
-			for clip in drawn_in:
+			for clip in clips_here:
 				var path := SHEETS + base_path + clip
-				if not variant_file.is_empty():
-					path += "/" + variant_file
-				path += ".png"
+				if CUSTOM_SLASHES.has(custom):
+					if variant_file.is_empty():
+						problems.append("'%s' (%s) draws its %s as one file per colour, and has no colours to name one"
+							% [key, layer_key, custom])
+						continue
+					# The generator's own rule for a custom layer: the colour's file straight under its
+					# folder, with no animation folder between (renderer.ts).
+					path = SHEETS + base_path + variant_file + ".png"
+				else:
+					if not variant_file.is_empty():
+						path += "/" + variant_file
+					path += ".png"
 				var credits := _credits_for(d, path)
 				for c: Dictionary in credits:
 					var licenses := JsonFile.to_string_array(c["licenses"])
@@ -145,8 +182,17 @@ static func plan(recipe: Dictionary, defs: Dictionary, palettes: Dictionary, sty
 					"remaps": remaps,
 					"credits": credits,
 					"order": order,
+					"custom": custom,
+					"frame_size": int(CUSTOM_SLASHES.get(custom, FRAME)),
 				})
 				order += 1
+	# One sheet holds one swing block, so two swords drawn on different frame sizes are two characters.
+	var sizes: Array[int] = []
+	for layer: Dictionary in layers:
+		if not str(layer["custom"]).is_empty() and not sizes.has(int(layer["frame_size"])):
+			sizes.append(int(layer["frame_size"]))
+	if sizes.size() > 1:
+		problems.append("the recipe's swing is drawn on %s px frames by different layers; a sheet holds one size" % [sizes])
 	return {"problems": problems, "layers": layers, "selections": selections}
 
 
@@ -161,12 +207,27 @@ static func files_of(planned: Dictionary) -> Array[String]:
 	return out
 
 
+## Where a plan's custom swing goes on the composed sheet, as the record the export carries - or empty
+## when nothing in the plan draws one.
+static func block_of(planned: Dictionary) -> Dictionary:
+	for layer: Dictionary in planned.get("layers", []) as Array:
+		var custom := str(layer.get("custom", ""))
+		if not custom.is_empty():
+			return {"name": custom, "clip": SLASH, "frameSize": int(layer["frame_size"]),
+				"x": 0, "y": BLOCK_Y, "columns": BLOCK_FRAMES, "rows": BLOCK_ROWS}
+	return {}
+
+
 ## Draws the plan onto a full-size universal sheet: every layer's file for each animation it is
 ## drawn in, remapped, blended in zPos order into that animation's rows (walk 8-11, slash 12-15).
-## images: path -> Image. Returns {"image", "problems"}.
+## When the plan swings on bigger frames the sheet grows by that block (block_of), and every slash
+## layer is drawn into it too. images: path -> Image. Returns {"image", "problems"}.
 static func compose(planned: Dictionary, images: Dictionary) -> Dictionary:
 	var problems: Array[String] = []
-	var canvas := Image.create_empty(SHEET_WIDE, SHEET_ROWS * FRAME, false, Image.FORMAT_RGBA8)
+	# A plan with no custom swing composes the universal sheet exactly as it always did.
+	var cell := int(block_of(planned).get("frameSize", 0))
+	var canvas := Image.create_empty(maxi(SHEET_WIDE, BLOCK_FRAMES * cell),
+		SHEET_ROWS * FRAME + BLOCK_ROWS * cell, false, Image.FORMAT_RGBA8)
 	var layers: Array = (planned.get("layers", []) as Array).duplicate()
 	# Lower zPos first; ties keep recipe order, because sort_custom is not stable.
 	layers.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -180,6 +241,17 @@ static func compose(planned: Dictionary, images: Dictionary) -> Dictionary:
 			problems.append("no image for %s" % path)
 			continue
 		var clip := str(layer.get("clip", WALK))
+		if not str(layer.get("custom", "")).is_empty():
+			# A custom swing's file IS its block, laid out the way the generator lays it, so it is drawn
+			# whole. Through remapped() for its conversion: blend_rect between two formats does nothing
+			# and says nothing.
+			var whole := Vector2i(BLOCK_FRAMES * cell, BLOCK_ROWS * cell)
+			if img.get_size() != whole:
+				problems.append("%s is %s; a %dpx swing file is %d frames on %d rows, %s"
+					% [path, img.get_size(), cell, BLOCK_FRAMES, BLOCK_ROWS, whole])
+				continue
+			canvas.blend_rect(remapped(img, layer["remaps"]), Rect2i(Vector2i.ZERO, whole), Vector2i(0, BLOCK_Y))
+			continue
 		if img.get_height() != WALK_TALL or img.get_width() % FRAME != 0:
 			problems.append("%s is %s; a %s file is %d rows of %dpx frames" % [path, img.get_size(), clip, 4, FRAME])
 			continue
@@ -192,6 +264,8 @@ static func compose(planned: Dictionary, images: Dictionary) -> Dictionary:
 		var row := int(CLIP_ROWS[clip])
 		# blend, not blit: a shirt over a body must keep the body where the shirt is transparent.
 		canvas.blend_rect(painted, Rect2i(0, 0, wide, WALK_TALL), Vector2i(0, row * FRAME))
+		if clip == SLASH and cell > 0:
+			_centre_into_block(canvas, painted, cell)
 	return {"image": canvas, "problems": problems}
 
 
@@ -211,7 +285,7 @@ static func export_json(recipe: Dictionary, planned: Dictionary) -> Dictionary:
 	var credits: Array = []
 	for f: Variant in files:
 		credits.append(by_file[f])
-	return {
+	var out := {
 		"version": 2,
 		"bodyType": str(recipe.get("body_type", "")),
 		"selections": planned.get("selections", {}),
@@ -220,6 +294,13 @@ static func export_json(recipe: Dictionary, planned: Dictionary) -> Dictionary:
 		"generatedBy": "tools/lpc_compose.gd",
 		"recipe": recipe,
 	}
+	# The one thing the browser's own export leaves out: where it drew a swing on bigger frames. Without
+	# it an importer can only guess, and LpcImport refuses a sheet past the universal size that does not
+	# say.
+	var block := block_of(planned)
+	if not block.is_empty():
+		out["customAnimations"] = [block]
+	return out
 
 
 ## A copy of `img` with every remap applied: a pixel within TOLERANCE of a source colour takes
@@ -253,6 +334,17 @@ static func _near(a: Color, b: Color) -> bool:
 	return absi(a.r8 - b.r8) <= TOLERANCE and absi(a.g8 - b.g8) <= TOLERANCE and absi(a.b8 - b.b8) <= TOLERANCE
 
 
+## A standard slash layer drawn into the swing's block one frame at a time, each 64px frame centred in
+## the bigger cell - the generator's own rule (draw-frames.ts) - so a body swings inside the blade drawn
+## for it.
+static func _centre_into_block(canvas: Image, painted: Image, cell: int) -> void:
+	var pad := (cell - FRAME) / 2
+	for r in BLOCK_ROWS:
+		for c in BLOCK_FRAMES:
+			canvas.blend_rect(painted, Rect2i(c * FRAME, r * FRAME, FRAME, FRAME),
+				Vector2i(c * cell + pad, BLOCK_Y + r * cell + pad))
+
+
 ## The animations a recipe draws, the walk always first. A recipe that names none draws the walk
 ## alone - every recipe written before the slash was, and every character that never swings.
 static func _clips_of(recipe: Dictionary, problems: Array[String]) -> Array[String]:
@@ -270,13 +362,31 @@ static func _clips_of(recipe: Dictionary, problems: Array[String]) -> Array[Stri
 	return out
 
 
+## Whether a definition draws `clip` at all: through a standard layer, or - for the slash - through a
+## layer whose custom animation is a swing this composer draws.
 static func _covers(d: Dictionary, clip: String) -> bool:
+	if clip == SLASH and _swings_on_bigger_frames(d):
+		return true
+	return _standard_covers(d, clip)
+
+
+## What a definition's standard layers draw: its `animations` list, or the classic six when it has
+## none. A custom animation's name is not a clip, so a sword listing only `slash_128` has no standard
+## slash.
+static func _standard_covers(d: Dictionary, clip: String) -> bool:
 	var anims: Variant = d.get("animations", null)
 	if anims == null:
 		return CLASSIC_SIX.has(clip)
 	if not anims is Array:
 		return false
 	return JsonFile.to_string_array(anims).has(clip)
+
+
+static func _swings_on_bigger_frames(d: Dictionary) -> bool:
+	for key in _layer_keys(d):
+		if CUSTOM_SLASHES.has(str((d[key] as Dictionary).get("custom_animation", ""))):
+			return true
+	return false
 
 
 ## "layer_1", "layer_2", ... in numeric order.

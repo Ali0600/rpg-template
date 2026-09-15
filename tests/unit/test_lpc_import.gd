@@ -298,3 +298,96 @@ func test_the_slash_plays_through_the_factory_once() -> void:
 	var frames := SpriteFramesFactory.build(ImageTexture.create_from_image(built["image"]), built["meta"])
 	assert_int(frames.get_frame_count(&"slash_left")).is_equal(6)
 	assert_bool(frames.get_animation_loop(&"slash_left")).is_false()
+
+
+# -- a swing drawn below the sheet -------------------------------------------------------------
+
+const BLOCK_Y := 54 * FRAME
+const SWING := 128
+
+## A composed sheet whose swing is drawn on 128px frames: the walk at `ground`, rows 12-15 holding the
+## unarmed body the generator draws as well, and under the universal sheet a block in which every cell
+## of LPC block row R carries its direction's colour at (64, 82) - except the up row's last frame, left
+## blank - plus the two marks that set the crop: (20, 40) in the first cell and a half-clear (110, 100)
+## in the last.
+func _sheet_with_block(ground := 58) -> Image:
+	var img := Image.create_empty(SHEET_WIDE, BLOCK_Y + 4 * SWING, false, Image.FORMAT_RGBA8)
+	img.blit_rect(_sheet_with_slash(ground, ground), Rect2i(0, 0, SHEET_WIDE, BLOCK_Y), Vector2i.ZERO)
+	for lpc_row: int in SLASH_ROWS.keys():
+		var r := lpc_row - 12
+		for col in 6:
+			if r == 0 and col == 5:
+				continue
+			img.set_pixel(col * SWING + 64, BLOCK_Y + r * SWING + 82, _color_of(SLASH_ROWS[lpc_row]))
+	img.set_pixel(20, BLOCK_Y + 40, Color8(9, 9, 9))
+	img.set_pixel(5 * SWING + 110, BLOCK_Y + 3 * SWING + 100, Color8(9, 9, 9, 128))
+	return img
+
+## The export of that sheet, with the record LpcCompose writes, `changes` laid over the record.
+func _block_recipe(changes := {}) -> Dictionary:
+	var record := {"name": "slash_128", "clip": "slash", "frameSize": SWING, "x": 0, "y": BLOCK_Y,
+		"columns": 6, "rows": 4}
+	record.merge(changes, true)
+	var recipe := _recipe()
+	recipe["customAnimations"] = [record]
+	return recipe
+
+func _drawn_in(img: Image, area: Rect2i) -> int:
+	var count := 0
+	for y in range(area.position.y, area.end.y):
+		for x in range(area.position.x, area.end.x):
+			if img.get_pixel(x, y).a > 0.0:
+				count += 1
+	return count
+
+func test_a_swing_drawn_below_the_sheet_is_cut_onto_a_grid_of_its_own_cropped_to_what_it_draws() -> void:
+	var built := LpcImport.build(_sheet_with_block(), _block_recipe(), _style(), "hero")
+	var img: Image = built["image"]
+	var meta: SheetMeta = built["meta"]
+	# The crop is everything drawn: (20, 40) to (110, 100) of a 128px cell, so 91 by 61. The feet, 32
+	# across and 58 down a 64px frame, are 32 further in each way once the frame is centred - (64, 90) in
+	# the cell - and (44, 50) in the crop.
+	assert_vector(Vector2(img.get_size())).is_equal(Vector2(576, 500))
+	assert_int(meta.columns).override_failure_message("the unarmed swing in rows 12-15 was imported too").is_equal(9)
+	assert_str(str(meta.frames_of("slash"))).is_equal("[0, 1, 2, 3, 4, 5]")
+	assert_vector(Vector2(meta.cell_of("slash"))).is_equal(Vector2(91, 61))
+	assert_vector(Vector2(meta.origin_of("slash"))).is_equal(Vector2(0, 256))
+	assert_vector(Vector2(meta.anchor_of("slash"))).is_equal(Vector2(44, 50))
+	assert_int(meta.anchor.y).override_failure_message("the swing was measured as the ground").is_equal(58)
+	for r in CANONICAL.size():
+		var dir: int = CANONICAL[r]
+		for col in 6:
+			if dir == Dir.D.UP and col == 5:
+				continue
+			assert_str(img.get_pixel(col * 91 + 44, 256 + r * 61 + 42).to_html(false)).override_failure_message(
+				"swing frame %d of canonical row %d should carry the %s frames" % [col, r, Dir.name_of(dir)]) \
+				.is_equal(_color_of(dir).to_html(false))
+	assert_array(meta.problems(img.get_size())).is_empty()
+
+func test_a_crop_loses_nothing_the_swing_draws() -> void:
+	var sheet := _sheet_with_block()
+	var out: Image = LpcImport.build(sheet, _block_recipe(), _style(), "hero")["image"]
+	var before := _drawn_in(sheet, Rect2i(0, BLOCK_Y, 6 * SWING, 4 * SWING))
+	var after := _drawn_in(out, Rect2i(0, 256, 6 * 91, 4 * 61))
+	assert_int(before).is_equal(25)	# 23 marks, and the two that set the crop
+	assert_int(after).override_failure_message("%d of %d drawn pixels survived the crop" % [after, before]).is_equal(before)
+
+func test_a_sheet_past_the_universal_size_that_does_not_say_where_its_swing_is_is_refused() -> void:
+	# The browser's own download: its export records nothing about the block it drew below the sheet.
+	assert_str("\n".join(LpcImport.problems(_sheet_with_block(), _recipe(), _style()))).contains(
+		"does not say what is drawn there")
+	assert_array(LpcImport.problems(_sheet_with_block(), _block_recipe(), _style())).is_empty()
+
+func test_a_swing_record_the_sheet_cannot_be_cut_by_is_refused_by_name() -> void:
+	var sheet := _sheet_with_block()
+	assert_str("\n".join(LpcImport.problems(sheet, _block_recipe({"clip": "thrust"}), _style()))).contains(
+		"this importer reads a slash")
+	assert_str("\n".join(LpcImport.problems(sheet, _block_recipe({"columns": 8}), _style()))).contains(
+		"6 frames on 4 rows")
+	assert_str("\n".join(LpcImport.problems(sheet, _block_recipe({"y": 3600}), _style()))).contains(
+		"outside the")
+
+func test_a_swing_blank_facing_one_way_is_refused_by_row() -> void:
+	var sheet := _sheet_with_block()
+	sheet.fill_rect(Rect2i(0, BLOCK_Y + 2 * SWING, 6 * SWING, SWING), Color(0, 0, 0, 0))
+	assert_str("\n".join(LpcImport.problems(sheet, _block_recipe(), _style()))).contains("swing row 2 (down)")

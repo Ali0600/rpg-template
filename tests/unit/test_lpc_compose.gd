@@ -346,3 +346,146 @@ func test_the_export_credits_a_file_once_across_the_animations_it_is_drawn_in() 
 	var files: Array = (LpcCompose.export_json(recipe, planned)["credits"] as Array).map(
 		func(c: Dictionary) -> String: return str(c["file"]))
 	assert_str(str(files)).is_equal('["torso/shirt/male"]')
+
+
+# -- a swing on bigger frames ----------------------------------------------------------------------
+
+## A sword in the manner of the generator's arming sword at the pinned commit: carried in the walk by
+## two standard layers, swung by two layers whose `custom_animation` is drawn on 128px frames, with a
+## backswing beside them that nobody asks for. Its animations name no plain slash.
+func _arming() -> Dictionary:
+	return {"name": "Arming Sword", "type_name": "weapon", "variants": ["bronze", "iron"],
+		"layer_1": {"zPos": 140, "male": "weapon/sword/arming/universal/fg/"},
+		"layer_2": {"zPos": 9, "male": "weapon/sword/arming/universal/bg/"},
+		"layer_3": {"zPos": 8, "custom_animation": "slash_128", "male": "weapon/sword/arming/attack_slash/bg/"},
+		"layer_4": {"zPos": 150, "custom_animation": "slash_128", "male": "weapon/sword/arming/attack_slash/fg/"},
+		"layer_5": {"zPos": 150, "custom_animation": "backslash_128", "male": "weapon/sword/arming/attack_backslash/fg/"},
+		"animations": ["walk", "hurt", "slash_128", "backslash_128"],
+		"credits": [{"file": "weapon/sword/arming", "authors": ["h; walk by i"], "licenses": ["OGA-BY 3.0"], "urls": []}]}
+
+## The longsword's shape: one swing layer, on 192px frames.
+func _longsword() -> Dictionary:
+	return {"name": "Longsword", "type_name": "weapon", "variants": ["longsword"],
+		"layer_1": {"zPos": 150, "custom_animation": "slash_oversize", "male": "weapon/sword/longsword/attack_slash/"},
+		"animations": ["walk", "slash_oversize"],
+		"credits": [{"file": "weapon/sword/longsword", "authors": ["j"], "licenses": ["OGA-BY 3.0"], "urls": []}]}
+
+func _sword_defs() -> Dictionary:
+	var defs := _slash_defs()
+	defs["arming"] = _arming()
+	defs["longsword"] = _longsword()
+	return defs
+
+## The shirt, and a sword drawn in the swing alone.
+func _swing_recipe(sword: Dictionary) -> Dictionary:
+	return _slash_recipe([{"def": "shirt", "recolor": "navy"}, sword])
+
+func _arming_plan() -> Dictionary:
+	return LpcCompose.plan(_swing_recipe({"def": "arming", "variant": "bronze", "only": ["slash"]}),
+		_sword_defs(), _palettes(), _style())
+
+## A swing file: six frames on four rows of `cell`, painted one colour, or left clear.
+func _block(hex: String, cell := 128) -> Image:
+	var img := Image.create_empty(6 * cell, 4 * cell, false, Image.FORMAT_RGBA8)
+	if not hex.is_empty():
+		img.fill(Color(hex))
+	return img
+
+## The shirt's two files and the arming sword's two, the sword's under layer painted green.
+func _arming_images(body: Image) -> Dictionary:
+	return {
+		"spritesheets/torso/shirt/male/walk.png": _walk("#200000"),
+		"spritesheets/torso/shirt/male/slash.png": body,
+		"spritesheets/weapon/sword/arming/attack_slash/bg/bronze.png": _block("#00ff00"),
+		"spritesheets/weapon/sword/arming/attack_slash/fg/bronze.png": _block(""),
+	}
+
+func test_a_swing_on_bigger_frames_plans_its_two_files_and_nothing_it_does_not_draw() -> void:
+	# Not the walk layers' slash files, which do not exist, and not the backswing, which nobody asked for.
+	var planned := _arming_plan()
+	assert_array(planned["problems"]).is_empty()
+	var sword := {"layers": (planned["layers"] as Array).filter(
+		func(l: Dictionary) -> bool: return str(l["def"]) == "arming")}
+	assert_str(_paths(sword)).is_equal(
+		'["spritesheets/weapon/sword/arming/attack_slash/bg/bronze.png", "spritesheets/weapon/sword/arming/attack_slash/fg/bronze.png"]')
+	assert_str(JSON.stringify(LpcCompose.block_of(planned))).is_equal(
+		'{"clip":"slash","columns":6,"frameSize":128,"name":"slash_128","rows":4,"x":0,"y":3456}')
+
+func test_a_recipe_that_does_not_swing_plans_the_sword_it_carries_and_no_block() -> void:
+	var planned := LpcCompose.plan(_recipe([{"def": "arming", "variant": "bronze"}]), _sword_defs(), _palettes(), _style())
+	assert_array(planned["problems"]).is_empty()
+	assert_str(_paths(planned)).is_equal(
+		'["spritesheets/weapon/sword/arming/universal/fg/walk/bronze.png", "spritesheets/weapon/sword/arming/universal/bg/walk/bronze.png"]')
+	assert_bool(LpcCompose.block_of(planned).is_empty()).is_true()
+
+func test_two_swing_sizes_in_one_recipe_are_refused_by_name() -> void:
+	var recipe := _slash_recipe([{"def": "arming", "variant": "bronze", "only": ["slash"]},
+		{"def": "longsword", "variant": "longsword", "only": ["slash"]}])
+	assert_str("\n".join(LpcCompose.plan(recipe, _sword_defs(), _palettes(), _style())["problems"])).contains(
+		"a sheet holds one size")
+
+func test_a_swing_layer_with_no_colours_to_name_its_file_is_refused_by_name() -> void:
+	var defs := _sword_defs()
+	(defs["longsword"] as Dictionary).erase("variants")
+	var problems: Array = LpcCompose.plan(_swing_recipe({"def": "longsword", "only": ["slash"]}), defs,
+		_palettes(), _style())["problems"]
+	assert_str("\n".join(problems)).contains("'longsword' (layer_1) draws its slash_oversize as one file per colour")
+
+func test_compose_centres_the_body_in_the_swing_block_and_lays_the_sword_whole() -> void:
+	# The generator's own rule (draw-frames.ts): a 64px frame is centred in the bigger cell, unscaled, and
+	# the sword's file IS the block. Rows 12-15 keep the body alone, which the generator draws too.
+	var body := _slash("#300000")
+	body.set_pixel(3 * 64 + 10, 1 * 64 + 10, Color("#ff0000"))	# frame 3 of LPC row 1, marked
+	var composed := LpcCompose.compose(_arming_plan(), _arming_images(body))
+	assert_array(composed["problems"]).is_empty()
+	var img: Image = composed["image"]
+	assert_vector(Vector2(img.get_size())).is_equal(Vector2(832, 3968))
+	# Cell (1, 2) of the block starts at (128, 3712). The shirt covers 32..95 of it; the sword, drawn
+	# under the shirt, shows round it.
+	var top := 3456 + 2 * 128
+	assert_str(img.get_pixel(128 + 31, top + 40).to_html(false)).is_equal("00ff00")
+	assert_str(img.get_pixel(128 + 32, top + 40).to_html(false)).is_equal("000030")
+	assert_str(img.get_pixel(128 + 95, top + 95).to_html(false)).is_equal("000030")
+	assert_str(img.get_pixel(128 + 96, top + 95).to_html(false)).is_equal("00ff00")
+	# Frame 3 of LPC row 1 lands in cell (3, 1), still marked, 32 in and 32 down.
+	assert_str(img.get_pixel(3 * 128 + 32 + 10, 3456 + 128 + 32 + 10).to_html(false)).is_equal("ff0000")
+	# The whole sword, to its last pixel; and the body alone in the universal sheet's slash rows.
+	assert_str(img.get_pixel(767, 3967).to_html(false)).is_equal("00ff00")
+	assert_str(img.get_pixel(5, 12 * 64 + 5).to_html(false)).is_equal("000030")
+
+func test_a_swing_file_of_the_wrong_size_is_refused_by_name() -> void:
+	var images := _arming_images(_slash("#300000"))
+	images["spritesheets/weapon/sword/arming/attack_slash/bg/bronze.png"] = _block("#00ff00").get_region(
+		Rect2i(0, 0, 768, 256))
+	assert_str("\n".join(LpcCompose.compose(_arming_plan(), images)["problems"])).contains(
+		"a 128px swing file is 6 frames on 4 rows")
+
+func test_a_swing_on_192px_frames_grows_the_sheet_by_its_own_block() -> void:
+	var planned := LpcCompose.plan(_swing_recipe({"def": "longsword", "variant": "longsword", "only": ["slash"]}),
+		_sword_defs(), _palettes(), _style())
+	assert_array(planned["problems"]).is_empty()
+	var images := {
+		"spritesheets/torso/shirt/male/walk.png": _walk("#200000"),
+		"spritesheets/torso/shirt/male/slash.png": _slash("#300000"),
+		"spritesheets/weapon/sword/longsword/attack_slash/longsword.png": _block("", 192),
+	}
+	var img: Image = LpcCompose.compose(planned, images)["image"]
+	assert_vector(Vector2(img.get_size())).is_equal(Vector2(1152, 4224))
+	assert_float(img.get_pixel(63, 3456 + 64).a).is_equal(0.0)
+	assert_str(img.get_pixel(64, 3456 + 64).to_html(false)).is_equal("000030")
+
+func test_the_export_records_where_the_swing_is_and_the_importer_cuts_it_from_there() -> void:
+	var recipe := _swing_recipe({"def": "arming", "variant": "bronze", "only": ["slash"]})
+	var planned := LpcCompose.plan(recipe, _sword_defs(), _palettes(), _style())
+	var doc := LpcCompose.export_json(recipe, planned)
+	assert_str(JSON.stringify(doc.get("customAnimations"))).is_equal(
+		'[{"clip":"slash","columns":6,"frameSize":128,"name":"slash_128","rows":4,"x":0,"y":3456}]')
+	var sheet: Image = LpcCompose.compose(planned, _arming_images(_slash("#300000")))["image"]
+	assert_array(LpcImport.problems(sheet, doc, _style())).is_empty()
+	var meta: SheetMeta = LpcImport.build(sheet, doc, _style(), "who")["meta"]
+	assert_bool(meta.has_grid("slash")).override_failure_message(
+		"the importer did not take the swing from the block the export names").is_true()
+	# A recipe with nothing swinging on bigger frames writes the export it always did.
+	var dagger := _slash_recipe([{"def": "shirt", "recolor": "navy"}, {"def": "dagger", "variant": "dagger", "only": ["slash"]}])
+	var plain := LpcCompose.export_json(dagger, LpcCompose.plan(dagger, _sword_defs(), _palettes(), _style()))
+	assert_bool(plain.has("customAnimations")).is_false()

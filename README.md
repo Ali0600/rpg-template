@@ -32,7 +32,7 @@ both, and the build fails if the committed pixels differ.
 
 **The gate.** Every rule the template makes is a test. Every test ships with a mutant — a
 deliberate break in the code — that proves the test fails when the rule is broken.
-`tools/check.sh` runs lint, parse, compile, 1,671 tests, a boot check, an artifact drift check
+`tools/check.sh` runs lint, parse, compile, 1,684 tests, a boot check, an artifact drift check
 (generated files must match what is committed), 30 scripted play sessions and the exported
 package, in that order. It runs the same way locally and in CI.
 
@@ -193,14 +193,14 @@ behaving strangely.
   sub-tile autotiling that builds 47 edge shapes from 12 pieces. All of it uses integer
   arithmetic, so the output is byte-identical on macOS and Linux, and CI fails if the committed
   output drifts.
-- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,671
+- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,684
   unit and integration tests → boot → artifact drift → 30 scripted end-to-end play sessions →
   the exported package checked for test code, then played. Repository policy requires every
   action to be pinned to a SHA, `main` cannot be force-pushed or deleted, dependency alerts open
   their own fix PRs, and tokens get the least access they need. Every download the build and the
   art pipeline make is pinned to a commit or checked against a committed checksum, and the Pages
   deploy waits for the green run of the exact commit it ships.
-- Added mutation testing over the project's own quality gates: 913 mutants, each proving a rule
+- Added mutation testing over the project's own quality gates: 941 mutants, each proving a rule
   fails when it is broken. The run is split four ways, with a fast lane that runs only the
   mutants a change touches (pull-request runs went from 18 → 3 min), and a sub-second static
   check that every mutant still targets one line.

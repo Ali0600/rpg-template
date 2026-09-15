@@ -66,6 +66,12 @@ is how `quest_wanderer` carries a dagger in the arena and none in the village or
 Both keys are the composer's own. The web app has no way to say either, and draws a weapon in every
 animation it has.
 
+A sword whose swing is drawn on 128 or 192px frames lands in a block below the universal sheet, and
+the web app's JSON export does not say where. So such a sheet imports only when it was composed with
+`tools/lpc_compose.sh`, which records the block (`customAnimations`); a download straight from the web
+app is refused by name. The swing is cut from the block onto a grid of its own, cropped to what its
+frames draw.
+
 ## Recipes
 
 | character | made from | how |
