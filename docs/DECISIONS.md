@@ -10,7 +10,8 @@ one-glance menu of things still worth trying.
   `PlayChoices`, where each row's offered values are derived.
 - **A boss that holds its ground in the arena** — a per-enemy field that keeps a struck boss
   within reach, weighed when the arena's balance gate was written (M50). Revisit hook: `EnemyDef`
-  beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove.
+  beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove. Measured in M50.1: as
+  built it lets careless play win 47 fights of 48, so it needs a rule change beside it, not a number.
 - **An AI sprite source** (PixelLab or similar) for higher-fidelity art. Revisit hook:
   `scripts/spritegen/sprite_source.gd` — implement the interface, emit PNG + sheet.json,
   and the game does not change. Direction aliases for compass-named rows already exist in
@@ -3560,6 +3561,15 @@ fact, and "never" would be a claim about which seeds were picked.
 - A boss that holds its ground — `deferred — worth trying` when a game wants one. **Revisit hook:**
   `EnemyDef` beside `body_tiles`, read where `ArenaSim._strike` sets a struck foe's shove; its effect
   shows in `CARELESS_WINS_ALLOWED` in `tests/unit/test_battle_content.gd`.
+
+*Measured 2026-09-14 (M50.1), and no longer "unmeasured":* a Keeper who holds his ground, keeps coming
+while he flashes, and is never pushed makes the careless player win **47 of 48** at level 2 (4 as
+shipped); flinching in place without the push wins **48 of 48**; the skilled player wins 12 of 12 in
+every variant. A Keeper who is not pushed stays in reach, a frame resolves the sword before the touch,
+and a flashing foe cannot bite, so walking into him chains hits. No single Keeper number repairs it:
+with the holder, health 60 wins 46, attack 16 wins 17, speed 3.0 and a re-aim every 8 frames win 48,
+defense 6 wins 46. Put to the owner the same day and not yet decided; the code is a local branch,
+`m50-1-keeper-holds-ground`, and nothing ships.
 
 ## The arena's swing is the art's own slash, and a drawn one only where the art has none — *M50*
 
