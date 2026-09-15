@@ -753,6 +753,22 @@ func cue_span() -> int:
 			return 1
 
 
+## Which of `steps` pictures of a member's swing belongs on screen now, or -1 when none does. The swing
+## is laid across the timing window of the member's own attack, so its last picture is up on the frame
+## before the blow lands - the frame a press stops counting. `steps` is how many pictures the member's
+## art draws, and nought for art that draws none. The arena asks ArenaSim the same question.
+##
+## No clamp to the last picture and no guard on the window: inside a window `_count` runs from the
+## window down to 1, because the hit lands on the tick it reaches nought, so the answer is already 0 to
+## steps - 1, and a window of nought is one `cue_on()` never opens. The phase is checked as well as the
+## window because the defend cue has a window too, and the swing is the attacker's.
+func swing_step(steps: int) -> int:
+	if _phase != Phase.PLAYER_ACT or not cue_on() or steps <= 0:
+		return -1
+	var window := _combat.timed_window_frames
+	return (window - _count) * steps / window
+
+
 ## Whether the press already captured for this cue landed inside the window. Read by the view
 ## to show the result of a press the instant it happens rather than at impact.
 func pressed_in_time() -> bool:

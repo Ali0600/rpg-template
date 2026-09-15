@@ -22,6 +22,10 @@ signal finished(outcome: int, effects: Array)
 
 const LAYER := 12
 
+## The clip a fighter swings with, where the art draws one: LPC's slash rows, cut by the importer. On
+## the base because both screens play it - the arena for every swing, the turn fight inside the window.
+const SLASH := &"slash"
+
 ## How many foes a fight screen draws, and therefore how large a formation a map record may name.
 ## Three: what BattleScreen's banner names on one line at the widest names its layout audit uses,
 ## and the size the genre's own small fights come in. On the base rather than on one screen,

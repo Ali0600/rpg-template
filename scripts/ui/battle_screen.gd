@@ -241,9 +241,9 @@ func _build_banner(wide: float) -> void:
 
 ## The field: two staggered files of fighters, feet on FLOOR_Y.
 func _build_field(viewport_size: Vector2i, source: SpriteSource) -> void:
-	# The generated walk and idle sheets, unchanged. A battle-only "attack" clip would mean new
-	# rig parts, a new clip in SheetBuilder and a change to the sheet contract - so the lunge
-	# is done by moving the NODE, which needs none of it and re-skins with everything else.
+	# The lunge is done by moving the NODE, which every style can do: the procedural rig draws no
+	# attack clip at all. Art that draws LPC's slash - a clip on a grid of its own, which a sheet
+	# may carry since M50.2 - also plays it inside the press window (M50.3, `_paint_fighters`).
 	#
 	# A party stands in a staggered file rather than a row: back and up, so nobody is hidden
 	# behind the member in front and the one who is swinging still has room to lean.
@@ -542,7 +542,14 @@ func _paint_fighters() -> void:
 		# makes it readable at a glance who the blow belongs to.
 		var mine := acting and player_side and swinging == i
 		_member_views[i].position = _member_homes[i] + Vector2(reach if mine else 0.0, 0.0)
-		_member_views[i].set_pose(&"walk" if mine else &"idle", Dir.D.RIGHT)
+		# And inside the press window, a member whose art draws a swing shows it, one picture at a
+		# time from the fight's own count. Art that draws none has nought pictures and walks. The
+		# answer is about the PHASE, not about anybody in it, which is why it is asked only for `mine`.
+		var picture := _logic.swing_step(_member_views[i].frames_in(SLASH)) if mine else -1
+		if picture >= 0:
+			_member_views[i].hold_frame(SLASH, Dir.D.RIGHT, picture)
+		else:
+			_member_views[i].set_pose(&"walk" if mine else &"idle", Dir.D.RIGHT)
 	var swinging_foe := _logic.acting_foe()
 	for at in _foe_views.size():
 		# And only the foe taking its turn, for the same reason. With a formation acting one at a

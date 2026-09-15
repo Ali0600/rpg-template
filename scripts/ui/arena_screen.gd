@@ -42,8 +42,6 @@ const READOUT_CAPACITY := 999
 const FLICKER_SPAN := 2
 ## Both verbs, on the keys they are bound to, in the help line every other screen here uses.
 const HELP := "WASD to move    E to swing"
-## The clip an imported hero swings with, cut from the LPC generator's own slash rows.
-const SLASH := &"slash"
 ## Tagged on the floor's own layers - the drawn slash, and the ground - so the layout audit treats
 ## them the way it treats bodies: things whose overlapping IS the fight rather than a fault.
 const FIELD := &"arena_field"

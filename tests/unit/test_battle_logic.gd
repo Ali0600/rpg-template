@@ -846,6 +846,65 @@ func test_outside_a_cue_the_span_is_safe_to_divide_by() -> void:
 	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MENU)
 	assert_int(battle.cue_span()).is_equal(1)
 
+func test_a_swing_is_laid_across_the_press_window() -> void:
+	# Which picture of a swing is on screen, asked of the fight's own count. Three pictures over this
+	# suite's six-frame window: two frames each, the last on the frame before the hit. Three rather
+	# than six on purpose - six over six collapses the sum to "frames left", and a version that forgot
+	# to scale by the pictures would pass.
+	var battle := _fight()
+	battle.press()
+	_tick_to(battle, 7)
+	assert_int(battle.swing_step(3)).override_failure_message(
+		"a swing is on screen before the window opens").is_equal(-1)
+	for pair: Array in [[6, 0], [5, 0], [4, 1], [3, 1], [2, 2], [1, 2]]:
+		_tick_to(battle, pair[0])
+		assert_int(battle.swing_step(3)).override_failure_message(
+			"with %d frames left" % pair[0]).is_equal(pair[1])
+
+func test_a_swing_with_more_pictures_than_the_window_has_frames_skips_some_and_never_overruns() -> void:
+	var battle := _fight()
+	battle.press()
+	_tick_to(battle, 6)
+	assert_int(battle.swing_step(12)).is_equal(0)
+	_tick_to(battle, 1)
+	assert_int(battle.swing_step(12)).override_failure_message(
+		"twelve pictures over six frames do not end two short of the last").is_equal(10)
+
+func test_art_that_draws_no_swing_is_never_shown_one() -> void:
+	var battle := _fight()
+	battle.press()
+	_tick_to(battle, 3)
+	assert_bool(battle.cue_on()).is_true()
+	assert_int(battle.swing_step(0)).is_equal(-1)
+	# The control: the same frame, for art with three pictures.
+	assert_int(battle.swing_step(3)).is_equal(1)
+
+func test_the_swing_is_gone_the_frame_the_blow_lands() -> void:
+	var battle := _fight()
+	battle.press()
+	_tick_to(battle, 1)
+	assert_int(battle.swing_step(3)).is_equal(2)
+	battle.tick()
+	assert_int(battle.phase()).is_equal(BattleLogic.Phase.MESSAGE)
+	# Still the swinger while the hit's line is up, so it is not who is acting that ends the swing.
+	assert_int(battle.acting_member()).is_equal(0)
+	assert_int(battle.swing_step(3)).is_equal(-1)
+
+func test_the_enemy_s_window_shows_no_party_swing() -> void:
+	# The defend cue has a timing window of its own, and a swing belongs to the member attacking.
+	var battle := _fight()
+	battle.press()
+	var reached := false
+	for i in 500:
+		battle.tick()
+		if battle.phase() == BattleLogic.Phase.ENEMY_ACT:
+			reached = true
+			break
+	assert_bool(reached).override_failure_message("the enemy never took its turn").is_true()
+	_tick_to(battle, 6)
+	assert_bool(battle.cue_on()).is_true()
+	assert_int(battle.swing_step(3)).is_equal(-1)
+
 
 # -- a party ---------------------------------------------------------------------------------
 #
