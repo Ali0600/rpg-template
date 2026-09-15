@@ -1755,7 +1755,15 @@ generator's own +/-1 tolerance, file-variant items named by colour. It writes th
 the web app downloads plus the recipe beside them, and runs `LpcImport.problems()` on what it made
 before writing anything. A recipe may ask for `"animations": ["walk", "slash"]`, and a layer may say
 `"only": ["slash"]` - a weapon drawn in the swing and nowhere else, which the browser cannot express;
-a recipe naming neither plans exactly what it always did, byte for byte. An authoring convenience,
+a recipe naming neither plans exactly what it always did, byte for byte. **A sword whose swing the
+generator draws on bigger frames** - a layer whose `custom_animation` is `slash_128` or
+`slash_oversize` - is composed the browser's way: the sword's file drawn whole as a block under the
+universal sheet, every 64px slash layer centred in its cells, and rows 12-15 left holding the unarmed
+body. The export gains the one fact the browser's leaves out, a `customAnimations` record of where
+that block is, because without it nothing can find the swing: `LpcImport` refuses a sheet past the
+universal size that carries no record. It cuts the swing from the block onto a clip grid of its own,
+CROPPED to the pixels its 24 frames draw - an uncropped 128px cell asks the arena for a floor wider
+than the screen, and the crop loses nothing drawn, which a test counts. An authoring convenience,
 never a gate: the drift gate still compares
 committed inputs to committed outputs and never reaches the network. `--preview=<png>` draws the
 four directions through `LpcImport.build`, so what is looked at is what the game loads - and LOOK

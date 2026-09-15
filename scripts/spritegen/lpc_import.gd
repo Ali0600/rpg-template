@@ -19,6 +19,8 @@ extends RefCounted
 ##	   why the walk block is re-cut into canonical rows rather than merely relabelled;
 ##	 - the slash is rows 12-15, six frames, and is cut into the columns after the walk ONLY when
 ##	   a sheet draws it: a character composed walk-only imports exactly as it always did;
+##	 - a swing the generator draws on BIGGER frames is a block under the universal sheet, and is
+##	   cut from there onto a grid of its own when the export records where (custom_slash_of);
 ##	 - walk frame 0 is the standing pose and frames 1-8 are the cycle. Idle is that standing
 ##	   frame, exactly as the procedural rig's is: the generator's own idle rows exist only for
 ##	   assets that have been redrawn for them, and a hat that vanishes the moment a character
@@ -31,6 +33,7 @@ extends RefCounted
 
 const FRAME := 64
 const SHEET_COLUMNS := 13
+const SHEET_ROWS := 54
 ## The first of the four walk rows on the universal sheet.
 const WALK_ROW := 8
 ## Columns the walk block occupies: the standing pose plus the eight-frame cycle.
@@ -40,6 +43,8 @@ const WALK_CYCLE: Array[int] = [1, 2, 3, 4, 5, 6, 7, 8]
 ## (sources/state/constants.ts ANIMATION_CONFIGS: row 12, cycle 0-5, at the pinned commit).
 const SLASH_ROW := 12
 const SLASH_FRAMES := 6
+## The one animation a swing block below the sheet may be, as LpcCompose records it.
+const SLASH_CLIP := "slash"
 ## Row order INSIDE an LPC animation block, top to bottom.
 const LPC_ROW_ORDER: Array[int] = [Dir.D.UP, Dir.D.LEFT, Dir.D.DOWN, Dir.D.RIGHT]
 const SOURCE := "lpc"
@@ -85,6 +90,27 @@ static func credits_of(recipe: Dictionary) -> Array:
 	return out
 
 
+## The record of a swing drawn below the universal sheet, as LpcCompose writes it into the export -
+## {"name", "clip", "frameSize", "x", "y", "columns", "rows"} - or empty when there is none. The
+## browser's own export never says where it drew one, which is why problems() refuses a sheet past
+## the universal size that carries no record rather than guessing.
+static func custom_slash_of(recipe: Dictionary) -> Dictionary:
+	var raw: Variant = recipe.get("customAnimations", [])
+	if not raw is Array or (raw as Array).is_empty():
+		return {}
+	var first: Variant = (raw as Array)[0]
+	if not first is Dictionary:
+		return {}
+	return first as Dictionary
+
+
+## The rectangle of the sheet a record's block covers.
+static func block_rect(record: Dictionary) -> Rect2i:
+	var size := int(record.get("frameSize", 0))
+	return Rect2i(int(record.get("x", 0)), int(record.get("y", 0)),
+		size * int(record.get("columns", 0)), size * int(record.get("rows", 0)))
+
+
 ## Everything that would make this export unusable, naming what to fix. A sheet exported with
 ## Walk switched off, or one layer whose artist chose a licence the style does not accept, are
 ## both files that look complete and would ship wrong.
@@ -115,6 +141,7 @@ static func problems(image: Image, recipe: Dictionary, style: SpriteStyle) -> Ar
 					if _block_ground(image, SLASH_ROW + i, SLASH_FRAMES) < 0:
 						out.append("slash row %d (%s) is blank - a sheet that draws a slash draws it facing all four ways"
 							% [SLASH_ROW + i, Dir.name_of(LPC_ROW_ORDER[i])])
+		out.append_array(_block_problems(image, recipe))
 	var credits := credits_of(recipe)
 	if credits.is_empty():
 		out.append("the export carries no credits list; every LPC layer must be credited")
@@ -155,7 +182,10 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 	src.convert(Image.FORMAT_RGBA8)
 	var cell := Vector2i(FRAME, FRAME)
 	var rows := Dir.ALL.size()
-	var slashes := has_slash(src)
+	# A swing drawn below the universal sheet, when the export records one, is cut from there; rows
+	# 12-15 then hold the unarmed body the generator draws as well, and are not read.
+	var record := custom_slash_of(recipe)
+	var slashes := record.is_empty() and has_slash(src)
 	var columns := WALK_FRAMES + (SLASH_FRAMES if slashes else 0)
 	var sheet := Image.create_empty(cell.x * columns, cell.y * rows, false, Image.FORMAT_RGBA8)
 
@@ -182,6 +212,9 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 				sheet.blit_rect(src, cut, Vector2i((WALK_FRAMES + col) * cell.x, row * cell.y))
 		for col in SLASH_FRAMES:
 			swing.append(WALK_FRAMES + col)
+	elif not record.is_empty():
+		# On a grid of its own below the walk, so the frames count along that grid.
+		swing.assign(range(SLASH_FRAMES))
 
 	var meta := SheetMeta.new()
 	meta.cell = cell
@@ -208,6 +241,8 @@ static func build(image: Image, recipe: Dictionary, style: SpriteStyle, characte
 	meta.style = String(style.id)
 	meta.character = character_id
 	meta.seed = 0
+	if not slashes and not swing.is_empty():
+		sheet = _drawn_below(sheet, src, record, meta)
 	return {"image": sheet, "meta": meta, "credits": merged_credits(recipe)}
 
 
@@ -299,6 +334,71 @@ static func license_notice(style: SpriteStyle, recipes: Array) -> String:
 	lines.append("")
 	lines.append("The template's own code is not covered by this notice.")
 	return "\n".join(lines) + "\n"
+
+
+## What stops a swing block being cut. A sheet past the universal size with no record says nothing
+## about where its extra art is - the browser's own download, whose export never says; a record of
+## something other than a slash is not this importer's; a block the wrong shape or outside the sheet
+## cannot be read; and a swing blank facing one way is a hero who swings at nothing a quarter of the
+## time.
+static func _block_problems(image: Image, recipe: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	var record := custom_slash_of(recipe)
+	if record.is_empty():
+		if image.get_width() > SHEET_COLUMNS * FRAME or image.get_height() > SHEET_ROWS * FRAME:
+			out.append("sheet is %s, past the universal %dx%d, and the export does not say what is drawn there; a swing below the sheet needs a customAnimations record"
+				% [image.get_size(), SHEET_COLUMNS * FRAME, SHEET_ROWS * FRAME])
+		return out
+	var block := block_rect(record)
+	var size := int(record.get("frameSize", 0))
+	if str(record.get("clip", "")) != SLASH_CLIP:
+		out.append("the export's '%s' block is drawn as '%s'; this importer reads a slash"
+			% [record.get("name", ""), record.get("clip", "")])
+	elif int(record.get("columns", 0)) != SLASH_FRAMES or int(record.get("rows", 0)) != LPC_ROW_ORDER.size():
+		out.append("the export's swing block is %s by %s; a swing block is %d frames on %d rows"
+			% [record.get("columns", 0), record.get("rows", 0), SLASH_FRAMES, LPC_ROW_ORDER.size()])
+	elif not block.has_area() or not Rect2i(Vector2i.ZERO, image.get_size()).encloses(block):
+		out.append("the export puts its swing at %s, outside the %s sheet" % [block, image.get_size()])
+	else:
+		for i in LPC_ROW_ORDER.size():
+			var strip := image.get_region(Rect2i(block.position.x, block.position.y + i * size, block.size.x, size))
+			if not strip.get_used_rect().has_area():
+				out.append("swing row %d (%s) of the export's block is blank - a swing is drawn facing all four ways"
+					% [i, Dir.name_of(LPC_ROW_ORDER[i])])
+	return out
+
+
+## The swing cut from the export's block onto a grid of its own below the walk, cropped to the
+## smallest box holding everything any of its 24 frames draws. Cropped because the arena makes room
+## for how far a clip's cell reaches past the feet, and an uncropped 128px cell asks for a floor wider
+## than the screen; nothing drawn is lost, since the box is measured from the pixels. The anchor is the
+## walk's, moved by the generator's centring of a 64px frame in the bigger cell and then by the crop.
+static func _drawn_below(sheet: Image, src: Image, record: Dictionary, meta: SheetMeta) -> Image:
+	var size := int(record.get("frameSize", FRAME))
+	var block := block_rect(record)
+	var crop := Rect2i()
+	for block_rank in LPC_ROW_ORDER.size():
+		for col in SLASH_FRAMES:
+			var corner := block.position + Vector2i(col * size, block_rank * size)
+			var used := src.get_region(Rect2i(corner, Vector2i(size, size))).get_used_rect()
+			if not used.has_area():
+				continue
+			crop = used if not crop.has_area() else crop.merge(used)
+	var below := sheet.get_height()
+	var out := Image.create_empty(maxi(sheet.get_width(), SLASH_FRAMES * crop.size.x),
+		below + LPC_ROW_ORDER.size() * crop.size.y, false, Image.FORMAT_RGBA8)
+	out.blit_rect(sheet, Rect2i(Vector2i.ZERO, sheet.get_size()), Vector2i.ZERO)
+	for row in Dir.ALL.size():
+		var block_row := LPC_ROW_ORDER.find(Dir.ALL[row])
+		for col in SLASH_FRAMES:
+			var frame := Rect2i(block.position + Vector2i(col * size, block_row * size) + crop.position, crop.size)
+			out.blit_rect(src, frame, Vector2i(col * crop.size.x, below + row * crop.size.y))
+	var pad := (size - FRAME) / 2
+	var clip: Dictionary = meta.animations[SLASH_CLIP]
+	clip["cell"] = [crop.size.x, crop.size.y]
+	clip["origin"] = [0, below]
+	clip["anchor"] = [meta.anchor.x + pad - crop.position.x, meta.anchor.y + pad - crop.position.y]
+	return out
 
 
 ## The lowest row with an opaque pixel anywhere across the first `columns` frames of one LPC row,
