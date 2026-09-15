@@ -826,6 +826,75 @@ swing's delay counter starts at zero, which the twelve-frame figure assumes. No 
 Zelda has a public disassembly documenting any of this (Secret of Mana's is a tracking issue rather
 than code, and none turned up for Crystalis or Ys), so a second lineage could not be checked.
 
+### 7e. How a turn fight shows a blow
+
+Added in M50.3, before the hero's sword swing was put into the turn fight. §7a to §7c say who acts
+and what the caption says; nothing above says what a player SEES when a party member attacks, or
+when the damage shows up relative to it.
+
+**Sources note.** From five disassemblies of games the Scope note names, cloned and read at the
+commits given, marked **(a)** as in §8: Final Fantasy I (`Entroper/FF1Disassembly` at `ea16eae`;
+`BenWenger/FinalFantasyDisassembly` at `cbb87d3` has the same `bank_0C.asm` apart from one address
+comment), Final Fantasy VI (`everything8215/ff6` at `8130132`), Pokémon Red and Blue (`pret/pokered`
+at `a1a22aa`), Dragon Warrior (`nmikstas/dragon-warrior-disassembly` at `ebe6a13`) and EarthBound
+(`Herringway/ebsrc` at `0197d6c`). An order read from the sequence of calls, rather than stated by a
+comment, says so.
+
+- **(a) Final Fantasy I: the attacker walks forward, swings, walks back, and only then is the damage
+  told.** For a party member, `DoPhysicalAttack` (`bank_0C.asm`) calls `WalkForwardAndStrike`,
+  commented "walk the character forward, swing their weapon, and walk back". That routine walks the
+  character left through `CharacterWalkAnimation` ("looping 8 times for 16 total frames"), alternates
+  two attack poses with the weapon sprite over eight passes of two frames, clears the weapon, stands
+  the character up and walks them back. `DoExplosionEffect` then draws the hit on the enemy, and only
+  after that is the damage written into a combat box and subtracted from the enemy's HP (call order).
+  An enemy does not move to attack: that branch plays a sound, runs `BattleScreenShake_L` and flashes
+  the struck character.
+- **(a) Final Fantasy VI: the attacker steps forward for the weapon's own animation, and steps back
+  once the action is over.** Battle animation command `$88` is "move attacker forward (fight)"
+  (`src/btlgfx/anim_cmd.asm`), and `FightCmdAnim` starts the weapon's animation with
+  `InitWeaponAnim`. Graphics command `$0d` is "step back after attack animation"
+  (`src/btlgfx/gfx_cmd.asm`), queued by `EndAction` (`src/battle/action_1.asm`).
+- **(a) Pokémon: the move plays, the struck picture blinks, and only then does the HP bar drain.** In
+  `engine/battle/core.asm` the player's move runs `PlayPlayerMoveAnimation` before
+  `ApplyAttackToEnemyPokemon` (call order). The animation ends in `PlayApplyingAttackAnimation`,
+  "shake the screen or flash the pic in and out (to show damage)" (`engine/battle/animations.asm`),
+  and `ApplyAttackToEnemyPokemon` ends by animating the HP bar ("animate the HP bar shortening").
+  Nothing steps forward in general: `TackleAnim` only shifts the attacker's picture sideways and puts
+  it back (`data/moves/animations.asm`).
+- **(a) Dragon Warrior: a hit is a sound, a red flash, a line of text and then the subtraction.**
+  `PlyrHitEn` (`source_files/Bank03.asm`) plays the enemy-hit sound, runs `PaletteFlash` with the red
+  flash palette, prints "The enemy's HP has been reduced..." and jumps to `UpdateEnHP`. The screen
+  shake belongs to the enemy hitting the hero (`PlayerHit`). That the hero is not drawn at all is
+  inferred rather than read: `DoSprites` (`Bank00.asm`) hides the player's sprite whenever a window
+  covers the player's position.
+- **(a) EarthBound: the HP changes first, and the blink and the damage line start together.**
+  `CALC_DAMAGE` (`src/battle/calc_damage.asm`) calls `REDUCE_HP`, sets the struck battler's blink
+  counter, and then shows the damage line with `DISPLAY_TEXT_WAIT`. `RENDER_BATTLE_SPRITE_ROW`
+  (`src/battle/render_battle_sprite_row.asm`) draws only battlers whose `ally_or_enemy` is 1, which
+  reads as the enemies (inferred from how `calc_damage.asm` uses the value).
+
+**What a turn fight here takes from it.**
+
+- **The step.** Both Final Fantasys move the attacker toward the foe and back. The lean this
+  template already draws is that step, grown against the cue's own length.
+- **The swing.** Both draw the weapon as frames of the attack itself: Final Fantasy I's two poses
+  over sixteen frames, Final Fantasy VI's per-weapon script. A member whose sheet draws LPC's `slash`
+  plays it; art with no swing of its own keeps the lean alone.
+- **The order.** Every reference that draws the attacker finishes the attack before the damage is
+  told: Final Fantasy I walks back and explodes the foe first, Pokémon blinks it first. Here the damage
+  lands on the frame the timing window closes, so the swing is laid across that window and its last
+  picture is on screen the frame before the hit. That is the references' order with the gap taken
+  out, and taking it out is the owner's call (`DECISIONS.md`, M50.3): the window is the swing, so a
+  swing that finished early would say "too late" while a press still counted.
+- **Foes.** Final Fantasy I's enemies do not move to attack. This template's foes already lean, and
+  keep doing so; none of them draws a swing.
+
+**Unverified, and named rather than guessed:** how many frames Final Fantasy VI's weapon animation
+lasts, and whether its damage numerals wait for it (they are queued after it; the script interpreter
+was not traced); how long Final Fantasy I's explosion effect runs; whether Dragon Warrior's line
+carries the figure; and whether any of the five draws an enemy HP bar (none was found, and absence was
+not proven). Chrono Trigger has no public decompilation (§7c), so it is not cited.
+
 ---
 
 ## 8. Save/load
@@ -1958,3 +2027,24 @@ the GameFAQs guide that would have said how a Ni no Kuni fight begins (403 each)
 IGN, GameSpot and RPGamer reviews. tcrf.net answered with an anti-bot page and was not read. In
 M50 the Neoseeker controls page, which would have said whether every Ni no Kuni enemy carries a
 bar, answered 403 as well.
+
+How a turn fight shows a blow (§7e, added in M50.3), each repository cloned and read at the commit
+named:
+
+- [Entroper/FF1Disassembly](https://github.com/Entroper/FF1Disassembly) at `ea16eae` —
+  `bank_0C.asm`: `DoPhysicalAttack`, `WalkForwardAndStrike`, `CharacterWalkAnimation`,
+  `DoExplosionEffect`, `BattleScreenShake_L`; the same file in
+  [BenWenger/FinalFantasyDisassembly](https://github.com/BenWenger/FinalFantasyDisassembly) at
+  `cbb87d3` differs by one address comment
+- [everything8215/ff6](https://github.com/everything8215/ff6) at `8130132` —
+  `src/btlgfx/anim_cmd.asm` (command `$88`, `FightCmdAnim`, `InitWeaponAnim`),
+  `src/btlgfx/gfx_cmd.asm` (`STEP_BACK`), `src/battle/action_1.asm` (`EndAction`)
+- [pret/pokered](https://github.com/pret/pokered) at `a1a22aa` — `engine/battle/core.asm`
+  (`PlayPlayerMoveAnimation`, `ApplyAttackToEnemyPokemon`), `engine/battle/animations.asm`
+  (`PlayApplyingAttackAnimation`), `data/moves/animations.asm` (`TackleAnim`)
+- [nmikstas/dragon-warrior-disassembly](https://github.com/nmikstas/dragon-warrior-disassembly) at
+  `ebe6a13` — `source_files/Bank03.asm` (`PlyrHitEn`, `PaletteFlash`, `UpdateEnHP`, `PlayerHit`),
+  `source_files/Bank00.asm` (`DoSprites`)
+- [Herringway/ebsrc](https://github.com/Herringway/ebsrc) at `0197d6c` —
+  `src/battle/calc_damage.asm` (`CALC_DAMAGE`), `src/battle/render_battle_sprite_row.asm`
+  (`RENDER_BATTLE_SPRITE_ROW`)

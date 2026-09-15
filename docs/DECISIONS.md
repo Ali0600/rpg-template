@@ -5,6 +5,10 @@ one-glance menu of things still worth trying.
 
 ## Backlog — alternatives worth trying later
 
+- **A foe that swings in a turn fight** — a foe whose sheet draws a slash playing it across its own
+  defend cue, weighed when the hero's swing came to turn fights (M50.3). No shipped foe draws one, and
+  an lpc32 foe's swing would reach half a pixel into the party window. Revisit hook: the foe loop of
+  `BattleScreen._paint_fighters`, and `FLOOR_Y`.
 - **A game that locks a play choice** — a hard mode that cannot be turned off, or a game that does
   not offer the sword, weighed when Options gained rows about play (M51). Revisit hook:
   `PlayChoices`, where each row's offered values are derived.
@@ -3756,3 +3760,58 @@ box the grids make, because a minimum lets a sheet pass with the part that matte
   contract to keep`.
 
 **Revisit hook:** `SheetMeta.cell_of`, `origin_of` and `anchor_of`.
+
+## A turn fight plays the hero's swing across the press window — *M50.3*
+
+Since M50.2 the hero's sheet draws a bronze arming sword's swing, and the arena plays it. A turn fight
+still showed his attack as a lean with his walk cycle: `BattleScreen` moved the node rather than play an
+attack clip, because, its comment said, a clip would mean new rig parts and a change to the sheet contract.
+M50.2 made a clip on a grid of its own additive, so that reason is gone. The owner asked for the swing in
+turn fights on 2026-09-15 and made the first two calls below; `GENRE_CONVENTIONS.md` §7e read how five
+references show a blow before anything was built.
+
+**When the swing's six pictures play**
+
+- **Across the press window, landing on the hit** — the last `timed_window_frames` of the attack cue (24
+  of 72 in the quest), with the last picture on screen the frame before the damage lands.
+- **Straight after Attack is chosen** — the whole swing at the start of the cue.
+- **Across the whole cue** — one picture every 12 frames, ending on the hit.
+
+**Chosen: across the press window**, the owner's call. The blade and the `!` then say the same thing: the
+swing comes down while a press counts. §7e's references that draw the attacker all finish the attack
+before the damage is told; this keeps that order and takes out the gap between them.
+
+- Straight after choosing — `rejected — the swing is over 48 frames before a press counts, so the picture
+  says "now" while the rules still say "wait"`.
+- Across the whole cue — `rejected — twelve frames a picture reads as slow motion, and the blade is still
+  rising when the window opens`.
+
+**Whether he still steps forward**
+
+- **Step in, then swing** — the lean stays exactly as it is, and inside the window the pose is the swing
+  instead of the walk.
+- **Swing where he stands.**
+
+**Chosen: step in**, the owner's call. The lean starts with the cue, so it shows whose blow is coming
+before the window opens, and Final Fantasy I and VI both move the attacker toward the foe (§7e).
+
+- Swing where he stands — `rejected — for the first 48 frames of the cue nothing would show who is
+  attacking`.
+
+**Who swings**
+
+- **A party member whose sheet draws a slash.**
+- **Foes as well.**
+
+**Chosen: party members.** No shipped foe draws a swing, and Final Fantasy I's enemies do not move to
+attack (§7e). Worked out from the layout constants and not yet measured: an lpc32 foe swinging at
+`FLOOR_Y` 104 would draw from y 79.5 to 106.5, half a pixel into the party window that starts at 106.
+
+- Foes as well — `deferred — worth trying`. **Revisit hook:** the foe loop of
+  `BattleScreen._paint_fighters`, and `FLOOR_Y`.
+
+**The picture comes from the fight's own count.** `BattleLogic.swing_step` answers which picture belongs
+to this frame, the way `ArenaSim.swing_step` paces the arena's, and the screen holds it with
+`SpriteView.hold_frame`. So a replayed fight draws the same picture on the same frame, and nothing about
+the fight's rules, its sessions or its balance gate changes. Art with no slash (the procedural rig's,
+Rook's, every foe's) keeps today's lean exactly.
