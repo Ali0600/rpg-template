@@ -4,7 +4,7 @@
 	"name": "The Road",
 	"body_type": "male",
 	"animations": ["walk", "slash"],
-	"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone. He swings a dagger in the arena, and only there: the dagger is drawn in the slash alone, so he walks the village unarmed and his portrait holds no blade. It is the one sword in the generator that draws its swing on the same 64px frames as the rest of him.",
+	"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone. He swings a bronze arming sword in the arena, and only there: the sword is drawn in the slash alone, so he walks the village unarmed and his portrait holds no blade. Bronze, to match the Bronze sword he can buy. The generator draws its swing on 128px frames in a block below the sheet, which the composer records and the importer crops to what it draws.",
 	"layers": [
 		{
 			"def": "body/body",
@@ -36,8 +36,8 @@
 			"recolor": "charcoal"
 		},
 		{
-			"def": "weapons/sword/weapon_sword_dagger",
-			"variant": "dagger",
+			"def": "weapons/sword/weapon_sword_arming",
+			"variant": "bronze",
 			"only": ["slash"]
 		}
 	]

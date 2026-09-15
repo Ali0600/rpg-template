@@ -238,6 +238,17 @@ func test_the_floor_at_capacity_still_fits_the_screen_with_the_swing_the_sword_d
 	_assert_laid_out(screen, "the sword's swing at capacity")
 
 
+func test_the_shipped_hero_s_swing_sizes_the_floor_the_way_it_was_measured() -> void:
+	# The same numbers from the committed art rather than a fixture: the fixture above proves the
+	# arithmetic, and this proves the hero the game ships is the one it was done for.
+	var screen := _screen("lpc32")
+	var wall: Array = _walls()[1]
+	_stage(screen, wall[1], wall[2], wall[3])
+	assert_str(String(screen._player_view.clip())).is_equal("slash")
+	assert_vector(screen._floor.panel.size).override_failure_message(
+		"the floor window is %s" % screen._floor.panel.size).is_equal(Vector2(313, 106))
+
+
 func test_the_bar_is_the_foe_the_fight_is_about() -> void:
 	var screen := _screen("dusk16")
 	# The second Slink stands inside the sword of a player swinging up; the other two are far off.

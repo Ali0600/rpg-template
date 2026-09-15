@@ -169,21 +169,28 @@
 		},
 		{
 			"authors": [
-				"bluecarrot16",
-				"Johannes Sjölund (wulax)",
-				"Matthew Krohn (makrohn)"
+				"ElizaWy; walk and down by JaidynReiman"
 			],
-			"file": "weapon/sword/dagger",
+			"file": "weapon/sword/arming",
 			"licenses": [
-				"OGA-BY 3.0",
-				"CC-BY-SA 3.0",
-				"GPL 3.0"
+				"OGA-BY 3.0"
 			],
 			"notes": "",
 			"urls": [
-				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
-				"https://opengameart.org/content/lpc-extended-weapon-animations"
+				"https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
 			]
+		}
+	],
+	"customAnimations": [
+		{
+			"clip": "slash",
+			"columns": 6,
+			"frameSize": 128,
+			"name": "slash_128",
+			"rows": 4,
+			"x": 0,
+			"y": 3456
 		}
 	],
 	"generatedBy": "tools/lpc_compose.gd",
@@ -269,14 +276,14 @@
 			"zPos": 5
 		},
 		{
-			"def": "weapons/sword/weapon_sword_dagger",
-			"path": "spritesheets/weapon/sword/dagger/slash/dagger.png",
-			"zPos": 140
+			"def": "weapons/sword/weapon_sword_arming",
+			"path": "spritesheets/weapon/sword/arming/attack_slash/bg/bronze.png",
+			"zPos": 8
 		},
 		{
-			"def": "weapons/sword/weapon_sword_dagger",
-			"path": "spritesheets/weapon/sword/dagger/behind/slash/dagger.png",
-			"zPos": 9
+			"def": "weapons/sword/weapon_sword_arming",
+			"path": "spritesheets/weapon/sword/arming/attack_slash/fg/bronze.png",
+			"zPos": 150
 		}
 	],
 	"recipe": {
@@ -317,15 +324,15 @@
 				"recolor": "charcoal"
 			},
 			{
-				"def": "weapons/sword/weapon_sword_dagger",
+				"def": "weapons/sword/weapon_sword_arming",
 				"only": [
 					"slash"
 				],
-				"variant": "dagger"
+				"variant": "bronze"
 			}
 		],
 		"name": "The Road",
-		"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone. He swings a dagger in the arena, and only there: the dagger is drawn in the slash alone, so he walks the village unarmed and his portrait holds no blade. It is the one sword in the generator that draws its swing on the same 64px frames as the rest of him.",
+		"notes": "The genre's nameless traveller. A solid charcoal cape is the silhouette from behind and at the sides; a tattered one at this size read as speckle. Colours are dusk16's own - moss, indigo, leather, stone. He swings a bronze arming sword in the arena, and only there: the sword is drawn in the slash alone, so he walks the village unarmed and his portrait holds no blade. Bronze, to match the Bronze sword he can buy. The generator draws its swing on 128px frames in a block below the sheet, which the composer records and the importer crops to what it draws.",
 		"style": "lpc32"
 	},
 	"selections": {
@@ -372,10 +379,10 @@
 			"variant": null
 		},
 		"weapon": {
-			"itemId": "weapon_sword_dagger",
-			"name": "Dagger",
+			"itemId": "weapon_sword_arming",
+			"name": "Arming Sword",
 			"recolor": null,
-			"variant": "dagger"
+			"variant": "bronze"
 		}
 	},
 	"version": 2

@@ -8,6 +8,7 @@
 		"Durrani",
 		"Eliza Wyatt (ElizaWy)",
 		"ElizaWy",
+		"ElizaWy; walk and down by JaidynReiman",
 		"Evert",
 		"Gaurav Munjal",
 		"George Bailey",
@@ -824,19 +825,15 @@
 		},
 		{
 			"authors": [
-				"Johannes Sjölund (wulax)",
-				"Matthew Krohn (makrohn)",
-				"bluecarrot16"
+				"ElizaWy; walk and down by JaidynReiman"
 			],
-			"file": "weapon/sword/dagger",
+			"file": "weapon/sword/arming",
 			"licenses": [
-				"CC-BY-SA 3.0",
-				"GPL 3.0",
 				"OGA-BY 3.0"
 			],
 			"urls": [
-				"https://opengameart.org/content/lpc-extended-weapon-animations",
-				"https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
+				"https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
+				"https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
 			]
 		}
 	],
