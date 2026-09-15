@@ -258,6 +258,95 @@ func test_a_face_that_does_not_straddle_the_character_is_refused() -> void:
 		"a face beside the character rather than over them is accepted"
 	).contains("not centred")
 
+func test_every_committed_sheet_reads_and_writes_back_as_the_same_text() -> void:
+	# A clip's own grid is optional keys, and optional has to stay optional: a reader that wrote the
+	# keys back for every clip would make every committed sheet.json drift the day one clip gained a grid.
+	# The text compared is the one tools/gen_sprites.gd writes and verifies.
+	var seen := 0
+	for style_id in ArtFixtures.style_ids():
+		for id in ArtFixtures.sheet_ids_of(style_id):
+			var path := ArtFixtures.generated_meta_path(style_id, id)
+			var written := JSON.stringify(_meta_for(style_id, id).to_dict(), "\t") + "\n"
+			assert_bool(written == FileAccess.get_file_as_string(path)).override_failure_message(
+				"%s does not read and write back as itself" % path).is_true()
+			seen += 1
+	assert_int(seen).override_failure_message("no committed sheet was read").is_greater(10)
+
+func test_a_clip_on_its_own_grid_survives_a_round_trip() -> void:
+	var meta: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	var parsed: Dictionary = JSON.parse_string(JSON.stringify(meta.to_dict()))
+	var back := SheetMeta.from_dict(parsed)
+	assert_vector(Vector2(back.cell_of("slash"))).is_equal(Vector2(104, 96))
+	assert_vector(Vector2(back.origin_of("slash"))).is_equal(Vector2(0, 256))
+	assert_vector(Vector2(back.anchor_of("slash"))).is_equal(Vector2(52, 84))
+	assert_bool(back.has_grid("slash")).is_true()
+	assert_bool(back.has_grid("walk")).is_false()
+	assert_str(JSON.stringify(back.to_dict())).is_equal(JSON.stringify(meta.to_dict()))
+
+func test_a_clip_with_no_grid_of_its_own_answers_with_the_sheets() -> void:
+	var meta: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	assert_vector(Vector2(meta.cell_of("walk"))).is_equal(Vector2(64, 64))
+	assert_vector(Vector2(meta.origin_of("walk"))).is_equal(Vector2.ZERO)
+	assert_vector(Vector2(meta.anchor_of("walk"))).is_equal(Vector2(32, 62))
+	assert_vector(Vector2(meta.anchor_of("slash"))).is_equal(Vector2(52, 84))
+
+func test_a_sheet_with_a_clip_on_its_own_grid_is_otherwise_clean() -> void:
+	# The control every refusal below rests on.
+	var built := ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))
+	var meta: SheetMeta = built["meta"]
+	var texture: Texture2D = built["texture"]
+	assert_vector(Vector2(texture.get_size())).is_equal(Vector2(624, 640))
+	assert_array(meta.problems(texture.get_size())).override_failure_message(
+		"%s" % [meta.problems(texture.get_size())]).is_empty()
+
+func test_a_texture_must_be_exactly_the_box_every_grid_makes() -> void:
+	# Exactly, not at least: a minimum is how a sheet three times the size it describes passes with the
+	# part that matters never reaching the game.
+	var meta: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	assert_str("\n".join(meta.problems(Vector2i(624, 641)))).contains("metadata describes (624, 640)")
+	assert_str("\n".join(meta.problems(Vector2i(576, 256)))).override_failure_message(
+		"a texture holding only the walk is accepted for a sheet that also swings").contains("metadata describes")
+
+func test_a_clip_grid_that_cannot_be_cut_is_refused_by_name() -> void:
+	var empty: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	(empty.animations["slash"] as Dictionary)["cell"] = [0, 96]
+	assert_str("\n".join(empty.problems())).contains("'slash' has a cell of (0, 96)")
+	var outside: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	(outside.animations["slash"] as Dictionary)["anchor"] = [104, 84]
+	assert_str("\n".join(outside.problems())).contains("'slash' has anchor (104, 84) outside its")
+	var above: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	(above.animations["slash"] as Dictionary)["origin"] = [0, -1]
+	assert_str("\n".join(above.problems())).contains("'slash' starts at (0, -1)")
+
+func test_a_frame_past_the_columns_is_refused_only_on_the_sheets_own_grid() -> void:
+	# A clip on a grid of its own counts its frames along its own block, so the sheet's column count says
+	# nothing about it - the texture box does.
+	var walking: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	(walking.animations["walk"] as Dictionary)["frames"] = [1, 9]
+	assert_str("\n".join(walking.problems())).contains("'walk' uses frame 9")
+	var swinging: SheetMeta = ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))["meta"]
+	(swinging.animations["slash"] as Dictionary)["frames"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+	assert_str("\n".join(swinging.problems())).override_failure_message(
+		"a swing's tenth frame is counted against the walk's nine columns").not_contains("uses frame")
+
+func test_the_factory_cuts_each_clip_on_its_own_grid() -> void:
+	var built := ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))
+	var texture: Texture2D = built["texture"]
+	var meta: SheetMeta = built["meta"]
+	var frames := SpriteFramesFactory.build(texture, meta)
+	assert_object(frames).is_not_null()
+	# walk's first frame is column 1; the swing's rows are the same four directions, below the walk.
+	var cuts := [
+		[Dir.anim_name(&"walk", Dir.D.DOWN), 0, Rect2(64, 0, 64, 64)],
+		[Dir.anim_name(&"slash", Dir.D.DOWN), 1, Rect2(104, 256, 104, 96)],
+		[Dir.anim_name(&"slash", Dir.D.UP), 0, Rect2(0, 544, 104, 96)],
+	]
+	for entry: Variant in cuts:
+		var cut: Array = entry
+		var atlas := frames.get_frame_texture(cut[0], cut[1]) as AtlasTexture
+		assert_bool(atlas.region == cut[2]).override_failure_message(
+			"%s frame %d is cut at %s, not %s" % [cut[0], cut[1], atlas.region, cut[2]]).is_true()
+
 func test_a_generated_face_is_cut_from_the_standing_frame() -> void:
 	# Built rather than read: the tests above this read COMMITTED sheets, so a generator that
 	# started cutting faces out of a walking frame would not move them until somebody regenerated.

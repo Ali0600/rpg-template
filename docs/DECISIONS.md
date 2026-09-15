@@ -3717,3 +3717,34 @@ every session after it.
 - **A game that locks a choice** (a hard mode that cannot be turned off, a game with no sword) —
   `deferred — worth trying`. **Revisit hook:** `PlayChoices`, where each row's offered values are
   derived.
+
+## A clip may be drawn on a grid of its own — *M50.2*
+
+The hero swings an LPC dagger because, at the pinned generator commit, it is the only sword drawn on the
+same 64px frames as the rest of a character. Every other sword draws its swing on 128 or 192px frames, in
+a block below the standard sheet, and a sheet here held one cell size. The owner chose the bronze arming
+sword on 2026-09-15, after previews, so the sheet format had to hold a swing bigger than the walk.
+
+- **A clip carries its own `cell`, `origin` and `anchor`**, optional keys on the animation, read by the
+  factory, the view and the arena's margins.
+- **Every cell padded to the swing's size**, so a sheet keeps one grid.
+- **The swing cropped to 64px.**
+- **The browser's layout recomputed at import**, finding the block from the generator's own tables.
+- **A weapon sprite over the character**, the way both Zeldas draw the sword as tiles of its own
+  (`GENRE_CONVENTIONS.md` §7d).
+
+**Chosen: a clip's own grid.** It is additive. A sheet with no clip on a grid of its own reads and writes
+back as the same text, which a test holds over every committed sheet, and `SheetMeta.VERSION` did not move:
+an absent key means the sheet's own grid, and a sheet ships with its reader. The texture must be EXACTLY the
+box the grids make, because a minimum lets a sheet pass with the part that matters never read.
+
+- Every cell padded — `rejected — it quadruples every imported sheet, and the battle screen draws a
+  fighter by its cell (test_battle_layout expects an lpc32 fighter 64 pixels tall)`.
+- The swing cropped to 64 — `rejected — it cuts up to 17 pixels off the arming sword's blade`.
+- The layout recomputed at import — `rejected — it needs the sheet definitions, which live only in the
+  gitignored build/lpc cache`.
+- A weapon sprite over the character — `rejected — the blade is drawn behind the body facing up and in
+  front of it otherwise, so it is two overlay nodes interleaved with the depth order, and a second art
+  contract to keep`.
+
+**Revisit hook:** `SheetMeta.cell_of`, `origin_of` and `anchor_of`.

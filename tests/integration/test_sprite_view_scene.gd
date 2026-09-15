@@ -167,6 +167,29 @@ func test_a_pose_asked_for_after_a_hold_plays_again() -> void:
 	assert_bool(sprite.is_playing()).override_failure_message(
 		"a view held once never plays again").is_true()
 
+func test_the_feet_stay_on_the_origin_in_a_clip_drawn_on_its_own_grid() -> void:
+	# A swing drawn on bigger frames stands on a different point of its own cell. One offset for every
+	# clip put a swinging hero's feet twenty pixels right and down of where he stands.
+	var view: SpriteView = auto_free(SpriteView.new())
+	add_child(view)
+	await await_idle_frame()
+	var built := ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))
+	var texture: Texture2D = built["texture"]
+	var meta: SheetMeta = built["meta"]
+	assert_bool(view.apply_sheet(texture, meta)).is_true()
+	var sprite := SceneHelpers.find_by_class(view, "AnimatedSprite2D") as AnimatedSprite2D
+	view.hold_frame(&"slash", Dir.D.DOWN, 0)
+	assert_vector(sprite.offset).override_failure_message(
+		"the swing is offset by %s" % sprite.offset).is_equal(Vector2(-52, -84))
+	# The cell and anchor a layout audit reads are the clip's being shown.
+	assert_vector(Vector2(view.cell_size())).is_equal(Vector2(104, 96))
+	assert_vector(Vector2(view.anchor())).is_equal(Vector2(52, 84))
+	view.set_pose(&"idle", Dir.D.DOWN)
+	assert_vector(sprite.offset).override_failure_message(
+		"back to standing, the offset is still %s" % sprite.offset).is_equal(Vector2(-32, -62))
+	assert_vector(Vector2(view.cell_size())).is_equal(Vector2(64, 64))
+	assert_vector(Vector2(view.anchor())).is_equal(Vector2(32, 62))
+
 func test_frames_in_counts_a_clip_and_answers_nought_for_one_the_sheet_does_not_draw() -> void:
 	var view: SpriteView = auto_free(SceneHelpers.view_for(&"hero"))
 	add_child(view)

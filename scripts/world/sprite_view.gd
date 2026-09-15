@@ -40,9 +40,9 @@ func apply_sheet(texture: Texture2D, meta: SheetMeta) -> bool:
 	_meta = meta
 	_sprite.sprite_frames = frames
 	# centered=false makes offset measure from the cell's top-left, so subtracting the
-	# anchor puts the character's feet exactly on this node's origin.
+	# anchor puts the character's feet exactly on this node's origin. The offset itself is set
+	# by _play(), per clip.
 	_sprite.centered = false
-	_sprite.offset = -Vector2(meta.anchor)
 	_play()
 	return true
 
@@ -121,17 +121,18 @@ func current_frame() -> int:
 	return _sprite.frame
 
 
-## Height of one cell, for anything that needs to know how tall a character draws (a name
-## label, a speech bubble) without reaching into the sprite.
+## The cell of the clip being shown, for anything that needs to know how big a character draws (a
+## name label, a speech bubble, a layout audit) without reaching into the sprite. A swing drawn on a
+## grid of its own is bigger than the walk, and it is the swing that has to fit.
 func cell_size() -> Vector2i:
-	return _meta.cell if _meta != null else Vector2i.ZERO
+	return _meta.cell_of(String(_clip)) if _meta != null else Vector2i.ZERO
 
 
-## Where this character's origin sits inside their cell - the point this node's position IS.
-## Needed by anything that has to work out the RECTANGLE a character occupies rather than the
-## point they stand on: the node is at their feet, so the cell reaches up and back from here.
+## Where this character's origin sits inside the cell of the clip being shown - the point this node's
+## position IS. Needed by anything that has to work out the RECTANGLE a character occupies rather than
+## the point they stand on: the node is at their feet, so the cell reaches up and back from here.
 func anchor() -> Vector2i:
-	return _meta.anchor if _meta != null else Vector2i.ZERO
+	return _meta.anchor_of(String(_clip)) if _meta != null else Vector2i.ZERO
 
 
 func _play() -> void:
@@ -142,6 +143,8 @@ func _play() -> void:
 		push_error("SpriteView: no animation '%s'" % name)
 		return
 	_play_count += 1
+	# Per clip, because a clip on a grid of its own stands on a different point of its own cell.
+	_sprite.offset = -Vector2(_meta.anchor_of(String(_clip)))
 	_sprite.play(name)
 
 

@@ -35,16 +35,20 @@ static func build(texture: Texture2D, meta: SheetMeta) -> SpriteFrames:
 			frames.set_animation_loop(name, meta.loops(clip))
 			var row := meta.row_of(dir)
 			for frame_index in meta.frames_of(clip):
-				frames.add_frame(name, _atlas(texture, meta, row, frame_index))
+				frames.add_frame(name, _atlas(texture, meta, clip, row, frame_index))
 	return frames
 
 
 ## One cell of the sheet, as a region of the shared texture. AtlasTexture keeps a single
 ## image in memory for the whole character rather than slicing it into 16 copies.
-static func _atlas(texture: Texture2D, meta: SheetMeta, row: int, column: int) -> AtlasTexture:
+##
+## Cut on the CLIP's grid: a swing drawn on bigger frames than the walk has a block of its own, and
+## one SpriteFrames happily holds regions of different sizes.
+static func _atlas(texture: Texture2D, meta: SheetMeta, clip: String, row: int, column: int) -> AtlasTexture:
 	var at := AtlasTexture.new()
 	at.atlas = texture
-	at.region = Rect2i(Vector2i(column * meta.cell.x, row * meta.cell.y), meta.cell)
+	var cell := meta.cell_of(clip)
+	at.region = Rect2i(meta.origin_of(clip) + Vector2i(column * cell.x, row * cell.y), cell)
 	# Without this, neighbouring cells bleed a pixel into each other at some scales - the
 	# classic "thin line along the edge of every sprite" artefact.
 	at.filter_clip = true

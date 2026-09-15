@@ -198,6 +198,43 @@ static func generated_meta_path(style_id: StringName, character_id: StringName) 
 	return "%s/%s/%s.sheet.json" % [GENERATED_ROOT, style_id, character_id]
 
 
+## A sheet whose swing is drawn on a grid of its own, below a 64px walk - what an imported hero with a
+## blade wider than his cell looks like to everything downstream. {"image", "texture", "meta"}, built
+## in memory: nine walk columns on four rows at 64, the six swing frames at `slash_cell` from (0, 256),
+## and the texture exactly the box the two make. Every cell of both grids is marked, so a region cut
+## off either grid lands on paint.
+static func two_grid_sheet(slash_cell: Vector2i, slash_anchor: Vector2i) -> Dictionary:
+	var base := Vector2i(64, 64)
+	var columns := 9
+	var rows := 4
+	var swings := 6
+	var below := base.y * rows
+	var image := Image.create_empty(maxi(base.x * columns, slash_cell.x * swings),
+		below + slash_cell.y * rows, false, Image.FORMAT_RGBA8)
+	for row in rows:
+		for col in columns:
+			image.fill_rect(Rect2i(col * base.x + 20, row * base.y + 13, 24, 50), Color8(200, 40, 40))
+		for col in swings:
+			var corner := Vector2i(col * slash_cell.x, below + row * slash_cell.y)
+			image.fill_rect(Rect2i(corner + slash_anchor - Vector2i(2, 2), Vector2i(4, 2)), Color8(40, 40, 200))
+	var meta := SheetMeta.new()
+	meta.cell = base
+	meta.columns = columns
+	meta.rows = rows
+	meta.directions = Dir.ALL.duplicate()
+	meta.anchor = Vector2i(32, 62)
+	meta.portrait = Rect2i(20, 13, 24, 24)
+	meta.source = "fixture"
+	meta.animations = {
+		"idle": {"frames": [0], "fps": 4, "loop": true},
+		"walk": {"frames": [1, 2, 3, 4, 5, 6, 7, 8], "fps": 8, "loop": true},
+		"slash": {"frames": [0, 1, 2, 3, 4, 5], "fps": 12, "loop": false,
+			"cell": [slash_cell.x, slash_cell.y], "origin": [0, below],
+			"anchor": [slash_anchor.x, slash_anchor.y]},
+	}
+	return {"image": image, "texture": ImageTexture.create_from_image(image), "meta": meta}
+
+
 ## The gates must see exactly what the generator writes, so both walk through ContentScan.
 ## When these two disagreed, the gate's "every style, every character" was quietly a subset.
 static func _files(dir_path: String, extension: String) -> Array[String]:

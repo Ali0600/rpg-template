@@ -54,8 +54,8 @@ func _grass(style_id: String) -> Texture2D:
 
 ## An arena at capacity - the widest floor this screen declares and a full formation, the longest
 ## name first, on grass unless told otherwise - in `style_id`'s art, mounted the way the world mounts
-## it.
-func _screen(style_id: String, grounded := true) -> ArenaScreen:
+## it. `source` hands every fighter a fixture sheet instead of the style's committed art.
+func _screen(style_id: String, grounded := true, source: SpriteSource = null) -> ArenaScreen:
 	var style := load("res://data/styles/%s.tres" % style_id) as SpriteStyle
 	var screen := ArenaScreen.new()
 	UiScale.mount(screen, self, style)
@@ -65,8 +65,8 @@ func _screen(style_id: String, grounded := true) -> ArenaScreen:
 	assert_int(foes.size()).is_equal(FightScreen.MAX_FOES)
 	var sim := ArenaSim.of(combat, foes, [BattleHelpers.leader(combat, ArenaScreen.READOUT_CAPACITY)],
 		"map/foe", 7, GameConfig.new())
-	screen.setup(sim, style, UiScale.DESIGN_SIZE, FileSpriteSource.create(StringName(style_id)),
-		_grass(style_id) if grounded else null)
+	var art := source if source != null else FileSpriteSource.create(StringName(style_id))
+	screen.setup(sim, style, UiScale.DESIGN_SIZE, art, _grass(style_id) if grounded else null)
 	_screens.append(screen)
 	return screen
 
@@ -209,6 +209,34 @@ func test_the_arena_fits_its_window_in_both_kinds_of_art_with_the_player_at_ever
 					"%s, %s: the drawn slash is not shown, so the audit says nothing about it"
 					% [style_id, wall[0]]).is_true()
 			_assert_laid_out(screen, "%s, %s" % [style_id, wall[0]])
+
+func test_a_hero_whose_swing_outgrows_his_walk_stays_inside_the_floor_at_every_wall() -> void:
+	# The floor's margins were read from a sheet's one cell. A swing drawn on a grid of its own, wider and
+	# taller than the walk, then went out through the window's frame at every wall - and the audit above
+	# still passed, because it measured the hero as his walk. In lpc32's shape only: dusk16 draws a
+	# fighter at twice size, and a 64px fixture would not fit its screen at all.
+	var built := ArtFixtures.two_grid_sheet(Vector2i(104, 96), Vector2i(52, 84))
+	for entry: Variant in _walls():
+		var wall: Array = entry
+		var screen := _screen("lpc32", true, FixedSpriteSource.new(built))
+		_stage(screen, wall[1], wall[2], wall[3])
+		assert_str(String(screen._player_view.clip())).is_equal("slash")
+		assert_vector(Vector2(screen._player_view.cell_size())).override_failure_message(
+			"%s: the hero is measured as his walk, not his swing" % wall[0]).is_equal(Vector2(104, 96))
+		_assert_laid_out(screen, "a swing wider than the walk, %s" % wall[0])
+
+
+func test_the_floor_at_capacity_still_fits_the_screen_with_the_swing_the_sword_draws() -> void:
+	# The bronze arming sword's swing, cropped to what it draws, measured from the art on 2026-09-15:
+	# 97 by 54 with the feet at (48, 49). Uncropped, its 128px cell asks for a floor 328 pixels wide.
+	var built := ArtFixtures.two_grid_sheet(Vector2i(97, 54), Vector2i(48, 49))
+	var screen := _screen("lpc32", true, FixedSpriteSource.new(built))
+	var wall: Array = _walls()[0]
+	_stage(screen, wall[1], wall[2], wall[3])
+	assert_vector(screen._floor.panel.size).override_failure_message(
+		"the floor window is %s" % screen._floor.panel.size).is_equal(Vector2(313, 106))
+	_assert_laid_out(screen, "the sword's swing at capacity")
+
 
 func test_the_bar_is_the_foe_the_fight_is_about() -> void:
 	var screen := _screen("dusk16")
