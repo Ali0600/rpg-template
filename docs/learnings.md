@@ -2516,3 +2516,35 @@ step is in flight, and are checked before the tile is remembered, so the landing
 
 **Takeaway.** When a discrete mode rides on continuous positions, define "arrived" by the mode's own
 state (the step landed), never by where the position happens to round.
+
+### An export that leaves out what its renderer did cannot be imported by guessing
+
+A tool's download can contain art its own export file never describes, and an importer that guesses where
+that art is will read the wrong pixels without an error.
+
+**Why it came up.** M50.2 gave the hero a bronze arming sword. The LPC generator draws that sword's swing on
+128px frames, in a block below its standard 832x3456 sheet, at a position that depends on everything else
+selected, and its JSON export records nothing about the block. The importer's size checks were minimums, so
+a sheet carrying the sword would have passed while the sword never reached the game. The composer here now
+writes a `customAnimations` record of where it drew the block, and the importer refuses a sheet past the
+standard size that carries no record.
+
+**Takeaway.** When you consume another tool's output, find what its export does not say, record it yourself
+where you can, and refuse input that lacks it. Check sizes EXACTLY rather than as a minimum, because a
+minimum is how the part that matters goes unread.
+
+### A crop that a layout depends on must prove it lost nothing
+
+Cropping art to the pixels it draws can decide whether a screen fits at all, and then the crop is
+load-bearing and needs its own proof.
+
+**Why it came up.** The sword's swing is drawn in 128px cells. The arena makes room for how far a clip's
+cell reaches past the feet, and an uncropped cell asked for a floor window 328 pixels wide on a 320-pixel
+screen. Cropped to what its 24 frames draw (97 by 54), the floor is 313 wide. A test counts the drawn
+pixels before and after the crop, and two tests pin the measured cell and floor against the committed art.
+Seeding the crop with an empty `Rect2i()` would have pulled it to the cell's corner, because a merge
+includes the empty rect's origin.
+
+**Takeaway.** When a crop is what makes something fit, test that it keeps every drawn pixel and pin the size
+it produces. Seed a bounding box from the first real rectangle, never from an empty one.
+

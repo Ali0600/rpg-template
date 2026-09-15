@@ -3601,6 +3601,8 @@ of a character uses; every other sword draws on 128 or 192px frames below the un
   *Measured again for the arming sword, 2026-09-15:* its drawn swing now reaches PAST the hit - about
   0.4 of a tile facing left or right, a third of a tile facing up - and short of it facing down, where
   the arc is drawn sideways. Still unjudged by hand, and the reach is unchanged.
+  *Played, 2026-09-15:* the owner played the branch with the sword before it merged and approved
+  it as it is. The reach stays 0.75 tile.
 
 ## A recipe layer may be drawn in some of its animations only — *M50*
 
