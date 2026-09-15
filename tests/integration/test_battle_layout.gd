@@ -850,6 +850,69 @@ func test_only_the_member_who_is_swinging_leans_forward() -> void:
 		"nobody leaned at all, so this proves nothing about who did").is_equal(1)
 
 
+## Ticks a cue down to exactly `at` frames left. BOUNDED, and it asserts the count arrived: a cue that
+## ended early would leave the test painting the message after the hit and reading it as a swing.
+func _count_the_cue_down_to(logic: BattleLogic, at: int) -> void:
+	for i in 200:
+		if logic.count() <= at:
+			break
+		logic.tick()
+	assert_int(logic.count()).override_failure_message(
+		"the cue never came down to %d frames left" % at).is_equal(at)
+
+
+func test_a_member_whose_art_draws_a_swing_plays_it_across_the_window() -> void:
+	# He steps in on his walk, and inside the press window the pose is the art's own slash, one
+	# picture at a time from the fight's own count, so the last picture is on screen the frame before
+	# the blow lands. lpc32 draws quest_wanderer's slash in six pictures, and this suite's cue is 30
+	# frames with a 6 frame window, so the picture shown is six less the frames left.
+	var screen := _party_screen_at(1)
+	var logic := screen.logic()
+	logic.press()
+	assert_int(logic.phase()).override_failure_message(
+		"choosing Attack did not swing").is_equal(BattleLogic.Phase.PLAYER_ACT)
+	_count_the_cue_down_to(logic, 3)
+	assert_bool(logic.cue_on()).override_failure_message(
+		"three frames before the hit is outside the window, so this proves nothing about it").is_true()
+	screen._paint()
+	assert_int(logic.acting_member()).is_equal(0)
+	assert_str(String(screen._member_views[0].clip())).override_failure_message(
+		"the member swinging inside the window is not showing his swing").is_equal("slash")
+	assert_int(screen._member_views[0].current_frame()).is_equal(3)
+	for i in range(1, screen._member_views.size()):
+		assert_str(String(screen._member_views[i].clip())).override_failure_message(
+			"member %d swung while member 0 was the one attacking" % i).is_equal("idle")
+	# The swing is bigger than the walk, and the audit measures a fighter by the clip it is SHOWING.
+	_assert_nothing_overlaps(screen, "mid-swing")
+
+	_count_the_cue_down_to(logic, 1)
+	screen._paint()
+	assert_int(screen._member_views[0].current_frame()).override_failure_message(
+		"the swing's last picture is not up on the frame before the hit").is_equal(5)
+
+	logic.tick()
+	assert_int(logic.phase()).override_failure_message(
+		"the blow did not land when the cue ran out").is_not_equal(BattleLogic.Phase.PLAYER_ACT)
+	screen._paint()
+	assert_str(String(screen._member_views[0].clip())).override_failure_message(
+		"the swing is still held after the blow landed").is_equal("idle")
+
+
+func test_a_member_whose_art_draws_no_swing_still_leans_on_his_walk_in_the_window() -> void:
+	# The procedural rig draws no slash, so inside the window it is the lean and nothing else. Asked
+	# for a clip its sheet does not have, the view would show no character at all.
+	var screen := _full_party_screen()
+	var logic := screen.logic()
+	logic.press()
+	assert_int(logic.phase()).is_equal(BattleLogic.Phase.PLAYER_ACT)
+	_count_the_cue_down_to(logic, 3)
+	assert_bool(logic.cue_on()).is_true()
+	screen._paint()
+	assert_str(String(screen._member_views[0].clip())).is_equal("walk")
+	assert_bool(screen._member_views[0].position.is_equal_approx(screen._member_homes[0])) \
+		.override_failure_message("the member attacking inside the window did not lean").is_false()
+
+
 func test_exactly_one_member_is_marked_at_a_time() -> void:
 	# The marker is one arrow: it follows a member from being asked through their swing, and
 	# once the whole party has gone it moves to whoever the enemy has aimed at. A member left

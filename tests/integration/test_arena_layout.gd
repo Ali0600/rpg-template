@@ -197,7 +197,7 @@ func test_the_arena_fits_its_window_in_both_kinds_of_art_with_the_player_at_ever
 			var wall: Array = entry
 			var screen := _screen(style_id)
 			_stage(screen, wall[1], wall[2], wall[3])
-			if screen._player_view.frames_in(ArenaScreen.SLASH) > 0:
+			if screen._player_view.frames_in(FightScreen.SLASH) > 0:
 				# Art that draws its own swing: the hero is caught mid-slash, measured as the body he
 				# is, and nothing is drawn over him.
 				assert_str(String(screen._player_view.clip())).override_failure_message(
@@ -286,9 +286,9 @@ const FAR := [Vector2i(80, 48), Vector2i(4016, 48), Vector2i(4016, 976)]
 func test_the_leader_of_one_art_swings_its_own_blade_and_the_other_gets_a_drawn_one() -> void:
 	# The pair the per-wall audit rests on: without it, "the hero's art draws a slash" could quietly
 	# become false for both styles and every wall case would take the drawn-slash branch.
-	assert_int(_screen("lpc32")._player_view.frames_in(ArenaScreen.SLASH)).override_failure_message(
+	assert_int(_screen("lpc32")._player_view.frames_in(FightScreen.SLASH)).override_failure_message(
 		"the lpc32 hero's sheet draws no slash").is_greater(1)
-	assert_int(_screen("dusk16")._player_view.frames_in(ArenaScreen.SLASH)).is_equal(0)
+	assert_int(_screen("dusk16")._player_view.frames_in(FightScreen.SLASH)).is_equal(0)
 
 func test_a_hero_whose_art_swings_plays_every_picture_of_it_in_order() -> void:
 	var screen := _screen("lpc32")
