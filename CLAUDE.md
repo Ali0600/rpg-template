@@ -2082,4 +2082,7 @@ this project's own: every picture shows the demo as it currently is, and when th
 shots are retaken from scripted sessions (the `screenshot` op, windowed with `--rendering-driver
 opengl3 --fixed-fps 60`; the dialog box types a character a frame, so wait about 260 frames for a
 line to finish). The old pictures showed a procedural cast the game had not worn for three
-milestones, and every gate was green the whole time.
+milestones, and every gate was green the whole time. **Stage a screen for a picture through a session, not a `-s` script**: a
+`-s` SceneTree that mounted an `ArenaScreen` in a 32px style photographed only the top-left quarter
+of the window, measured 2026-09-15 with the window size set both ways, while a session's
+`screenshot` op captured the whole 640x360 frame.
