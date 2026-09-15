@@ -639,7 +639,10 @@ M50; §7d, where both Zeldas draw the sword as a sprite stepped by the hitbox's 
 II picks its fight scene from the terrain). A leader whose sheet draws LPC's `slash` plays it one
 picture at a time from `ArenaSim.swing_step` through `SpriteView.hold_frame`, so the picture and the
 hitbox are one count; art with no slash - the rig's - shows a drawn edge sweeping the sword's reach
-instead, and never both. The floor is laid, behind everything on it, with the tile under the map
+instead, and never both. **A turn fight plays the same clip** (M50.3, §7e): a party member whose sheet
+draws one shows it across the timing window of their own attack, from `BattleLogic.swing_step`, so its
+last picture is on screen the frame before the damage lands. They still lean in first, and a foe, or art
+with no slash, keeps the lean alone. The floor is laid, behind everything on it, with the tile under the map
 record whose fight this is (`world_scene._arena_ground`, `TileSetFactory.walkable_region`); a key no
 record answers to, or a tile nobody could stand on, keeps the plain window, which is also what every
 standalone test gets. The drawn slash and the ground carry `ArenaScreen.FIELD`, which is how the
