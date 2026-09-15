@@ -62,7 +62,8 @@ Other animations on the sheet are ignored, not refused.
 
 A recipe composed with `tools/lpc_compose.sh` asks for the slash with `"animations": ["walk",
 "slash"]`, and a layer may say `"only": ["slash"]` to be drawn in the swing and nowhere else - which
-is how `quest_wanderer` carries a dagger in the arena and none in the village or in his portrait.
+is how `quest_wanderer` carries a bronze arming sword in the arena and none in the village or in his
+portrait.
 Both keys are the composer's own. The web app has no way to say either, and draws a weapon in every
 animation it has.
 

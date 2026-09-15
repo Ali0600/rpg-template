@@ -3593,8 +3593,14 @@ of a character uses; every other sword draws on 128 or 192px frames below the un
   sword has a bronze variant matching the game's Bronze sword. **Revisit hook:** `SheetMeta.cell` is
   one cell size per sheet, so a 128px swing beside 64px walking cannot be described; the work starts
   at `LpcCompose.CLIP_ROWS` and `LpcImport`.
+  *Pursued by M50.2, on the owner's call of 2026-09-15:* the bronze arming sword, chosen from the
+  bronze and iron arming swords, the longsword and the saber after previews. See the M50.2 entry at
+  the bottom.
 - **Unjudged by hand:** the dagger's drawn reach is shorter than the 0.75-tile hitbox. **Revisit
   hook:** `CombatDef.swing_reach_tiles`.
+  *Measured again for the arming sword, 2026-09-15:* its drawn swing now reaches PAST the hit - about
+  0.4 of a tile facing left or right, a third of a tile facing up - and short of it facing down, where
+  the arc is drawn sideways. Still unjudged by hand, and the reach is unchanged.
 
 ## A recipe layer may be drawn in some of its animations only — *M50*
 

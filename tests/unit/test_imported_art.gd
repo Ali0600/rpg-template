@@ -262,3 +262,17 @@ func test_every_imported_character_has_a_face_with_something_in_it() -> void:
 			seen += 1
 	assert_int(seen).override_failure_message(
 		"no imported character was measured, so this proved nothing").is_greater(3)
+
+
+func test_the_heros_sword_swing_is_cropped_to_what_it_draws() -> void:
+	# Literals measured from the generator's own PNGs at the pinned commit on 2026-09-15, outside this
+	# project: the bronze arming sword's swing and the hero's body, composed, draw from (16, 45) to
+	# (112, 98) of a 128px cell, and the feet (32, 62) of a 64px frame land at (64, 94) once it is
+	# centred. A crop that moved, grew or lost a pixel changes these before anyone looks at the arena.
+	var meta := _meta(&"lpc32", &"quest_wanderer")
+	assert_bool(meta.has_grid("slash")).override_failure_message(
+		"the hero's swing is not on a grid of its own - is he still swinging the dagger?").is_true()
+	assert_vector(Vector2(meta.cell_of("slash"))).is_equal(Vector2(97, 54))
+	assert_vector(Vector2(meta.anchor_of("slash"))).is_equal(Vector2(48, 49))
+	assert_vector(Vector2(meta.origin_of("slash"))).is_equal(Vector2(0, 256))
+	assert_vector(Vector2(meta.anchor)).is_equal(Vector2(32, 62))
