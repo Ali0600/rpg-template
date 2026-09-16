@@ -8,6 +8,11 @@ extends GdUnitTestSuite
 ## licence the style accepts, and that the inputs are not shipped. A palette rule would be
 ## meaningless - these pixels are the artists', not the style's.
 
+## Where a composed character's recipe lives, and how a weapon layer is told from the rest of a
+## person. Both are here rather than in the tests below because two of them read the same files.
+const DESIGNS := "res://docs/lpc_designs/"
+const SWORD_PREFIX := "weapons/sword/"
+
 func _meta(style_id: StringName, id: StringName) -> SheetMeta:
 	var file := JsonFile.read(ArtFixtures.generated_meta_path(style_id, id))
 	assert_bool(file.ok).override_failure_message(file.error).is_true()
@@ -276,3 +281,78 @@ func test_the_heros_sword_swing_is_cropped_to_what_it_draws() -> void:
 	assert_vector(Vector2(meta.anchor_of("slash"))).is_equal(Vector2(48, 49))
 	assert_vector(Vector2(meta.origin_of("slash"))).is_equal(Vector2(0, 256))
 	assert_vector(Vector2(meta.anchor)).is_equal(Vector2(32, 62))
+
+
+func test_every_sword_the_hero_can_wear_is_cropped_to_what_it_draws() -> void:
+	# The three blades he can carry, composed on 2026-09-16 at the pinned generator commit and read back
+	# off the committed sheets. These are the arena floor's input: the widest of them decides how much
+	# room a fight needs, so a crop that moved would move a window nobody is watching.
+	#
+	# The longsword and the rapier crop IDENTICALLY, which was checked rather than assumed - their
+	# sheets differ in hash, size and picture; the two blades simply reach the same outermost pixels of
+	# their 192px cell.
+	for entry: Array in [
+		[&"quest_wanderer_saber", Vector2(93, 55), Vector2(44, 49)],
+		[&"quest_wanderer_longsword", Vector2(162, 85), Vector2(81, 66)],
+		[&"quest_wanderer_rapier", Vector2(162, 85), Vector2(81, 66)],
+	]:
+		var id: StringName = entry[0]
+		var meta := _meta(&"lpc32", id)
+		assert_bool(meta.has_grid("slash")).override_failure_message(
+			"%s does not draw his swing on a grid of its own" % id).is_true()
+		assert_vector(Vector2(meta.cell_of("slash"))).override_failure_message(
+			"%s draws its swing on a different grid than it was measured at" % id).is_equal(entry[1])
+		assert_vector(Vector2(meta.anchor_of("slash"))).override_failure_message(
+			"%s swings from somewhere other than its feet" % id).is_equal(entry[2])
+		# The walk is untouched by which sword he wears, which is what keeps the cast on one ground
+		# line however he is armed - the swing is measured from the walk, never the other way round.
+		assert_vector(Vector2(meta.cell)).override_failure_message(
+			"%s walks on a different grid than the rest of the cast" % id).is_equal(Vector2(64, 64))
+		assert_vector(Vector2(meta.anchor)).override_failure_message(
+			"%s stands on a different ground line than the hero" % id).is_equal(Vector2(32, 62))
+
+
+func test_the_wanderers_recipes_differ_only_in_the_sword_they_draw() -> void:
+	# He exists four times over now, one sheet per blade he can wear. Four copies of one design is four
+	# things to keep in step, and the day his hair changes in one of them he is two different men in the
+	# same fight - so the sameness is asserted rather than remembered.
+	var base := _recipe("the_road.json")
+	var base_body := _without_the_sword(base)
+	var base_sword := _the_sword(base)
+	assert_array(base_sword).override_failure_message(
+		"the_road.json carries no sword layer, so this proves nothing about the others").has_size(1)
+	for name: String in ["the_road_saber.json", "the_road_longsword.json", "the_road_rapier.json"]:
+		var other := _recipe(name)
+		assert_str(str(other.get("body_type", ""))).override_failure_message(
+			"%s is drawn on another body" % name).is_equal(str(base.get("body_type", "")))
+		assert_array(_without_the_sword(other)).override_failure_message(
+			"%s draws a different man, not the same man with a different sword" % name
+			).is_equal(base_body)
+		var sword := _the_sword(other)
+		assert_array(sword).override_failure_message(
+			"%s does not carry exactly one sword layer" % name).has_size(1)
+		assert_bool(sword == base_sword).override_failure_message(
+			"%s carries the same sword as the_road.json, so it is not another blade" % name).is_false()
+
+
+func _recipe(name: String) -> Dictionary:
+	var file := JsonFile.read(DESIGNS + name)
+	assert_bool(file.ok).override_failure_message(file.error).is_true()
+	return file.data
+
+
+func _the_sword(recipe: Dictionary) -> Array:
+	return _layers_of(recipe, true)
+
+
+func _without_the_sword(recipe: Dictionary) -> Array:
+	return _layers_of(recipe, false)
+
+
+func _layers_of(recipe: Dictionary, swords: bool) -> Array:
+	var out: Array = []
+	for entry: Variant in recipe.get("layers", []) as Array:
+		var layer: Dictionary = entry
+		if str(layer.get("def", "")).begins_with(SWORD_PREFIX) == swords:
+			out.append(layer)
+	return out
