@@ -143,7 +143,7 @@ func test_a_fighter_is_drawn_at_the_size_its_style_asks_for() -> void:
 ## A full party under a style asking for a given fighter size. Built by hand rather than taken
 ## off disk because the rule below is about how the file RESPONDS to a fighter's width, and every
 ## shipped style now happens to draw one 32 design pixels wide - see the test.
-func _party_screen_at(fighter_scale: int) -> BattleScreen:
+func _party_screen_at(fighter_scale: int, art := &"quest_wanderer") -> BattleScreen:
 	var screen := BattleScreen.new()
 	var style := (load("res://data/styles/lpc32.tres") as SpriteStyle).duplicate() as SpriteStyle
 	style.battle_sprite_scale = fighter_scale
@@ -152,7 +152,7 @@ func _party_screen_at(fighter_scale: int) -> BattleScreen:
 	var members: Array = []
 	for i in BattleScreen.MAX_PARTY:
 		members.append(BattleLogic.Fighter.of(&"" if i == 0 else StringName("m%d" % i),
-			"You" if i == 0 else "Companion%d" % i, &"quest_wanderer", combat,
+			"You" if i == 0 else "Companion%d" % i, art, combat,
 			combat.max_hp(1), 0, 1, combat.max_mp(1), 0, 0, []))
 	var enemy := _enemy()
 	enemy.character = &"quest_slink"
@@ -896,6 +896,37 @@ func test_a_member_whose_art_draws_a_swing_plays_it_across_the_window() -> void:
 	screen._paint()
 	assert_str(String(screen._member_views[0].clip())).override_failure_message(
 		"the swing is still held after the blow landed").is_equal("idle")
+
+
+## Every art the hero can be drawn with in lpc32: the four swords composed for him, and whatever any
+## shipped item draws him as, so a sword added later is audited without anybody listing it here.
+func _hero_arts() -> Array[StringName]:
+	var out: Array[StringName] = [&"quest_wanderer", &"quest_wanderer_saber",
+		&"quest_wanderer_longsword", &"quest_wanderer_rapier"]
+	for path in ContentScan.files_of("res://data/items", "tres"):
+		var item := load(path) as ItemDef
+		if item != null and not out.has(item.art_for(&"quest_wanderer")):
+			out.append(item.art_for(&"quest_wanderer"))
+	return out
+
+
+func test_every_sword_the_hero_can_wear_swings_clear_of_every_window() -> void:
+	# A turn fight draws the sword worn (docs/DECISIONS.md, M50.4), and the longsword's swing is 162 by
+	# 85 where the bronze one is 97 by 54. The command window is hidden during a cue and the party
+	# window is not, so this audits every picture of the swing for every sword, not the one above.
+	for art in _hero_arts():
+		var screen := _party_screen_at(1, art)
+		var logic := screen.logic()
+		logic.press()
+		assert_int(logic.phase()).is_equal(BattleLogic.Phase.PLAYER_ACT)
+		for left in range(6, 0, -1):
+			_count_the_cue_down_to(logic, left)
+			screen._paint()
+			assert_str(String(screen._member_views[0].clip())).override_failure_message(
+				"%s is not swinging %d frames before the hit" % [art, left]).is_equal("slash")
+			var page := "%s swinging, %d frames before the hit" % [art, left]
+			_assert_nothing_overlaps(screen, page)
+			_assert_nothing_leaves_the_window(screen, page)
 
 
 func test_a_member_whose_art_draws_no_swing_still_leans_on_his_walk_in_the_window() -> void:

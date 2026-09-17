@@ -625,9 +625,14 @@ let a refused fight through, and a choice made in Options takes hold at the next
 `FightScreen` holds the two signals, `LAYER`, the `_committed` latch, `MAX_FOES` (a formation is a map
 rule) and `fighter_scale`; `BattleScreen` and `ArenaScreen` extend it, and `fight_screen()` is
 whichever is up. `ArenaScreen` is three windows - a banner with one bar for `ArenaSim.shown_foe()`,
-the floor, the leader's health - with the floor at 16 design pixels a tile, `FLOOR_MAX_TILES` 16x4,
-and its margins read from every sheet's own anchor, so a body pressed into a wall stays inside its
-window in either kind of art. It READS the move actions through `Locomotion.read_input()` each
+the floor, the leader's health - with the floor at 16 design pixels a tile and its margins read from
+every sheet's own anchor, so a body pressed into a wall stays inside its window in either kind of art.
+**Whether a floor fits is a SUM, not a tile count** (`docs/DECISIONS.md`, M50.4): `ArenaScreen.floor_fits`
+adds the tiles, how far past its feet anything in the fight is drawn (`reach_of`, over every clip) and
+the panel under the floor, and the screen lays itself out by those same sums, so the two cannot
+disagree. `test_battle_content` refuses a game by it, per encounter, over every art its leader could
+wear and every foe that record fields. `FLOOR_MAX_TILES` 16x4 is only the floor the layout audit is
+built at: the longsword fits the demo's 14 tiles and not those 16, which the bronze sword fits. It READS the move actions through `Locomotion.read_input()` each
 frame and takes `interact` as a PRESS, so holding it is one swing. A body flickers two frames on and
 two off for as long as it is protected, and a felled foe leaves the floor. Bodies are drawn front to
 back by where their feet stand, re-ordered on every paint as the floor's own CHILD ORDER - the map's
@@ -1114,6 +1119,16 @@ what the player has, and a swap has nothing to put back. `take_item` clears the 
 the last copy leaves by ANY path, because a slot map pointing at a phantom re-arms the moment
 another copy is picked up; `SaveData.problems()` checks the same invariant against the file
 itself, since a hand-edited save can describe a player who cannot exist.
+
+**Gear can change how a fighter is DRAWN, in a fight and nowhere else** (`docs/DECISIONS.md`, M50.4).
+`ItemDef.worn_art` maps the art a fighter is drawn with to the art they are drawn with while it is worn,
+and it is KEYED BY THE WEARER: a sword naming one character would draw a companion who picked it up as
+the hero. `world_scene._art_in_fight` is its one reader in the world, called beside the one place a
+fighter's art is named, so both resolvers draw the sword that is worn; the first slot in
+`ItemDef.SLOTS` order that draws somebody differently decides. The swords differ only in the swing and
+the map draws no swing, so the walking body never changes. Both sides of the map are bare strings, so
+`test_battle_content` holds every key to a body some game fights as and every value to art that exists
+in the style of each map that game is played on.
 
 **Money has ONE writer and a spend is refused, never clamped.** `GameState.gold` sits beside
 hp/xp, but zero is a REAL value there (broke) rather than the "unset" hp uses, so it is a

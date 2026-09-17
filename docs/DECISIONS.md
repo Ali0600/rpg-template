@@ -3906,3 +3906,12 @@ out exactly. `FLOOR_MAX_TILES` stays as the layout audit's capacity.
 - Leave the longsword out — `rejected — the owner wants all three`.
 
 **Revisit hook:** `world_scene._battle_members` for the art, and the floor sum in `ArenaScreen`.
+
+- *2026-09-17, as built (the second pull request):* the art is a map on `ItemDef` KEYED BY THE WEARER
+  (`worn_art`), not one `character` per item as planned. One name would draw a companion who picked up
+  the hero's sword as the hero, or leave a hidden rule that gear redraws the leader and never anyone
+  else, in a template whose party is a list. The fit checks HEIGHT as well as width, because under the
+  floor sits the leader's panel, and is measured per encounter over every art the leader could wear and
+  the foes that record fields. Measured with the committed art: at 16 tiles the floor is 313 pixels
+  across with the bronze sword, 311 with the saber and 346 with the longsword and rapier; at 14 tiles
+  the longsword's is 314 across and 115 tall, which leaves the panel ending at 169 of 180.

@@ -65,6 +65,24 @@ const SLOTS: Array[StringName] = [&"weapon", &"armor"]
 ## being given a price, never by being forgotten.
 @export var price: int = 0
 
+## How a fighter is drawn in a fight while this is worn: the art they are drawn with otherwise, to the
+## art they are drawn with instead (docs/DECISIONS.md, M50.4). A sword is drawn only in the swing, so
+## carrying a different one is a different character whose slash rows differ - the hero wearing a
+## saber is drawn as `quest_wanderer_saber`.
+##
+## KEYED BY THE WEARER, because a party has more than one body. A sword naming one character would
+## draw a companion who picked it up as the hero; keyed, they are drawn as themselves unless the item
+## names art for them too. Empty, the default, is gear that moves the numbers and never the picture,
+## which is all gear was before M50.4.
+@export var worn_art: Dictionary = {}
+
+
+## The art `wearer` is drawn with while this is worn: its entry, or the wearer's own. The one reader of
+## `worn_art`, the `EnemyDef.resistance_to` shape, so a missing entry means "as themselves" in exactly
+## one place.
+func art_for(wearer: StringName) -> StringName:
+	return StringName(str(worn_art.get(wearer, wearer)))
+
 
 ## Everything wrong with this item, in the idiom of every other problems() here: all of them,
 ## not the first, so "what is broken about this item" is one read rather than three runs.
@@ -88,4 +106,24 @@ func problems() -> Array[String]:
 		out.append("item '%s' has negative equipment stats" % id)
 	if slot == &"" and (attack != 0 or defense != 0):
 		out.append("item '%s' has equipment stats but no slot - they would do nothing" % id)
+	out.append_array(_worn_art_problems())
+	return out
+
+
+## Everything wrong with the art map, separately for `EnemyDef._resistance_problems`' reason: every
+## fault here is silent in play. Art on a thing nobody can wear is never drawn, and an entry with no
+## name on one side is a sword that swings the wearer's own blade or draws a body that does not exist.
+## Whether the art EXISTS is a question about a style, so the content gate asks it.
+func _worn_art_problems() -> Array[String]:
+	var out: Array[String] = []
+	if slot == &"" and not worn_art.is_empty():
+		out.append("item '%s' names art to wear but no slot - it can never be worn" % id)
+	for wearer: Variant in worn_art:
+		var drawn := str(worn_art[wearer])
+		if str(wearer).is_empty() or drawn.is_empty():
+			out.append("item '%s' names worn art with no character on one side" % id)
+		elif drawn == str(wearer):
+			# An entry that reads like a decision and changes nothing: the resistance-of-100 rule.
+			out.append("item '%s' draws '%s' as themselves, which is what it would do anyway"
+				% [id, drawn])
 	return out

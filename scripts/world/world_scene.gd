@@ -1733,8 +1733,8 @@ func _spells_up_to(level: int, only: Array[StringName], everything: bool) -> Arr
 
 ## Everyone who fights on the player's side, fully resolved.
 ##
-## THE LEADER IS SYNTHESIZED rather than declared: their art and curve are the manifest's own,
-## their name is the word every message used before there was anyone else, and they know
+## THE LEADER IS SYNTHESIZED rather than declared: their art and curve are the manifest's own -
+## the art as worn, like everybody's (`_art_in_fight`) - their name is the word every message used before there was anyone else, and they know
 ## everything the game ships that their level has reached. So a game with no party still hands
 ## the fight a list, and there is one code path through a battle rather than a solo one and a
 ## party one - of which the solo one would be the tested one.
@@ -1742,20 +1742,40 @@ func _battle_members() -> Array:
 	var out: Array = []
 	if _game == null or _game.combat == null:
 		return out
-	out.append(BattleLogic.Fighter.of(&"", "You", _game.player_character, _game.combat,
-		GameState.player_hp, GameState.player_xp, GameState.player_level, GameState.player_mp,
+	out.append(BattleLogic.Fighter.of(&"", "You", _art_in_fight(_game.player_character),
+		_game.combat, GameState.player_hp, GameState.player_xp,
+		GameState.player_level, GameState.player_mp,
 		_equip_mod(&"attack"), _equip_mod(&"defense"), _battle_spells()))
 	for member in _active_party():
 		_ensure_member(member)
 		var numbers := GameState.companion(member.id)
 		var curve: CombatDef = member.combat if member.combat != null else _game.combat
 		var level := int(numbers.get("level", member.join_level))
-		out.append(BattleLogic.Fighter.of(member.id, member.name, member.character, curve,
+		out.append(BattleLogic.Fighter.of(member.id, member.name,
+			_art_in_fight(member.character, member.id), curve,
 			int(numbers.get("hp", 0)), int(numbers.get("xp", 0)), level,
 			int(numbers.get("mp", 0)),
 			_equip_mod(&"attack", member.id), _equip_mod(&"defense", member.id),
 			_member_spells(level, member.spells)))
 	return out
+
+
+## The art a fighter is drawn with in a fight: the first thing they wear, in slot order, that draws
+## them as somebody else (`ItemDef.worn_art`), or their own. Resolved here for `_equip_mod`'s reason -
+## it means asking the Registry what an item is, and a fight may not - and HERE, beside the one place
+## a fighter's art is named, so both resolvers draw the sword that is worn (docs/DECISIONS.md, M50.4).
+##
+## Fights only. The swords differ in the swing and nowhere else, and the map draws no swing.
+func _art_in_fight(own: StringName, member: StringName = &"") -> StringName:
+	var wearing: Dictionary = GameState.equipment if String(member).is_empty() \
+		else GameState.companion_equipment.get(member, {})
+	# `worn_slot` rather than `slot`: the status page walks the same list, and two identical lines are
+	# one find-and-replace editing both.
+	for worn_slot in ItemDef.SLOTS:
+		var gear := Registry.get_resource(&"ItemDef", StringName(str(wearing.get(worn_slot, "")))) as ItemDef
+		if gear != null and gear.art_for(own) != own:
+			return gear.art_for(own)
+	return own
 
 
 ## Which of the game's roster is actually along, right now. Derived from flags every time it is

@@ -19,9 +19,10 @@ extends FightScreen
 ## Design pixels one tile of floor is drawn across, whatever the style: the world's own rule, the
 ## same number of tiles across at any art size, because the layer is scaled rather than the layout.
 const TILE_PX := 16
-## The biggest floor this screen draws, in tiles. A DECLARED capacity: the layout audit measures at
-## it and the content gate refuses a game asking for more, because a floor too big for the window
-## is drawn off the bottom of the screen in silence.
+## The floor the layout audit builds this screen at, in tiles. It is no longer what a game is refused
+## by: whether a floor fits depends on how far the widest art in the fight reaches past its feet, so
+## the content gate asks `floor_fits` instead (docs/DECISIONS.md, M50.4). A longsword fits the 14 tiles
+## the demo ships and not these 16, which the bronze sword fits.
 const FLOOR_MAX_TILES := Vector2i(16, 4)
 const MARGIN := 8.0
 const BANNER_Y := 4.0
@@ -57,9 +58,8 @@ var _foe_bar: UiChrome.Bar = null
 var _floor: UiChrome.Frame = null
 ## Where floor position (0, 0) is drawn, in the floor window's own coordinates.
 var _origin := Vector2.ZERO
-## How far any fighter in this fight is drawn past its feet: left and up, then right and down.
-var _before := Vector2.ZERO
-var _after := Vector2.ZERO
+## How far any fighter in this fight is drawn past its feet, as `reach_of` answers it.
+var _reach := Rect2()
 ## The drawn slash, over the sword's box while it is out - for art that has no swing of its own.
 ## Made in _build like every other node here, so a screen that is never set up owns nothing it has
 ## not put in the tree.
@@ -138,12 +138,11 @@ func _build(viewport_size: Vector2i, source: SpriteSource, ground: Texture2D) ->
 	_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_backdrop)
 	var wide := float(viewport_size.x)
-	var band := float(UiChrome.FONT_SIZE + 2) + float(UiChrome.BORDER + UiChrome.PAD) * 2.0
 	_build_banner(wide)
 	var drawn := FightScreen.fighter_scale(_style)
-	_measure_overhang(source, drawn)
+	_reach = reach_of(_sheets_in_the_fight(source), drawn)
 	var floor_bottom := _build_floor(wide, source, drawn, ground)
-	_build_panel(wide, band, floor_bottom + PANEL_GAP)
+	_build_panel(wide, floor_bottom + PANEL_GAP)
 
 
 func _build_banner(wide: float) -> void:
@@ -160,39 +159,72 @@ func _build_banner(wide: float) -> void:
 	_foe_bar.root.position = Vector2(inner.position.x, inner.position.y + 10.0)
 
 
-## How far every fighter in this fight is drawn past its feet, read from each sheet's own anchor
-## rather than from a cell size: a cell is not a body, and LPC's characters stand two rows above the
-## bottom of a 64px cell where the rig's stand on the last of a 24px one. The floor window is given
-## exactly that much room on each side, so a body pressed against a wall is still inside it.
-func _measure_overhang(source: SpriteSource, drawn: float) -> void:
+## The sheet of everybody on this floor: the leader, and every foe. Art that is missing draws nothing,
+## so it reaches nowhere.
+func _sheets_in_the_fight(source: SpriteSource) -> Array[SheetMeta]:
+	var out: Array[SheetMeta] = []
 	var characters: Array[StringName] = [_sim.member_character(0)]
 	for i in _sim.foe_count():
 		characters.append(_sim.foe_character(i))
 	for character in characters:
 		var sheet := source.sheet(character)
-		if sheet.is_empty():
-			continue
-		var meta: SheetMeta = sheet["meta"]
+		if not sheet.is_empty():
+			out.append(sheet["meta"] as SheetMeta)
+	return out
+
+
+## How far fighters drawn from `sheets`, at `drawn` times their size, reach past their feet: the box
+## around the feet that every one of them is drawn inside, so its position is how far left and up and
+## its end how far right and down. Read from each sheet's own anchor rather than from a cell size: a
+## cell is not a body, and LPC's characters stand two rows above the bottom of a 64px cell where the
+## rig's stand on the last of a 24px one. The floor window is given exactly that much room on each
+## side, so a body pressed against a wall is still inside it.
+static func reach_of(sheets: Array[SheetMeta], drawn: float) -> Rect2:
+	var before := Vector2.ZERO
+	var after := Vector2.ZERO
+	for meta in sheets:
 		# Over every clip, not the sheet's one cell: a swing drawn on a grid of its own reaches further
 		# past the feet than the walk does, and it is drawn while the hero is pressed into a wall.
 		for clip in meta.clip_names():
 			var at := meta.anchor_of(clip)
 			var box := meta.cell_of(clip)
-			_before.x = maxf(_before.x, ceilf(float(at.x) * drawn))
-			_before.y = maxf(_before.y, ceilf(float(at.y) * drawn))
-			_after.x = maxf(_after.x, ceilf(float(box.x - at.x) * drawn))
-			_after.y = maxf(_after.y, ceilf(float(box.y - at.y) * drawn))
+			before.x = maxf(before.x, ceilf(float(at.x) * drawn))
+			before.y = maxf(before.y, ceilf(float(at.y) * drawn))
+			after.x = maxf(after.x, ceilf(float(box.x - at.x) * drawn))
+			after.y = maxf(after.y, ceilf(float(box.y - at.y) * drawn))
+	return Rect2(-before, before + after)
+
+
+## The floor window's outer size: `tiles` of play, the room past them that fighters reaching `reach`
+## from their feet are drawn in, and the window's own border.
+static func floor_size(tiles: Vector2i, reach: Rect2) -> Vector2:
+	var chrome := float(UiChrome.BORDER + UiChrome.PAD) * 2.0
+	return Vector2(tiles * TILE_PX) + reach.size + Vector2(chrome, chrome)
+
+
+## How tall the leader's panel is: one line of the font inside a window's border.
+static func panel_height() -> float:
+	return float(UiChrome.FONT_SIZE + 2) + float(UiChrome.BORDER + UiChrome.PAD) * 2.0
+
+
+## Whether a floor of `tiles`, with fighters reaching `reach` past their feet, fits a `screen`: the
+## floor window across it, and the panel under the floor above its bottom edge. This is the arena's
+## CAPACITY, worked out rather than declared (docs/DECISIONS.md, M50.4). The screen lays itself out
+## by these same sums and the content gate refuses a game by this answer, so the two cannot disagree
+## about a longer sword.
+static func floor_fits(tiles: Vector2i, reach: Rect2, screen: Vector2i) -> bool:
+	var outer := floor_size(tiles, reach)
+	var bottom := FLOOR_Y + outer.y + PANEL_GAP + panel_height()
+	return outer.x <= float(screen.x) and bottom <= float(screen.y)
 
 
 ## The floor window, centred, and everything on it. Answers where the window ends.
 func _build_floor(wide: float, source: SpriteSource, drawn: float, ground: Texture2D) -> float:
 	var tiles := _sim.floor_rect().size / ArenaSim.UNITS_PER_TILE
-	var play := Vector2(tiles * TILE_PX)
-	var chrome := float(UiChrome.BORDER + UiChrome.PAD) * 2.0
-	var outer := play + _before + _after + Vector2(chrome, chrome)
+	var outer := floor_size(tiles, _reach)
 	_floor = UiChrome.frame(_style, Rect2(Vector2(roundf((wide - outer.x) / 2.0), FLOOR_Y), outer))
 	add_child(_floor.panel)
-	_origin = _floor.inner().position + _before
+	_origin = _floor.inner().position - _reach.position
 	_blade = Control.new()
 	_blade.set_meta(FIELD, true)
 	_blade.visible = false
@@ -247,8 +279,8 @@ func _make_ground(ground: Texture2D, tiles: Vector2i) -> Control:
 	return out
 
 
-func _build_panel(wide: float, band: float, top: float) -> void:
-	_panel = UiChrome.frame(_style, Rect2(MARGIN, top, wide - MARGIN * 2.0, band))
+func _build_panel(wide: float, top: float) -> void:
+	_panel = UiChrome.frame(_style, Rect2(MARGIN, top, wide - MARGIN * 2.0, panel_height()))
 	add_child(_panel.panel)
 	var room := _panel.inner()
 	_leader_name = UiChrome.label(_style, "text")
