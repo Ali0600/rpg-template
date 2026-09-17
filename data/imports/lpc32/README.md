@@ -78,6 +78,9 @@ frames draw.
 | character | made from | how |
 |---|---|---|
 | `quest_wanderer` | `docs/lpc_designs/the_road.json` | `tools/lpc_compose.sh docs/lpc_designs/the_road.json --out=data/imports/lpc32/quest_wanderer` |
+| `quest_wanderer_saber` | `docs/lpc_designs/the_road_saber.json` | `tools/lpc_compose.sh docs/lpc_designs/the_road_saber.json --out=data/imports/lpc32/quest_wanderer_saber` |
+| `quest_wanderer_longsword` | `docs/lpc_designs/the_road_longsword.json` | `tools/lpc_compose.sh docs/lpc_designs/the_road_longsword.json --out=data/imports/lpc32/quest_wanderer_longsword` |
+| `quest_wanderer_rapier` | `docs/lpc_designs/the_road_rapier.json` | `tools/lpc_compose.sh docs/lpc_designs/the_road_rapier.json --out=data/imports/lpc32/quest_wanderer_rapier` |
 | `quest_scrapper` | `docs/lpc_designs/quest_scrapper.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_scrapper.json --out=data/imports/lpc32/quest_scrapper` |
 | `quest_warden` | `docs/lpc_designs/quest_warden.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_warden.json --out=data/imports/lpc32/quest_warden` |
 | `quest_hermit` | `docs/lpc_designs/quest_hermit.json` | `tools/lpc_compose.sh docs/lpc_designs/quest_hermit.json --out=data/imports/lpc32/quest_hermit` |

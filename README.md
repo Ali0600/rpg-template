@@ -32,7 +32,7 @@ both, and the build fails if the committed pixels differ.
 
 **The gate.** Every rule the template makes is a test. Every test ships with a mutant — a
 deliberate break in the code — that proves the test fails when the rule is broken.
-`tools/check.sh` runs lint, parse, compile, 1,693 tests, a boot check, an artifact drift check
+`tools/check.sh` runs lint, parse, compile, 1,695 tests, a boot check, an artifact drift check
 (generated files must match what is committed), 30 scripted play sessions and the exported
 package, in that order. It runs the same way locally and in CI.
 
@@ -193,7 +193,7 @@ behaving strangely.
   sub-tile autotiling that builds 47 edge shapes from 12 pieces. All of it uses integer
   arithmetic, so the output is byte-identical on macOS and Linux, and CI fails if the committed
   output drifts.
-- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,693
+- Built a CI/CD pipeline in GitHub Actions that fails closed: lint → parse → compile → 1,695
   unit and integration tests → boot → artifact drift → 30 scripted end-to-end play sessions →
   the exported package checked for test code, then played. Repository policy requires every
   action to be pinned to a SHA, `main` cannot be force-pushed or deleted, dependency alerts open

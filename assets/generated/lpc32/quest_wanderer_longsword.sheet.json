@@ -1,0 +1,76 @@
+{
+	"anchor": [
+		32,
+		62
+	],
+	"animations": {
+		"idle": {
+			"fps": 4,
+			"frames": [
+				0
+			],
+			"loop": true
+		},
+		"slash": {
+			"anchor": [
+				81,
+				66
+			],
+			"cell": [
+				162,
+				85
+			],
+			"fps": 12,
+			"frames": [
+				0,
+				1,
+				2,
+				3,
+				4,
+				5
+			],
+			"loop": false,
+			"origin": [
+				0,
+				256
+			]
+		},
+		"walk": {
+			"fps": 8,
+			"frames": [
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8
+			],
+			"loop": true
+		}
+	},
+	"cell": [
+		64,
+		64
+	],
+	"character": "quest_wanderer_longsword",
+	"columns": 9,
+	"directions": [
+		"down",
+		"left",
+		"right",
+		"up"
+	],
+	"portrait": [
+		20,
+		13,
+		24,
+		24
+	],
+	"rows": 4,
+	"seed": 0,
+	"source": "lpc",
+	"style": "lpc32",
+	"version": 2
+}
