@@ -114,7 +114,7 @@ func test_every_enemy_a_map_places_has_art_in_that_map_s_style() -> void:
 			var sheet := "res://assets/generated/%s/%s.sheet.json" % [map.style_id, enemy.character]
 			assert_bool(FileAccess.file_exists(sheet)).override_failure_message(
 				"map '%s' places '%s', whose character '%s' has no generated art for style '%s' (expected %s)"
-				% [map.id, enemy_id, enemy.character, map.style_id, enemy.character, sheet]).is_true()
+				% [map.id, enemy_id, enemy.character, map.style_id, sheet]).is_true()
 
 func test_a_game_that_places_enemies_says_how_fighting_works() -> void:
 	# A map placing an enemy in a game with no CombatDef is a fight that can never open. The
@@ -653,21 +653,149 @@ func _arena_fight(record_id: String, level: int, seed_value: int) -> ArenaSim:
 		BattleHelpers.party_of(manifest, _guaranteed_party(manifest, map.id), level),
 		"%s/%s" % [map.id, record_id], seed_value, manifest.config)
 
-func test_every_game_that_can_fight_fits_the_arena_floor_the_screen_draws() -> void:
-	# The capacity rule's third part, for the arena: ArenaScreen DECLARES the widest floor it draws,
-	# test_arena_layout MEASURES a screen built at it, and this refuses data past it. Every shipped game
-	# that can fight, because since M51 any of them can be fought with the sword.
-	var checked := 0
-	for manifest in GameSelect.manifests():
+## Everybody who fights on `manifest`'s side, by the art they are drawn with when they wear nothing:
+## the leader, and every member of the roster.
+func _wearers_of(manifest: GameManifest) -> Array[StringName]:
+	var out: Array[StringName] = [manifest.player_character]
+	for member: PartyMemberDef in manifest.party:
+		if member != null and not String(member.character).is_empty():
+			out.append(member.character)
+	return out
+
+## Every art a fighter drawn as `own` can be drawn with in a fight: their own, and whatever any of
+## `items` draws them as while it is worn.
+func _arts_of(own: StringName, items: Array) -> Array[StringName]:
+	var out: Array[StringName] = [own]
+	for item: ItemDef in items:
+		if item != null and not out.has(item.art_for(own)):
+			out.append(item.art_for(own))
+	return out
+
+## Every map `manifest` can be played into.
+func _maps_of(manifest: GameManifest) -> Array[MapData]:
+	var out: Array[MapData] = []
+	for key: Variant in WarpGraph.reachable(manifest).keys():
+		var map := MapData.load_from(MapData.path_of(StringName(str(key))))
+		if map.ok:
+			out.append(map)
+	return out
+
+## What is wrong with the art `items` draw their wearers with, for `manifests`: art named for a body
+## no game fights as, which is a typo that silently never draws, and art a game that can wear it has
+## no sheet for in the style of a map it fights on, which is a fighter who vanishes mid-fight.
+func _worn_art_faults(items: Array, manifests: Array[GameManifest]) -> Array[String]:
+	var out: Array[String] = []
+	var bodies := {}
+	for manifest in manifests:
+		for wearer in _wearers_of(manifest):
+			bodies[wearer] = true
+	for item: ItemDef in items:
+		for wearer: Variant in item.worn_art:
+			if not bodies.has(StringName(str(wearer))):
+				out.append("item '%s' names art for '%s', and no game fights as '%s'"
+					% [item.id, wearer, wearer])
+	for manifest in manifests:
+		var styles := {}
+		for map in _maps_of(manifest):
+			styles[map.style_id] = true
+		for wearer in _wearers_of(manifest):
+			for art in _arts_of(wearer, items):
+				for style_id: Variant in styles:
+					if not FileAccess.file_exists("res://assets/generated/%s/%s.sheet.json" % [style_id, art]):
+						out.append("game '%s' can draw '%s' as '%s', which has no art in style '%s'"
+							% [manifest.id, wearer, art, style_id])
+	return out
+
+func test_every_art_worn_gear_draws_a_fighter_with_is_art_somebody_has() -> void:
+	# `worn_art` is joined to the cast by a bare string on each side, so a typo either way is valid in
+	# its own file and silently wrong in play (docs/DECISIONS.md, M50.4).
+	var faults := _worn_art_faults(_every_item(), GameSelect.manifests())
+	assert_array(faults).override_failure_message("\n".join(faults)).is_empty()
+
+func test_worn_art_for_a_body_nobody_is_or_art_nobody_drew_is_refused() -> void:
+	# Each direction with its own fixture, and the control beside them: no shipped item names worn art
+	# before M50.4's swords are given out, so the shipped check alone would pass having read nothing.
+	var games: Array[GameManifest] = [_quest()]
+	var typo := ItemDef.new()
+	typo.id = &"typo_sword"
+	typo.worn_art = {&"quest_wandrer": &"quest_wanderer_saber"}
+	assert_str("\n".join(_worn_art_faults([typo], games))).contains("no game fights as")
+	var undrawn := ItemDef.new()
+	undrawn.id = &"undrawn_sword"
+	undrawn.worn_art = {&"quest_wanderer": &"nobody_drew_this"}
+	assert_str("\n".join(_worn_art_faults([undrawn], games))).contains("has no art")
+	var saber := ItemDef.new()
+	saber.id = &"saber"
+	saber.worn_art = {&"quest_wanderer": &"quest_wanderer_saber"}
+	assert_array(_worn_art_faults([saber], games)).is_empty()
+
+## What is wrong with the arena of each of `manifests` whose leader could wear any of `items`: a fight
+## whose floor, with the widest art in it, does not fit the screen. Per encounter, in the style of the
+## map it is fought on, over every art the leader can wear and every foe the record fields - the arena
+## draws the leader alone of the party. Returns the faults and how many fights were measured.
+func _arena_fit_faults(manifests: Array[GameManifest], items: Array) -> Dictionary:
+	var faults: Array[String] = []
+	var fights := 0
+	for manifest in manifests:
 		if manifest.combat == null:
 			continue
-		checked += 1
-		var tiles := manifest.combat.arena_tiles
-		assert_bool(tiles.x <= ArenaScreen.FLOOR_MAX_TILES.x and tiles.y <= ArenaScreen.FLOOR_MAX_TILES.y
-			).override_failure_message("'%s' asks for a %s floor and the screen draws at most %s"
-			% [manifest.id, tiles, ArenaScreen.FLOOR_MAX_TILES]).is_true()
-	assert_int(checked).override_failure_message(
-		"no shipped game fights in the arena, so the loop above proved nothing").is_greater(0)
+		for map in _maps_of(manifest):
+			var style := load("res://data/styles/%s.tres" % map.style_id) as SpriteStyle
+			for entry: Variant in map.enemies:
+				var tile := JsonFile.to_int_array((entry as Dictionary).get("tile", []))
+				if tile.size() != 2 or style == null:
+					continue
+				var arts := _arts_of(manifest.player_character, items)
+				for named: Variant in map.enemy_at(Vector2i(tile[0], tile[1])).get("foes", []):
+					var foe := load("res://data/enemies/%s.tres" % named) as EnemyDef
+					if foe != null:
+						arts.append(foe.character)
+				var sheets: Array[SheetMeta] = []
+				for art in arts:
+					var file := JsonFile.read("res://assets/generated/%s/%s.sheet.json" % [map.style_id, art])
+					if file.ok:
+						sheets.append(SheetMeta.from_dict(file.data))
+				fights += 1
+				var reach := ArenaScreen.reach_of(sheets, FightScreen.fighter_scale(style))
+				var tiles := manifest.combat.arena_tiles
+				if not ArenaScreen.floor_fits(tiles, reach, UiScale.DESIGN_SIZE):
+					faults.append("'%s' fights on '%s' with a %s floor drawn %s, past the %s screen"
+						% [manifest.id, map.id, tiles, ArenaScreen.floor_size(tiles, reach),
+						UiScale.DESIGN_SIZE])
+	return {"faults": faults, "fights": fights}
+
+func test_every_game_that_can_fight_fits_its_arena_on_the_screen_with_anything_it_can_wear() -> void:
+	# The capacity rule's third part, for the arena, as a MEASURED FIT (docs/DECISIONS.md, M50.4).
+	# ArenaScreen.floor_fits is the screen's own layout sums, test_arena_layout holds those sums to what
+	# the screen draws, and this refuses a game by them - over the widest art each fight could draw, so
+	# a longer sword on the smith's shelf is measured before anybody buys it. Every shipped game that can
+	# fight, because since M51 any of them can be fought with the sword.
+	var found := _arena_fit_faults(GameSelect.manifests(), _every_item())
+	var faults: Array[String] = found["faults"]
+	assert_array(faults).override_failure_message("\n".join(faults)).is_empty()
+	assert_int(found["fights"]).override_failure_message(
+		"no shipped fight was measured, so the loop above proved nothing").is_greater(0)
+
+func test_a_game_whose_hero_can_wear_a_sword_too_long_for_its_floor_is_refused() -> void:
+	# The longsword reaches 26 pixels past a 16-tile floor that the bronze sword fits, so the same game
+	# at 16 tiles passes bare-handed, fails with the longsword to wear, and passes again at the 14 tiles
+	# the demo ships. Each half of that is a different way for the gate to be wrong.
+	var game := _quest().duplicate() as GameManifest
+	game.combat = game.combat.duplicate() as CombatDef
+	game.combat.arena_tiles = Vector2i(16, 4)
+	var games: Array[GameManifest] = [game]
+	var longsword := ItemDef.new()
+	longsword.id = &"longsword"
+	longsword.slot = &"weapon"
+	longsword.worn_art = {&"quest_wanderer": &"quest_wanderer_longsword"}
+	var bare: Array[String] = _arena_fit_faults(games, [])["faults"]
+	assert_array(bare).override_failure_message("\n".join(bare)).is_empty()
+	var armed: Array[String] = _arena_fit_faults(games, [longsword])["faults"]
+	assert_str("\n".join(armed)).override_failure_message(
+		"a hero who can wear the longsword was let onto a floor it reaches past").contains("past the")
+	game.combat.arena_tiles = Vector2i(14, 4)
+	var shipped: Array[String] = _arena_fit_faults(games, [longsword])["faults"]
+	assert_array(shipped).override_failure_message("\n".join(shipped)).is_empty()
 
 func test_the_arena_boss_is_won_by_reach_and_lost_by_walking_into_him() -> void:
 	# The arena's whole difficulty statement, made of the fight the way the turn fight's is.

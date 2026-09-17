@@ -121,6 +121,41 @@ func test_a_valid_item_has_no_problems() -> void:
 	item.name = "Coin"
 	assert_array(item.problems()).is_empty()
 
+func _sword_drawing(worn_art: Dictionary) -> ItemDef:
+	var item := ItemDef.new()
+	item.id = &"saber"
+	item.name = "Saber"
+	item.slot = &"weapon"
+	item.worn_art = worn_art
+	return item
+
+func test_worn_art_draws_only_the_wearer_it_names() -> void:
+	# Keyed by who wears it, because a party has more than one body: a companion who picks up the
+	# hero's sword is still the companion, and a sword naming nobody draws everybody as themselves.
+	var sword := _sword_drawing({&"quest_wanderer": &"quest_wanderer_saber"})
+	assert_str(String(sword.art_for(&"quest_wanderer"))).is_equal("quest_wanderer_saber")
+	assert_str(String(sword.art_for(&"quest_scrapper"))).override_failure_message(
+		"a companion wearing the hero's sword is drawn as the hero").is_equal("quest_scrapper")
+	assert_str(String(_sword_drawing({}).art_for(&"quest_wanderer"))).is_equal("quest_wanderer")
+
+func test_art_to_wear_on_a_thing_nobody_can_wear_is_reported() -> void:
+	var trinket := _sword_drawing({&"quest_wanderer": &"quest_wanderer_saber"})
+	trinket.slot = &""
+	assert_str("\n".join(trinket.problems())).contains("no slot")
+	# The control: the same art on a sword is a sword.
+	assert_array(_sword_drawing({&"quest_wanderer": &"quest_wanderer_saber"}).problems()).is_empty()
+
+func test_worn_art_with_no_character_on_either_side_is_reported() -> void:
+	assert_str("\n".join(_sword_drawing({&"": &"quest_wanderer_saber"}).problems())) \
+		.contains("no character")
+	assert_str("\n".join(_sword_drawing({&"quest_wanderer": &""}).problems())) \
+		.contains("no character")
+
+func test_worn_art_that_draws_the_wearer_as_themselves_is_reported() -> void:
+	# It reads like a decision and changes nothing, so it is a typo for a real name.
+	assert_str("\n".join(_sword_drawing({&"quest_wanderer": &"quest_wanderer"}).problems())) \
+		.contains("as themselves")
+
 func test_every_shipped_item_is_valid_and_named_after_its_file() -> void:
 	var files := ContentScan.files_of(ITEM_DIR, "tres")
 	assert_bool(files.is_empty()).override_failure_message(

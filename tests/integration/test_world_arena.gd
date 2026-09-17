@@ -16,6 +16,10 @@ const TEST_DIR := "user://test_saves"
 
 var _world: Node2D
 var _tapped := false
+## A shipped item given art for one test, and the art it had, put back after it: a loaded resource is
+## the Registry's own copy and every suite in the run shares it.
+var _lent: ItemDef = null
+var _lent_art := {}
 
 
 func before_test() -> void:
@@ -27,6 +31,9 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	if _lent != null:
+		_lent.worn_art = _lent_art
+		_lent = null
 	_release_moves()
 	_tap(false)
 	if _world != null and is_instance_valid(_world):
@@ -178,6 +185,20 @@ func _play_perfectly(bound := 2000) -> void:
 
 
 # -- the seam ------------------------------------------------------------------------------------
+
+
+func test_the_arena_draws_the_sword_the_leader_wears() -> void:
+	# Both resolvers take their fighters from the world's one list, so the sword worn is the one swung
+	# here too (docs/DECISIONS.md, M50.4) - and it is the art the floor's margins are measured over.
+	await _boot()
+	_lent = Registry.get_resource(&"ItemDef", &"bronze_sword") as ItemDef
+	_lent_art = _lent.worn_art
+	_lent.worn_art = {&"quest_wanderer": &"quest_wanderer_longsword"}
+	GameState.give_item(&"bronze_sword", 1)
+	assert_bool(GameState.equip(&"weapon", &"bronze_sword")).is_true()
+	assert_bool(_world.open_battle_with([_enemy()], "quest_village/foe")).is_true()
+	assert_str(String(_world.arena_screen().sim().member_character(0))).override_failure_message(
+		"the arena drew the hero without the sword he wears").is_equal("quest_wanderer_longsword")
 
 
 func test_an_arena_game_opens_the_arena_and_the_player_on_the_map_stays_put() -> void:

@@ -249,6 +249,56 @@ func test_the_shipped_hero_s_swing_sizes_the_floor_the_way_it_was_measured() -> 
 		"the floor window is %s" % screen._floor.panel.size).is_equal(Vector2(313, 106))
 
 
+func test_a_floor_fits_while_its_window_and_the_panel_under_it_stay_on_the_screen() -> void:
+	# The arena's capacity as a sum rather than a tile count (docs/DECISIONS.md, M50.4), pinned at its
+	# edges in literals. Sixteen tiles are 256 pixels and the window's border is 8 each way; under a
+	# 4-tile floor starting at 32 come a 4 pixel gap and an 18 pixel panel. So on a 320 by 180 screen
+	# fighters may reach 56 pixels across and 54 down past their feet, and not one pixel more.
+	var screen := Vector2i(320, 180)
+	var tiles := Vector2i(16, 4)
+	assert_vector(ArenaScreen.floor_size(tiles, Rect2(-28, -40, 56, 54))).is_equal(Vector2(320, 126))
+	assert_bool(ArenaScreen.floor_fits(tiles, Rect2(-28, -40, 56, 54), screen)).override_failure_message(
+		"a floor exactly as big as the screen allows was refused").is_true()
+	assert_bool(ArenaScreen.floor_fits(tiles, Rect2(-28, -40, 57, 54), screen)).override_failure_message(
+		"a floor one pixel wider than the screen was allowed").is_false()
+	assert_bool(ArenaScreen.floor_fits(tiles, Rect2(-28, -40, 56, 55), screen)).override_failure_message(
+		"a floor whose panel ends one pixel below the screen was allowed").is_false()
+
+
+## How far `character`'s committed lpc32 sheet reaches past its feet, drawn the size a fight draws it.
+func _reach_of_art(character: StringName) -> Rect2:
+	var sheet := FileSpriteSource.create(&"lpc32").sheet(character)
+	assert_bool(sheet.is_empty()).override_failure_message(
+		"lpc32 has no art for %s" % character).is_false()
+	var sheets: Array[SheetMeta] = []
+	if not sheet.is_empty():
+		sheets.append(sheet["meta"] as SheetMeta)
+	return ArenaScreen.reach_of(sheets,
+		FightScreen.fighter_scale(load("res://data/styles/lpc32.tres") as SpriteStyle))
+
+
+func test_the_longer_swords_reach_past_the_floor_the_bronze_one_fits() -> void:
+	# The widths M50.4 was decided on, from the committed art: at 16 tiles the bronze sword and the
+	# saber fit a 320 pixel screen and the longsword and rapier reach 26 pixels past it, and at the 14
+	# tiles the demo ships they fit with 6 to spare. A floor sized by its tile count alone would have
+	# drawn two of the three swords off the screen.
+	var wide := Vector2i(16, 4)
+	var shipped := Vector2i(14, 4)
+	for entry: Variant in [["quest_wanderer", 313.0, true], ["quest_wanderer_saber", 311.0, true],
+			["quest_wanderer_longsword", 346.0, false], ["quest_wanderer_rapier", 346.0, false]]:
+		var sword: Array = entry
+		var reach := _reach_of_art(StringName(sword[0]))
+		assert_float(ArenaScreen.floor_size(wide, reach).x).override_failure_message(
+			"%s's floor at 16 tiles is %s wide" % [sword[0], ArenaScreen.floor_size(wide, reach).x]
+			).is_equal(sword[1])
+		assert_bool(ArenaScreen.floor_fits(wide, reach, UiScale.DESIGN_SIZE)).override_failure_message(
+			"%s at 16 tiles: fits should be %s" % [sword[0], sword[2]]).is_equal(sword[2])
+		assert_bool(ArenaScreen.floor_fits(shipped, reach, UiScale.DESIGN_SIZE)).override_failure_message(
+			"%s does not fit the 14 tiles the demo ships" % sword[0]).is_true()
+	assert_float(ArenaScreen.floor_size(shipped, _reach_of_art(&"quest_wanderer_longsword")).x) \
+		.is_equal(314.0)
+
+
 func test_the_bar_is_the_foe_the_fight_is_about() -> void:
 	var screen := _screen("dusk16")
 	# The second Slink stands inside the sword of a player swinging up; the other two are far off.

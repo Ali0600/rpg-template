@@ -9,12 +9,18 @@ extends GdUnitTestSuite
 const GAME := "res://data/games/quest.tres"
 
 var _world: Node2D
+## Shipped items given art for one test, and the art each had before, put back after it. A loaded
+## resource is the Registry's own copy and every suite in the run shares it.
+var _lent := {}
 
 func before_test() -> void:
 	GameState.reset()
 	Router.reset()
 
 func after_test() -> void:
+	for item: ItemDef in _lent.keys():
+		item.worn_art = _lent[item]
+	_lent.clear()
 	Input.action_release(&"interact")
 	if _world != null and is_instance_valid(_world):
 		_world.free()
@@ -178,6 +184,88 @@ func test_a_fight_with_nothing_worn_gets_nothing() -> void:
 	var logic: BattleLogic = screen.logic()
 	assert_int(logic.attack_mod(0)).is_equal(0)
 	assert_int(logic.defense_mod(0)).is_equal(0)
+
+## Gives a shipped item art to draw its wearers with, for this test only. No shipped item draws anyone
+## differently yet, and the art named is committed art, so a fight can draw it.
+func _lend_art(item_id: StringName, worn_art: Dictionary) -> void:
+	var item := Registry.get_resource(&"ItemDef", item_id) as ItemDef
+	assert_object(item).is_not_null()
+	if not _lent.has(item):
+		_lent[item] = item.worn_art
+	item.worn_art = worn_art
+
+func _drawn_in_a_fight(world: Node2D) -> Array:
+	assert_bool(world.open_battle_with([load("res://data/enemies/slink.tres") as EnemyDef],
+		"map/foe")).is_true()
+	await _steps(2)
+	var logic: BattleLogic = world.battle_screen().logic()
+	var out: Array = []
+	for i in logic.member_count():
+		out.append(String(logic.member_character(i)))
+	return out
+
+func test_the_sword_worn_is_the_sword_drawn_in_the_fight() -> void:
+	# The swords differ in the swing and nowhere else, so which one a fight draws is the whole of
+	# what wearing one shows (docs/DECISIONS.md, M50.4).
+	var world := _boot()
+	_lend_art(&"bronze_sword", {&"quest_wanderer": &"quest_wanderer_saber"})
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	assert_array(await _drawn_in_a_fight(world)).override_failure_message(
+		"the sword was worn and the fight drew the hero without it").is_equal(["quest_wanderer_saber"])
+
+func test_a_fight_with_nothing_worn_draws_the_hero_as_himself() -> void:
+	# The near miss: a wire that always drew the art the first item names would pass the test above.
+	var world := _boot()
+	_lend_art(&"bronze_sword", {&"quest_wanderer": &"quest_wanderer_saber"})
+	GameState.give_item(&"bronze_sword", 1)
+	assert_array(await _drawn_in_a_fight(world)).override_failure_message(
+		"a sword in the bag and not worn changed how the hero is drawn").is_equal(["quest_wanderer"])
+
+func test_the_first_slot_that_draws_the_wearer_differently_decides() -> void:
+	# A plain sword on and a vest that names art: the vest's, because the sword draws him as himself.
+	# Both naming art: the weapon's, first in ItemDef.SLOTS, which is the order the page draws them.
+	var world := _boot()
+	_lend_art(&"leather_vest", {&"quest_wanderer": &"quest_wanderer_rapier"})
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.give_item(&"leather_vest", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	GameState.equip(&"armor", &"leather_vest")
+	assert_array(await _drawn_in_a_fight(world)).override_failure_message(
+		"a sword that names no art hid the art the vest names").is_equal(["quest_wanderer_rapier"])
+
+func test_both_slots_drawing_the_wearer_differently_draw_the_weapon() -> void:
+	var world := _boot()
+	_lend_art(&"bronze_sword", {&"quest_wanderer": &"quest_wanderer_saber"})
+	_lend_art(&"leather_vest", {&"quest_wanderer": &"quest_wanderer_rapier"})
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.give_item(&"leather_vest", 1)
+	GameState.equip(&"weapon", &"bronze_sword")
+	GameState.equip(&"armor", &"leather_vest")
+	assert_array(await _drawn_in_a_fight(world)).is_equal(["quest_wanderer_saber"])
+
+func test_a_companion_is_drawn_in_what_they_wear_and_never_as_the_hero() -> void:
+	# Keyed by the wearer. Rook in the hero's sword is Rook; in a sword that names art for HIM, he is
+	# drawn that way. The art here is a foe's because it is committed art, and whose it is does not
+	# matter to the wiring.
+	var world := _boot()
+	GameState.set_flag(&"rook_joins", true)
+	_lend_art(&"bronze_sword", {&"quest_wanderer": &"quest_wanderer_saber"})
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword", &"scrapper")
+	assert_array(await _drawn_in_a_fight(world)).override_failure_message(
+		"a companion wearing the hero's sword was drawn as the hero").is_equal(
+		["quest_wanderer", "quest_scrapper"])
+
+func test_a_companion_wearing_art_named_for_them_is_drawn_in_it() -> void:
+	var world := _boot()
+	GameState.set_flag(&"rook_joins", true)
+	_lend_art(&"bronze_sword", {&"quest_scrapper": &"quest_keeper"})
+	GameState.give_item(&"bronze_sword", 1)
+	GameState.equip(&"weapon", &"bronze_sword", &"scrapper")
+	assert_array(await _drawn_in_a_fight(world)).override_failure_message(
+		"what the companion wears never reached how the fight draws them").is_equal(
+		["quest_wanderer", "quest_keeper"])
 
 func test_the_slot_offers_to_take_off_what_is_in_it() -> void:
 	# The line under the list is the only place the player learns what a press will DO, and a
