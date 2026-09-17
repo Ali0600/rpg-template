@@ -2088,4 +2088,7 @@ line to finish). The old pictures showed a procedural cast the game had not worn
 milestones, and every gate was green the whole time. **Stage a screen for a picture through a session, not a `-s` script**: a
 `-s` SceneTree that mounted an `ArenaScreen` in a 32px style photographed only the top-left quarter
 of the window, measured 2026-09-15 with the window size set both ways, while a session's
-`screenshot` op captured the whole 640x360 frame.
+`screenshot` op captured the whole 640x360 frame. **A counted wait between screenshots drifts**: each
+`screenshot` op waits for a drawn frame while the physics keeps running, so three shots timed for
+pictures 1, 3 and 5 of a 24-frame press window caught the damage message instead (2026-09-15). To catch
+a moment, take a BURST - a shot, a one-frame wait, repeated across the span - and pick from the pictures.

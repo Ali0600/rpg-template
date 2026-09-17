@@ -5,6 +5,12 @@ one-glance menu of things still worth trying.
 
 ## Backlog — alternatives worth trying later
 
+- **The katana, the scimitar and the alternate longsword** — three more swords whose swing the generator
+  draws on 128px frames, refused by the composer when M50.4 composed them: their swing files are 13 columns
+  wide with art in the first six only, where a 128px swing file is expected to be exactly six. Revisit
+  hook: the whole-size check in `LpcCompose.compose` (`scripts/spritegen/lpc_compose.gd`, "a %dpx swing file
+  is %d frames on %d rows") — accept a wider file and take its first six columns, then measure each crop
+  against the arena floor's fit.
 - **A foe that swings in a turn fight** — a foe whose sheet draws a slash playing it across its own
   defend cue, weighed when the hero's swing came to turn fights (M50.3). No shipped foe draws one, and
   an lpc32 foe's swing would reach half a pixel into the party window. Revisit hook: the foe loop of
@@ -3815,3 +3821,88 @@ to this frame, the way `ArenaSim.swing_step` paces the arena's, and the screen h
 `SpriteView.hold_frame`. So a replayed fight draws the same picture on the same frame, and nothing about
 the fight's rules, its sessions or its balance gate changes. Art with no slash (the procedural rig's,
 Rook's, every foe's) keeps today's lean exactly.
+
+## Three swords are equipment, and the hero swings the one he wears — *M50.4*
+
+The owner asked for a longer sword on 2026-09-16. Six were composed at the pinned generator commit and
+measured. Three of them — the katana, the scimitar and the alternate longsword — the composer refuses:
+their swing files are 13 columns wide where it expects six (backlog, top). Shown the other three with
+their measurements, the owner chose to ship all three rather than pick one. Worn equipment has moved the
+NUMBERS since M19 and never the picture; this is the milestone that makes it visible.
+
+| sword | swing crop | feet | arena floor at 16 tiles | at the shipped 14 |
+| --- | --- | --- | --- | --- |
+| bronze arming (ships today) | 97 × 54 | (48, 49) | 313 | 281 |
+| saber | 93 × 55 | (44, 49) | 311 | 279 |
+| longsword | 162 × 85 | (81, 66) | 346, past the 320 screen | 314 |
+| rapier | 162 × 85 | (81, 66) | 346, past the 320 screen | 314 |
+
+The longsword and rapier crop identically. That was checked for an instrument fault rather than assumed:
+their sheets differ in hash, size and picture, and the two blades reach the same outermost pixels of their
+192px cell.
+
+**Which sword**
+
+- **One sword in place of the bronze one** — an art swap, M50.2's shape.
+- **All three, as equipment the hero swings while wearing.**
+
+**Chosen: all three**, the owner's call.
+
+- One replacement — `rejected — the owner wants the blade to be the player's to find or buy, not the
+  template's to pick`.
+
+**Where they come from**
+
+- **One bought, two earned** — the saber on the smith's shelf, the longsword the Keeper's, the rapier the
+  hermit's.
+- **All three on the smith's shelf.**
+- **All three earned.**
+
+**Chosen: one bought, two earned**, the owner's call. It spreads the swords over the map and gives the keep
+a reward.
+
+- All on the shelf — `rejected — nothing in the world changes, and the keep still pays nothing`.
+- All earned — `rejected — the shop gains nothing new to spend a purse on`.
+
+**How the picture follows the equipment**
+
+- **One composed character per sword** (`quest_wanderer_saber`, `_longsword`, `_rapier`), each the hero's
+  recipe with its sword layer swapped, and the leader's art read from the worn weapon at
+  `world_scene._battle_members` — the one place a fighter's art is named, which both resolvers take their
+  fighters from.
+- **Three swing clips in one sheet.**
+- **A weapon sprite drawn over the body.**
+
+**Chosen: one character per sword.** A character is a folder here, so nothing about the sheet contract
+moves, and a test holds the four recipes to differing only in the sword.
+
+- Three clips in one sheet — `rejected — a sheet holds one swing block (LpcCompose) and FightScreen.SLASH
+  is one clip name, so a contract change to save about 150 KB`.
+- A weapon sprite — `rejected — M50.2's reason stands: the blade is drawn behind the body facing up and in
+  front of it otherwise, so it is two overlay nodes interleaved with the depth order`.
+
+**How the keep's sword is given**
+
+- **The Keeper drops it** — `EnemyDef` gains a drop, paid through the fight's effect list beside gold and
+  experience, so a defeat still pays nothing.
+- **A chest in the keep, opened once he is beaten.**
+
+**Chosen: a drop.** A won fight writes a SEEN key, and a map object can check flags and items only.
+
+- A chest — `rejected — nothing an object can check says the fight was won, and gating it by geometry is
+  not airtight because a fight can be fled`.
+
+**The arena floor's limit**
+
+- **A measured fit** — the floor's tiles plus the widest reachable swing's margins, against the screen.
+- **Declare 14 tiles.**
+- **Keep 16 tiles and leave the longsword out.**
+
+**Chosen: a measured fit**, the owner's call. The longsword fits the 14-tile floor the game ships and not
+the 16 tiles the screen declared, so the declared count was an approximation of a sum that can be worked
+out exactly. `FLOOR_MAX_TILES` stays as the layout audit's capacity.
+
+- 14 tiles — `rejected — it leaves no headroom for a wider arena in any game built on this template`.
+- Leave the longsword out — `rejected — the owner wants all three`.
+
+**Revisit hook:** `world_scene._battle_members` for the art, and the floor sum in `ArenaScreen`.
