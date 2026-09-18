@@ -2548,3 +2548,36 @@ includes the empty rect's origin.
 **Takeaway.** When a crop is what makes something fit, test that it keeps every drawn pixel and pin the size
 it produces. Seed a bounding box from the first real rectangle, never from an empty one.
 
+### A layout audit sees only the pages it opens and the node kinds it collects
+
+An automated screen audit has two invisible lists: the states it puts the screen into, and the classes of
+thing it measures. Anything outside either is unmeasured no matter how thorough the assertions look.
+
+**Why it came up.** M50.4's swords were photographed in a real session, and two faults turned up that four
+milestones of green gates had never seen. Both were Labels with no width - one drew every item description
+off the side of the shop counter, the other drew the pause menu's purse and gear readout through each other
+and out under the party panel. The shop audit measured FIXTURE rows ("About the tonic.") and never a
+shipped description; the pause audit never opened an equipment page, so the readout drawn only there was
+invisible to it, and its containment rule skipped anything whose parent was not a window - which a header
+band is not. The pause suite's own notes had promised the peer-overlap rule for four milestones without
+implementing it; implementing it found a third fault within a minute, a party in the hundreds writing its
+health out through the side of the panel.
+
+**Takeaway.** Ask an audit two questions before trusting it: which states does it never put the screen
+into, and which node kinds and regions does it never collect? Then drive the real thing and LOOK at it -
+a photograph has neither list. And a rule written in a suite's own docstring is not a rule until something
+asserts it.
+
+### An assertion written before the data exists can pass having read nothing
+
+A content gate looped over a field no shipped file used yet, so it checked zero entries and reported green.
+
+**Why it came up.** The gate that holds every `worn_art` entry to a body some game fights as and to art
+that exists was written one pull request before any item named art. It passed by reading nothing, and would
+have gone on passing if the next PR had misspelt every entry. The fix is the shape this project already
+uses elsewhere - count what the loop actually examined and fail on nought - added the moment real data
+arrived.
+
+**Takeaway.** Every scanning gate ends with the count it read and a floor under it. Write that floor when
+the gate is written, even if it must start at zero, so the day the data arrives the gate starts biting
+instead of starting to matter.

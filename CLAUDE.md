@@ -2137,3 +2137,8 @@ of the window, measured 2026-09-15 with the window size set both ways, while a s
 `screenshot` op waits for a drawn frame while the physics keeps running, so three shots timed for
 pictures 1, 3 and 5 of a 24-frame press window caught the damage message instead (2026-09-15). To catch
 a moment, take a BURST - a shot, a one-frame wait, repeated across the span - and pick from the pictures.
+**A `screenshot` op must never be a session's LAST step**: it awaits a drawn frame, and the run quits
+before that await resumes, so the file is never written and nothing says so - the step simply logs
+nothing. Put a `wait` after it. And a session that navigates a MENU by counting presses photographs
+whatever the cursor is actually on: the equipment page lists candidates in the BAG's own order, so the
+Keeper's drop landing in the bag moved every sword one row down.
