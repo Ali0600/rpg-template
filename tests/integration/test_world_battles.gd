@@ -448,6 +448,33 @@ func test_losing_ends_the_run() -> void:
 		"a lost fight dropped the player back into the world").is_equal("game_over")
 	assert_object(_world.game_over_screen()).is_not_null()
 
+func test_winning_puts_what_the_enemy_carried_in_the_bag() -> void:
+	# The WIRE for a drop: the fight appends a give, and the world's one sink is what turns it into
+	# something the player is carrying (docs/DECISIONS.md, M50.4). The count travels with it.
+	await _boot()
+	var foe := _enemy(1, 1, 5)
+	foe.drop = &"tonic"
+	foe.drop_count = 2
+	_world.open_battle_with([foe], "quest_village/foe")
+	await _fight_it_out()
+	await _steps(20)
+	assert_int(GameState.item_count(&"tonic")).override_failure_message(
+		"the enemy was carrying two tonics and the bag holds %d" % GameState.item_count(&"tonic")) \
+		.is_equal(2)
+
+func test_a_lost_fight_leaves_the_drop_where_it_was() -> void:
+	# A defeat's effects are discarded wholesale, and this is the arm that would be embarrassing to
+	# get wrong: losing to something and being paid for it.
+	await _boot()
+	GameState.set_party(1, 0, 1, 0)
+	var foe := _enemy(999, 99, 25)
+	foe.drop = &"tonic"
+	_world.open_battle_with([foe], "quest_village/foe")
+	await _fight_it_out()
+	assert_str(Router.state_name()).is_equal("game_over")
+	assert_int(GameState.item_count(&"tonic")).override_failure_message(
+		"losing to something handed over what it was carrying").is_equal(0)
+
 func test_a_lost_fight_earns_nothing() -> void:
 	# Above all it must not mark the enemy beaten: the thing that just won is still standing.
 	await _boot()

@@ -34,7 +34,7 @@ func _combat(curve: Array[int] = [10, 12]) -> CombatDef:
 	return out
 
 func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false,
-		gold := 0) -> EnemyDef:
+		gold := 0, drop := &"", drop_count := 1) -> EnemyDef:
 	var out := EnemyDef.new()
 	out.id = &"test_enemy"
 	out.name = "Test Enemy"
@@ -44,6 +44,8 @@ func _enemy(hp := 10, attack := 3, defense := 1, xp := 5, boss := false,
 	out.defense = defense
 	out.xp = xp
 	out.gold = gold
+	out.drop = drop
+	out.drop_count = drop_count
 	out.boss = boss
 	out.moves = [{"name": "Scratch", "power": 0}, {"name": "Lunge", "power": 2}]
 	return out
@@ -606,6 +608,58 @@ func test_an_enemy_with_no_coin_appends_no_gold_at_all() -> void:
 	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
 	for effect: Dictionary in battle.effects():
 		assert_str(str(effect.get("op"))).is_not_equal(String(GameContext.OP_GOLD))
+
+func test_winning_leaves_what_the_enemy_was_carrying() -> void:
+	# The drop, through the fight rather than through the static: it is the seal that has to carry
+	# it, and the seal is only reached by a fight that actually ended.
+	var battle := _fight(_enemy(4, 3, 1, 5, false, 0, &"longsword"))
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	var given: Array = []
+	for effect: Dictionary in battle.effects():
+		if effect.get("op") == GameContext.OP_GIVE_ITEM:
+			given.append(effect)
+	assert_int(given.size()).override_failure_message(
+		"a won fight against something carrying a longsword gave %d things" % given.size()).is_equal(1)
+	assert_dict(given[0]).is_equal(
+		{"op": GameContext.OP_GIVE_ITEM, "id": &"longsword", "count": 1})
+
+func test_an_enemy_carrying_nothing_gives_nothing_at_all() -> void:
+	# The near miss for the rule above, the no-coin test's shape: an effect list that carries
+	# entries meaning nothing is a list that stops being readable.
+	var battle := _fight(_enemy(4))
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	for effect: Dictionary in battle.effects():
+		assert_str(str(effect.get("op"))).is_not_equal(String(GameContext.OP_GIVE_ITEM))
+
+func test_a_formation_leaves_one_drop_per_foe_that_carries_one() -> void:
+	# In formation order, and the count is the enemy's own. Asked of the static, because staging a
+	# fight of three that all die is the fight's business and this is about what is owed.
+	var drops := BattleLogic.drops_of(BattleLogic.formation([
+		_enemy(4, 3, 1, 5, false, 0, &"tonic", 3), _enemy(4), _enemy(4, 3, 1, 5, false, 0, &"longsword")]))
+	assert_int(drops.size()).override_failure_message(
+		"three foes of which two carry something left %d things" % drops.size()).is_equal(2)
+	assert_dict(drops[0]).is_equal({"op": GameContext.OP_GIVE_ITEM, "id": &"tonic", "count": 3})
+	assert_dict(drops[1]).is_equal(
+		{"op": GameContext.OP_GIVE_ITEM, "id": &"longsword", "count": 1})
+
+func test_losing_leaves_the_drop_where_it_was() -> void:
+	# The coin's rule, for things: a defeat's effects are discarded by the world, and the list must
+	# not claim a payout either.
+	var battle := _fight(_enemy(99, 40, 0, 5, false, 7, &"longsword"), 3)
+	battle.press()
+	_until_leaves(battle, BattleLogic.Phase.PLAYER_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	_until_leaves(battle, BattleLogic.Phase.ENEMY_ACT)
+	_until_leaves(battle, BattleLogic.Phase.MESSAGE)
+	assert_int(battle.outcome()).override_failure_message(
+		"the fight did not end in defeat, so this proves nothing about a loss") \
+		.is_equal(BattleLogic.Outcome.DEFEAT)
+	for effect: Dictionary in battle.effects():
+		assert_str(str(effect.get("op"))).is_not_equal(String(GameContext.OP_GIVE_ITEM))
 
 func test_losing_pays_nothing() -> void:
 	# A defeat's effects are discarded wholesale by the world, but the list itself must not
@@ -1846,10 +1900,15 @@ func test_a_seal_marks_and_pays_only_a_win() -> void:
 	var curve := CombatDef.new()
 	curve.xp_curve = [10]
 	var lead := BattleHelpers.leader(curve)
-	var lost := BattleLogic.seal_effects(false, "map/foe", [lead], 4)
-	assert_int(lost.size()).is_equal(1)
+	var give: Array[Dictionary] = [{"op": GameContext.OP_GIVE_ITEM, "id": &"longsword", "count": 1}]
+	var lost := BattleLogic.seal_effects(false, "map/foe", [lead], 4, give)
+	assert_int(lost.size()).override_failure_message(
+		"a lost fight sealed more than the party it left behind").is_equal(1)
 	assert_str(str(lost[0]["op"])).is_equal(str(GameContext.OP_PARTY))
-	var won := BattleLogic.seal_effects(true, "map/foe", [lead], 4)
-	assert_int(won.size()).is_equal(3)
+	var won := BattleLogic.seal_effects(true, "map/foe", [lead], 4, give)
+	assert_int(won.size()).is_equal(4)
 	assert_dict(won[0]).is_equal({"op": GameContext.OP_SEEN, "key": "map/foe"})
 	assert_dict(won[2]).is_equal({"op": GameContext.OP_GOLD, "amount": 4})
+	# The drops go LAST, after the coin: two suites read this list by index, and a player reads the
+	# same order in what a win says it paid.
+	assert_dict(won[3]).is_equal(give[0])

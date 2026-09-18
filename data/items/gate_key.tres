@@ -6,4 +6,4 @@
 script = ExtResource("1_item")
 id = &"gate_key"
 name = "Gate key"
-description = "Heavy, cold, and unmistakably the right shape."
+description = "Cold, heavy, and the right shape."

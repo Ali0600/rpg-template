@@ -4,6 +4,12 @@
 
 [resource]
 script = ExtResource("1_item")
-id = &"lamp_oil"
-name = "Lamp oil"
-description = "One lantern's worth, used carefully."
+id = &"saber"
+name = "Saber"
+description = "Curved and light. Quick to the swing."
+price = 12
+slot = &"weapon"
+attack = 5
+worn_art = {
+&"quest_wanderer": &"quest_wanderer_saber"
+}

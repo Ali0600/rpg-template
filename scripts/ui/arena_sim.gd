@@ -369,7 +369,8 @@ func _decide() -> void:
 	_want(Sfx.Cue.VICTORY)
 	if not levelled.is_empty():
 		_want(Sfx.Cue.LEVEL_UP)
-	_effects = BattleLogic.seal_effects(true, _seen_key, _members, BattleLogic.gold_of(_foes))
+	_effects = BattleLogic.seal_effects(true, _seen_key, _members, BattleLogic.gold_of(_foes),
+		BattleLogic.drops_of(_foes))
 
 
 ## A shove: `distance` units along `away`, spread over push_frames. When two bodies stand exactly

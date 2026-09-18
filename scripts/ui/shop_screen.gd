@@ -157,6 +157,14 @@ func _build(viewport_size: Vector2i, title: String) -> void:
 	add_child(_desc_frame.panel)
 	_desc = UiChrome.label(_style, "dim")
 	_desc.position = _desc_frame.inner().position
+	# BOUNDED and trimmed, the item rows' rule one window along. A Label with no width does not clip,
+	# wrap or complain - it draws straight out of the window - and this one did: measured 2026-09-18,
+	# every shipped description ran 27 to 112 pixels past the bar and off the 320px screen, in the
+	# real game only, because every audit here measured fixture rows. The trim is the guard; the
+	# words themselves are held inside the bar by the content gate in test_shop_layout.
+	_desc.size.x = _desc_frame.inner().size.x
+	_desc.clip_text = true
+	_desc.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_desc_frame.panel.add_child(_desc)
 
 	# The keeper, along the bottom in the DIALOG BOX's shape - same margin, same window, same

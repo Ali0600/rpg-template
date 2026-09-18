@@ -6,6 +6,6 @@
 script = ExtResource("1_item")
 id = &"waybread"
 name = "Waybread"
-description = "Dense, dull, and it keeps. Half a tonic's worth."
+description = "Dense and dull. Half a tonic's worth."
 battle_heal = 5
 price = 6

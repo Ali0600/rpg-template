@@ -702,6 +702,15 @@
 			"value": 3
 		},
 		{
+			"op": "note",
+			"text": "and the Keeper's sword, dropped into the bag by the ARENA - both resolvers pay through BattleLogic's own seal, so this is the half of that claim a session can see."
+		},
+		{
+			"op": "assert_item",
+			"id": "longsword",
+			"count": 1
+		},
+		{
 			"op": "assert_hp",
 			"value": 28
 		},

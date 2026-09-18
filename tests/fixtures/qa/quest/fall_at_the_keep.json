@@ -601,6 +601,15 @@
 		},
 		{
 			"op": "note",
+			"text": "and nothing was paid for losing: not the coin, not the experience, and not the sword he is still holding."
+		},
+		{
+			"op": "assert_item",
+			"id": "longsword",
+			"count": 0
+		},
+		{
+			"op": "note",
 			"text": "and the run has its own sound. This used to be SILENCE, on a comment claiming every game this borrows from cuts the music at a game over - Final Fantasy I ships 'Dead Music' in 1987. now:true asks what is playing this frame rather than what was asked for, which is the only way to tell a theme that started from one that was requested."
 		},
 		{

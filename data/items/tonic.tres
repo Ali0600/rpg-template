@@ -6,6 +6,6 @@
 script = ExtResource("1_item")
 id = &"tonic"
 name = "Smith's tonic"
-description = "Bitter, warm, and it closes cuts. Good in a fight."
+description = "Bitter, warm, and it closes cuts."
 battle_heal = 10
 price = 10

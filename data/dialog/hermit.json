@@ -7,7 +7,11 @@
 		"The gift is on a CHOICE, never on a node: a node has no condition and no memory, so a",
 		"conversation looped through one would hand over a second flask. The idiom is set_flag +",
 		"hidden_if_flag on the same choice. Both replies END the talk - a choice line cannot be",
-		"escaped with cancel, so a conversation that looped back through one would have no way out."
+		"escaped with cancel, so a conversation that looped back through one would have no way out.",
+		"",
+		"The rapier sits BEHIND the oil (requires_flag took_oil), the owner's call on 2026-09-18: a",
+		"blade offered in the same breath as the errand is a shelf, where one offered on the way back",
+		"is a thank-you, and it gives the cave a reason to be walked into twice."
 	],
 	"id": "hermit",
 	"start": "greet",
@@ -31,10 +35,23 @@
 					"hidden_if_flag": "took_oil"
 				},
 				{
+					"text": "Is that a blade on the shelf?",
+					"next": "blade",
+					"give_item": "rapier",
+					"set_flag": "took_rapier",
+					"hidden_if_flag": "took_rapier",
+					"requires_flag": "took_oil"
+				},
+				{
 					"text": "Just passing through.",
 					"next": "passing"
 				}
 			]
+		},
+		"blade": {
+			"speaker": "Hermit",
+			"portrait": "quest_hermit",
+			"text": "Take it. A thin thing, but it keeps its edge better than I do."
 		},
 		"gave": {
 			"speaker": "Hermit",

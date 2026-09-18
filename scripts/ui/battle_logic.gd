@@ -1555,7 +1555,7 @@ func _award_victory(felled: String) -> String:
 ## latched and mutant-tested there.
 func _seal() -> void:
 	_effects.append_array(seal_effects(_outcome == Outcome.VICTORY, _seen_key, _members,
-		gold_of(_foes)))
+		gold_of(_foes), drops_of(_foes)))
 
 
 # -- what winning is worth, for either resolver ----------------------------------------------
@@ -1602,10 +1602,26 @@ static func share_award(members: Array, earned: int) -> Array:
 	return levelled
 
 
-## The effects a finished fight hands the world. `won` decides the seen key and the coin; the party
-## record is written either way, because a flight leaves hurt people behind too.
+## What a formation leaves behind, one give per foe that names something, in the formation's own
+## order. Static beside `gold_of` and for its reason: the arena pays a drop through these same lines
+## rather than through a copy of them (docs/DECISIONS.md, M50.4).
+static func drops_of(foes: Array) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for foe: Foe in foes:
+		if not String(foe.def.drop).is_empty():
+			out.append({"op": GameContext.OP_GIVE_ITEM, "id": foe.def.drop,
+				"count": foe.def.drop_count})
+	return out
+
+
+## The effects a finished fight hands the world. `won` decides the seen key, the coin and the drops;
+## the party record is written either way, because a flight leaves hurt people behind too.
+##
+## `drops` is REQUIRED rather than defaulted: there are two callers, one per resolver, and a default
+## would let the one nobody edited go on paying nothing - the v10 rename lesson, which says to make
+## the compile gate enumerate the call sites.
 static func seal_effects(won: bool, seen_key: String, members: Array,
-		purse: int) -> Array[Dictionary]:
+		purse: int, drops: Array[Dictionary]) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	if won:
 		out.append({"op": GameContext.OP_SEEN, "key": seen_key})
@@ -1622,6 +1638,11 @@ static func seal_effects(won: bool, seen_key: String, members: Array,
 	# wholesale - pays nothing, and the rule "a fight never writes" is untouched.
 	if won and purse > 0:
 		out.append({"op": GameContext.OP_GOLD, "amount": purse})
+	# LAST, on the same win-only terms as the coin, and guarded the way the coin is - one condition
+	# per line, so a mutant can aim at each half. Last because what a fight pays is read by index in
+	# two suites and by a player in one message: the seen key, the party, the coin, then the things.
+	if won and not drops.is_empty():
+		out.append_array(drops)
 	return out
 
 
