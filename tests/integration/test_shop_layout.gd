@@ -122,6 +122,29 @@ func _assert_inside_the_window(screen: ShopScreen, page: String) -> void:
 			.is_greater_equal(0.0)
 
 
+func test_every_shipped_item_says_what_it_is_inside_the_counter_s_own_bar() -> void:
+	# The description bar is a Label with no width, and a Label with no width does not clip, wrap or
+	# complain - it draws straight out of the window. Every audit in this file measures FIXTURE rows
+	# ("About the tonic."), so nothing here could ever see a real item's own words; the first long
+	# one would simply be drawn across the screen, in the shipped game only.
+	var screen := _screen()
+	var room := screen._desc_frame.inner().size.x
+	var font := screen._desc.get_theme_font("font")
+	var size := screen._desc.get_theme_font_size("font_size")
+	var checked := 0
+	for path in ContentScan.files_of("res://data/items", "tres"):
+		var item := load(path) as ItemDef
+		if item == null or item.description.strip_edges().is_empty():
+			continue
+		checked += 1
+		var wide := font.get_string_size(item.description, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
+		assert_float(wide).override_failure_message(
+			"'%s' describes itself in %d pixels and the counter's bar is %d wide: \"%s\""
+			% [item.id, int(wide), int(room), item.description]).is_less_equal(room)
+	assert_int(checked).override_failure_message(
+		"no shipped item describes itself, so the loop above proved nothing").is_greater(0)
+
+
 func test_the_counter_stays_inside_the_window() -> void:
 	_assert_inside_the_window(_screen(), "top")
 

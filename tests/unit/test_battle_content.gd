@@ -711,6 +711,14 @@ func test_every_art_worn_gear_draws_a_fighter_with_is_art_somebody_has() -> void
 	# its own file and silently wrong in play (docs/DECISIONS.md, M50.4).
 	var faults := _worn_art_faults(_every_item(), GameSelect.manifests())
 	assert_array(faults).override_failure_message("\n".join(faults)).is_empty()
+	# And something was actually read. This was written while no shipped item named art, so until
+	# M50.4's swords arrived it passed having checked nothing at all.
+	var named := 0
+	for item: ItemDef in _every_item():
+		named += item.worn_art.size()
+	assert_int(named).override_failure_message(
+		"no shipped item draws its wearer differently, so the check above read nothing") \
+		.is_greater(0)
 
 func test_worn_art_for_a_body_nobody_is_or_art_nobody_drew_is_refused() -> void:
 	# Each direction with its own fixture, and the control beside them: no shipped item names worn art

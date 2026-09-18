@@ -183,6 +183,24 @@ func test_every_item_a_map_names_exists() -> void:
 				"map '%s' names item '%s', which no file in %s describes"
 				% [map.id, item_id, ITEM_DIR]).is_true()
 
+func test_every_item_an_enemy_leaves_behind_exists() -> void:
+	# The item_refs gate, one holder along (docs/DECISIONS.md, M50.4). A misspelt drop is an enemy
+	# that pays nothing and says nothing about it - the fight appends a give of an id no file
+	# describes, the sink refuses it, and the player is simply never handed the thing.
+	var known := _known_item_ids()
+	var named := 0
+	for path in ContentScan.files_of("res://data/enemies", "tres"):
+		var enemy := load(path) as EnemyDef
+		if enemy == null:
+			continue
+		for item_id in enemy.item_refs():
+			named += 1
+			assert_bool(known.has(item_id)).override_failure_message(
+				"enemy '%s' leaves '%s', which no file in %s describes"
+				% [enemy.id, item_id, ITEM_DIR]).is_true()
+	assert_int(named).override_failure_message(
+		"no shipped enemy leaves anything, so the loop above proved nothing").is_greater(0)
+
 func test_every_item_a_conversation_names_exists() -> void:
 	var known := _known_item_ids()
 	for path in ContentScan.files_of("res://data/dialog", "json"):

@@ -45,7 +45,8 @@ func _combat() -> CombatDef:
 	return out
 
 
-func _foe(hp := 10, attack := 3, speed := 0.0, chase := 0, foe_name := "Dummy") -> EnemyDef:
+func _foe(hp := 10, attack := 3, speed := 0.0, chase := 0, foe_name := "Dummy",
+		drop := &"") -> EnemyDef:
 	var out := EnemyDef.new()
 	out.id = StringName(foe_name.to_lower())
 	out.name = foe_name
@@ -58,6 +59,7 @@ func _foe(hp := 10, attack := 3, speed := 0.0, chase := 0, foe_name := "Dummy") 
 	out.moves = [{"name": "Bump", "power": 0}]
 	out.speed_tiles_per_second = speed
 	out.chase_every_frames = chase
+	out.drop = drop
 	return out
 
 
@@ -361,6 +363,26 @@ func test_winning_pays_every_member_still_standing_and_marks_the_foe_beaten() ->
 	assert_int(int(second["hp"])).is_equal(10)
 	assert_int(int(fallen["xp"])).is_equal(0)
 	assert_dict(effects[2]).is_equal({"op": GameContext.OP_GOLD, "amount": 2})
+
+func test_the_arena_leaves_what_the_foe_was_carrying() -> void:
+	# The drop is paid by BattleLogic's own seal, which this calls rather than copies - so the
+	# assertion that matters is that a sword fight pays it at all (docs/DECISIONS.md, M50.4). A copy
+	# of those lines is the one that would eventually forget.
+	var sim := _sim([_foe(1, 3, 0.0, 0, "Dummy", &"longsword")])
+	sim.stage(MID, D.RIGHT, [IN_REACH])
+	sim.tick(Vector2.ZERO, true)
+	assert_int(sim.outcome()).is_equal(BattleLogic.Outcome.VICTORY)
+	var effects := sim.effects()
+	assert_dict(effects[effects.size() - 1]).override_failure_message(
+		"the arena won and left the foe's longsword on the floor").is_equal(
+		{"op": GameContext.OP_GIVE_ITEM, "id": &"longsword", "count": 1})
+
+func test_a_lost_arena_leaves_the_drop_where_it_was() -> void:
+	var sim := _sim([_foe(99, 99, 0.0, 0, "Dummy", &"longsword")])
+	sim.stage(MID, D.LEFT, [TOUCHING])
+	sim.tick(Vector2.ZERO, false)
+	assert_int(sim.outcome()).is_equal(BattleLogic.Outcome.DEFEAT)
+	assert_array(sim.effects()).is_empty()
 
 func test_the_bar_follows_the_blow_and_then_the_nearest() -> void:
 	var combat := _combat()

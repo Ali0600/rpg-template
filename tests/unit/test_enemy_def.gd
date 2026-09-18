@@ -124,6 +124,41 @@ func test_a_named_element_is_answered_by_its_own_number() -> void:
 	assert_int(enemy.resistance_to(&"fire")).is_equal(200)
 	assert_int(enemy.resistance_to(&"ice")).is_equal(50)
 
+# -- what it leaves behind ------------------------------------------------------------------------
+
+func test_an_enemy_that_leaves_nothing_is_fine() -> void:
+	# The control, and the shape every enemy shipped before M50.4 has: no drop, and the count at its
+	# default of one, meaning nothing at all.
+	assert_array(_enemy().problems()).is_empty()
+
+func test_an_enemy_that_leaves_something_is_fine() -> void:
+	var enemy := _enemy()
+	enemy.drop = &"longsword"
+	enemy.drop_count = 2
+	assert_array(enemy.problems()).is_empty()
+
+func test_a_count_with_no_drop_to_count_is_refused() -> void:
+	# It reads like a decision and can never do anything: the "equipment stats but no slot" case
+	# one noun along.
+	var enemy := _enemy()
+	enemy.drop_count = 3
+	assert_str("\n".join(enemy.problems())).contains("names no drop")
+
+func test_a_drop_of_none_is_refused() -> void:
+	# A drop nobody can be given: the fight would append a give of nought, which give_item refuses
+	# in silence - so the file says one thing and the bag another.
+	var enemy := _enemy()
+	enemy.drop = &"longsword"
+	enemy.drop_count = 0
+	assert_str("\n".join(enemy.problems())).contains("leaves 0 of 'longsword'")
+
+func test_every_item_an_enemy_names_is_listed_once() -> void:
+	# The item_refs precedent: a gate asks what an enemy names without knowing which field holds it.
+	assert_array(_enemy().item_refs()).is_empty()
+	var enemy := _enemy()
+	enemy.drop = &"longsword"
+	assert_array(enemy.item_refs()).is_equal([&"longsword"])
+
 # -- the arena's numbers -------------------------------------------------------------------------
 
 func test_an_enemy_that_moves_backwards_is_refused() -> void:

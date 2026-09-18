@@ -8,7 +8,9 @@
 		"the town changes.",
 		"",
 		"Nothing here pokes the shop directly. It opens from a dialog CHOICE, which is the",
-		"whole seam: a shopkeeper is an NPC, and the world is what moves the money."
+		"whole seam: a shopkeeper is an NPC, and the world is what moves the money.",
+		"",
+		"Since M50.4 the shelf carries two swords and the session buys both: the bronze one, then the saber a row below it. What is WORN is what a fight draws the hero swinging, so the equip leg ends on the saber."
 	],
 	"steps": [
 		{
@@ -591,6 +593,15 @@
 		},
 		{
 			"op": "note",
+			"text": "and he left his sword behind, which is why the weapon list further down has three rows on it."
+		},
+		{
+			"op": "assert_item",
+			"id": "longsword",
+			"count": 1
+		},
+		{
+			"op": "note",
 			"text": "the fight left us off-centre again, and the way east is a one-row gap in the inner wall - so press south into the outer wall first, which puts us squarely on that row"
 		},
 		{
@@ -937,7 +948,7 @@
 		},
 		{
 			"op": "note",
-			"text": "33 gold, and the shelf now opens with the gear: sword 20, vest 15"
+			"text": "33 gold, and the shelf opens with the gear: bronze sword 8, saber 12, vest 15. The swords sit together, which moved every row below them - this script picks rows by position, so it is written out here deliberately: bronze, saber, vest, tonic, waybread."
 		},
 		{
 			"op": "assert_gold",
@@ -953,7 +964,7 @@
 		},
 		{
 			"op": "note",
-			"text": "the sword is the first row - picking it opens the count, it does not buy"
+			"text": "the bronze sword is the first row - picking it opens the count, it does not buy"
 		},
 		{
 			"op": "press",
@@ -982,7 +993,7 @@
 		},
 		{
 			"op": "assert_gold",
-			"value": 13
+			"value": 25
 		},
 		{
 			"op": "assert_item",
@@ -991,7 +1002,44 @@
 		},
 		{
 			"op": "note",
-			"text": "13 left, and the vest is 15 - so the very next press is refused"
+			"text": "and the saber, one row down: 12 of the 25 left. The sword a fighter WEARS is the sword the fight draws him swinging, so this is the row that changes what the hero looks like mid-swing."
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 8
+		},
+		{
+			"op": "press",
+			"action": "interact"
+		},
+		{
+			"op": "wait",
+			"frames": 10
+		},
+		{
+			"op": "assert_gold",
+			"value": 13
+		},
+		{
+			"op": "assert_item",
+			"id": "saber",
+			"count": 1
+		},
+		{
+			"op": "note",
+			"text": "13 left, and the vest is 15 - so the very next row down is refused"
 		},
 		{
 			"op": "press",
@@ -1053,7 +1101,7 @@
 		},
 		{
 			"op": "note",
-			"text": "pause, into Equipment, pick WHO, pick the weapon slot, and wear the sword. The member step is new since the party arrived: with two people carrying gear, the page has to ask which of them is being dressed, so this is one confirm longer than it was when there was only ever one answer."
+			"text": "pause, into Equipment, pick WHO, pick the weapon slot, and wear the SABER. The candidates are the bag's own order with (take off) last - the Keeper's longsword, the bronze sword, then the saber - so the cursor goes down twice. Counted on purpose, and written out here for the day another sword is picked up before this point."
 		},
 		{
 			"op": "press",
@@ -1109,6 +1157,22 @@
 		},
 		{
 			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
+			"action": "move_down"
+		},
+		{
+			"op": "wait",
+			"frames": 6
+		},
+		{
+			"op": "press",
 			"action": "interact"
 		},
 		{
@@ -1118,7 +1182,7 @@
 		{
 			"op": "assert_equipped",
 			"slot": "weapon",
-			"id": "bronze_sword"
+			"id": "saber"
 		},
 		{
 			"op": "note",
@@ -1126,7 +1190,7 @@
 		},
 		{
 			"op": "assert_item",
-			"id": "bronze_sword",
+			"id": "saber",
 			"count": 1
 		},
 		{
