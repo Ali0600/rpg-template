@@ -122,6 +122,30 @@ func _assert_inside_the_window(screen: ShopScreen, page: String) -> void:
 			.is_greater_equal(0.0)
 
 
+func test_a_long_description_is_trimmed_rather_than_drawn_across_the_screen() -> void:
+	# The guard, pinned in a fixture because the shipped words cannot exercise it: every shipped
+	# description fits the bar (the gate below keeps them that way), so with real content the bar's
+	# trim and no trim at all draw the same pixels and a mutant of it survives saying nothing.
+	# CLAUDE.md's rule for exactly this - a rule the shipped content cannot distinguish gets a case
+	# of its own - and what it protects against is a game built on this template writing a longer
+	# sentence than the demo does.
+	var stock: Array[ShopMenu.ShopRow] = []
+	stock.append(ShopMenu.ShopRow.of(&"talkative", "Talkative", 5, 0,
+		"A description far longer than this bar was ever laid out to draw, and then some more."))
+	var screen := ShopScreen.new()
+	add_child(screen)
+	screen.setup(ShopMenu.of(stock, [], 100, "Wares!", "Anything else?", "No coin."),
+		_style(), VIEWPORT, "The smith")
+	_screens.append(screen)
+	while screen.menu().index() != ShopMenu.Row.BUY:
+		screen.menu().move(1)
+	screen.menu().confirm()
+	screen._paint()
+	assert_bool(screen._desc.text.length() > 60).override_failure_message(
+		"the bar is not showing the long description, so this measures nothing").is_true()
+	_assert_inside_the_window(screen, "a long description")
+
+
 func test_every_shipped_item_says_what_it_is_inside_the_counter_s_own_bar() -> void:
 	# The description bar is a Label with no width, and a Label with no width does not clip, wrap or
 	# complain - it draws straight out of the window. Every audit in this file measures FIXTURE rows
