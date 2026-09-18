@@ -2562,6 +2562,25 @@ grows the equipment page a row, teaches `problems()` the new word, and needs no 
 - **The view reads the world directly** — *rejected outright.* A view that names an autoload
   drops itself, and every suite that depends on it, out of `check.sh`'s per-file parse gate.
 
+- *2026-09-18, a defect and where it hid:* the readout and the purse shared the window's band at two
+  hand-written offsets (`width - 108`, `width - 60`) with neither label bounded, so with a party beside
+  them the band's 190 pixels could not hold a slot's title, a purse and a 98-pixel readout: at 33 gold
+  the purse ran into the readout's first letter, and the readout's tail left the window and was drawn
+  under the party panel. Found by photographing a real session for M50.4, after four milestones on
+  screen. **Why nothing saw it:** `test_pause_layout` never opened an Equipment page, and the readout is
+  drawn on those pages only; its containment rule skips anything whose parent is not a window, and both
+  readouts live in the header band; and the file's own notes promised "nothing unrelated shares pixels"
+  while never implementing it, though the battle and arena suites have asked it since M28.
+  **Fixed as:** both readouts laid against the band's right edge and bounded with an ellipsis, and ONE
+  of them drawn at a time - the purse everywhere, the gear readout in its place while equipping, which
+  are the two pages where nothing is being bought. The missing overlap rule is implemented now and the
+  suite walks to the candidate page to ask it. The same rule immediately found a second fault at
+  capacity: a member's health figures needed 49 pixels where the bars left 38, so a party in the
+  hundreds wrote its numbers out through the side of the panel - invisible in a demo whose numbers are
+  two digits. `PauseScreen.READOUT_CAPACITY` (999) is declared, the bars are narrowed to 28 to leave
+  room for it, the layout audit measures a block at it, and `test_battle_content` refuses a game whose
+  party could grow past it.
+
 ## The status page is a readout the world words, not a screen that computes — *M20*
 
 **The fork:** the genre's fourth standard command. Who builds "Level 3 / HP 28/28 / XP 35"?

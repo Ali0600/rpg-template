@@ -873,6 +873,32 @@ func test_every_arena_fight_is_won_by_the_sword_and_can_be_lost_to_a_touch() -> 
 	assert_int(played).is_greater(1)
 
 
+func test_nobody_outgrows_the_figures_the_pause_panel_is_laid_out_for() -> void:
+	# The same rule for the pause menu's party panel, which declares its own capacity: a member's bars
+	# draw "999/999" beside them, and at the old bar width a party in the hundreds wrote its health out
+	# through the side of the window. Everybody, not just the leader - a companion grows on a curve of
+	# their own and is drawn in the same block.
+	var checked := 0
+	for manifest in GameSelect.manifests():
+		if manifest.combat == null:
+			continue
+		var curves: Array = [manifest.combat]
+		for member: PartyMemberDef in manifest.party:
+			if member != null and member.combat != null:
+				curves.append(member.combat)
+		for entry: Variant in curves:
+			var curve: CombatDef = entry
+			checked += 1
+			var top := curve.xp_curve.size() + 1
+			for reading: Variant in [[curve.max_hp(top), "health"], [curve.max_mp(top), "magic"]]:
+				var named: Array = reading
+				assert_int(named[0]).override_failure_message(
+					"'%s' lets somebody reach %d %s; the pause panel's bars are laid out for %d"
+					% [manifest.id, named[0], named[1], PauseScreen.READOUT_CAPACITY]
+					).is_less_equal(PauseScreen.READOUT_CAPACITY)
+	assert_int(checked).override_failure_message(
+		"no curve was read, so the loop above proved nothing").is_greater(0)
+
 func test_no_leader_outgrows_the_readout_the_arena_is_laid_out_for() -> void:
 	# The third part of READOUT_CAPACITY's rule: ArenaScreen declares it, test_arena_layout measures a
 	# leader at it beside the help line, and this refuses a shipped game whose leader could grow past it

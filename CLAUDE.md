@@ -1098,6 +1098,19 @@ beside the purse, because a delta needs a number to be a delta OF. Both are word
 WORLD - naming a stat is a Registry question and `PauseMenu` may not ask one. A game with no
 `CombatDef` gets no readout at all rather than a screen inventing a stat it does not have.
 
+**The band draws ONE of those readouts at a time, and the layout audit asks the third question now.**
+Both are laid against the band's right edge and bounded with an ellipsis, and the purse steps aside for
+the gear readout on the two pages that equip - a slot's title, a purse and a 98-pixel readout together
+need more band than a window beside the party panel has. They were two hand-written offsets on unbounded
+labels, drawn through each other and out under the party panel for four milestones, found by
+photographing a session rather than by any gate (`docs/DECISIONS.md`, the stats-readout entry). What hid
+it is the part worth keeping: `test_pause_layout` never opened an Equipment page, so the readout was
+invisible in every test; its containment rule skips anything whose parent is not a window, and a header
+BAND is not one; and the file's own notes promised "nothing unrelated shares pixels" while never
+implementing it. It asks that now, at the candidate page - and found a second fault the same minute, so
+`PauseScreen.READOUT_CAPACITY` is the widest figure a member's bars are laid out for: declared there,
+measured by the layout audit, refused past by `test_battle_content`.
+
 `Kind.UNEQUIP` carries the slot rather than an EQUIP carrying an empty item: a verb spelled
 as the absence of its opposite is one every listener has to remember to decode, and the one
 that forgets equips nothing and reports success.

@@ -267,6 +267,33 @@ func test_a_companion_wearing_art_named_for_them_is_drawn_in_it() -> void:
 		"what the companion wears never reached how the fight draws them").is_equal(
 		["quest_wanderer", "quest_keeper"])
 
+func test_what_the_world_writes_in_the_band_fits_the_room_the_screen_gives_it() -> void:
+	# The readouts are bounded and trimmed on the screen (M50.4's header fix), and NOTHING the demo can
+	# produce is ever actually trimmed - the credits screen's rule. Measured through the world's own
+	# producers rather than a re-spelling of "Atk %d+%d  Def %d+%d": a test that wrote the format out
+	# again would be a second copy of the thing under test.
+	var world := _boot()
+	GameState.set_flag(&"rook_joins", true)
+	GameState.give_gold(9999)
+	GameState.give_item(&"longsword", 1)
+	GameState.give_item(&"leather_vest", 1)
+	GameState.equip(&"weapon", &"longsword")
+	GameState.equip(&"armor", &"leather_vest")
+	GameState.set_party(999, 9999, 3, 999)
+	world.open_pause()
+	await _steps(2)
+	var screen: PauseScreen = world._pause
+	var font := screen._purse.get_theme_font("font")
+	var size := screen._purse.get_theme_font_size("font_size")
+	for entry: Variant in [[world._gold_label(), PauseScreen.PURSE_WIDTH, "the purse"],
+			[world._stats_label(), PauseScreen.STATS_WIDTH, "the gear readout"],
+			[world._stats_label(&"scrapper"), PauseScreen.STATS_WIDTH, "a companion's readout"]]:
+		var named: Array = entry
+		var text: String = named[0]
+		assert_float(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x) \
+			.override_failure_message("%s is wider than the band gives it: '%s'" % [named[2], text]) \
+			.is_less_equal(float(named[1]))
+
 func test_the_slot_offers_to_take_off_what_is_in_it() -> void:
 	# The line under the list is the only place the player learns what a press will DO, and a
 	# take-off is the one row whose effect is a subtraction.

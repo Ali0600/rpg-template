@@ -1098,3 +1098,9 @@ data/enemies/keeper.tres	s|drop = &"longsword"|drop = \&""|	tests/fixtures/qa/qu
 data/shops/smith_shop.tres	s|&"bronze_sword", &"saber"|\&"bronze_sword"|	tests/fixtures/qa/quest/buy_a_tonic.json	the smith stops selling the saber, so there is one sword to buy
 data/dialog/hermit.json	s|"give_item": "rapier",|"give_item": "lamp_oil",|	tests/fixtures/qa/quest/finish_the_quest.json	the hermit hands over another flask of oil instead of the blade
 data/items/saber.tres	s|description = "Curved and light. Quick to the swing."|description = "Curved and light, and quicker off the shoulder than it has any right to be."|	tests/integration/test_shop_layout.gd	an item describes itself in more words than its bar can draw
+scripts/ui/pause_screen.gd	s|_purse.clip_text = true|_purse.clip_text = false|	tests/integration/test_pause_layout.gd	a purse longer than its room is drawn out of the band
+scripts/ui/pause_screen.gd	s|_stats.clip_text = true|_stats.clip_text = false|	tests/integration/test_pause_layout.gd	a gear readout longer than its room is drawn out of the band and under the party
+scripts/ui/pause_screen.gd	s|_purse.visible = not _stats.visible|pass|	tests/integration/test_pause_layout.gd	the purse and the gear readout are both in the band, printed through each other
+scripts/ui/pause_screen.gd	s|_stats.position = Vector2\(band - float\(UiChrome.PAD\) - STATS_WIDTH, 0.0\)|_stats.position = Vector2(width - 60.0, 0.0)|	tests/integration/test_pause_layout.gd	the gear readout is placed by a number rather than by the band, and leaves the window
+scripts/ui/pause_screen.gd	s|const BAR_WIDTH := 28.0|const BAR_WIDTH := 40.0|	tests/integration/test_pause_layout.gd	a member in the hundreds writes their health out through the side of the panel
+scripts/ui/pause_screen.gd	s|const READOUT_CAPACITY := 999|const READOUT_CAPACITY := 9|	tests/unit/test_battle_content.gd	the panel is laid out for less health than a shipped party reaches
