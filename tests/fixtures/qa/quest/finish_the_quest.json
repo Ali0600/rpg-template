@@ -599,6 +599,15 @@
 		},
 		{
 			"op": "note",
+			"text": "and he was carrying his own sword. A drop is paid through the same effect list the coin rides, so a defeat - whose effects the world throws away - leaves it where it was."
+		},
+		{
+			"op": "assert_item",
+			"id": "longsword",
+			"count": 1
+		},
+		{
+			"op": "note",
 			"text": "the fight left us off-centre again, and the way east is a one-row gap in the inner wall - so press south into the outer wall first, which puts us squarely on that row"
 		},
 		{
@@ -1149,6 +1158,27 @@
 		{
 			"op": "assert_item",
 			"id": "lamp_oil",
+			"count": 1
+		},
+		{
+			"op": "note",
+			"text": "and once his errand is dealt with he offers what else is on the shelf: the first choice is the blade now, because the oil's own choice hides itself once taken."
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "dialog",
+			"limit": 12
+		},
+		{
+			"op": "press_until_state",
+			"action": "interact",
+			"state": "world",
+			"limit": 40
+		},
+		{
+			"op": "assert_item",
+			"id": "rapier",
 			"count": 1
 		},
 		{

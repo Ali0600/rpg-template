@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"leather_vest"
 name = "Leather vest"
-description = "Boiled hide. Turns a claw that would otherwise open you."
+description = "Boiled hide. Turns a claw aside."
 price = 15
 slot = &"armor"
 defense = 2

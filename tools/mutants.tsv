@@ -919,7 +919,7 @@ scripts/ui/arena_sim.gd	s|if absf\(value\) < AXIS_THRESHOLD:|if false:|	tests/un
 scripts/ui/arena_sim.gd	s|if _leader.down\(\):|if false:|	tests/unit/test_arena_sim.gd	the player cannot lose
 scripts/ui/arena_sim.gd	s|if nearest_standing\(\) >= 0:|if true:|	tests/unit/test_arena_sim.gd	the player cannot win
 scripts/ui/arena_sim.gd	s|BattleLogic.share_award\(standing,|BattleLogic.share_award([],|	tests/unit/test_arena_sim.gd	a won arena pays nobody any experience
-scripts/ui/arena_sim.gd	s|BattleLogic.gold_of\(_foes\)\)|0)|	tests/unit/test_arena_sim.gd	a won arena pays no coin
+scripts/ui/arena_sim.gd	s|BattleLogic.gold_of\(_foes\),|0,|	tests/unit/test_arena_sim.gd	a won arena pays no coin
 scripts/ui/arena_sim.gd	s|if _last_struck >= 0 and not foe_down\(_last_struck\):|if false:|	tests/unit/test_arena_sim.gd	the bar ignores the blow and always shows the nearest foe
 scripts/ui/arena_sim.gd	s|if _outcome != BattleLogic.Outcome.NONE:|if false:|	tests/unit/test_arena_sim.gd	a finished fight keeps running
 scripts/ui/arena_sim.gd	s|\t_sounds.clear\(\)|\tpass|	tests/unit/test_arena_sim.gd	a cue handed over plays again every frame
@@ -1086,6 +1086,18 @@ scripts/ui/arena_screen.gd	s|return outer.x <= float\(screen.x\) and bottom <= f
 scripts/ui/arena_screen.gd	s|return outer.x <= float\(screen.x\) and bottom <= float\(screen.y\)|return outer.x <= float(screen.x)|	tests/integration/test_arena_layout.gd	a floor whose panel ends below the screen is let onto it
 scripts/ui/arena_screen.gd	s|var bottom := FLOOR_Y \+ outer.y \+ PANEL_GAP \+ panel_height\(\)|var bottom := FLOOR_Y + outer.y|	tests/integration/test_arena_layout.gd	the fit forgets the panel under the floor, and passes a floor that pushes it off the screen
 scripts/ui/arena_screen.gd	s|_origin = _floor.inner\(\).position - _reach.position|_origin = _floor.inner().position + _reach.position|	tests/integration/test_arena_layout.gd	every body is drawn a margin away from where it stands, and out through the floor's frame
+scripts/ui/battle_logic.gd	s|if not String\(foe.def.drop\).is_empty\(\):|if false:|	tests/unit/test_battle_logic.gd	a beaten enemy leaves nothing behind, and the keep pays no sword
+scripts/ui/battle_logic.gd	s|"count": foe.def.drop_count|"count": 1|	tests/unit/test_battle_logic.gd	a drop of more than one hands over exactly one
+scripts/ui/battle_logic.gd	s|if won and not drops.is_empty\(\):|if not drops.is_empty():|	tests/unit/test_battle_logic.gd	losing to something is paid what it was carrying
+scripts/ui/arena_sim.gd	s|BattleLogic.drops_of\(_foes\)\)|[] as Array[Dictionary])|	tests/unit/test_arena_sim.gd	a fight won with the sword leaves the foe's drop on the floor
+scripts/data/enemy_def.gd	s|if String\(drop\).is_empty\(\) and drop_count != 1:|if false:|	tests/unit/test_enemy_def.gd	a count with no drop to count passes, and can never do anything
+scripts/data/enemy_def.gd	s|elif not String\(drop\).is_empty\(\) and drop_count < 1:|elif false:|	tests/unit/test_enemy_def.gd	an enemy leaving none of something passes, and hands over nothing
+scripts/data/enemy_def.gd	s|if not String\(drop\).is_empty\(\):|if false:|	tests/unit/test_enemy_def.gd	an enemy names an item nothing can ask it about, so a misspelt drop is never refused
+scripts/ui/shop_screen.gd	s|_desc.clip_text = true|_desc.clip_text = false|	tests/integration/test_shop_layout.gd	a long description is drawn out of the counter and across the screen
+data/enemies/keeper.tres	s|drop = &"longsword"|drop = \&""|	tests/fixtures/qa/quest/finish_the_quest.json	the Keeper is beaten and leaves his sword where it was
+data/shops/smith_shop.tres	s|&"bronze_sword", &"saber"|\&"bronze_sword"|	tests/fixtures/qa/quest/buy_a_tonic.json	the smith stops selling the saber, so there is one sword to buy
+data/dialog/hermit.json	s|"give_item": "rapier",|"give_item": "lamp_oil",|	tests/fixtures/qa/quest/finish_the_quest.json	the hermit hands over another flask of oil instead of the blade
+data/items/saber.tres	s|description = "Curved and light. Quick to the swing."|description = "Curved and light, and quicker off the shoulder than it has any right to be."|	tests/integration/test_shop_layout.gd	an item describes itself in more words than its bar can draw
 scripts/ui/pause_screen.gd	s|_purse.clip_text = true|_purse.clip_text = false|	tests/integration/test_pause_layout.gd	a purse longer than its room is drawn out of the band
 scripts/ui/pause_screen.gd	s|_stats.clip_text = true|_stats.clip_text = false|	tests/integration/test_pause_layout.gd	a gear readout longer than its room is drawn out of the band and under the party
 scripts/ui/pause_screen.gd	s|_purse.visible = not _stats.visible|pass|	tests/integration/test_pause_layout.gd	the purse and the gear readout are both in the band, printed through each other

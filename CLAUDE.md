@@ -1133,6 +1133,23 @@ the last copy leaves by ANY path, because a slot map pointing at a phantom re-ar
 another copy is picked up; `SaveData.problems()` checks the same invariant against the file
 itself, since a hand-edited save can describe a player who cannot exist.
 
+**A beaten enemy can LEAVE something, and both resolvers pay it.** `EnemyDef.drop` and `drop_count`
+become give-item effects through `BattleLogic.drops_of`, appended by `seal_effects` on a WIN only and
+after the coin, so a defeat - whose effects the world discards wholesale - pays nothing and "a fight
+never writes" is untouched. `seal_effects`' drops argument is REQUIRED, because a default would let the
+resolver nobody edited go on paying nothing; the arena pays the Keeper's longsword because it calls
+these same statics rather than a copy of them. That the item EXISTS is a content question, so
+`EnemyDef.item_refs()` answers it for the gate the way a map's and a conversation's do. The demo's three
+swords are one of each road: the smith sells the saber, the Keeper drops the longsword, and the hermit
+gives the rapier once his oil has been taken.
+
+**A description is drawn in a bar, and the bar is a Label with no width.** Every shipped item
+description overran it and ran off the screen until M50.4 measured them - in the real game only, because
+every shop audit measured fixture rows. `ShopScreen` bounds and trims that label now, and
+`test_shop_layout` holds both halves: every shipped description fits the bar with room to spare, and a
+fixture sentence too long for it is trimmed rather than drawn across the screen. The shipped words
+cannot exercise the trim, which is why it has a case of its own.
+
 **Gear can change how a fighter is DRAWN, in a fight and nowhere else** (`docs/DECISIONS.md`, M50.4).
 `ItemDef.worn_art` maps the art a fighter is drawn with to the art they are drawn with while it is worn,
 and it is KEYED BY THE WEARER: a sword naming one character would draw a companion who picked it up as

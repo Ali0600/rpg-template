@@ -3934,3 +3934,23 @@ out exactly. `FLOOR_MAX_TILES` stays as the layout audit's capacity.
   the foes that record fields. Measured with the committed art: at 16 tiles the floor is 313 pixels
   across with the bronze sword, 311 with the saber and 346 with the longsword and rapier; at 14 tiles
   the longsword's is 314 across and 115 tall, which leaves the panel ending at 169 of 180.
+- *2026-09-18, as built (the third pull request), the owner's calls on the money and the gift:* the
+  saber costs **12 gold** and the bronze sword drops from 20 to **8**. The quest pays about 40 gold in
+  all - 13 from the hollow, 25 from the keep - so at 12 the saber is affordable on the first trip to
+  town and is the sword carried INTO the keep, which is the one moment a bought sword decides anything;
+  and a better sword must not cost more than a worse one, which is what re-priced the bronze. The
+  longsword and the rapier carry no price, so neither counter will trade them. The hermit offers the
+  rapier only once his oil has been taken (`requires_flag: took_oil`): a blade offered in the same
+  breath as the errand is a shelf, where one offered on the way back is a thank-you.
+  - The drop is `EnemyDef.drop` + `drop_count`, turned into give-item effects by
+    `BattleLogic.drops_of` and appended by `seal_effects`, whose fifth argument is REQUIRED rather than
+    defaulted - two callers, one per resolver, and a default would let the one nobody edited go on
+    paying nothing. So the arena pays the Keeper's sword because it pays through the same lines, which
+    is why those lines are statics.
+  - **A defect found on the way**, by a gate written for the three new descriptions: the counter's
+    description bar is a Label with no width, and a Label with no width does not clip, wrap or complain.
+    Every shipped description ran 27 to 112 pixels past the bar and off the 320-pixel screen, in the
+    real game only, because every audit measured fixture rows. Fixed on both sides: the label is bounded
+    and trimmed with an ellipsis (the item rows' own rule), and the nine shipped descriptions were
+    shortened to fit it, with a gate per side - the words measured against the bar, and a fixture
+    sentence too long for it held inside the window.

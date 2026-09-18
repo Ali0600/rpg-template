@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"bronze_sword"
 name = "Bronze sword"
-description = "Heavier than it looks. Bites deeper than it looks, too."
-price = 20
+description = "Heavier than it looks. Bites deeper."
+price = 8
 slot = &"weapon"
 attack = 3

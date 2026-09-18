@@ -54,6 +54,7 @@ attack = 8
 defense = 3
 xp = 25
 gold = 20
+drop = &"longsword"
 boss = true
 resistances = {
 &"fire": 50

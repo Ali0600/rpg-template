@@ -33,6 +33,19 @@ extends Resource
 ## economy leaves it at.
 @export var gold: int = 0
 
+## What this leaves behind when it is beaten: an item id, paid into the bag through the same effect
+## list the coin rides, so a DEFEAT - whose effects the world discards wholesale - pays nothing and
+## "a fight never writes" is untouched (docs/DECISIONS.md, M50.4). Empty is the default and is every
+## enemy shipped before the Keeper's longsword.
+##
+## On the ENEMY rather than on the map record, for `boss`'s reason: a designer thinking "what does
+## this thing leave" is thinking about the thing. That the item EXISTS is a content question, so the
+## content gate asks it, the way it asks whether the art does.
+@export var drop: StringName = &""
+
+## How many of `drop` it leaves. One is the default, and it means nothing without a drop to count.
+@export var drop_count: int = 1
+
 ## A boss cannot be fled. It is a property of the ENEMY rather than of the encounter because
 ## a designer thinking "can I run from this" is thinking about the thing, not the tile.
 @export var boss: bool = false
@@ -106,6 +119,16 @@ extends Resource
 ## tunes.
 @export var body_tiles: Vector2 = Vector2(0.625, 0.375)
 
+## Every item this enemy names, so a gate can ask without knowing which field holds it - the
+## `MapData.item_refs` precedent, and for its reason: a misspelt drop is an enemy that pays nothing
+## and says nothing about it.
+func item_refs() -> Array[StringName]:
+	var out: Array[StringName] = []
+	if not String(drop).is_empty():
+		out.append(drop)
+	return out
+
+
 ## What a move's `status` may say. A closed vocabulary for the reason SpellDef.Kind is an enum:
 ## a typo in a data file would otherwise be a move that reaches its turn and does nothing.
 const STATUSES := ["sleep", "sap"]
@@ -142,6 +165,12 @@ func problems() -> Array[String]:
 		out.append("enemy '%s' grants %d xp" % [id, xp])
 	if gold < 0:
 		out.append("enemy '%s' drops %d gold" % [id, gold])
+	if String(drop).is_empty() and drop_count != 1:
+		# A count with nothing to count: it reads like a decision and can never do anything, which
+		# is the `equipment stats but no slot` case one noun along.
+		out.append("enemy '%s' leaves %d of nothing - it names no drop" % [id, drop_count])
+	elif not String(drop).is_empty() and drop_count < 1:
+		out.append("enemy '%s' leaves %d of '%s'" % [id, drop_count, drop])
 	if speed_tiles_per_second < 0.0:
 		out.append("enemy '%s' moves %s tiles a second - backwards" % [id, speed_tiles_per_second])
 	if chase_every_frames < 0:
