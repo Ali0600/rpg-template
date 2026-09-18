@@ -58,9 +58,25 @@ const TOP_LABELS: Array[String] = ["Resume", "Items", "Equipment", "Status", "Sa
 ## Where the party panel starts, and how tall one member's block is inside it - a face, a name,
 ## and two bars stacked beside it. Constants for the reason MARGIN is: they are layout facts, and
 ## a number written into a position call is a number nobody can find again.
+## The room the window's BAND gives each of its two readouts, both laid against its right edge. ONE of
+## them is drawn at a time: the purse everywhere, and the gear readout in its place on the two pages
+## that equip, which are the pages that readout is about and the only pages on which nothing is being
+## bought. They shared the band before, and could not: the band is 190 pixels with a party beside it,
+## and a slot's title, a purse and a readout together need more than that - which is how "Gold: 33Atk
+## 9+0" came to be drawn, with the readout's tail out of the window and under the party panel
+## (docs/DECISIONS.md). 64 holds "Gold: 9999"; 112 holds the widest readout this screen is measured at,
+## where the demo's own widest is "Atk 9+3  Def 3+2" at 98.
+const PURSE_WIDTH := 64.0
+const STATS_WIDTH := 112.0
 const PARTY_X := 208.0
 const BLOCK_PITCH := 26.0
-const BAR_WIDTH := 40.0
+## The largest figure a member's bars are laid out for, on both sides of the slash. A DECLARED
+## capacity, the arena's READOUT_CAPACITY shape: the layout audit measures a block at it and the
+## content gate refuses a game whose party can grow past it. At 40 the bars left 38 pixels for figures
+## that need 49, so a party in the hundreds wrote its health out through the side of the window -
+## invisible in the demo, whose numbers are two digits (docs/DECISIONS.md).
+const READOUT_CAPACITY := 999
+const BAR_WIDTH := 28.0
 
 var _menu: PauseMenu = null
 var _style: SpriteStyle = null
@@ -139,11 +155,22 @@ func _build(viewport_size: Vector2i, source: SpriteSource) -> void:
 	# The purse and the gear readout sit in the window's BAND rather than on rows of their own:
 	# the cursor must not be able to land on either, and every test that names a row by its enum
 	# stays aimed at the same row. What a delta is a delta OF, beside what it costs.
+	# Laid against the band's RIGHT EDGE rather than at two numbers somebody chose, and BOUNDED to the
+	# room declared above - a Label with no width does not clip, wrap or complain, it draws straight
+	# on, which is what both of these did. A trimmed readout still reads; a readout with another one
+	# printed through it does not.
+	var band := width - float(UiChrome.BORDER) * 2.0
 	_purse = UiChrome.label(_style, "dim")
-	_purse.position = Vector2(width - 108.0, 0.0)
+	_purse.position = Vector2(band - float(UiChrome.PAD) - PURSE_WIDTH, 0.0)
+	_purse.size = Vector2(PURSE_WIDTH, float(UiChrome.HEADER_HEIGHT))
+	_purse.clip_text = true
+	_purse.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_frame.header.add_child(_purse)
 	_stats = UiChrome.label(_style, "dim")
-	_stats.position = Vector2(width - 60.0, 0.0)
+	_stats.position = Vector2(band - float(UiChrome.PAD) - STATS_WIDTH, 0.0)
+	_stats.size = Vector2(STATS_WIDTH, float(UiChrome.HEADER_HEIGHT))
+	_stats.clip_text = true
+	_stats.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_frame.header.add_child(_stats)
 
 	_select = UiChrome.select(_style)
@@ -253,6 +280,9 @@ func _paint() -> void:
 	_stats.text = _menu.stats_label() if equipping else ""
 	_stats.visible = equipping and not _menu.stats_label().is_empty()
 	_stats.add_theme_color_override("font_color", dim)
+	# ONE readout in the band at a time, and on these pages it is the one the page is about: nothing
+	# is bought on an equipment page, and the two of them together do not fit beside a slot's title.
+	_purse.visible = not _stats.visible
 	_paint_party(text, dim)
 
 
