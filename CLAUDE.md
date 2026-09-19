@@ -331,10 +331,13 @@ a game behind them. The LAYER's visibility is the whole switch and the fade is u
 `visible` answers "do these keys work" and `_label.modulate.a` answers "has this player already
 learned it", so a faded hint in the world is still SHOWN, which is what lets the rule be stated in
 both directions. Told rather than asking, because a view naming `Router` drops itself AND every
-suite depending on it out of the per-file parse gate. Nothing hid it at all until 2026-09-19 - it was
-measured at 17/255 under the pause menu's backdrop and left alone for that reason
-(`docs/DECISIONS.md`), a reading generalised from the two screens that DIM: `SaveScreen` carries no
-backdrop and `DialogBox` carries none either, so a save point and every conversation drew it at FULL. Checked by `test_flow_model` after every arrival and
+suite depending on it out of the per-file parse gate. Nothing hid it at all until 2026-09-19, when it
+was photographed in each state and differenced rather than reasoned about: 1,544 pixels change under
+the pause menu, where the hint's whole line printed THROUGH that menu's own help line (the "seems cut
+off" the 17/255 measurement was taken of, `docs/DECISIONS.md`), 36 under a conversation, where
+`DialogBox` covers all but a sliver, and NONE at a save point, because everything reached by walking
+has already dismissed it. The visible win is small, and saying so is the point - what the change buys
+is the RULE and a gate that holds it in every state. Checked by `test_flow_model` after every arrival and
 every walk step rather than declared on a vertex - a rule true of the whole machine belongs to the
 whole machine, and state thirteen is covered with no edit to the model - and pinned one layer down by
 `test_engine_assumptions`: a hidden `CanvasLayer` really does stop its child being drawn, while the

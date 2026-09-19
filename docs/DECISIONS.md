@@ -3151,17 +3151,24 @@ cut off; its brightest pixel is 17/255, the hint dimmed by the 85% backdrop exac
 the pause menu, and it "ends" where the map begins because a 17-grey vanishes against an 11-grey.
 Left alone.
 
-*Reversed on the owner's call, 2026-09-15, shipped 2026-09-19.* 17/255 is still what was measured and
-the reversal is not about brightness. The reading was taken under the two screens that DIM, and
-generalised from them: `SaveScreen` has no backdrop and `DialogBox` has none either, so under a save
-point and under every conversation the hint was drawn at FULL, teaching WASD to somebody who cannot
-walk. `world_scene._physics_process` now hands it `show_while(Router.player_can_move())` at its head,
+*Reversed on the owner's call, 2026-09-15, shipped 2026-09-19.* 17/255 is still what was measured.
+**What the fix actually changes on screen is small, and was photographed rather than argued** - the
+first draft of this entry claimed the hint was drawn at FULL under a save point and under every
+conversation, which is wrong in both halves. A before/after of each state, differenced pixel by
+pixel, is what caught it: **1,544 pixels under the pause menu, 36 under a conversation, and none at
+all at a save point.** The 1,544 spell out the hint's whole line, printed straight through that
+menu's OWN help line, which is exactly the "seems cut off" the original measurement was looking at.
+The 36 are a sliver escaping past the right edge of `DialogBox`, which otherwise covers the corner
+the hint sits in. The zero is because a save point, a shop and a fight are all reached by WALKING,
+and walking is what dismisses the hint - it has faded on its own long before any of them opens. So
+the first seconds of a new game are the only time any of this is on screen. So the change is bought for the rule rather than the pixels: a layer the world
+never turned off was drawn in every state, and now it is not.
+`world_scene._physics_process` now hands it `show_while(Router.player_can_move())` at its head,
 above the player guard so the rule covers the title and the credits as well, and `test_flow_model`
 checks it after every arrival rather than as a vertex invariant - it is a property of the machine, not
 of any state. What stayed: the fade still owns the label's alpha, because "has this player learned it"
 and "do these keys work" are two questions, and keeping them apart is what lets the rule be asserted in
-both directions. What this changes on screen: the hint now appears as the opening conversation ENDS
-rather than during it.
+both directions.
 
 ## The content gates are about A game, not THE game — M47
 
