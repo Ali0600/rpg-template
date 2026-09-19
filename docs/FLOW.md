@@ -40,6 +40,7 @@ stateDiagram-v2
 	world --> battle : open_battle
 	battle --> world : win_battle
 	battle --> game_over : lose_battle
+	battle --> world : flee_battle
 	game_over --> title : game_over_to_title
 	game_over --> world : game_over_new_game
 ```
@@ -88,6 +89,7 @@ stateDiagram-v2
 | `open_battle` | world | battle | world → battle |
 | `win_battle` | battle | world | battle → world |
 | `lose_battle` | battle | game_over | battle → world, world → game_over |
+| `flee_battle` | battle | world | battle → world |
 | `game_over_to_title` | game_over | title | game_over → world, world → title |
 | `game_over_new_game` | game_over | world | game_over → world |
 | `warp` | world | world | *nothing* |
@@ -107,6 +109,7 @@ stateDiagram-v2
 - **`open_options`** — TWO hops, and the middle one is real. No overlay opens over another here, so the pause menu is CLOSED on the way through - the lose_battle shape one state earlier. The open is deferred so the close finishes first, the OP_SHOP rule.
 - **`close_options`** — Back to the world, not to the pause menu that was closed on the way in. Returning there would need the state to remember where it came from - one more edge and a hidden input; see DECISIONS.md.
 - **`lose_battle`** — TWO hops, and the middle one is real: _close_battle runs before open_game_over so two full-screen views are never stacked.
+- **`flee_battle`** — A WIN's trace exactly, which is the whole reason the adapter asserts something else: the world announces 'fled' where a victory announces 'victory', and nothing else in the game emits that word. No randomness - a boss refuses every escape and everyone else allows it (M13) - so this edge replays like the rest. The foe it is driven against is unkillable and harmless, so a stray confirm on Attack can neither win nor lose the fight and hand a win's trace to a flight's name. Fleeing an ARENA is still deferred and has no edge here.
 - **`game_over_to_title`** — Two hops for the same reason. The from used to read world because to_title reset first; M23 made it say where it came from.
 - **`game_over_new_game`** — One hop: the close pops to world and start_game's reset finds it already there.
 - **`warp`** — Changes the map, not the state. The empty trace is the point: a listener woken by every doorway is a listener nobody can use.

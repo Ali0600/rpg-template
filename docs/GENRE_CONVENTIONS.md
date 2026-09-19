@@ -468,8 +468,12 @@ already chose DQ's rule). A foe felled early in a fight still counts toward the 
 **Fleeing is a property of the encounter.** FF1's escape "depends on your agility level";
 SMRPG lets you run from ordinary fights and refuses for bosses and mandatory encounters; DQ's
 Dragonlord cannot be fled. Nothing in the reference set makes escape depend on the *number* of
-enemies — a fight is unfleeable because the designer said so. This template already says so
-with geometry rather than a flag, which is the same statement made in level design.
+enemies — a fight is unfleeable because the designer said so. This template says so with a
+**flag**: `EnemyDef.boss`, read by `BattleLogic._boss()`, and ANY boss in a formation refuses the
+escape. *This paragraph claimed the opposite until 2026-09-19* — that the statement was made "with
+geometry rather than a flag". Geometry is what makes a fight UNAVOIDABLE, a one-tile gap you cannot
+walk around, which is a different rule answering a different question; the two were run together
+here for six milestones. The sentence before this one is the correct half.
 
 **The read-out, and the one number nobody shows.** FF1 puts enemies left and the party right,
 with enemy *names* in their own box and **four HP boxes for the party only**. DQ2's lower-right
