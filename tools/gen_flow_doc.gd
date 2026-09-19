@@ -11,7 +11,7 @@ extends SceneTree
 ## next reader trusts the picture.
 ##
 ## The Mermaid block is the reason this exists at all: the model is written for a machine to
-## check, and a person looking at the same file should not have to hold seventeen edges in
+## check, and a person looking at the same file should not have to hold the whole model in
 ## their head to see the shape.
 
 const MODEL := "res://tools/flow_model.json"

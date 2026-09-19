@@ -75,7 +75,8 @@ one-glance menu of things still worth trying.
 - **Flee odds, and damage variance.** M13 made both deterministic — a boss refuses every
   escape and everyone else allows it; a hit is worth exactly what the numbers say. A designer
   can reason about that and a QA script can rely on it. Revisit hooks: the flee branch in
-  `BattleLogic.press()`, and `BattleLogic.damage()`.
+  `BattleLogic._flee()`, reached from the `Row.FLEE` arm of `_confirm_command()` (it was
+  `press()` until M27.1 collapsed the round shape), and `BattleLogic.damage()`.
 - ~~**`MOTION_MODE_FLOATING` for actors.**~~ **Taken up by M45** (#149), at the one line this
   entry named, and measured rather than argued: along a horizontal wall the two modes differ by
   a third. It stayed listed here as open for four milestones after it shipped.
@@ -3469,6 +3470,12 @@ edit is made before any code.
   has no arena to leave. **Revisit hook:** `BattleLogic.Outcome.FLED` is already legal on the seam
   and `_on_battle_finished` handles it; at M49 `tools/flow_model.json` declared no edge for it even
   for the turn fight, so the first milestone that models a flee writes that edge first.
+  *The turn fight's half is taken up, 2026-09-19:* `flee_battle` is in `tools/flow_model.json` with
+  the trace `battle -> world`, which is a WIN's trace exactly - so the edge is asserted on the
+  world's own `battle_changed` announcement, which carries `fled` where a victory carries
+  `victory`, rather than on the recording, which is a negative anything could satisfy. It bought
+  real coverage: that ternary was reached by no test at all, since the only reader of the field
+  read it on a win. Fleeing an ARENA is still deferred and still has no edge; the hook stands.
 
 ## The arena is played on the talk button, fought alone, and shipped as a second game — *M50*
 

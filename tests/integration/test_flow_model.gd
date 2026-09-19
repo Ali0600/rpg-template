@@ -114,6 +114,26 @@ func _offer_quiet_games() -> void:
 	_world._offered = games[0]
 
 
+## The foe a fight must contain for the way the suite intends to LEAVE it.
+##
+## Both places that open a fight ask this, because the ring is decided by the NEXT edge rather than
+## by this one. It was two copies of the table, written when there were two ways out and correct
+## while there were; a third way out is exactly when copies like that drift.
+func _ring_for(leaving_by: String) -> EnemyDef:
+	match leaving_by:
+		"lose_battle":
+			# Hits hard enough to end it in one round: a defeat has to be the only way out.
+			return _foe(999, 99)
+		"flee_battle":
+			# Unkillable so a confirm that lands on Attack cannot WIN the fight and hand a win's
+			# trace to a flight's name, harmless so it cannot end as a defeat either. The only way
+			# out of this ring is the door. With a 1hp foe that race is real rather than
+			# theoretical: a move_up swallowed by a message phase leaves the next interact
+			# confirming Attack, and a message advances on its own after combat's message_frames.
+			return _foe(999, 1)
+	return _foe()
+
+
 func _foe(hp := 1, attack := 1) -> EnemyDef:
 	var out := EnemyDef.new()
 	out.id = &"flow_foe"
@@ -177,11 +197,9 @@ func _arrive_at(state: String, adapter := "") -> void:
 		"saving":
 			assert_bool(_world.open_save()).is_true()
 		"battle":
-			# A fight the player cannot win, when the edge under test is the losing one. Chosen
-			# here because win and lose leave through the same door and differ only in who is
-			# standing in the ring.
-			var foe := _foe(999, 99) if adapter == "lose_battle" else _foe()
-			assert_bool(_world.open_battle_with([foe], "flow/foe")).is_true()
+			# The ring is chosen by the way the edge under test intends to LEAVE it: every way out
+			# of a fight goes through the same door, and they differ only in who is standing there.
+			assert_bool(_world.open_battle_with([_ring_for(adapter)], "flow/foe")).is_true()
 		"game_over":
 			assert_bool(_world.open_game_over()).is_true()
 	await _steps(1)
@@ -273,13 +291,25 @@ func _drive(adapter: String, next_adapter := "") -> void:
 			_world._close_options()
 			await _steps(1)
 		"open_battle":
-			var ring := _foe(999, 99) if next_adapter == "lose_battle" else _foe()
-			assert_bool(_world.open_battle_with([ring], "flow/foe")).is_true()
+			assert_bool(_world.open_battle_with([_ring_for(next_adapter)], "flow/foe")).is_true()
 			await _steps(1)
 		"win_battle", "lose_battle":
 			for i in 90:
 				if Router.state_name() != "battle":
 					break
+				await _press(&"interact")
+		"flee_battle":
+			# Rows are Attack, Magic, Item, Flee, and the cursor WRAPS - so ONE press up from
+			# Attack is Flee. One deliberate press rather than three counted ones, which is the
+			# rule for anything driving real keys with no enum on the screen to name.
+			#
+			# The pair repeats because a message advances on its own and a press during one is not
+			# a menu press. The ring can be neither won nor lost, so the loop's only exit is the
+			# flight; the flight itself takes about ten of these.
+			for i in 45:
+				if Router.state_name() != "battle":
+					break
+				await _press(&"move_up")
 				await _press(&"interact")
 		"game_over_to_title":
 			_world._commit_title()
@@ -408,6 +438,37 @@ func test_every_arrival_leaves_its_state_intact() -> void:
 		_teardown_world()
 
 
+func test_a_fight_that_is_fled_is_announced_as_a_flight_where_a_win_says_victory() -> void:
+	# The trace cannot tell a flight from a win - both are battle -> world - so the edge is only
+	# worth declaring if something ELSE separates them, and that something has to be positive.
+	# "Nothing was recorded" is satisfied by a fight that never resolved at all; "the world said
+	# fled" is satisfied by nothing else in the game.
+	#
+	# The foe standing on its tile afterwards would be the other reading, and it is vacuous here:
+	# this suite opens fights by hand rather than off a map record, so there is no body for the
+	# despawn to leave behind either way.
+	#
+	# It lives here rather than inside _drive because _drive is also called from a walk, where a
+	# gdUnit assertion would end the test at its 40-step version instead of letting it shrink.
+	var announced: Array = []
+	var record := func(payload: Variant) -> void: announced.append(payload)
+	await _arrive_at("battle", "flee_battle")
+	# Connected after the arrival, so the fight's OPEN announcement belongs to somebody else's edge.
+	EventBus.battle_changed.connect(record)
+	await _drive("flee_battle")
+	EventBus.battle_changed.disconnect(record)
+	assert_str(Router.state_name()).override_failure_message(
+		"the adapter never left the fight, so nothing below is about a flight").is_equal("world")
+	assert_int(announced.size()).override_failure_message(
+		"the fight ended and the world announced nothing").is_equal(1)
+	var closed: Dictionary = announced[0]
+	assert_str(str(closed.get("outcome", ""))).override_failure_message(
+		"the fight the adapter ran from ended as '%s'" % closed.get("outcome", "")).is_equal("fled")
+	assert_bool(GameState.was_seen("flow/foe")).override_failure_message(
+		"a foe that was run from was marked beaten, so it never comes back").is_false()
+	_teardown_world()
+
+
 func test_the_model_and_the_router_name_the_same_states() -> void:
 	# Membership BOTH ways, because "every state I wrote down is real" is silent about a state
 	# nobody wrote down - and a new state with no model row is exactly the change this file is
@@ -454,11 +515,20 @@ func test_every_state_can_be_arrived_at_and_left() -> void:
 # driven in seeded random order on ONE world that is never rebuilt between steps.
 
 
-## The number of walks and how long each is. Six and twenty-four is what it takes to drive every
+## The number of walks and how long each is. Six and twenty-eight is what it takes to drive every
 ## walkable edge at least once across the set - which the coverage test asserts rather than
 ## hopes for, because a random walk that never reaches a game over reports green either way.
+##
+## The LENGTH moved when flee_battle arrived, and the seeds deliberately did not. A third way out
+## of a fight re-rolls every walk rather than only the ones that reach one, because the planner
+## indexes into the options at each state - so the edge that fell out was game_over_to_title, not
+## the new one, and no number of seeds at twenty-four steps brought it back. Four longer walks
+## would cover everything for less than today's budget; that is the wrong trade, because the walks
+## are not only a coverage device. They are the one layer that composes actions without rebuilding
+## the world, and cutting their number to the coverage minimum would buy speed with the very thing
+## they exist to find.
 const WALK_SEEDS := 6
-const WALK_LENGTH := 24
+const WALK_LENGTH := 28
 
 
 ## The first invariant of a state that does not hold, or "" when they all do. Returns a name
