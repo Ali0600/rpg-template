@@ -686,6 +686,25 @@
 		},
 		{
 			"op": "note",
+			"text": "the formation is read off the MAP RECORD rather than off the fight: quest_keep names enemy 'keeper' with group ['gloom','slink'], and _formation_of appends the record's own enemy FIRST, so foes 0, 1 and 2 are the Keeper, the Gloom and the Slink. 30, 14 and 10 are their max_hp in data/enemies. Three DIFFERENT numbers on purpose - an arm that ignored which foe it was asked about would satisfy one and fail two. This player never swings, so every one of them stands on its whole health for the whole fight and there is no frame to count. Until 2026-09-19 all three of these refused with 'outside a battle', because the op looked for a BattleScreen and an arena draws its own."
+		},
+		{
+			"op": "assert_foe_hp",
+			"foe": 0,
+			"expect": 30
+		},
+		{
+			"op": "assert_foe_hp",
+			"foe": 1,
+			"expect": 14
+		},
+		{
+			"op": "assert_foe_hp",
+			"foe": 2,
+			"expect": 10
+		},
+		{
+			"op": "note",
 			"text": "and now lose, by never swinging. A player who never swings cannot win, so the fight can end only one way. The presses are cancel, which the arena does not read and the world does not take while a fight is up - so this waits for the game over without choosing a move."
 		},
 		{

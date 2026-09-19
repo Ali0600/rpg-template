@@ -2,7 +2,8 @@ class_name FlowWalk
 extends RefCounted
 ## Plans WALKS over the flow model, and minimises one that fails.
 ##
-## tools/flow_model.json declares 17 edges and test_flow_model.gd drives each of them ONCE,
+## tools/flow_model.json declares every way between the states and test_flow_model.gd drives
+## each of them ONCE,
 ## from a world built fresh for it. That proves every edge is individually correct and is
 ## silent about every SEQUENCE of them — which is the shape of the bug the model was built
 ## after. Continue arrived at WORLD exactly as declared; it passed through the start map on

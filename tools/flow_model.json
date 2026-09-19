@@ -33,8 +33,14 @@
 		"move; what it asks is world_scene.fight_screen(), and it was changed before either screen",
 		"existed to answer it.",
 		"",
+		"WHAT IS CHECKED HERE AND NOT WRITTEN DOWN HERE. One thing, deliberately: the controls hint",
+		"is drawn exactly while Router.player_can_move(), asserted after every arrival and every walk",
+		"step in every state. It is not an invariant because it is not a property of any ONE state -",
+		"naming it on all twelve vertices is twelve places to forget it on the thirteenth. A rule",
+		"true of the whole machine belongs to the whole machine: test_flow_model._hint_fault.",
+		"",
 		"WALKS. Since M31 the same edges are also driven in SEQUENCES: six seeded walks of",
-		"twenty-four steps, on one world that is never rebuilt between them, asserting the same",
+		"twenty-eight steps, on one world that is never rebuilt between them, asserting the same",
 		"trace and the same invariants after every step. Per-edge checking is silent about",
 		"anything that only goes wrong on a second visit - it found a pause screen and a shop",
 		"screen that were closed but never freed, and went on eating the key that opens them.",
@@ -432,6 +438,19 @@
 			],
 			"adapter": "lose_battle",
 			"note": "TWO hops, and the middle one is real: _close_battle runs before open_game_over so two full-screen views are never stacked."
+		},
+		{
+			"action": "flee_battle",
+			"from": "battle",
+			"to": "world",
+			"trace": [
+				[
+					"battle",
+					"world"
+				]
+			],
+			"adapter": "flee_battle",
+			"note": "A WIN's trace exactly, which is the whole reason the adapter asserts something else: the world announces 'fled' where a victory announces 'victory', and nothing else in the game emits that word. No randomness - a boss refuses every escape and everyone else allows it (M13) - so this edge replays like the rest. The foe it is driven against is unkillable and harmless, so a stray confirm on Attack can neither win nor lose the fight and hand a win's trace to a flight's name. Fleeing an ARENA is still deferred and has no edge here."
 		},
 		{
 			"action": "game_over_to_title",

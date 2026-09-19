@@ -75,7 +75,8 @@ one-glance menu of things still worth trying.
 - **Flee odds, and damage variance.** M13 made both deterministic — a boss refuses every
   escape and everyone else allows it; a hit is worth exactly what the numbers say. A designer
   can reason about that and a QA script can rely on it. Revisit hooks: the flee branch in
-  `BattleLogic.press()`, and `BattleLogic.damage()`.
+  `BattleLogic._flee()`, reached from the `Row.FLEE` arm of `_confirm_command()` (it was
+  `press()` until M27.1 collapsed the round shape), and `BattleLogic.damage()`.
 - ~~**`MOTION_MODE_FLOATING` for actors.**~~ **Taken up by M45** (#149), at the one line this
   entry named, and measured rather than argued: along a horizontal wall the two modes differ by
   a third. It stayed listed here as open for four milestones after it shipped.
@@ -3150,6 +3151,25 @@ cut off; its brightest pixel is 17/255, the hint dimmed by the 85% backdrop exac
 the pause menu, and it "ends" where the map begins because a 17-grey vanishes against an 11-grey.
 Left alone.
 
+*Reversed on the owner's call, 2026-09-15, shipped 2026-09-19.* 17/255 is still what was measured.
+**What the fix actually changes on screen is small, and was photographed rather than argued** - the
+first draft of this entry claimed the hint was drawn at FULL under a save point and under every
+conversation, which is wrong in both halves. A before/after of each state, differenced pixel by
+pixel, is what caught it: **1,544 pixels under the pause menu, 36 under a conversation, and none at
+all at a save point.** The 1,544 spell out the hint's whole line, printed straight through that
+menu's OWN help line, which is exactly the "seems cut off" the original measurement was looking at.
+The 36 are a sliver escaping past the right edge of `DialogBox`, which otherwise covers the corner
+the hint sits in. The zero is because a save point, a shop and a fight are all reached by WALKING,
+and walking is what dismisses the hint - it has faded on its own long before any of them opens. So
+the first seconds of a new game are the only time any of this is on screen. So the change is bought for the rule rather than the pixels: a layer the world
+never turned off was drawn in every state, and now it is not.
+`world_scene._physics_process` now hands it `show_while(Router.player_can_move())` at its head,
+above the player guard so the rule covers the title and the credits as well, and `test_flow_model`
+checks it after every arrival rather than as a vertex invariant - it is a property of the machine, not
+of any state. What stayed: the fade still owns the label's alpha, because "has this player learned it"
+and "do these keys work" are two questions, and keeping them apart is what lets the rule be asserted in
+both directions.
+
 ## The content gates are about A game, not THE game — M47
 
 Building the scaffold wizard meant asking what actually happens when a second `data/games/<id>.tres`
@@ -3457,6 +3477,12 @@ edit is made before any code.
   has no arena to leave. **Revisit hook:** `BattleLogic.Outcome.FLED` is already legal on the seam
   and `_on_battle_finished` handles it; at M49 `tools/flow_model.json` declared no edge for it even
   for the turn fight, so the first milestone that models a flee writes that edge first.
+  *The turn fight's half is taken up, 2026-09-19:* `flee_battle` is in `tools/flow_model.json` with
+  the trace `battle -> world`, which is a WIN's trace exactly - so the edge is asserted on the
+  world's own `battle_changed` announcement, which carries `fled` where a victory carries
+  `victory`, rather than on the recording, which is a negative anything could satisfy. It bought
+  real coverage: that ternary was reached by no test at all, since the only reader of the field
+  read it on a win. Fleeing an ARENA is still deferred and still has no edge; the hook stands.
 
 ## The arena is played on the talk button, fought alone, and shipped as a second game — *M50*
 

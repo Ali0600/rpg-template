@@ -2581,3 +2581,40 @@ arrived.
 **Takeaway.** Every scanning gate ends with the count it read and a floor under it. Write that floor when
 the gate is written, even if it must start at zero, so the day the data arrives the gate starts biting
 instead of starting to matter.
+
+### Differencing two frames turns "is this visible?" from an argument into a number
+
+Photograph a screen before and after a change, subtract one image from the other, and count the pixels
+that differ — the map of what moved is the answer, and it is not negotiable.
+
+**Why it came up.** Hiding the controls hint outside the world state, I wrote into two documents that it
+had been drawn at FULL brightness under a save point and under every conversation. Both halves were
+wrong, and both were *reasoned* — from layer numbers and backdrop alphas — rather than looked at. A
+before/after of each state, differenced pixel by pixel, gave: 1,544 pixels under the pause menu, 36 under
+a conversation, and zero at a save point. The 1,544 spelled out the hint's own line, printed through the
+menu's own help line. The 36 were a sliver escaping past the dialog box's right edge. The zero was
+because everything reached by walking has already dismissed the hint. The "before" frames were produced
+by applying the change's own mutant to a byte copy and restoring with a hash check, so the comparison was
+against the real previous behaviour rather than a guess at it.
+
+**Takeaway.** Before writing down what a visual change does, difference the frames and quote the count. A
+claim assembled from what the code says should happen is a hypothesis; the honest version of "this fixes a
+visible defect" is sometimes "this fixes 1,544 pixels in the first two seconds of a new game, and the rule
+is what I am really buying".
+
+### Adding one option to a state re-rolls every random walk, so the edge that falls out is not the new one
+
+A seeded walk picks from the options available at each state. Add an option anywhere and every draw after
+it shifts, so coverage can drop somewhere unrelated to what you added.
+
+**Why it came up.** Declaring a `flee_battle` edge gave the battle state a third way out. The coverage
+gate went red naming `game_over_to_title` — an edge that had nothing to do with the change and had been
+covered for six milestones. Raising the seed count did not help at any value up to sixteen, because the
+seeds that drive that edge had moved past the end of the list, not gone missing. Lengthening each walk
+fixed it. The cheapest covering pair was *fewer, longer* walks, which was the wrong trade: the walks are
+not only a coverage device, they are the one layer that composes actions without rebuilding the world, so
+cutting their number to the coverage minimum would have bought speed with the thing they exist to find.
+
+**Takeaway.** When a coverage gate fails after a model change, read which edge it names instead of
+assuming it is the new one, and sweep both dimensions — more seeds and longer walks are different
+instruments. Then check whether the cheapest passing configuration quietly reduces what the gate explores.

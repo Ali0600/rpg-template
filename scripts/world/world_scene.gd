@@ -732,6 +732,14 @@ func _configure_camera(data: MapData) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	# ABOVE the null guard, so this is a statement about EVERY state rather than only the ones with
+	# a game behind them: the hint teaches keys that work in the world and nowhere else, so it is
+	# drawn exactly while they do something. At the title, the credits and the options page over
+	# them there is no hint at all - _teardown_game drops it with the player - and that is the same
+	# answer arrived at by not existing. Below the guard the rule would be silent about those three
+	# and true there only by the accident that both members are nulled together.
+	if _hint != null:
+		_hint.show_while(Router.player_can_move())
 	if _player == null:
 		return
 	# Stepped ABOVE the gate, unlike anything else here: a night runs precisely while the
@@ -2329,6 +2337,12 @@ func map_data() -> MapData:
 
 func dialog_box() -> DialogBox:
 	return _dialog
+
+
+## The controls hint, for the flow model's gate. The other long-lived chrome layer, and the one
+## thing about it anything outside needs to know: whether the player is being shown it.
+func controls_hint() -> ControlsHint:
+	return _hint
 
 
 func pause_screen() -> PauseScreen:

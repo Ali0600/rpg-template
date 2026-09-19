@@ -16,8 +16,8 @@ extends Node
 ## Ops: wait · hold · release · release_all · press · press_until_state · assert_state ·
 ## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
 ## assert_level · assert_gold · assert_mp · assert_equipped · sound_mark · assert_sound ·
-## assert_audio_ready · mark · assert_moved · assert_status · assert_foe_hp · assert_game ·
-## fight_well · screenshot · note.
+## assert_audio_ready · assert_music · mark · assert_moved · assert_status · assert_foe_hp ·
+## assert_game · fight_well · screenshot · note.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
 ##
@@ -403,9 +403,11 @@ func _assert_game(step: Dictionary) -> void:
 
 
 ## What the battle screen is currently saying about a fighter beyond their numbers - the short
-## tag it writes beside the health. Battle-only, so this can only be asked DURING a fight, which
-## is the whole reason it exists: a status expires with the battle, so nothing outside one can
-## be asked whether it happened.
+## tag it writes beside the health. Only a TURN fight can be asked, which is the whole reason this
+## exists: a status expires with the battle, so nothing outside one can be asked whether it
+## happened - and an arena has no statuses at all, the word appearing nowhere in ArenaSim. The
+## refusal says both, rather than reporting an arena as "no battle", which is a sentence a session
+## author standing in one would reasonably disbelieve.
 ##
 ## It is also the only assertion that can tell WHICH spell was cast. MP alone cannot: three of
 ## this game's spells cost 3, so "the pool went down by three" is satisfied by any of them - a
@@ -413,7 +415,7 @@ func _assert_game(step: Dictionary) -> void:
 func _assert_status(step: Dictionary) -> void:
 	var screen := _battle_screen()
 	if screen == null:
-		_fail("assert_status outside a battle - a status cannot outlive the fight it was got in")
+		_fail("assert_status needs a turn fight - a status cannot outlive the fight it was got in, and an arena has no statuses at all")
 		return
 	var at := int(step.get("member", 0))
 	var wanted := str(step.get("expect", ""))
@@ -424,25 +426,75 @@ func _assert_status(step: Dictionary) -> void:
 		_log.append("member %d is showing '%s'" % [at, actual])
 
 
-## What a foe has left, mid-fight. Battle-only for `_assert_status`'s reason, and it exists for
-## the same one: it is the only assertion that can prove HOW MUCH a blow was worth.
+## What a foe has left, mid-fight, in WHICHEVER resolver is fighting - it is the only assertion
+## that can prove HOW MUCH a blow was worth.
 ##
 ## An element's whole effect is the size of a number, and every other reading a session can take
 ## is blind to it - the magic spent is the same whatever it hit, the fight is won either way, and
 ## a caption is not read by anything. So a shipped weakness with no `assert_foe_hp` behind it is
-## a feature nothing would notice the loss of.
+## a feature nothing would notice the loss of, and the same is true of a sword blow.
+##
+## It read the turn fight only until 2026-09-19, so in an arena it refused with "outside a battle"
+## while the state WAS battle - a sword fight had no way to say what a swing was worth.
 func _assert_foe_hp(step: Dictionary) -> void:
-	var screen := _battle_screen()
-	if screen == null:
-		_fail("assert_foe_hp outside a battle - there is nothing standing to have any health")
+	# Refused BEFORE any screen is looked for, and that order is the whole reason this is provable:
+	# a suite has no screen in the tree, so every OTHER refusal this op can make is "there is no
+	# fight". Ordered the other way round, a step that forgot its expect is reported as the wrong
+	# thing while complaining for the right reason, and a test of it passes without the guard.
+	#
+	# A missing one used to read as nought, which is "assert this foe is down" - so the op whose
+	# whole job is the size of a number had a silent default that passes on any foe already down.
+	if not step.has("expect"):
+		_fail("assert_foe_hp needs an expect - a missing one reads as nought, which is 'this foe is down'")
 		return
 	var at := int(step.get("foe", 0))
 	var wanted := int(step.get("expect", 0))
-	var actual := screen.logic().enemy_hp(at)
-	if actual != wanted:
-		_fail("expected foe %d to be on %d health, found %d" % [at, wanted, actual])
+	# The arena first. Only one screen is ever up, but the two resolvers share no type beyond
+	# FightScreen and are read differently, so each arm asks its own for the number.
+	var complaint := ""
+	var sword_fight := _arena_screen()
+	if sword_fight != null:
+		complaint = _arena_foe_fault(sword_fight.sim(), at, wanted)
 	else:
-		_log.append("foe %d is on %d health" % [at, actual])
+		var screen := _battle_screen()
+		if screen == null:
+			_fail("assert_foe_hp outside a battle - there is nothing standing to have any health")
+			return
+		complaint = _turn_foe_fault(screen.logic(), at, wanted)
+	if not complaint.is_empty():
+		_fail(complaint)
+		return
+	_log.append("foe %d is on %d health" % [at, wanted])
+
+
+## What the arena has to say about foe `at`, or "" when it agrees with the script.
+##
+## Takes the RULES rather than the screen, the `_running_game_faults` shape. The WIRING above needs
+## a screen in the tree and only a play session can stage one; this is arithmetic, which a suite can
+## drive with a staged ArenaSim and nothing else at all.
+##
+## The bounds question is the HARNESS's rather than ArenaSim's: foe_hp() is written for a screen
+## that only ever asks about foes it drew, so a session naming a foe nobody is standing in would be
+## an engine error in the middle of a play run rather than a refusal with the op's name on it.
+func _arena_foe_fault(sim: ArenaSim, at: int, wanted: int) -> String:
+	if at < 0 or at >= sim.foe_count():
+		return "assert_foe_hp names foe %d and this fight has %d on the floor" % [at, sim.foe_count()]
+	var standing := sim.foe_hp(at)
+	if standing != wanted:
+		return "expected foe %d to be on %d health on the floor, found %d" % [at, wanted, standing]
+	return ""
+
+
+## The same for the turn fight, and a TWIN rather than one function over both: the two resolvers
+## share no type, and that they both happen to answer foe_count() is a coincidence of naming rather
+## than an interface either of them promises. The bounds hole was the same on this side and older.
+func _turn_foe_fault(logic: BattleLogic, at: int, wanted: int) -> String:
+	if at < 0 or at >= logic.foe_count():
+		return "assert_foe_hp names foe %d and this fight has %d" % [at, logic.foe_count()]
+	var standing := logic.enemy_hp(at)
+	if standing != wanted:
+		return "expected foe %d to be on %d health, found %d" % [at, wanted, standing]
+	return ""
 
 
 ## The arena's view, found by type for _battle_screen's reason - and by its OWN type, since both fight

@@ -6,6 +6,9 @@ extends CanvasLayer
 ## reason to guess. It fades once the player has actually moved rather than on a timer: a
 ## timer is either too short for someone reading it or too long for someone who already knows,
 ## and "they moved" is the exact moment the hint stopped being needed.
+##
+## It is also drawn only while the keys it names do something - the world hands it show_while() -
+## because a hint teaching WASD under a conversation, a menu or a fight is teaching a lie.
 
 const FADE_SECONDS := 0.6
 const LINGER_SECONDS := 1.2
@@ -46,8 +49,28 @@ func dismiss() -> void:
 	_elapsed = 0.0
 
 
-func is_visible_hint() -> bool:
-	return _label.modulate.a > 0.0
+## Drawn, or not, according to whether the keys it names do anything.
+##
+## TOLD rather than asking, because this file may not name an autoload: check.sh's per-file parse
+## gate skips any file whose TEXT holds one, and a view that asked the router would take itself AND
+## every suite depending on this class out of that gate.
+##
+## The LAYER's own visibility, which is what stops the label being drawn at all. The fade owns the
+## label's alpha and the two never meet - they answer different questions, "do these keys work" and
+## "has this player already learned it" - so a faded-out hint in the world is still SHOWN here. That
+## is what lets the rule be stated in both directions rather than only one.
+func show_while(keys_work: bool) -> void:
+	visible = keys_work
+
+
+## Whether the label is in a drawn tree - NOT whether it is still opaque.
+##
+## is_visible_in_tree() answers for the whole chain above it, CanvasLayers included, which
+## test_engine_assumptions pins because a CanvasLayer is not a CanvasItem and its taking part at all
+## is the special case. So this reads what the engine will actually paint, rather than handing back
+## the property show_while just set.
+func shown() -> bool:
+	return _label != null and _label.is_visible_in_tree()
 
 
 func _process(delta: float) -> void:
