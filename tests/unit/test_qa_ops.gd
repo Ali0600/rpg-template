@@ -236,3 +236,84 @@ func test_the_harness_plays_the_arena_the_way_the_driver_s_perfect_does() -> voi
 		assert_bool(bool(actual["swing"])).override_failure_message(
 			"%s: the harness swings %s where PERFECT swings %s" % [c[0], actual["swing"], expected.swing]
 			).is_equal(expected.swing)
+
+
+## A foe of a stated health, for the two fault readers below. Named for what varies: the point of
+## every case here is that two foes with DIFFERENT health are told apart.
+func _a_foe(id: StringName, hp: int) -> EnemyDef:
+	var out := EnemyDef.new()
+	out.id = id
+	out.name = String(id).capitalize()
+	out.character = &"quest_slink"
+	out.max_hp = hp
+	out.attack = 3
+	out.moves = [{"name": "Bump", "power": 0}]
+	return out
+
+
+func test_a_foe_health_step_that_forgot_its_expect_is_refused_by_name() -> void:
+	# The refusal is ordered BEFORE any screen is looked for, and that is the only reason this can
+	# be proven here: a suite has no fight in the tree, so an op that reached for one first would
+	# complain about the missing fight and this would pass without the guard existing at all. So
+	# the WORDING is the assertion, the has-not-joined shape above.
+	#
+	# What it prevents: a missing expect read as nought, which is "assert this foe is down" - a
+	# silent default that passes on any foe already down, in the one op whose whole job is the
+	# size of a number.
+	assert_bool(_complains({"op": "assert_foe_hp", "foe": 0})).override_failure_message(
+		"a foe health step with nothing to compare against was accepted").is_true()
+	assert_str("\n".join(Qa._failures)).override_failure_message(
+		"the step was judged as 'there is no fight' rather than as incomplete") \
+		.contains("needs an expect")
+	Qa._failures.clear()
+
+
+func test_a_status_step_says_which_kind_of_fight_it_needs() -> void:
+	# An arena has no statuses at all - the word appears nowhere in ArenaSim - so "outside a
+	# battle" is a lie in the one case that is now reachable: standing in one. The wording IS the
+	# fix. A branch naming the arena would need a findable ArenaScreen, which no suite here can
+	# stage and no session can assert a refusal from: a permanently untested branch to say what one
+	# sentence says for free.
+	assert_bool(_complains({"op": "assert_status", "member": 0, "expect": ""})).is_true()
+	assert_str("\n".join(Qa._failures)).override_failure_message(
+		"the refusal still reads as 'no battle', where an arena IS a battle") \
+		.contains("needs a turn fight")
+	Qa._failures.clear()
+
+
+func test_a_foes_health_is_read_out_of_the_arenas_own_rules() -> void:
+	# The WIRING - finding an arena screen in the tree - needs a real play session, and
+	# fall_at_the_keep_by_the_sword.json is where that is proven. This is the arithmetic under it,
+	# which a staged ArenaSim can drive with no scene tree at all.
+	#
+	# Two foes with DIFFERENT health, because "it read a number" and "it read the foe it was asked
+	# about" are different answers and only a pair can tell them apart.
+	var combat := CombatDef.new()
+	combat.id = &"agreement"
+	combat.xp_curve = [10]
+	combat.arena_tiles = Vector2i(10, 6)
+	var sim := ArenaSim.of(combat, [_a_foe(&"small", 4), _a_foe(&"big", 9)],
+		[BattleHelpers.leader(combat)], "map/foe", 7, GameConfig.new())
+	assert_str(Qa._arena_foe_fault(sim, 0, 4)).is_empty()
+	assert_str(Qa._arena_foe_fault(sim, 1, 9)).is_empty()
+	assert_str(Qa._arena_foe_fault(sim, 1, 4)).override_failure_message(
+		"every foe answered with the first one's health").contains("found 9")
+	# ArenaSim.foe_hp indexes its bodies with no guard, so without these two a session naming a foe
+	# nobody is standing in is an engine error mid-run rather than a refusal with the op's name on it.
+	assert_str(Qa._arena_foe_fault(sim, 2, 9)).contains("this fight has 2")
+	assert_str(Qa._arena_foe_fault(sim, -1, 9)).contains("this fight has 2")
+
+
+func test_a_foes_health_is_read_out_of_the_turn_fights_own_rules() -> void:
+	# The twin, and the bounds hole on this side is older than the arena: BattleLogic.enemy_hp
+	# indexes its foes with no guard either, and nothing had ever asked it for one that was not there.
+	var combat := CombatDef.new()
+	combat.id = &"agreement"
+	combat.xp_curve = [10]
+	var logic := BattleHelpers.against(combat, [_a_foe(&"small", 4), _a_foe(&"big", 9)])
+	assert_str(Qa._turn_foe_fault(logic, 0, 4)).is_empty()
+	assert_str(Qa._turn_foe_fault(logic, 1, 9)).is_empty()
+	assert_str(Qa._turn_foe_fault(logic, 1, 4)).override_failure_message(
+		"every foe answered with the first one's health").contains("found 9")
+	assert_str(Qa._turn_foe_fault(logic, 2, 9)).contains("this fight has 2")
+	assert_str(Qa._turn_foe_fault(logic, -1, 9)).contains("this fight has 2")

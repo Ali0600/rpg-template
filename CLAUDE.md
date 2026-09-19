@@ -1603,15 +1603,30 @@ validator that has only ever passed is decoration.
   effect is the size of a number, and every other reading is blind to it: the magic spent is the
   same whatever it hit, the fight is won either way, and no session reads a caption. So a shipped
   weakness with no `assert_foe_hp` behind it is a feature nothing would notice the loss of.
-  Battle-only, for `assert_status`'s reason. **Aim it by reading the map's record**, not by
+  **It reads whichever resolver is fighting** - the arena's `ArenaSim.foe_hp` as readily as the
+  turn fight's `BattleLogic.enemy_hp` - because "how much was that blow worth" is the same question
+  with a sword in hand; it read the turn fight only until 2026-09-19, so in an arena it
+  refused with "outside a battle" while the state WAS battle. **A missing `expect` is REFUSED, by
+  name**: it used to read as nought, which is "assert this foe is down" and passes on any foe that
+  already is - a silent default in the one op whose whole job is the size of a number. That refusal
+  is ordered BEFORE the screen is looked for, which is what makes it the one thing about this op a
+  unit suite can prove, since a suite has no fight in the tree and every other refusal it can make
+  is "there is no fight". **A foe index nobody is standing in is refused on both sides**: neither
+  `foe_hp` nor `enemy_hp` bounds-checks, so it used to be an engine error in the middle of a play
+  run. The wiring is proven by `fall_at_the_keep_by_the_sword.json`, which names three foes with
+  three DIFFERENT health, and **aim it by reading the map's record**, not by
   assuming: `the_pair` names a slink AND a gloom, so foe 0 is the slink - a first draft aimed
   there and failed with the slink's arithmetic (10 - 7 = 3), which is correct behaviour and the
   wrong target.
 - **`assert_status` is how a session proves WHICH spell was cast.** A cost cannot: three of the
   demo's spells cost 3 magic, so "the pool went down by three" is satisfied by whichever row the
   cursor happened to land on - a mutant moving the spell under test past the level cap passed a
-  session asserting only that. Assert the effect that is UNIQUE to the path, and note the read is
-  battle-only, because a status cannot outlive the fight it was got in.
+  session asserting only that. Assert the effect that is UNIQUE to the path, and note the read needs
+  a TURN fight rather than any fight: a status cannot outlive the fight it was got in, and an arena
+  has no statuses at all - the word appears nowhere in `ArenaSim`. The refusal says both rather than
+  reporting an arena as "no battle", which is a sentence a session author standing in one would
+  reasonably disbelieve. It is a wording rather than a branch on purpose: an arena arm would need a
+  findable `ArenaScreen`, which no unit suite can stage and no session can assert a refusal from.
 - **A scripted fight is won with `fight_well`, never with counted waits.** The op confirms
   through every menu and presses inside every timing window - the scripted twin of
   `BattleDriver.Policy.PERFECT`, reading `BattleScreen.cue_on()`/`choosing()`. Landing timed
