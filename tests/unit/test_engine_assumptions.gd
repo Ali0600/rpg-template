@@ -269,3 +269,20 @@ func test_a_texture_rect_that_ignores_its_texture_keeps_the_size_it_is_given() -
 	assert_vector(keeping.size).is_equal(Vector2(32, 32))
 	ignoring.free()
 	keeping.free()
+
+
+func test_hiding_a_canvas_layer_hides_the_control_inside_it() -> void:
+	# The controls hint is a CanvasLayer and the thing that must stop being drawn is the Label inside
+	# it. Visibility propagates through CanvasItem parents - and a CanvasLayer is NOT a CanvasItem, so
+	# that it counts at all is the special case the whole flow-model gate rests on. The second half is
+	# why that gate reads is_visible_in_tree(): the child's OWN visible is untouched, so asking it
+	# would report the label as drawn on a hidden layer forever.
+	var layer := CanvasLayer.new()
+	var label := Label.new()
+	layer.add_child(label)
+	add_child(layer)
+	assert_bool(label.is_visible_in_tree()).is_true()
+	layer.visible = false
+	assert_bool(label.is_visible_in_tree()).is_false()
+	assert_bool(label.visible).is_true()
+	layer.free()

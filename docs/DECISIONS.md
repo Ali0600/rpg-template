@@ -3150,6 +3150,18 @@ cut off; its brightest pixel is 17/255, the hint dimmed by the 85% backdrop exac
 the pause menu, and it "ends" where the map begins because a 17-grey vanishes against an 11-grey.
 Left alone.
 
+*Reversed on the owner's call, 2026-09-15, shipped 2026-09-19.* 17/255 is still what was measured and
+the reversal is not about brightness. The reading was taken under the two screens that DIM, and
+generalised from them: `SaveScreen` has no backdrop and `DialogBox` has none either, so under a save
+point and under every conversation the hint was drawn at FULL, teaching WASD to somebody who cannot
+walk. `world_scene._physics_process` now hands it `show_while(Router.player_can_move())` at its head,
+above the player guard so the rule covers the title and the credits as well, and `test_flow_model`
+checks it after every arrival rather than as a vertex invariant - it is a property of the machine, not
+of any state. What stayed: the fade still owns the label's alpha, because "has this player learned it"
+and "do these keys work" are two questions, and keeping them apart is what lets the rule be asserted in
+both directions. What this changes on screen: the hint now appears as the opening conversation ENDS
+rather than during it.
+
 ## The content gates are about A game, not THE game — M47
 
 Building the scaffold wizard meant asking what actually happens when a second `data/games/<id>.tres`

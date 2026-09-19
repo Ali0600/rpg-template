@@ -1104,3 +1104,5 @@ scripts/ui/pause_screen.gd	s|_purse.visible = not _stats.visible|pass|	tests/int
 scripts/ui/pause_screen.gd	s|_stats.position = Vector2\(band - float\(UiChrome.PAD\) - STATS_WIDTH, 0.0\)|_stats.position = Vector2(width - 60.0, 0.0)|	tests/integration/test_pause_layout.gd	the gear readout is placed by a number rather than by the band, and leaves the window
 scripts/ui/pause_screen.gd	s|const BAR_WIDTH := 28.0|const BAR_WIDTH := 40.0|	tests/integration/test_pause_layout.gd	a member in the hundreds writes their health out through the side of the panel
 scripts/ui/pause_screen.gd	s|const READOUT_CAPACITY := 999|const READOUT_CAPACITY := 9|	tests/unit/test_battle_content.gd	the panel is laid out for less health than a shipped party reaches
+scripts/world/world_scene.gd	s|_hint.show_while\(Router.player_can_move\(\)\)|pass|	tests/integration/test_flow_model.gd	the hint is left drawn under every screen in the game, teaching keys that do nothing
+scripts/world/world_scene.gd	s|^\treturn _hint$|\treturn null|	tests/integration/test_flow_model.gd	the model cannot see the hint at all, so "not drawn" is true everywhere by seeing nothing

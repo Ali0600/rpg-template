@@ -324,6 +324,23 @@ them. A screen mounted around the helper is a quarter-size menu in the corner, w
 broken screen rather than as a missed line - `test_world_scale` asserts membership over whatever
 CanvasLayers it finds, so a new screen fails there without anybody remembering to add it.
 
+**A hint is drawn only while the keys it names do something, and it had to be TOLD.**
+`world_scene._physics_process` hands `ControlsHint.show_while(Router.player_can_move())` at its
+head - ABOVE the player guard, so the rule is about all twelve states rather than only the ones with
+a game behind them. The LAYER's visibility is the whole switch and the fade is untouched beside it:
+`visible` answers "do these keys work" and `_label.modulate.a` answers "has this player already
+learned it", so a faded hint in the world is still SHOWN, which is what lets the rule be stated in
+both directions. Told rather than asking, because a view naming `Router` drops itself AND every
+suite depending on it out of the per-file parse gate. Nothing hid it at all until 2026-09-19 - it was
+measured at 17/255 under the pause menu's backdrop and left alone for that reason
+(`docs/DECISIONS.md`), a reading generalised from the two screens that DIM: `SaveScreen` carries no
+backdrop and `DialogBox` carries none either, so a save point and every conversation drew it at FULL. Checked by `test_flow_model` after every arrival and
+every walk step rather than declared on a vertex - a rule true of the whole machine belongs to the
+whole machine, and state thirteen is covered with no edit to the model - and pinned one layer down by
+`test_engine_assumptions`: a hidden `CanvasLayer` really does stop its child being drawn, while the
+child's own `visible` stays true, which is why the gate reads `is_visible_in_tree()` and not the
+property that was just set.
+
 `_ui_size()` returns the DESIGN size and never the live viewport. A screen that measured the
 viewport would space its rows twice as far apart in a 640x360 world and put its help line off the
 bottom - and every layout gate, which measures at 320x180, would still pass.

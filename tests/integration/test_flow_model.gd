@@ -401,6 +401,10 @@ func test_every_arrival_leaves_its_state_intact() -> void:
 			assert_bool(_invariant_holds(name)).override_failure_message(
 				"after '%s' the machine is in '%s', where '%s' is supposed to hold and does not"
 				% [edge.get("action", ""), arrived, name]).is_true()
+		var hint_fault := await _hint_fault()
+		assert_str(hint_fault).override_failure_message(
+			"after '%s' the machine is in '%s', and %s"
+			% [edge.get("action", ""), arrived, hint_fault]).is_empty()
 		_teardown_world()
 
 
@@ -472,6 +476,29 @@ func _broken_invariant(state: String) -> String:
 	return ""
 
 
+## The controls hint, drawn exactly while the keys it teaches do something, or a complaint.
+##
+## Checked after EVERY arrival rather than named on a vertex. The rule is not a property of any one
+## state, it is a property of the machine: naming it on all twelve is twelve places to forget it on
+## the thirteenth, and _invariant_holds is only ever consulted for names a vertex actually lists.
+##
+## No hint at all counts as "not drawn", and that is not a dodge - the hint belongs to a game, and
+## the title, the credits and the options page over them have none built.
+##
+## The frame is not politeness. The hint is painted by the same physics loop this reads, so the view
+## agrees with the state one frame after a change: close_rest hands the state back from inside a
+## frame the world has already run, and without this the reading would be of the frame before.
+func _hint_fault() -> String:
+	await get_tree().physics_frame
+	var hint: ControlsHint = _world.controls_hint()
+	var drawn := hint != null and hint.shown()
+	if drawn == Router.player_can_move():
+		return ""
+	return "the hint is %s where the keys it teaches %s" % [
+		"drawn" if drawn else "not drawn",
+		"work" if Router.player_can_move() else "do nothing"]
+
+
 ## A world at the title with a save on disk, so `continue` is walkable from step one. Exactly
 ## the setup the per-edge Continue case already uses; a walk needs it once at the start rather
 ## than in the middle of the sequence.
@@ -503,6 +530,9 @@ func _run_walk(edges: Array, sequence: Array[int]) -> String:
 		if not broken.is_empty():
 			return "step %d ('%s') reached '%s', where '%s' is supposed to hold and does not" % [
 				step + 1, action, arrives, broken]
+		var hint_fault := await _hint_fault()
+		if not hint_fault.is_empty():
+			return "step %d ('%s') reached '%s', and %s" % [step + 1, action, arrives, hint_fault]
 	return ""
 
 
