@@ -25,6 +25,8 @@ stateDiagram-v2
 	dialog --> world : close_dialog
 	world --> paused : open_pause
 	paused --> world : close_pause
+	world --> paused : open_pause_by_menu
+	paused --> world : close_pause_by_menu
 	world --> shop : open_shop
 	shop --> world : close_shop
 	world --> resting : open_rest
@@ -74,6 +76,8 @@ stateDiagram-v2
 | `close_dialog` | dialog | world | dialog → world |
 | `open_pause` | world | paused | world → paused |
 | `close_pause` | paused | world | paused → world |
+| `open_pause_by_menu` | world | paused | world → paused |
+| `close_pause_by_menu` | paused | world | paused → world |
 | `open_shop` | world | shop | world → shop |
 | `close_shop` | shop | world | shop → world |
 | `open_rest` | world | resting | world → resting |
@@ -101,6 +105,8 @@ stateDiagram-v2
 - **`new_game`** — Announced only since M23: enter_map's reset used to assign the state field.
 - **`continue`** — Goes through boot_from_save, NEVER through the start map. The bug this whole model exists because of was an extra world -> dialog hop right here, from the start map's entry hooks firing on the way past.
 - **`open_pause`** — Driven by the real cancel key, because the guard that makes PAUSED reachable only from WORLD lives in _unhandled_input and nowhere else.
+- **`open_pause_by_menu`** — Driven by the real menu key (Tab; Start, the Menu button, on a pad), which is a second guard beside cancel's in _unhandled_input and proven by nothing else. Since M52.
+- **`close_pause_by_menu`** — The pad's Menu button toggles: pressed on the pause menu's top page it closes what it opened. Driven by the real key, because PauseScreen reads it on that page and no other. Since M52.
 - **`open_shop`** — Opened DEFERRED from a dialog effect, so the adapter waits a frame.
 - **`close_rest`** — The screen ends itself; nothing presses anything.
 - **`open_save`** — Opened DEFERRED from a dialog effect, the open_shop rule, so the adapter waits a frame.

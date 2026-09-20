@@ -26,6 +26,12 @@ var _dialog: DialogBox
 ## {"brain": NpcBrain}. The map's own keys survive because a game's hook is handed this.
 var _npcs: Dictionary = {}
 var _gate := InputGate.new()
+## The device in the player's hands - the last one that spoke - for the words every help line
+## and the hint use. KEYBOARD until a pad says otherwise; a scripted session never moves it.
+var _device := Prompts.Device.KEYBOARD
+## The input map's own deadzone, read once at _ready: the one threshold for whether a stick is
+## being held at all, so "it walks" and "it speaks" cannot disagree about the same push.
+var _stick_deadzone := 0.0
 var _hint: ControlsHint
 ## The style the running game asked for, BEFORE the player's palette was laid over it. _style is
 ## what everything is drawn with; this is what a re-choice starts from.
@@ -78,6 +84,7 @@ var _entry_depth := 0
 
 
 func _ready() -> void:
+	_stick_deadzone = InputMap.action_get_deadzone(&"move_up")
 	# Resolution happens here and exactly once per process; construction is start_game's job,
 	# so booting and re-starting cannot drift into two different ideas of what starting means.
 	# More than one game and nothing chose between them: a person does, from a row on the title
@@ -384,6 +391,38 @@ func _ui_size() -> Vector2i:
 ## one that forgets the scale, and what it produces is a quarter-size menu in the corner.
 func _mount_ui(layer: CanvasLayer) -> void:
 	UiScale.mount(layer, self, _style)
+	_prompt_layer(layer)
+
+
+## Which device the player is holding, read off every event before any screen sees it. A READING
+## and never a handling: it calls set_input_as_handled on nothing, and it does not go through
+## _gate - the gate refuses the same object in the same frame, so accepting an event here would
+## swallow the press _unhandled_input is about to read, and the pad would look dead. A harness
+## InputEventAction speaks for no device, so a scripted session stays where it was.
+func _input(event: InputEvent) -> void:
+	if not Prompts.speaks(event, _stick_deadzone):
+		return
+	var device := Prompts.device_of(event)
+	if device == _device:
+		return
+	_device = device
+	_reprompt()
+
+
+## The _rebind_style shape: a DRIVER over every layer that answers reprompt, never a list of the
+## screens that need it - the list is what the recolour shipped as, and the title was not on it.
+func _reprompt() -> void:
+	for child in get_children():
+		var layer := child as CanvasLayer
+		if layer != null:
+			_prompt_layer(layer)
+
+
+## The one place the call is made - at mount and on a change - so a screen opened after the
+## switch opens in the right words with no per-screen call site anywhere in the world.
+func _prompt_layer(layer: CanvasLayer) -> void:
+	if layer.has_method("reprompt"):
+		layer.call("reprompt", _device)
 
 
 ## The two interface layers that OUTLIVE a map: the dialog box and the controls hint. Built here
@@ -889,8 +928,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# Inside the same guard as interacting, so the pause menu cannot be opened from inside a
 	# conversation - Router already refuses world input while one is on screen, and the dialog
-	# box consumes `cancel` itself.
-	if event.is_action(&"cancel"):
+	# box consumes `cancel` itself. `menu` beside it since M52: Start is the pad's "Menu" button
+	# and the Xbox pause convention, and Tab, bound to it from the first commit, was read by nothing.
+	# A pad's B is on `cancel` too and does NOT pause - the owner's call after playing it: B is
+	# "go back" and there is nothing in the world to go back from. By class, because a harness
+	# action on `cancel` is thirty sessions' way of pausing and must keep working.
+	if event.is_action(&"menu") or (event.is_action(&"cancel") and not event is InputEventJoypadButton):
 		if open_pause():
 			get_viewport().set_input_as_handled()
 		return

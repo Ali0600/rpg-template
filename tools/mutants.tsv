@@ -761,7 +761,7 @@ data/dialog/village_well.json	s|\t\t\t\"speaker\": \"The well\",|\t\t\t\"speaker
 # -- M42: the counter, the party panel, the title and the end ----------------------------
 scripts/ui/shop_screen.gd	s|\t\trow.clip_text = true|\t\trow.clip_text = false|	tests/integration/test_shop_layout.gd	a long item name is drawn out from under its own price
 scripts/ui/shop_screen.gd	s|\t\tprice.position = Vector2\(inner.position.x \+ inner.size.x \* PRICE_COLUMN,|\t\tprice.position = Vector2(inner.position.x,|	tests/integration/test_shop_layout.gd	the price column starts where the name does, so the two are drawn over each other
-scripts/ui/shop_screen.gd	s|\t_help.text = \"W/S to choose    E to take    Esc to go back\"|\t_help.text = \"arrows: choose   Z: take   X: back\"|	tests/integration/test_shop_layout.gd	the counter tells the player to press a key nothing is bound to
+scripts/ui/shop_screen.gd	s|_help.text = Prompts.fill\("\{choose\} to choose    \{confirm\} to take    \{back\} to go back", _device\)|_help.text = "arrows: choose   Z: take   X: back"|	tests/integration/test_shop_layout.gd	the counter tells the player to press a key nothing is bound to
 scripts/ui/pause_screen.gd	s|\t\tname_label.clip_text = true|\t\tname_label.clip_text = false|	tests/integration/test_pause_layout.gd	a long member name is drawn out of the window that holds it
 scripts/ui/pause_screen.gd	s|\tif _menu.has_members\(\):|\tif true:|	tests/integration/test_pause_layout.gd	a game with nobody recruited draws a party panel listing one person
 scripts/ui/pause_screen.gd	s|\t\tvar top := inner.position.y \+ i \* BLOCK_PITCH|\t\tvar top := inner.position.y|	tests/integration/test_pause_layout.gd	every member's block is drawn on top of every other
@@ -972,7 +972,7 @@ scripts/ui/arena_screen.gd	s|if ground != null:|if false:|	tests/integration/tes
 scripts/ui/arena_screen.gd	s|out.size = Vector2\(tiles \* TILE_PX\)|out.size = Vector2(tiles * TILE_PX * 2)|	tests/integration/test_arena_layout.gd	the ground spills past the play area into the margins
 scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(out, 0\)|pass|	tests/integration/test_arena_layout.gd	the ground is drawn over the bodies and the slash
 scripts/ui/arena_screen.gd	s|piece.position = Vector2\(x \* TILE_PX, y \* TILE_PX\)|piece.position = Vector2.ZERO|	tests/integration/test_arena_layout.gd	every tile of ground is stacked in one corner
-scripts/ui/arena_screen.gd	s|const HELP := "WASD to move    E to swing"|const HELP := "E to swing"|	tests/integration/test_arena_layout.gd	the help line stops saying how to move
+scripts/ui/arena_screen.gd	s|const HELP := "\{move\} to move    \{confirm\} to swing"|const HELP := "{confirm} to swing"|	tests/integration/test_arena_layout.gd	the help line stops saying how to move
 scripts/ui/arena_screen.gd	s|const LEADER_BAR_WIDTH := 40.0|const LEADER_BAR_WIDTH := 60.0|	tests/integration/test_arena_layout.gd	a three-digit health readout runs into the help line
 scripts/ui/arena_screen.gd	s|const READOUT_CAPACITY := 999|const READOUT_CAPACITY := 9|	tests/unit/test_battle_content.gd	the panel is laid out for less health than the arena game's leader reaches
 scripts/ui/arena_screen.gd	s|_floor.panel.move_child\(_blade, _floor.panel.get_child_count\(\) - 1\)|pass|	tests/integration/test_arena_layout.gd	the drawn slash is drawn under the body swinging it, which hides nearly all of it
@@ -1113,3 +1113,28 @@ scripts/autoload/qa.gd	s|return "assert_foe_hp names foe %d and this fight has %
 scripts/autoload/qa.gd	s|var standing := sim.foe_hp\(at\)|var standing := sim.foe_hp(0)|	tests/unit/test_qa_ops.gd	every foe on the floor answers with the first one's health, so naming a foe means nothing
 scripts/autoload/qa.gd	s|var standing := logic.enemy_hp\(at\)|var standing := logic.enemy_hp(0)|	tests/unit/test_qa_ops.gd	every foe in a turn fight answers with the first one's health, so naming a foe means nothing
 scripts/world/world_scene.gd	s|&"fled" if outcome == BattleLogic.Outcome.FLED else &"victory"|\&"victory"|	tests/integration/test_flow_model.gd	a fight that was run from announces itself as a victory, and the two outcomes become one
+scripts/world/locomotion.gd	s|return raw.normalized\(\)|return raw|	tests/unit/test_locomotion.gd	a stick half pushed walks at half speed on the map
+# M52 - an Xbox pad plays the demo, and every prompt follows the device in hand. The three
+# project.godot rows mutate the MAP: a word on screen is a claim about it, and the binding gate
+# and the pad session are what hold the claim. No parens in those patterns on purpose - the
+# [input] lines are full of them and every one would need escaping.
+project.godot	s|"device":-1,"button_index":0,|"device":-1,"button_index":9,|	tests/fixtures/qa/quest/play_from_the_pad.json	the pad's A is bound to nothing, and the session never leaves the title
+project.godot	s|"axis":1,"axis_value":-1.0|"axis":5,"axis_value":-1.0|	tests/unit/test_prompts.gd	the stick's up is on an axis nobody has, and the hint still says Stick
+project.godot	s|"physical_keycode":4194305,|"physical_keycode":4194333,|	tests/unit/test_prompts.gd	Esc is unbound and every help line still names it
+scripts/util/input_gate.gd	s|return down and not was|return down|	tests/unit/test_input_gate.gd	a held stick presses on every motion event
+scripts/ui/pause_screen.gd	s|if _gate.pressed\(event, &"move_down"\):|if event.is_action(\&"move_down"):|	tests/integration/test_menus_on_a_stick.gd	a stick pushed up moves the pause cursor down
+scripts/ui/shop_screen.gd	s|if _gate.pressed\(event, &"move_down"\):|if event.is_action(\&"move_down"):|	tests/unit/test_prompts.gd	a screen reads the stick past the gate and the text gate does not notice
+scripts/world/world_scene.gd	s|if event.is_action\(&"menu"\) or \(event.is_action\(&"cancel"\) and not event is InputEventJoypadButton\):|if event.is_action(\&"cancel") and not event is InputEventJoypadButton:|	tests/integration/test_flow_model.gd	Start opens nothing
+scripts/world/world_scene.gd	s|and not event is InputEventJoypadButton\):|and true):|	tests/integration/test_menus_on_a_stick.gd	the pad's B opens the pause menu again
+scripts/ui/pause_screen.gd	s|elif event.is_action\(&"menu"\) and _menu.page\(\) == PauseMenu.Page.TOP:|elif false:|	tests/integration/test_flow_model.gd	Menu never closes what it opened
+scripts/world/world_scene.gd	s|if device == _device:|if true:|	tests/integration/test_prompts_follow_the_pad.gd	the words never follow the device
+scripts/world/world_scene.gd	s|layer.call\("reprompt", _device\)|pass|	tests/integration/test_prompts_follow_the_pad.gd	no layer is ever reworded, at mount or after
+scripts/ui/prompts.gd	s|return motion != null and absf\(motion.axis_value\) >= stick_deadzone|return motion != null|	tests/unit/test_prompts.gd	a resting stick's drift flips every help line to the pad's words
+scripts/ui/prompts.gd	s|if event is InputEventKey or event is InputEventJoypadButton:|if true:|	tests/unit/test_prompts.gd	a harness action and the mouse count as a pad speaking
+scripts/ui/controls_hint.gd	s|_label.text = Prompts.fill\(_template, _device\)|pass|	tests/integration/test_prompts_follow_the_pad.gd	the hint keeps keyboard words on a pad
+scripts/ui/controls_hint.gd	s|_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS|pass|	tests/unit/test_controls_fit.gd	an over-long hint draws off the screen again
+scripts/ui/controls_hint.gd	s|return float\(viewport_width - 2 \* MARGIN\)|return 1000.0|	tests/unit/test_controls_fit.gd	the fit gate measures against a width the screen does not have
+scripts/data/game_manifest.gd	s|for token in Prompts.unknown_tokens\(controls_hint\):|for token in []:|	tests/unit/test_game_manifest.gd	a hint naming a token no device has a word for ships
+scripts/data/game_manifest.gd	s|if not controls_hint.is_empty\(\) and Prompts.tokens_of\(controls_hint\).is_empty\(\):|if false:|	tests/unit/test_game_manifest.gd	a hint that cannot follow the device ships
+scripts/autoload/qa.gd	s|if found.is_empty\(\) == expect:|if false:|	tests/unit/test_qa_ops.gd	assert_prompt never fails
+scripts/autoload/qa.gd	s|_fail\("no such pad button '%s' \(known: %s\)" % \[|_log.append("no such pad button '%s' (known: %s)" % [|	tests/unit/test_qa_ops.gd	a typo'd pad button reads as a pass

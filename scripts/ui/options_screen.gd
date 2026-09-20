@@ -59,6 +59,9 @@ var _backdrop := ColorRect.new()
 var _frame: UiChrome.Frame = null
 var _select: ColorRect = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
+## Only the two keys this page adds - see setup for why up and down are not named.
+const HELP := "{confirm}: change    {back}: back"
 var _rows: Array[Label] = []
 
 ## The duplicate-event guard every view here has: one press can reach a handler twice in a frame.
@@ -158,7 +161,7 @@ func _build(viewport_size: Vector2i) -> void:
 	# Only the two keys this page adds. Up and down are the same cursor every other menu in the
 	# game teaches, and naming them here cost 60px the window does not have - which the layout
 	# audit refused on its first run.
-	_help.text = "E: change    Esc: back"
+	_help.text = Prompts.fill(HELP, _device)
 	_help.position = Vector2(inner.position.x + float(UiChrome.ROW_INSET),
 		inner.position.y + _menu.size() * ROW_PITCH + HELP_GAP)
 	_frame.panel.add_child(_help)
@@ -186,16 +189,16 @@ func _paint() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _menu == null or _committed or not event.is_pressed() or event.is_echo():
+	if _menu == null or _committed or not InputGate.is_press(event):
 		return
 	if not _gate.accept(event):
 		return
 
-	if event.is_action(&"move_down"):
+	if _gate.pressed(event, &"move_down"):
 		if _menu.move(1):
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
-	elif event.is_action(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		if _menu.move(-1):
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
@@ -232,3 +235,11 @@ func _act(pick: OptionsMenu.Pick) -> void:
 			left.emit()
 		_:
 			_paint()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the line is reworded in place if it is built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	if _help != null:
+		_help.text = Prompts.fill(HELP, _device)

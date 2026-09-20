@@ -29,4 +29,4 @@ party = Array[Resource]([ExtResource("9_party")])
 combat = ExtResource("4_combat")
 sound_style = ExtResource("5_sound")
 hooks = ExtResource("3_hooks")
-controls_hint = "WASD / arrows to walk    E or space to look    Esc to pause"
+controls_hint = "{move} to walk    {confirm} to look    {pause} to pause"

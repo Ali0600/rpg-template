@@ -269,7 +269,7 @@ ran=0
 # a player downloads rather than only in res://.
 for session in quest/the_game_makes_noise quest/talk_to_npc quest/warp_between_maps \
     quest/save_and_load quest/read_the_credits quest/change_the_options \
-    quest/two_in_the_hollow_by_the_sword; do
+    quest/two_in_the_hollow_by_the_sword quest/play_from_the_pad; do
   name="${session#*/}"
   script="$ROOT/tests/fixtures/qa/$session.json"
   [ -f "$script" ] || { echo "FAIL  no such play script: $script"; fail=1; continue; }

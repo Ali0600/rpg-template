@@ -37,6 +37,7 @@ var _backdrop := ColorRect.new()
 var _title: Label = null
 var _blurb: Label = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
 var _frame: UiChrome.Frame = null
 var _select: ColorRect = null
 var _rows: Array[Label] = []
@@ -117,8 +118,8 @@ func _paint() -> void:
 
 	_title.text = "THE ROAD ENDS HERE"
 	_blurb.text = "Someone will find the lantern eventually."
-	_help.text = "W/S to choose    E to pick" if _menu.page() == GameOverMenu.Page.TOP \
-		else "W/S to choose    E to pick    Esc to go back"
+	_help.text = Prompts.fill("{choose} to choose    {confirm} to pick" if _menu.page() == GameOverMenu.Page.TOP \
+		else "{choose} to choose    {confirm} to pick    {back} to go back", _device)
 
 	# The window is as tall as the page it is DRAWING, not as tall as the widest one it could.
 	# Built for the widest - a slot list is longer than two commands - it stood over the first
@@ -157,18 +158,18 @@ func _label_for(at: int) -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _committed or _menu == null or not event.is_pressed() or event.is_echo():
+	if _committed or _menu == null or not InputGate.is_press(event):
 		return
 	if not _gate.accept(event):
 		return
 
-	if event.is_action(&"move_down"):
+	if _gate.pressed(event, &"move_down"):
 		# Only when the cursor actually went somewhere. A list too short to move is a list
 		# where a blip would say "that worked" about nothing happening.
 		if _menu.move(1):
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
-	elif event.is_action(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		if _menu.move(-1):
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
@@ -197,3 +198,10 @@ func _act(pick: GameOverMenu.Pick) -> void:
 			title_requested.emit()
 		_:
 			_paint()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the screen repaints if it is already built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	_paint()

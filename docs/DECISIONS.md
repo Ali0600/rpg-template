@@ -4028,6 +4028,11 @@ hint has faded.
 **Chosen: both, and Menu also CLOSES the pause menu from its top page.** Every Xbox game toggles pause
 on that button, and thirty sessions and every keyboard player's Esc are untouched.
 
+*2026-09-20, after playing it: B removed.* The owner's call at the pad: B is "go back" and there is
+nothing in the world to go back from, so only Menu pauses on the pad. Esc and Tab are unchanged - the
+world refuses a `cancel` that arrived as a pad BUTTON, by class, because a harness action on `cancel`
+is how thirty sessions pause. B still closes the pause menu, which is going back.
+
 - `menu` alone - `rejected — thirty sessions open the menu on cancel, and Esc is muscle memory`.
 - `cancel` alone - `rejected — an Xbox player presses Menu to pause and nothing happens`.
 
@@ -4053,4 +4058,29 @@ fires a stored joypad event only for that pad index or for the `-1` "all devices
 fields to `-1` rather than ship a first-pad-only map - and never through `tools/setup_input_map.gd`,
 whose `ProjectSettings.save()` strips every comment from `project.godot` (`docs/learnings.md`).
 
-As-built findings are appended below, dated, as they land.
+**As built, 2026-09-20 (#197):**
+
+- The map has ELEVEN joypad lines, not twelve - seven buttons and four axes - and it is eleven
+  fields that moved to `-1`. `test_engine_assumptions` presses A from pad index 3: red on the
+  committed file, green after the edit.
+- **Found by reading the engine, then measured:** a joypad motion event matches an action by AXIS
+  (`core/input/input_event.cpp`, "Matches even if not in the same direction, but returns a 'not
+  pressed' event"), and its own `is_pressed()` is the engine's 0.5 toggle, not the action's 0.2.
+  Every cursor here read `is_action(&"move_down")` first, so on the shipped pause screen a real
+  stick pushed UP moved the cursor to row 1 and one held push moved it three rows - one per motion
+  event. No test could see it: every test presses actions. `InputGate.pressed` latches a stick per
+  action and reads the sign; `test_menus_on_a_stick` drives the real event.
+- **The one-speed rule lives in `Locomotion.read_input()`, not in `step()`** as the plan had it.
+  `step()` is also what an NPC's brain walks by, and normalising every vector there changed what a
+  brain's vector means and made the idle-epsilon rule unreachable. The player's axes are
+  normalised at the seam where the map hands them in; a brain still asks for what it asks for.
+- **`ArenaSim.AXIS_THRESHOLD` stays**, as a sector rather than a strength: over the unit vector it
+  now receives, 0.5 is thirty degrees off an axis, and a stick a little off true walks straight.
+  Folding it, as the plan proposed, would have made any off-axis push a diagonal.
+- Adding two ways out of `world` and `paused` re-rolled every seeded walk, and `game_over_new_game`
+  fell out of six walks of twenty-eight; the sweep shows eight walks of twenty-eight cover every
+  edge where six need forty. Eight walks, not longer ones.
+- The hint: 356 design pixels on a 320 window, measured; the four strings are "{move} to walk
+  {confirm} to look    {pause} to pause", 252 and 264 pixels filled. The one keyboard wording
+  that changed anywhere is the save point's "Enter: save", now "E: save".
+- Twenty-one mutants, two older rows re-aimed, all killed; 314 rows scoped and run.

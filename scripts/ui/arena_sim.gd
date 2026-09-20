@@ -37,8 +37,11 @@ const DIAGONAL := 181
 ## The ORDER is part of every replay.
 const WANDER_HEADINGS: Array[Vector2i] = [
 	Vector2i(0, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1)]
-## How far an input axis must be pushed to count. A keyboard is exactly 0 or 1; a stick resting a
-## little off true would otherwise walk every straight line on a diagonal.
+## How much of a push an axis must carry to count. A keyboard is exactly 0 or 1, and since M52 a
+## stick arrives as a UNIT vector (Locomotion.read_input normalises), so this is a sector, not a
+## strength: an axis counts once it carries half the push, which is thirty degrees off the other
+## axis, and a stick a little off true walks straight. It used to be read against the raw axis
+## too, so a push that walked on the map stood still here.
 const AXIS_THRESHOLD := 0.5
 
 

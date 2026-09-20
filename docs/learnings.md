@@ -2618,3 +2618,20 @@ cutting their number to the coverage minimum would have bought speed with the th
 **Takeaway.** When a coverage gate fails after a model change, read which edge it names instead of
 assuming it is the new one, and sweep both dimensions — more seeds and longer walks are different
 instruments. Then check whether the cheapest passing configuration quietly reduces what the gate explores.
+
+### A joypad motion event matches an action by axis, not by direction
+
+In Godot, `event.is_action("move_down")` on a stick event answers "is this event on the axis that
+action is bound to" - a stick pushed UP matches `move_down` too. Only `is_action_pressed()` reads
+the sign, and a motion event's own `is_pressed()` is the engine's 0.5 toggle point, never the
+action's deadzone; a held stick also sends one event per value change.
+
+**Why it came up:** every menu here tested `move_down` first, so a stick pushed up moved the cursor
+down, once per wobble. It was found by reading the engine's `action_match` while planning pad
+support, then measured on the shipped pause screen through a real motion event - and it was
+invisible to 1,740 tests, because every one of them pressed an `InputEventAction`, which names the
+action and never meets the axis.
+
+**Takeaway:** an API that answers a coarser question than the one you asked passes every test
+written in its own terms. Drive the real event CLASS through the real layer once, and read the
+engine's own matching code before trusting what a boolean is called.

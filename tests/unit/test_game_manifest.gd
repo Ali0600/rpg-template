@@ -260,3 +260,29 @@ func test_no_two_shipped_games_share_a_title() -> void:
 			"'%s' and '%s' are both called '%s'" % [seen.get(manifest.title, ""), manifest.id,
 				manifest.title]).is_false()
 		seen[manifest.title] = manifest.id
+
+
+func test_a_hint_naming_a_token_no_device_has_a_word_for_is_reported() -> void:
+	var manifest := _valid()
+	manifest.controls_hint = "{move} to walk    {jump} to jump"
+	var problems := manifest.problems()
+	assert_int(problems.size()).is_equal(1)
+	assert_str(problems[0]).contains("{jump}")
+
+
+func test_a_hint_that_names_no_verb_is_reported() -> void:
+	# A hint typed for one device is wrong for the other, and a hint with no token is one the
+	# words can never follow.
+	var manifest := _valid()
+	manifest.controls_hint = "WASD to walk    E to look"
+	var problems := manifest.problems()
+	assert_int(problems.size()).is_equal(1)
+	assert_str(problems[0]).contains("names no verb")
+
+
+func test_a_hint_written_in_tokens_is_accepted_and_an_empty_one_is_still_legal() -> void:
+	var manifest := _valid()
+	manifest.controls_hint = "{move} to walk    {confirm} to look    {pause} to pause"
+	assert_array(manifest.problems()).is_empty()
+	manifest.controls_hint = ""
+	assert_array(manifest.problems()).is_empty()

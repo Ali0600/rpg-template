@@ -238,9 +238,14 @@ func _drive(adapter: String, next_adapter := "") -> void:
 				await _press(&"interact")
 		"open_pause_by_key":
 			await _press(&"cancel")
+		"open_pause_by_menu":
+			await _press(&"menu")
 		"close_pause":
 			_world._close_pause()
 			await _steps(1)
+		"close_pause_by_menu":
+			# The real key on the top page, where PauseScreen reads it and nowhere else.
+			await _press(&"menu")
 		"open_shop":
 			_world._apply_effects([{"op": GameContext.OP_SHOP, "shop": "smith_shop"}])
 			await _steps(2)
@@ -527,7 +532,7 @@ func test_every_state_can_be_arrived_at_and_left() -> void:
 ## are not only a coverage device. They are the one layer that composes actions without rebuilding
 ## the world, and cutting their number to the coverage minimum would buy speed with the very thing
 ## they exist to find.
-const WALK_SEEDS := 6
+const WALK_SEEDS := 8
 const WALK_LENGTH := 28
 
 

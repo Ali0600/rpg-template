@@ -252,7 +252,7 @@ static func _manifest_text(want: Dictionary, root: String) -> String:
 		refs.append({"type": "Script", "path": _under(root, "games/%s/%s_hooks.gd" % [id, id]),
 			"id": "5_hooks"})
 		body.append('hooks = ExtResource("5_hooks")')
-	body.append('controls_hint = "WASD / arrows to walk    E or space to look    Esc to pause"')
+	body.append('controls_hint = "{move} to walk    {confirm} to look    {pause} to pause"')
 	return _tres("GameManifest", refs, "1_manifest", body, [
 		"%s, scaffolded by tools/new_game.sh." % str(want["title"]),
 		"",

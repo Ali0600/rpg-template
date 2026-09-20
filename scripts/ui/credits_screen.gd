@@ -36,6 +36,7 @@ var _style: SpriteStyle = null
 var _backdrop := ColorRect.new()
 var _frame: UiChrome.Frame = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
 var _rows: Array[Label] = []
 
 ## The duplicate-event guard every view here has: the same event can reach a handler twice in one
@@ -123,18 +124,18 @@ func _paint() -> void:
 	# The page counter lives here rather than in the header band, so the band keeps saying WHAT
 	# this page is while the help line says where you are in it.
 	var many := _menu.page_count() > 1
-	_help.text = "W/S: page %d of %d    Esc: back" % [_menu.index() + 1, _menu.page_count()] \
-		if many else "Esc: back"
+	_help.text = Prompts.fill("{choose}: page %d of %d    {back}: back" % [_menu.index() + 1, _menu.page_count()] \
+		if many else "{back}: back", _device)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _menu == null or _committed or event.is_echo():
+	if _menu == null or _committed or not InputGate.is_press(event):
 		return
 	if not _gate.accept(event):
 		return
-	if event.is_action_pressed(&"move_down") or event.is_action_pressed(&"interact"):
+	if _gate.pressed(event, &"move_down") or event.is_action_pressed(&"interact"):
 		_turn(1)
-	elif event.is_action_pressed(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		_turn(-1)
 	elif event.is_action_pressed(&"cancel"):
 		_committed = true
@@ -150,4 +151,11 @@ func _unhandled_input(event: InputEvent) -> void:
 func _turn(delta: int) -> void:
 	if _menu.move(delta):
 		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
+	_paint()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the screen repaints if it is already built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
 	_paint()

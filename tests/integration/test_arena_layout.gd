@@ -482,25 +482,28 @@ func test_every_style_lays_its_ground_one_texture_pixel_to_a_whole_number_of_win
 	assert_int(checked).is_greater(1)
 
 
-func _binds(action: StringName, key: int) -> bool:
-	for event in InputMap.action_get_events(action):
-		var pressed := event as InputEventKey
-		if pressed != null and (pressed.physical_keycode == key or pressed.keycode == key):
-			return true
-	return false
-
-func test_the_help_line_names_moving_and_swinging_on_keys_that_are_bound() -> void:
+func test_the_help_line_names_moving_and_swinging_in_the_keyboards_words() -> void:
+	# That every word it names is BOUND is test_prompts' binding gate now, over both devices;
+	# this holds the line's own words and that it is drawn.
 	var screen := _screen("dusk16")
-	assert_str(screen._help.text).is_equal(ArenaScreen.HELP)
+	var line := Prompts.fill(ArenaScreen.HELP, Prompts.Device.KEYBOARD)
+	assert_str(screen._help.text).is_equal(line)
 	assert_bool(screen._help.visible).is_true()
 	assert_str(screen._leader_bar.numbers.text).override_failure_message(
 		"the audits are not measuring the widest readout").is_equal("999/999")
-	var words := ArenaScreen.HELP.to_lower().split(" ", false)
+	var words := line.to_lower().split(" ", false)
 	for word: String in ["wasd", "move", "e", "swing"]:
 		assert_bool(words.has(word)).override_failure_message(
-			"the help line '%s' does not say '%s'" % [ArenaScreen.HELP, word]).is_true()
-	# Every key it names does what it says: a shop here once told players to press a key nothing binds.
-	assert_bool(_binds(&"interact", KEY_E)).override_failure_message("E does not swing").is_true()
-	for pair: Array in [[&"move_up", KEY_W], [&"move_left", KEY_A], [&"move_down", KEY_S], [&"move_right", KEY_D]]:
-		assert_bool(_binds(pair[0], int(pair[1]))).override_failure_message(
-			"%s is not on its WASD key" % pair[0]).is_true()
+			"the help line '%s' does not say '%s'" % [line, word]).is_true()
+
+
+func test_the_help_line_in_the_pads_words_still_clears_the_leader_bar() -> void:
+	# "Stick to move" is a character longer than "WASD to move", and the line is laid out from
+	# the room's right edge, so it is the one pad line that moves.
+	var screen := _screen("dusk16")
+	screen.reprompt(Prompts.Device.PAD)
+	assert_str(screen._help.text).is_equal("Stick to move    A to swing")
+	var bar_end: float = screen._leader_bar.root.position.x + screen._leader_bar.width
+	assert_float(screen._help.position.x).override_failure_message(
+		"the pad's help line at x %.1f runs into the leader bar ending at %.1f" % [
+			screen._help.position.x, bar_end]).is_greater(bar_end)

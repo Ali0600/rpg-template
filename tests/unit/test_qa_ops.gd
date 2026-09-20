@@ -317,3 +317,27 @@ func test_a_foes_health_is_read_out_of_the_turn_fights_own_rules() -> void:
 		"every foe answered with the first one's health").contains("found 9")
 	assert_str(Qa._turn_foe_fault(logic, 2, 9)).contains("this fight has 2")
 	assert_str(Qa._turn_foe_fault(logic, -1, 9)).contains("this fight has 2")
+
+
+func test_pressing_a_pad_button_nobody_named_fails() -> void:
+	assert_bool(_complains({"op": "pad_press", "button": "Z"})).override_failure_message(
+		"a typo'd button read as a press").is_true()
+	assert_bool(_complains({"op": "pad_press", "button": "A"})).is_false()
+	Qa._release_all()
+	Qa._steps.clear()
+
+
+func test_a_key_nobody_can_name_is_refused() -> void:
+	assert_bool(_complains({"op": "key_press", "key": "Frobnicate"})).is_true()
+	assert_bool(_complains({"op": "key_press", "key": "Escape"})).is_false()
+	Qa._release_all()
+	Qa._steps.clear()
+
+
+func test_a_prompt_assertion_can_fail_both_ways() -> void:
+	# No world in this suite, so nothing is drawn: "a line says X" must complain and "no line
+	# says X" must be quiet. The pair is what says the instrument reads the screen at all.
+	assert_bool(_complains({"op": "assert_prompt", "contains": "A to pick"})).is_true()
+	assert_bool(_complains({"op": "assert_prompt", "contains": "A to pick", "expect": false})).is_false()
+	assert_bool(_complains({"op": "assert_prompt"})).override_failure_message(
+		"an assert_prompt with nothing to look for passed").is_true()
