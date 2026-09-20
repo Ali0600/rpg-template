@@ -1,17 +1,26 @@
 extends SceneTree
-## Writes the project's input actions into project.godot.
+## The readable SPEC of the project's input actions - and a writer that is never run.
 ##
-## Authoring these by script instead of by hand means no keycode integers are ever typed
-## from memory, and this file doubles as the readable spec for the control scheme. It is
-## also a hard requirement for the scene tests: gdUnit4's
-## `simulate_action_press("move_right")` can only press an action that exists in
-## project.godot, so the map is committed, not generated at boot.
+## Authoring these by script means no keycode integer is ever typed from memory, and the scene
+## tests need the map COMMITTED, not generated at boot: gdUnit4's simulate_action_press can only
+## press an action project.godot already has.
 ##
-## Re-run after changing bindings:
+## DO NOT RE-RUN IT. ProjectSettings.save() writes the whole file back through the engine's own
+## serializer, which drops every comment line project.godot carries (docs/learnings.md: the day it
+## ran it also removed a hand-typed stretch setting). A binding is changed by editing the [input]
+## section's TEXT by hand, and this file beside it so the two still agree; tests/unit/test_prompts.gd
+## holds every printed word to the map, which is the drift gate this file's output never had.
 ##
-##     Godot --headless --path . -s tools/setup_input_map.gd
+## The one thing to know about its output: a joypad event's `device` must be ANY_PAD, InputMap's
+## "all devices" sentinel, or the binding fires for pad index 0 alone (InputMap::_find_event, at the
+## 4.7.1 tag). It shipped as 0 from the first commit until M52, unnoticed by a single Bluetooth pad
+## and by every test, because the harness presses actions rather than buttons.
+##
+##     Godot --headless --path . -s tools/setup_input_map.gd     # spec only - see above
 
 const DEADZONE := 0.2
+## InputMap::ALL_DEVICES, which GDScript cannot name. Prompts.ANY_PAD is the same number.
+const ANY_PAD := -1
 
 
 func _key(keycode: Key) -> InputEventKey:
@@ -25,6 +34,7 @@ func _key(keycode: Key) -> InputEventKey:
 func _button(button: JoyButton) -> InputEventJoypadButton:
 	var e := InputEventJoypadButton.new()
 	e.button_index = button
+	e.device = ANY_PAD
 	return e
 
 
@@ -32,6 +42,7 @@ func _axis(axis: JoyAxis, value: float) -> InputEventJoypadMotion:
 	var e := InputEventJoypadMotion.new()
 	e.axis = axis
 	e.axis_value = value
+	e.device = ANY_PAD
 	return e
 
 

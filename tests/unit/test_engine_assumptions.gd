@@ -286,3 +286,92 @@ func test_hiding_a_canvas_layer_hides_the_control_inside_it() -> void:
 	assert_bool(label.is_visible_in_tree()).is_false()
 	assert_bool(label.visible).is_true()
 	layer.free()
+
+
+func _pad_button(button: JoyButton, down: bool, device := 0) -> InputEventJoypadButton:
+	var e := InputEventJoypadButton.new()
+	e.button_index = button
+	e.pressed = down
+	e.device = device
+	return e
+
+
+func _stick(axis: JoyAxis, value: float, device := 0) -> InputEventJoypadMotion:
+	var e := InputEventJoypadMotion.new()
+	e.axis = axis
+	e.axis_value = value
+	e.device = device
+	return e
+
+
+func test_a_pad_button_parsed_through_the_input_singleton_presses_its_action() -> void:
+	# The harness and every suite press ACTIONS, which never touch the map, so this is the one
+	# place the committed binding for the pad's A is exercised: a map that lost it fails here by
+	# name rather than as a session standing on the title forever.
+	Input.parse_input_event(_pad_button(JOY_BUTTON_A, true))
+	await get_tree().physics_frame
+	var pressed := Input.is_action_pressed(&"interact")
+	Input.parse_input_event(_pad_button(JOY_BUTTON_A, false))
+	await get_tree().physics_frame
+	assert_bool(pressed).override_failure_message("the pad's A did not press interact").is_true()
+	assert_bool(Input.is_action_pressed(&"interact")).is_false()
+
+
+func test_a_pad_button_from_any_pad_index_presses_its_action() -> void:
+	# A stored binding fires only for its own device index or for the -1 "all devices" sentinel
+	# (InputMap::_find_event). Written with index 0, the map answered the first pad and no other -
+	# which a single Bluetooth pad never shows, and a second pad, or one enumerated after another
+	# HID device, shows as a game that ignores it.
+	Input.parse_input_event(_pad_button(JOY_BUTTON_A, true, 3))
+	await get_tree().physics_frame
+	var pressed := Input.is_action_pressed(&"interact")
+	Input.parse_input_event(_pad_button(JOY_BUTTON_A, false, 3))
+	await get_tree().physics_frame
+	assert_bool(pressed).override_failure_message(
+		"a pad that is not index 0 presses nothing - the bindings are written for one pad").is_true()
+
+
+func test_a_stick_inside_the_deadzone_presses_nothing_and_past_it_presses() -> void:
+	Input.parse_input_event(_stick(JOY_AXIS_LEFT_Y, -0.1))
+	await get_tree().physics_frame
+	assert_bool(Input.is_action_pressed(&"move_up")).is_false()
+	assert_float(Input.get_axis(&"move_up", &"move_down")).is_equal(0.0)
+	Input.parse_input_event(_stick(JOY_AXIS_LEFT_Y, -0.9))
+	await get_tree().physics_frame
+	assert_bool(Input.is_action_pressed(&"move_up")).is_true()
+	assert_float(Input.get_axis(&"move_up", &"move_down")).is_less(0.0)
+	Input.parse_input_event(_stick(JOY_AXIS_LEFT_Y, 0.0))
+	await get_tree().physics_frame
+	assert_bool(Input.is_action_pressed(&"move_up")).is_false()
+
+
+func test_a_stick_event_matches_an_action_by_axis_and_carries_its_direction_only_when_pressed() -> void:
+	# is_action() is MEMBERSHIP: a motion on the Y axis "is" move_down whichever way it points, and
+	# only is_action_pressed() reads the sign (core/input/input_event.cpp, "Matches even if not in
+	# the same direction, but returns a 'not pressed' event"). And a motion event's own is_pressed()
+	# is the engine's toggle point, 0.5, never the action's deadzone. Every menu cursor here rests
+	# on both halves, and every one of them used to read the first and be wrong.
+	var up := _stick(JOY_AXIS_LEFT_Y, -1.0)
+	assert_bool(up.is_action(&"move_down")).is_true()
+	assert_bool(up.is_action_pressed(&"move_down")).is_false()
+	assert_bool(up.is_action_pressed(&"move_up")).is_true()
+	assert_bool(_stick(JOY_AXIS_LEFT_Y, -0.4).is_pressed()).is_false()
+	assert_bool(_stick(JOY_AXIS_LEFT_Y, -0.6).is_pressed()).is_true()
+
+
+func test_a_sticks_strength_is_remapped_from_the_deadzone() -> void:
+	# inverse_lerp(deadzone, 1, abs): half a push reads 0.375 at a deadzone of 0.2, which is how a
+	# second threshold downstream (the arena's, once) came to disagree with the map about one stick.
+	Input.parse_input_event(_stick(JOY_AXIS_LEFT_Y, -0.5))
+	await get_tree().physics_frame
+	var strength := Input.get_action_strength(&"move_up")
+	Input.parse_input_event(_stick(JOY_AXIS_LEFT_Y, 0.0))
+	await get_tree().physics_frame
+	assert_float(strength).is_equal_approx(0.375, 0.001)
+
+
+func test_a_key_event_carries_the_keyboard_device_id_and_a_pad_event_does_not() -> void:
+	# Since 4.7 a key is device 16, which is why the committed map reads "device":16 on every key,
+	# and why the device a player is holding is classified by an event's CLASS, never that number.
+	assert_int(InputEventKey.new().device).is_equal(InputEvent.DEVICE_ID_KEYBOARD)
+	assert_int(InputEventJoypadButton.new().device).is_equal(0)
