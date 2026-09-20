@@ -344,6 +344,54 @@ whole machine, and state thirteen is covered with no edit to the model - and pin
 child's own `visible` stays true, which is why the gate reads `is_visible_in_tree()` and not the
 property that was just set.
 
+**A pad plays the demo, and every word on screen follows the device in hand** (M52). The input map
+has bound an Xbox pad since the first commit - the D-pad and the left stick on the four moves, A on
+`interact`, B on `cancel`, Start (the pad's "Menu" button) on `menu` - and nothing exercised it until
+M52: the harness presses ACTIONS, which name the action and skip the map, so the bindings were
+written for pad index 0 alone (`"device":0`; the engine fires a stored pad event only for that index
+or for the `-1` "all devices" sentinel, `InputMap::_find_event`) and no test could see it. **The map
+is edited by hand and never through `tools/setup_input_map.gd`**, whose `ProjectSettings.save()`
+strips every comment from `project.godot`; that file is the readable spec, and `Prompts.STANDS_FOR`
+with `test_prompts` is the drift gate it never had - every word a help line prints names the event
+on the action it stands for, held against the map in both devices, and every pad binding is held to
+`device == -1`.
+
+**Prompts are templates, and the device is the last one that spoke.** Every help line is written in
+`Prompts`' tokens - `{choose} to choose    {confirm} to pick    {back} to go back` - and `fill()`
+writes the words for the device in hand: W/S, E and Esc, or D-pad, A and B (Xbox letters, since
+Godot's own `JoyButton` constants are that layout; a PlayStation or Switch table keyed by
+`Input.get_joy_name` is the hook, `docs/DECISIONS.md` M52). `{pause}` is the one verb whose action
+differs by device: Esc on `cancel`, Menu on `menu`. `GameManifest.controls_hint` is data in the same
+tokens, and `problems()` refuses a hint naming a token no device has a word for, or naming none.
+`fill` is applied to help templates and the hint ONLY - never to an item's description, a
+candidate's effect or anything from data; the pause screen fills each template at its own return.
+`world_scene._input` classifies every event by its CLASS (never its device id: a key is 16 since
+4.7), a stick only past the map's own deadzone read once at `_ready`, and a harness
+`InputEventAction` says nothing, so a scripted session stays where it was. It is a READING that
+consumes nothing and never goes through `_gate`, which would swallow the press `_unhandled_input`
+is about to read. On a change it runs `reprompt(device)` over every CanvasLayer child that answers
+it - the `_rebind_style` driver - and `_mount_ui` does the same at mount, so a screen opened after
+the switch opens in the right words with no call site per screen; `test_prompts_follow_the_pad`
+asserts membership over whatever is up. `ControlsHint` has a width now (`text_width`, the window
+less a margin either side), clips and ellipsises to it, and `test_controls_fit` measures every
+manifest's hint on disk in both devices' words: the shipped hint drew 356 design pixels on a 320
+window, "pause" off the edge, from the first commit until it was measured.
+
+**A stick matches an action by AXIS, and a menu reads it through the gate.** `is_action()` is
+membership - a motion on the Y axis "is" `move_down` whichever way it points - and only
+`is_action_pressed()` carries the sign; a motion event's own `is_pressed()` is the engine's 0.5
+toggle point, never the action's deadzone; and a held stick sends one event per value change
+(`core/input/input_event.cpp` at the 4.7.1 tag, pinned by `test_engine_assumptions`). Every cursor
+here read the first and tested `move_down` first, so a stick pushed up moved the cursor DOWN, once
+per wobble - measured on the shipped pause screen through a real motion event, and invisible to
+every test because every test pressed actions. So a screen opens its handler with
+`InputGate.is_press(event)` (a motion event always passes, or its release never reaches the latch)
+and reads a cursor through `_gate.pressed(event, action)` and nothing else - `test_prompts` reads
+`scripts/ui/` for any other cursor read. One walking speed past the map's deadzone:
+`Locomotion.read_input()` hands the game a DIRECTION, never a fraction, and it lives at that seam
+rather than in `step()`, which is also what an NPC's brain walks by. `ArenaSim.AXIS_THRESHOLD` is
+therefore a sector over a unit vector - thirty degrees off an axis - and not a strength.
+
 `_ui_size()` returns the DESIGN size and never the live viewport. A screen that measured the
 viewport would space its rows twice as far apart in a 640x360 world and put its help line off the
 bottom - and every layout gate, which measures at 320x180, would still pass.
@@ -1583,6 +1631,10 @@ validator that has only ever passed is decoration.
   the machine is. It fails as a mutation BASELINE FAILURE, which reads like a broken test.
 - A simulated `InputEventAction` needs its matching RELEASE, the way `Qa.press` inserts one.
   An action left held is still held at the next press, and the engine sees no change.
+- **`pad_press`, `stick` and `key_press` press REAL events through the input map**, and
+  `assert_prompt` reads what is drawn; `press` is an action and says nothing about a device.
+  `play_from_the_pad.json` is the one session that proves a pad button reaches the game, and it is
+  in `pack_check.sh`'s list because the pack's input map is the deployed one.
 - **Never navigate a menu by counting presses.** `move(PauseMenu.Row.SAVE)` and not `move(1)`:
   inserting a row re-aims every counting test at whatever now sits there, silently and while
   still passing. M12 turned a "refuse to load" test into one that SAVED a slot that way. The
@@ -2052,8 +2104,9 @@ rule:
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --qa-script=res://tests/fixtures/qa/quest/talk_to_npc.json --game=quest
 ```
 
-Other headless tools: `setup_input_map.gd` (rewrites the input map — re-run after changing
-bindings), `lint_rules.gd`, `compile_all.gd`, `smoke_boot.gd`, `screenshot.gd` (needs a real
+Other headless tools: `setup_input_map.gd` (the readable spec of the input map - NEVER re-run, since
+`ProjectSettings.save()` strips every comment from `project.godot`; edit the `[input]` text by hand,
+and `test_prompts` holds it), `lint_rules.gd`, `compile_all.gd`, `smoke_boot.gd`, `screenshot.gd` (needs a real
 rendering driver, so not headless and not in CI). `tools/_engine.sh` resolves the engine;
 `GODOT_BIN` overrides it. The Godot MCP is an accelerator for interactive work, **never** a
 dependency of the build.
