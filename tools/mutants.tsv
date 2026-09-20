@@ -1113,3 +1113,4 @@ scripts/autoload/qa.gd	s|return "assert_foe_hp names foe %d and this fight has %
 scripts/autoload/qa.gd	s|var standing := sim.foe_hp\(at\)|var standing := sim.foe_hp(0)|	tests/unit/test_qa_ops.gd	every foe on the floor answers with the first one's health, so naming a foe means nothing
 scripts/autoload/qa.gd	s|var standing := logic.enemy_hp\(at\)|var standing := logic.enemy_hp(0)|	tests/unit/test_qa_ops.gd	every foe in a turn fight answers with the first one's health, so naming a foe means nothing
 scripts/world/world_scene.gd	s|&"fled" if outcome == BattleLogic.Outcome.FLED else &"victory"|\&"victory"|	tests/integration/test_flow_model.gd	a fight that was run from announces itself as a victory, and the two outcomes become one
+scripts/world/locomotion.gd	s|return raw.normalized\(\)|return raw|	tests/unit/test_locomotion.gd	a stick half pushed walks at half speed on the map

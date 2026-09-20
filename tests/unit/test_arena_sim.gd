@@ -121,7 +121,11 @@ func test_a_second_of_walking_covers_the_walk_speed_and_a_diagonal_is_not_faster
 	assert_vector(diagonal.player_pos() - Vector2i(U, U)).is_equal(Vector2i(543, 543))
 
 func test_an_input_counts_once_pushed_half_way_and_a_tie_goes_sideways() -> void:
+	# A unit vector a little off true walks straight: the threshold is a sector of the push, not a
+	# strength, now that read_input normalises what the map lets through.
 	assert_vector(ArenaSim.heading_of(Vector2(0.3, -1.0), true)).is_equal(Vector2i(0, -1))
+	assert_vector(ArenaSim.heading_of(Vector2.ZERO, true)).override_failure_message(
+		"no input at all walked the arena's player").is_equal(Vector2i(0, 0))
 	assert_vector(ArenaSim.heading_of(Vector2(1.0, 1.0), true)).is_equal(Vector2i(1, 1))
 	assert_vector(ArenaSim.heading_of(Vector2(1.0, 1.0), false)).is_equal(Vector2i(1, 0))
 	assert_vector(ArenaSim.heading_of(Vector2(-0.6, 0.9), false)).is_equal(Vector2i(-1, 0))

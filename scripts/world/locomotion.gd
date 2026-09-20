@@ -59,12 +59,20 @@ static func axis_locked(move: Vector2) -> Vector2:
 	return Vector2(0.0, signf(move.y))
 
 
-## Reads the four movement actions into an axis pair. The only place the action names are
-## spelled, so a rebind is one edit and a rename cannot half-apply.
+## Reads the four movement actions into a DIRECTION: a unit vector, or zero. The only place the
+## action names are spelled, so a rebind is one edit and a rename cannot half-apply.
+##
+## Normalised HERE, at the seam where the map hands the player's axes in, and not in step(): one
+## walking speed for keys, D-pad and stick is a rule about the player (M52, the owner's call),
+## and step() is also what an NPC's brain walks by. Past the input map's deadzone a gentle push
+## is a direction and nothing more; inside it get_axis reads exactly zero, and zero normalised
+## is zero. A stick used to arrive at its own fraction of the speed, walking gently on the map
+## and standing still in the arena - one stick, two feels, and nobody had played either.
 static func read_input() -> Vector2:
-	return Vector2(
+	var raw := Vector2(
 		Input.get_axis(&"move_left", &"move_right"),
 		Input.get_axis(&"move_up", &"move_down"))
+	return raw.normalized()
 
 
 ## The action that walks toward `d`: the other half of read_input(), for anything that has to PRESS

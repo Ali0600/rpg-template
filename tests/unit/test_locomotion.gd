@@ -32,11 +32,39 @@ func test_a_diagonal_is_not_faster_than_a_straight_line() -> void:
 	var diagonal := Locomotion.step(Vector2(1.0, 1.0), D.DOWN, _config)
 	assert_float(diagonal.velocity.length()).is_equal_approx(straight.velocity.length(), 0.01)
 
-func test_a_partial_stick_deflection_is_not_scaled_up() -> void:
-	# Only vectors LONGER than one are normalised: a gamepad held gently must still walk
-	# gently, or every analogue stick becomes a digital one.
+func test_a_partial_vector_handed_to_step_is_not_scaled_up() -> void:
+	# step() scales only vectors LONGER than one, so a caller asking for a gentle walk gets one.
+	# This is a fact about step() and its callers, no longer about a stick: the player's axes are
+	# normalised in read_input() before they get here, which the test below holds.
 	var gentle := Locomotion.step(Vector2(0.4, 0.0), D.DOWN, _config)
 	assert_float(gentle.velocity.length()).is_equal_approx(_config.walk_speed_px() * 0.4, 0.01)
+
+
+func _stick(axis: JoyAxis, value: float) -> void:
+	var e := InputEventJoypadMotion.new()
+	e.axis = axis
+	e.axis_value = value
+	Input.parse_input_event(e)
+
+
+func test_the_stick_is_read_as_a_direction_at_one_speed() -> void:
+	# One walking speed for keys, D-pad and stick (M52, the owner's call): past the input map's
+	# deadzone a gentle push is a direction and nothing more. It used to arrive at 0.4 of the
+	# speed - a rule an agent wrote - while the arena ignored the same push: one stick, two feels.
+	_stick(JOY_AXIS_LEFT_Y, -0.4)
+	await get_tree().physics_frame
+	var gentle := Locomotion.read_input()
+	_stick(JOY_AXIS_LEFT_X, 0.4)
+	await get_tree().physics_frame
+	var diagonal := Locomotion.read_input()
+	_stick(JOY_AXIS_LEFT_Y, 0.0)
+	_stick(JOY_AXIS_LEFT_X, 0.0)
+	await get_tree().physics_frame
+	var rest := Locomotion.read_input()
+	assert_vector(gentle).override_failure_message(
+		"a stick half pushed up read as %s, not as straight up at full length" % gentle).is_equal(Vector2(0.0, -1.0))
+	assert_float(diagonal.length()).is_equal_approx(1.0, 0.001)
+	assert_vector(rest).is_equal(Vector2.ZERO)
 
 func test_releasing_the_keys_keeps_the_facing() -> void:
 	# Otherwise the character snaps back to front-facing every time you stop, which reads as
