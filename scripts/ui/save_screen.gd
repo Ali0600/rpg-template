@@ -41,6 +41,9 @@ var _style: SpriteStyle = null
 var _frame: UiChrome.Frame = null
 var _panel: Panel = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
+## Both verbs on this page, in the words of the device in hand.
+const HELP := "{confirm}: save    {back}: leave"
 var _select: ColorRect = null
 var _rows: Array[Label] = []
 
@@ -108,7 +111,7 @@ func _build(viewport_size: Vector2i, title: String) -> void:
 		_rows.append(row)
 
 	_help = UiChrome.label(_style, "dim")
-	_help.text = "Enter: save    Esc: leave"
+	_help.text = Prompts.fill(HELP, _device)
 	_help.position = Vector2(inner.position.x, inner.position.y + count * ROW_PITCH)
 	_panel.add_child(_help)
 
@@ -172,3 +175,11 @@ func selected_row() -> Label:
 	if at < 0 or at >= _rows.size():
 		return null
 	return _rows[at]
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the line is reworded in place if it is built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	if _help != null:
+		_help.text = Prompts.fill(HELP, _device)

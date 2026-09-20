@@ -90,7 +90,7 @@ func test_the_keyboard_lines_are_the_ones_that_shipped() -> void:
 	var k := Prompts.Device.KEYBOARD
 	assert_str(Prompts.fill("{choose} to choose    {confirm} to pick    {back} to resume", k)) \
 		.is_equal("W/S to choose    E to pick    Esc to resume")
-	assert_str(Prompts.fill("{move} to move    {confirm} to swing", k)).is_equal("WASD to move    E to swing")
+	assert_str(Prompts.fill(ArenaScreen.HELP, k)).is_equal("WASD to move    E to swing")
 	assert_str(Prompts.fill("{choose} to choose    {confirm} to take    {back} to go back", k)) \
 		.is_equal("W/S to choose    E to take    Esc to go back")
 	assert_str(Prompts.fill("{confirm}: change    {back}: back", k)).is_equal("E: change    Esc: back")

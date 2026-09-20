@@ -41,8 +41,8 @@ const LEADER_BAR_WIDTH := 40.0
 const READOUT_CAPACITY := 999
 ## A protected body is shown this many frames and hidden this many, for as long as it lasts.
 const FLICKER_SPAN := 2
-## Both verbs, on the keys they are bound to, in the help line every other screen here uses.
-const HELP := "WASD to move    E to swing"
+## Both verbs, in the words of the device in hand, in the help line every other screen here uses.
+const HELP := "{move} to move    {confirm} to swing"
 ## Tagged on the floor's own layers - the drawn slash, and the ground - so the layout audit treats
 ## them the way it treats bodies: things whose overlapping IS the fight rather than a fault.
 const FIELD := &"arena_field"
@@ -77,6 +77,9 @@ var _panel: UiChrome.Frame = null
 var _leader_name: Label = null
 var _leader_bar: UiChrome.Bar = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
+## The room's right edge, which the help line is laid against - kept so a reworded line can be re-laid.
+var _help_right := 0.0
 var _gate := InputGate.new()
 ## A press of the sword button since the last tick, handed to the rules as one frame's request.
 var _swing_pressed := false
@@ -292,9 +295,10 @@ func _build_panel(wide: float, top: float) -> void:
 	_leader_bar.root.position = Vector2(room.position.x + _text_width(_leader_name) + 8.0,
 		room.position.y + 3.0)
 	_help = UiChrome.label(_style, "dim")
-	_help.text = HELP
 	_panel.panel.add_child(_help)
-	_help.position = Vector2(room.end.x - _text_width(_help), room.position.y)
+	_help_right = room.end.x
+	_help.position = Vector2(0.0, room.position.y)
+	_place_help()
 
 
 func _make_view(source: SpriteSource, character: StringName, drawn: float) -> SpriteView:
@@ -435,3 +439,18 @@ static func _pixels(units: Vector2i) -> Vector2:
 func _text_width(label: Label) -> float:
 	return label.get_theme_font("font").get_string_size(label.text,
 		HORIZONTAL_ALIGNMENT_LEFT, -1.0, label.get_theme_font_size("font_size")).x
+
+
+## The line in the device's words, laid against the room's right edge: the pad's "Stick to move"
+## is a character wider than "WASD to move", so a reworded line is re-laid rather than left.
+func _place_help() -> void:
+	_help.text = Prompts.fill(HELP, _device)
+	_help.position.x = _help_right - _text_width(_help)
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the line is reworded in place if it is built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	if _help != null:
+		_place_help()

@@ -59,6 +59,7 @@ var _purse: Label = null
 var _desc: Label = null
 var _keeper: Label = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
 var _select: ColorRect = null
 var _rows: Array[Label] = []
 var _prices: Array[Label] = []
@@ -211,7 +212,7 @@ func _paint() -> void:
 	_keeper.text = _menu.line()
 	# The keys this game actually binds. It said "Z: take" for eighteen milestones, and nothing
 	# is bound to Z - a player following it exactly would conclude the counter was broken.
-	_help.text = "W/S to choose    E to take    Esc to go back"
+	_help.text = Prompts.fill("{choose} to choose    {confirm} to take    {back} to go back", _device)
 
 	_select.visible = false
 	for i in _rows.size():
@@ -294,3 +295,10 @@ func _act(deal: ShopMenu.Deal) -> void:
 			else:
 				sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 			_paint()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the screen repaints if it is already built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	_paint()

@@ -48,6 +48,7 @@ var _frame: UiChrome.Frame = null
 var _select: ColorRect = null
 var _rows: Array[Label] = []
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
 
 var _gate := InputGate.new()
 
@@ -157,8 +158,8 @@ func _paint() -> void:
 	_backdrop.color = _style.ui_color("panel")
 	_heading.add_theme_color_override("font_color", text)
 	_help.add_theme_color_override("font_color", dim)
-	_help.text = "W/S to choose    E to pick" if _menu.page() == TitleMenu.Page.TOP \
-		else "W/S to choose    E to pick    Esc to go back"
+	_help.text = Prompts.fill("{choose} to choose    {confirm} to pick" if _menu.page() == TitleMenu.Page.TOP \
+		else "{choose} to choose    {confirm} to pick    {back} to go back", _device)
 
 	# The window is as tall as the page it is DRAWING, not as tall as the widest one it could.
 	# Built for the widest - a slot list is longer than two commands - it stood over the first
@@ -241,3 +242,10 @@ func _act(pick: SlotMenu.Pick) -> void:
 			switch_requested.emit()
 		_:
 			_paint()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the screen repaints if it is already built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	_paint()

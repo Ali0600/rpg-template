@@ -116,6 +116,7 @@ var _logic: BattleLogic = null
 var _style: SpriteStyle = null
 var _backdrop := ColorRect.new()
 var _help := Label.new()
+var _device := Prompts.Device.KEYBOARD
 var _cue := Label.new()
 var _message := Label.new()
 
@@ -681,21 +682,22 @@ func _label_for(at: int) -> String:
 func _help_text() -> String:
 	match _logic.phase():
 		BattleLogic.Phase.SPELLS:
-			return "W/S to choose    E to cast    Esc to go back"
+			return Prompts.fill("{choose} to choose    {confirm} to cast    {back} to go back", _device)
 		BattleLogic.Phase.ITEMS:
-			return "W/S to choose    E to use    Esc to go back"
+			return Prompts.fill("{choose} to choose    {confirm} to use    {back} to go back", _device)
 		BattleLogic.Phase.ALLY:
-			return "W/S to choose who    E to confirm    Esc to go back"
+			return Prompts.fill("{choose} to choose who    {confirm} to confirm    {back} to go back", _device)
 		BattleLogic.Phase.FOE:
-			return "W/S to choose a foe    E to strike    Esc to go back"
+			return Prompts.fill("{choose} to choose a foe    {confirm} to strike    {back} to go back", _device)
 		BattleLogic.Phase.MENU:
 			# Whose turn it is, once there is more than one member to ask - without it a player
 			# with two fighters has to infer from the marker which menu this is.
 			if _logic.member_count() > 1 and _logic.commander() >= 0:
-				return "%s: W/S to choose    E to pick" % _logic.member_name(_logic.commander())
-			return "W/S to choose    E to pick"
+				return "%s: %s" % [_logic.member_name(_logic.commander()),
+					Prompts.fill("{choose} to choose    {confirm} to pick", _device)]
+			return Prompts.fill("{choose} to choose    {confirm} to pick", _device)
 		BattleLogic.Phase.PLAYER_ACT, BattleLogic.Phase.ENEMY_ACT:
-			return "E on the !"
+			return Prompts.fill("{confirm} on the !", _device)
 		_:
 			return ""
 
@@ -718,3 +720,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	_paint()
 	get_viewport().set_input_as_handled()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the screen repaints if it is already built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	_paint()

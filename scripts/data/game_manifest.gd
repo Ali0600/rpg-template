@@ -91,12 +91,15 @@ extends Resource
 ## and what every session recorded before M32 still hears.
 @export var game_over_music: StringName = &""
 
-## The one line of on-screen help. It belongs to the game because it names the game's verbs:
-## "E or space to talk" is wrong for a game whose button does anything else.
 ## What the player starts with in their purse. Beside start_map and start_spawn because it is
 ## the same kind of fact - where the game begins - and a game with no economy leaves it zero.
 @export var starting_gold: int = 0
 
+## The one line of on-screen help, written in Prompts' tokens - "{move} to walk    {confirm} to
+## look    {pause} to pause" - and filled for the device in the player's hands. It belongs to the
+## game because it names the game's VERBS: "to talk" is wrong for a game whose button does
+## anything else. The keys are the template's: a hint that typed "E" would be wrong for a player
+## holding a pad, so problems() refuses a hint naming no token, or a token no device has a word for.
 @export var controls_hint: String = ""
 
 ## This game's own code: a GameHooks subclass, living under games/<id>/. Null is normal - a
@@ -131,6 +134,12 @@ func problems() -> Array[String]:
 		out.append("manifest has no id")
 	if starting_gold < 0:
 		out.append("manifest '%s' starts the player %d gold in debt" % [id, starting_gold])
+	for token in Prompts.unknown_tokens(controls_hint):
+		out.append("manifest '%s' has a controls_hint naming '{%s}', which no device has a word for (known: %s)" % [
+			id, token, ", ".join(PackedStringArray(Prompts.TOKENS.keys()))])
+	if not controls_hint.is_empty() and Prompts.tokens_of(controls_hint).is_empty():
+		out.append("manifest '%s' has a controls_hint that names no verb, so it cannot follow the player's device: '%s'" % [
+			id, controls_hint])
 	if String(start_map).is_empty():
 		out.append("manifest '%s' names no start_map" % id)
 		return out

@@ -84,6 +84,7 @@ var _backdrop := ColorRect.new()
 var _frame: UiChrome.Frame = null
 var _select: ColorRect = null
 var _help: Label = null
+var _device := Prompts.Device.KEYBOARD
 var _rows: Array[Label] = []
 var _purse: Label = null
 var _stats: Label = null
@@ -373,11 +374,11 @@ func _help_for(page: PauseMenu.Page) -> String:
 		var row: PauseMenu.ItemRow = _menu.item(_menu.index())
 		if row != null and not row.description.is_empty():
 			return row.description
-		return "W/S to choose    Esc to go back"
+		return Prompts.fill("{choose} to choose    {back} to go back", _device)
 	if page == PauseMenu.Page.STATUS:
 		# No "E to pick": there is nothing on this page to press, and a hint offering a verb
 		# the page does not have is the menu lying about itself.
-		return "Esc to go back"
+		return Prompts.fill("{back} to go back", _device)
 	if page == PauseMenu.Page.EQUIP_PICK:
 		# What the press would DO, before the press that does it - the compare every equip
 		# screen has, and the whole reason a candidate list is worth walking.
@@ -389,10 +390,10 @@ func _help_for(page: PauseMenu.Page) -> String:
 	if page == PauseMenu.Page.EQUIP and _menu.has_members():
 		# Whose gear is on screen. Without it, a party's two equipment pages look identical
 		# until you read the item names.
-		return "%s    Esc to go back" % _menu.member_name()
+		return "%s    %s" % [_menu.member_name(), Prompts.fill("{back} to go back", _device)]
 	if page == PauseMenu.Page.TOP:
-		return "W/S to choose    E to pick    Esc to resume"
-	return "W/S to choose    E to pick    Esc to go back"
+		return Prompts.fill("{choose} to choose    {confirm} to pick    {back} to resume", _device)
+	return Prompts.fill("{choose} to choose    {confirm} to pick    {back} to go back", _device)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -461,3 +462,10 @@ func _act(pick: PauseMenu.Pick) -> void:
 			options_requested.emit()
 		_:
 			_paint()
+
+
+## The device in the player's hands, for the words the help line uses. Handed in by the world at
+## mount and again whenever the device changes; the screen repaints if it is already built.
+func reprompt(device: Prompts.Device) -> void:
+	_device = device
+	_paint()
