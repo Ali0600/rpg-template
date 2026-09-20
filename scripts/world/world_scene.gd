@@ -889,8 +889,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# Inside the same guard as interacting, so the pause menu cannot be opened from inside a
 	# conversation - Router already refuses world input while one is on screen, and the dialog
-	# box consumes `cancel` itself.
-	if event.is_action(&"cancel"):
+	# box consumes `cancel` itself. `menu` beside it since M52: Start is the pad's "Menu" button
+	# and the Xbox pause convention, and Tab, bound to it from the first commit, was read by nothing.
+	if event.is_action(&"cancel") or event.is_action(&"menu"):
 		if open_pause():
 			get_viewport().set_input_as_handled()
 		return

@@ -39,7 +39,7 @@
 		"naming it on all twelve vertices is twelve places to forget it on the thirteenth. A rule",
 		"true of the whole machine belongs to the whole machine: test_flow_model._hint_fault.",
 		"",
-		"WALKS. Since M31 the same edges are also driven in SEQUENCES: six seeded walks of",
+		"WALKS. Since M31 the same edges are also driven in SEQUENCES: eight seeded walks of",
 		"twenty-eight steps, on one world that is never rebuilt between them, asserting the same",
 		"trace and the same invariants after every step. Per-edge checking is silent about",
 		"anything that only goes wrong on a second visit - it found a pause screen and a shop",
@@ -242,6 +242,32 @@
 				]
 			],
 			"adapter": "close_pause"
+		},
+		{
+			"action": "open_pause_by_menu",
+			"from": "world",
+			"to": "paused",
+			"trace": [
+				[
+					"world",
+					"paused"
+				]
+			],
+			"adapter": "open_pause_by_menu",
+			"note": "Driven by the real menu key (Tab; Start, the Menu button, on a pad), which is a second guard beside cancel's in _unhandled_input and proven by nothing else. Since M52."
+		},
+		{
+			"action": "close_pause_by_menu",
+			"from": "paused",
+			"to": "world",
+			"trace": [
+				[
+					"paused",
+					"world"
+				]
+			],
+			"adapter": "close_pause_by_menu",
+			"note": "The pad's Menu button toggles: pressed on the pause menu's top page it closes what it opened. Driven by the real key, because PauseScreen reads it on that page and no other. Since M52."
 		},
 		{
 			"action": "open_shop",

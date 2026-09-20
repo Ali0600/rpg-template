@@ -414,6 +414,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action(&"interact"):
 		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_CONFIRM))
 		_act(_menu.confirm())
+	elif event.is_action(&"menu") and _menu.page() == PauseMenu.Page.TOP:
+		# The pad's Menu button toggles: it opened this, and on the top page it closes it too, the
+		# way every Xbox game does. Inside a page it does nothing - B goes back one page, and
+		# Menu would have to choose between that and closing everything.
+		_act(_menu.cancel())
 	elif event.is_action(&"cancel"):
 		_act(_menu.cancel())
 	else:
