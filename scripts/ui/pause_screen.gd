@@ -396,18 +396,18 @@ func _help_for(page: PauseMenu.Page) -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _committed or not event.is_pressed() or event.is_echo():
+	if _committed or not InputGate.is_press(event):
 		return
 	if not _gate.accept(event):
 		return
 
-	if event.is_action(&"move_down"):
+	if _gate.pressed(event, &"move_down"):
 		# Only when the cursor actually went somewhere. A list too short to move is a list
 		# where a blip would say "that worked" about nothing happening.
 		if _menu.move(1):
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()
-	elif event.is_action(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		if _menu.move(-1):
 			sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint()

@@ -331,7 +331,7 @@ func _fully_revealed() -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or not event.is_pressed() or event.is_echo():
+	if not visible or not InputGate.is_press(event):
 		return
 	# One event, one action. A conversation advanced twice by one press skips a line, which
 	# reads as missing dialogue rather than as a double-fire.
@@ -362,11 +362,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _choice_input(event: InputEvent, line: DialogRunner.Line) -> void:
 	var count := line.choices.size()
-	if event.is_action(&"move_down"):
+	if _gate.pressed(event, &"move_down"):
 		_choice_index = (_choice_index + 1) % count
 		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint_choices()
-	elif event.is_action(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		_choice_index = (_choice_index + count - 1) % count
 		sound_wanted.emit(Sfx.id_of(Sfx.Cue.MENU_MOVE))
 		_paint_choices()

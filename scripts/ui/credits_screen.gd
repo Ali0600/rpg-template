@@ -128,13 +128,13 @@ func _paint() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _menu == null or _committed or event.is_echo():
+	if _menu == null or _committed or not InputGate.is_press(event):
 		return
 	if not _gate.accept(event):
 		return
-	if event.is_action_pressed(&"move_down") or event.is_action_pressed(&"interact"):
+	if _gate.pressed(event, &"move_down") or event.is_action_pressed(&"interact"):
 		_turn(1)
-	elif event.is_action_pressed(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		_turn(-1)
 	elif event.is_action_pressed(&"cancel"):
 		_committed = true

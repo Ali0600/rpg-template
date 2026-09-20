@@ -701,14 +701,14 @@ func _help_text() -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _committed or _logic == null or not event.is_pressed() or event.is_echo():
+	if _committed or _logic == null or not InputGate.is_press(event):
 		return
 	if not _gate.accept(event):
 		return
 
-	if event.is_action(&"move_down"):
+	if _gate.pressed(event, &"move_down"):
 		_logic.move(1)
-	elif event.is_action(&"move_up"):
+	elif _gate.pressed(event, &"move_up"):
 		_logic.move(-1)
 	elif event.is_action(&"interact"):
 		_logic.press()
