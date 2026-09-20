@@ -59,6 +59,7 @@ secondary sources only, marked wherever it is cited. Neither is a reference for 
 | [Terrain](#15-terrain) | One tile per cell, and edges between materials drawn as their own tiles | Hand-drawn LPC ground at 32px; a cell is still one id, and the 47 edge shapes are composed from quarters into the atlas | **matches** — water and path both carry a ring and their boundary is drawn from one side, which is the [named divergence](DECISIONS.md) from a true blend |
 | [Interface chrome](#16-interface-chrome-and-the-anatomy-of-a-battle-screen) | Framed windows with header bands, a highlight cursor, coloured HP/MP, portraits | All of it, on every screen: one pixel font, framed windows with bands, a cursor bar, gold HP and violet MP, and faces in the fight, the menu and the conversation | **met** (M42) — the enemy-bar and save-slot divergences are [recorded](DECISIONS.md) |
 | [Options](#16b-options-where-a-player-changes-the-game-and-what-they-may-change) | A settings surface, on the title or in the field menu, with text speed and often the window's own look | An Options screen reached from both, carrying Sound and a named window palette | **met** (M46) — [palettes rather than colour bars, and a cycling row rather than an axis](DECISIONS.md); no text speed |
+| [Controls & prompts](#17-controls-and-prompts) | Buttons named by the pad's own letters, beside the thing they do, and no controls line; a modern PC game draws the detected pad's glyphs | A help line on every screen and a walk hint, written in tokens and filled for the keyboard or an Xbox pad, following the last device used | **in progress** (M52) - [words rather than glyphs, and the device in hand rather than a setting](DECISIONS.md); the build follows this entry |
 | [Music](#14-music) | Per-area themes, battle theme, fanfare | Three generated tracks per style: a road theme, a battle theme, and a fanfare that hands the room back | **met** (M24, M26) |
 
 Two rules about this table. A **gap** is a backlog candidate, not a defect — the template
@@ -1711,6 +1712,85 @@ M51.
 
 ---
 
+## 17. Controls and prompts
+
+Added in M52, before an Xbox controller was made a first-class way to play. Nothing above says how a
+reference game tells the player which button does what, or what happens to that telling when the
+player picks up a different device.
+
+**Sources note.** Two disassemblies at the commits §7e pins, marked **(a)**: Pokémon Red and Blue
+(`pret/pokered` at `a1a22aa`) and Final Fantasy VI (`everything8215/ff6` at `8130132`); the two Zeldas
+as already read in §7d. Chrono Trigger from a transcription of its SNES manual, marked **(b)**. Three
+modern games from their players' reports on Steam, a developer's support page and a wiki, marked
+**(b)**: Hades, Sea of Stars, Stardew Valley. PC Gaming Wiki, which tabulates prompt behaviour per game,
+answered **403 Forbidden** to every fetch on 2026-09-20 and is not cited.
+
+- **(a) Pokémon names the console's own buttons, in prose, on signs - and prints no controls line.**
+  The whole of the game's teaching of its controls is three TRAINER TIPS signs: "Press the START
+  Button to check remaining time!" (`text/SafariZoneCenter.asm`), "Pressing B Button during evolution
+  cancels the whole process." (`text/CeruleanCity.asm`) and "Use SELECT to switch items in the ITEM
+  window!" (`text/Route13.asm`). Grepping `text/` for "A Button", "B Button" and "START" finds those and
+  nothing else: no screen carries a line saying what to press, and the code reads the pad by its
+  letters (`engine/menus/pokedex.asm`: "menu watched keys (A button and B button)").
+- **(a) Final Fantasy VI's one in-game controls surface is a Config row, and it is about how many
+  pads, not which button.** The Config page's `Controller` row toggles `Single` / `Multiple`
+  (`src/menu/menu_text.en.inc`: `CONFIG_CONTROLLER`, `CONFIG_CTRL_SINGLE`, `CONFIG_CTRL_MULTI`), with a
+  per-character controller select behind it (`src/menu/config.asm`, "character controller select",
+  menu states `$4b`-`$4c`). A custom button mapping exists in the code and is assembled OUT of the
+  English build: `ChangeConfigOption_08j`, "change custom controller mapping setting", sits under
+  `.if !LANG_EN`. Every handler names its button by the pad's letter in a comment ("; A button",
+  "; B button") and prints nothing about it.
+- **(a) Zelda names a button beside the thing it uses** - §7d: Link's Awakening's `B[   ] A[   ]`
+  before each item slot, A Link to the Past's Y, X, L and R beside the equipped item and A beside its
+  "DO". Neither says how to move.
+- **(b) Chrono Trigger teaches its controls in the manual, by the pad's letters, and the game prints no
+  line.** The SNES manual's "Basic Controls" (pages 10-11, from a transcription): "You will use the A
+  Button most often. It is the 'action' button. Use it to choose commands and to do things like open
+  chests, enter doors, and talk to people."; "Use the X Button to open the Menu Screen"; "The Start
+  Button pauses the game during play."; "holding the B Button while walking allows you to 'Dash.'";
+  and in battle, hold L and R "down together to run away." From the manual, not the binary, which has
+  no public disassembly (§7c).
+- **(b) A modern game draws the DETECTED pad's own glyphs, and the failures its players report are all
+  detection failures.** Hades draws a PlayStation pad's icons when it sees one; on 2020-09-29 its
+  players reported the title screen showing PS4 icons and a loaded save reverting to Xbox ones ("once
+  I load my save file all the icons switch to Xbox"), with a launch option, `/PS4Gamepad=true`, passed
+  around as the fix, and Supergiant's own support page's first advice under "Controller / input
+  issues" is "Disconnect any unused controllers that may be plugged in". Sea of Stars on PC draws Xbox
+  glyphs by default ("They are only set for X-box controller configuration", 2023-08-29) and
+  PlayStation ones only with Steam Input off. Stardew Valley makes the detection a row: `Gamepad Mode`
+  - `Auto-detect`, `Force On`, `Force Off`, default `Auto-detect`. None of the three prints a keyboard
+  key beside a pad button.
+
+**The convention, then.** A game of the reference era teaches its buttons by the pad's own LETTERS -
+in prose on a sign or in the manual, or beside the slot in Zelda - and draws no controls line, because
+a console has one pad. The line this template draws on every screen is its own convention (§7d), and
+it exists because a screen once named a key nothing binds. What the modern games add is the part a PC
+needs: the glyph set follows the pad that is detected, and every complaint in the threads is a wrong
+detection - a pad plugged in and unused, a loaded save forgetting the title's answer, a launcher
+standing between the pad and the game.
+
+**What this template takes from it.**
+
+- **Words, not glyphs.** One pixel font (§16), and a glyph set is art the template would be choosing
+  for every game built on it. The pad's own letters - A, B, Menu, D-pad, Stick - are what the manuals
+  and the signs use.
+- **A help line per screen, kept.** Pokémon and Zelda name the button BESIDE the thing it does, and the
+  help line is where this template has always done that.
+- **The words follow the DEVICE IN HAND** - not a setting, and not a detection made once at boot.
+  Hades' title-versus-save split and Sea of Stars' Xbox default are both "decided once, then wrong";
+  the last device used is the one reading that is always about what the player is holding now.
+  Stardew's `Auto-detect` is the nearest published shape.
+- **Xbox letters only**, because Godot's own `JoyButton` constants are the Xbox layout; a PlayStation
+  or Switch table keyed by the pad's reported name is the hook (`docs/DECISIONS.md`, M52).
+- **No rebinding row.** FF6 is the one reference with a mapping surface, and it left it out of the
+  English release.
+
+**Unverified, and named rather than guessed:** whether Hades or Sea of Stars switch glyphs WITHIN a
+session when a player moves from the keyboard to a pad (their players' threads are about which pad,
+never about the keyboard); what Stardew's `Auto-detect` reads to decide; whether the Japanese FF6's
+custom mapping page names buttons by letter or by picture; and Chrono Trigger's X-for-menu against its
+later ports, which were not read.
+
 ## Sources
 
 Convergent-anatomy claims above are drawn from these, plus the reference games directly:
@@ -2052,3 +2132,23 @@ named:
 - [Herringway/ebsrc](https://github.com/Herringway/ebsrc) at `0197d6c` —
   `src/battle/calc_damage.asm` (`CALC_DAMAGE`), `src/battle/render_battle_sprite_row.asm`
   (`RENDER_BATTLE_SPRITE_ROW`)
+
+Controls and prompts (§17, added in M52):
+
+- `pret/pokered` at `a1a22aa` — `text/SafariZoneCenter.asm`, `text/CeruleanCity.asm`,
+  `text/Route13.asm` (the three TRAINER TIPS signs), `engine/menus/pokedex.asm`
+- `everything8215/ff6` at `8130132` — `src/menu/menu_text.en.inc` (`CONFIG_CONTROLLER`,
+  `CONFIG_CTRL_SINGLE`, `CONFIG_CTRL_MULTI`, `CHAR_CTRL_TITLE`), `src/menu/config.asm`
+  (`ChangeConfigOption_08`, `ChangeConfigOption_08j` under `.if !LANG_EN`, the character controller
+  select states)
+- [Chrono Trigger SNES manual, transcribed](https://www.world-of-nintendo.com/manuals/super_nes/chrono_trigger.shtml)
+  — "Basic Controls" (prose, secondhand)
+- [Steam — Hades: "Controller button icons changing"](https://steamcommunity.com/app/1145360/discussions/0/2841165820095283358/)
+  (2020-09-29) and the [Hades technical support guide](https://supergiantgames-kb.groovehq.com/help/hades-technical-support-guide)
+  ("Controller / input issues") — detected glyph sets and their failures (prose, secondhand)
+- [Steam — Sea of Stars: "Play station controller buttons?"](https://steamcommunity.com/app/1244090/discussions/0/3827550902578852598/)
+  and ["For those who need controller button support"](https://steamcommunity.com/app/1244090/discussions/0/3827550902579505372/)
+  (2023-08-29) — Xbox glyphs by default on PC (prose, secondhand)
+- [Stardew Valley wiki — Options](https://stardewvalleywiki.com/Options) — `Gamepad Mode:
+  Auto-detect / Force On / Force Off` (prose, secondhand)
+- PC Gaming Wiki answered 403 Forbidden on 2026-09-20 and is not cited.

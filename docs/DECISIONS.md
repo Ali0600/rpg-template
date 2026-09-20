@@ -3136,6 +3136,9 @@ hint that is a hand-written string - the hook is an `Actions` constants class re
 literals, persistence beside the volume, and a hint DERIVED from the map (`setup_input_map.gd`
 carries a count line that would move with it). *Fullscreen*, **rejected** on the Quit row's own
 precedent: a row that does nothing on one of two shipped platforms is worse than no row.
+*2026-09-20: the key-bindings half is paid in part by M52 - the literals are tokens filled by
+`Prompts`, the hint is data in the same tokens, and the map is gated against every printed word.
+Rebinding itself is still deferred and the hook stands.*
 
 **Found after the LOOK, by the user, in the shipped screen.** Recolour from the title, press Esc:
 the title behind was still in the old palette. `_rebind_style` was a hand-kept list of the layers a
@@ -3491,7 +3494,8 @@ Three calls the M49 entry left open, made by the owner on 2026-09-13 before any 
 **The fork: which button swings.**
 
 - **`interact`** — Space, Enter or E, and a gamepad's A. The turn fight is already played on it, so
-  both fights use one key: no binding, no input-map change, and the controls hint stays true.
+  both fights use one key: no binding, no input-map change, and the controls hint stays true. *(2026-09-20:
+  "a gamepad's A" was a binding nothing exercised until M52, which presses it through the map.)*
 - **A new `attack` action** — Zelda's shape, the sword on a button of its own. A ninth binding in
   `tools/setup_input_map.gd` and `project.godot`, one more word in the hint, one more key to learn.
 - **Zelda's two item buttons** — two verbs, for a template with no item to put on either.
@@ -3980,3 +3984,73 @@ out exactly. `FLOOR_MAX_TILES` stays as the layout audit's capacity.
     and trimmed with an ellipsis (the item rows' own rule), and the nine shipped descriptions were
     shortened to fit it, with a gate per side - the words measured against the bar, and a fixture
     sentence too long for it held inside the window.
+
+## Prompts follow the pad, Menu pauses, and the stick walks at one speed — *M52*
+
+The owner asked for Xbox-controller support on 2026-09-20. The input map had carried pad bindings
+since the first commit - the D-pad and the left stick on the four moves, A on `interact`, B on
+`cancel`, Start on `menu` - and what was missing was every word on screen, which named keys, and any
+proof that a pad button reached the game at all: the harness presses ACTIONS, which bypass the map.
+`GENRE_CONVENTIONS.md` §17 read how the references teach their buttons before any of this was built.
+Five calls, all the owner's, made the same day.
+
+**Which words a prompt shows once there is a pad**
+
+- **Follow the last device used** - every help line and the walk hint switch between the keyboard's
+  words and the pad's the moment a key or a pad button is used.
+- **An Options row** - `Prompts: Keyboard / Controller`, remembered like the volume.
+- **Both on one line** - "E or A to look".
+- **Glyphs** - a picture per button, the modern games' shape.
+
+**Chosen: follow the last device used.** It is the only reading that is always about the device now in
+the player's hands. A choice made once is then wrong - Hades' title screen showing one pad's icons and
+its loaded save another's (§17) - and a first-time player on the web page never finds a row before the
+hint has faded.
+
+- An Options row - `rejected — one more row about a fact the pad already states`. **Revisit hook:**
+  `OptionsMenu`'s row list and `Settings`, the volume's shape, if a player ever needs to pin the words
+  against a pad that sends phantom input.
+- Both on one line - `rejected — every line doubles, and the walk hint already ran 42 px off a 320 px
+  window at 356`.
+- Glyphs - `rejected — one pixel font, and a glyph set is art the template would be choosing for every
+  game`. **Revisit hook:** `Prompts.WORDS`, where a word could become a texture. A PlayStation or
+  Switch word table keyed by `Input.get_joy_name` is `deferred — worth trying` the day a pad that is
+  not an Xbox one is in the owner's hands; the Xbox letters are what Godot's own `JoyButton` constants
+  name.
+
+**Which pad button pauses**
+
+- **`menu` (Start, the pad's "Menu" button) beside `cancel` (B)** - nothing removed; Tab joins Esc on
+  the keyboard, where it was bound to `menu` and read by nothing.
+- **`menu` alone** - B only ever means "go back".
+- **`cancel` alone** - today's behaviour, B pauses.
+
+**Chosen: both, and Menu also CLOSES the pause menu from its top page.** Every Xbox game toggles pause
+on that button, and thirty sessions and every keyboard player's Esc are untouched.
+
+- `menu` alone - `rejected — thirty sessions open the menu on cancel, and Esc is muscle memory`.
+- `cancel` alone - `rejected — an Xbox player presses Menu to pause and nothing happens`.
+
+**How fast a half-pushed stick walks**
+
+- **Full speed past the deadzone** - one walking speed for keys, D-pad and stick.
+- **Analogue** - a half-pushed stick walks at half speed, which is what the code did: a rule an agent
+  wrote and `test_a_partial_stick_deflection_is_not_scaled_up` pinned, and no person had played.
+- **`Input.get_vector`** - the engine's circular deadzone in front of it.
+
+**Chosen: full speed.** `GridWalker` and `ArenaSim` already digitise, nothing else in the game has a
+speed, and every reference JRPG moves at one.
+
+- Analogue - `rejected — the arena ignored anything under half a push, so one stick would have felt
+  different on the map and in the fight`.
+- `get_vector` - `rejected — a second deadzone in front of Locomotion's own normalisation, a second
+  policy where this removes one`. **Revisit hook:** `Locomotion.read_input`, the one place the four
+  actions are read.
+
+**A fifth call, about the file.** The pad bindings were written with `"device":0`, and the engine
+fires a stored joypad event only for that pad index or for the `-1` "all devices" sentinel
+(`core/input/input_map.cpp`, `_find_event`, at the 4.7.1 tag). The owner chose to hand-edit the twelve
+fields to `-1` rather than ship a first-pad-only map - and never through `tools/setup_input_map.gd`,
+whose `ProjectSettings.save()` strips every comment from `project.godot` (`docs/learnings.md`).
+
+As-built findings are appended below, dated, as they land.
