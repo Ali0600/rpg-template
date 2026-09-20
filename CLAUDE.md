@@ -1317,7 +1317,7 @@ having gone somewhere nobody wrote down.
 **The edges are also walked in SEQUENCES, and a failing walk is shrunk before it is reported.**
 Per-edge checking builds a world, drives one action and throws the world away, which is silent
 about anything that only goes wrong the SECOND time - it found a pause screen and a shop screen
-that were closed but never freed, and that went on eating the very key that opens them. So six
+that were closed but never freed, and that went on eating the very key that opens them. So eight
 seeded walks of twenty-eight steps run on ONE world that is never rebuilt between steps, asserting
 the same trace and the same invariants after every step. `FlowWalk` (`tests/helpers/`) is pure -
 a walk is a list of edge indices - so the planner and the minimiser are unit-tested with no scene
