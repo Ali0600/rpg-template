@@ -17,7 +17,8 @@ extends Node
 ## assert_map · assert_flag · assert_item · assert_position · assert_hp · assert_xp ·
 ## assert_level · assert_gold · assert_mp · assert_equipped · sound_mark · assert_sound ·
 ## assert_audio_ready · assert_music · mark · assert_moved · assert_status · assert_foe_hp ·
-## assert_game · fight_well · screenshot · note.
+## assert_game · fight_well · screenshot · note · pad_press · pad_release · stick · key_press ·
+## key_release · assert_prompt.
 ## An unrecognised op FAILS rather than being skipped - a typo in a script must not read as
 ## a passing check that never ran.
 ##
@@ -33,6 +34,9 @@ const ARG_PREFIX := GameSelect.QA_ARG
 var _steps: Array = []
 var _index := 0
 var _held: Array[StringName] = []
+## Pad buttons and the stick a session is holding, by Prompts' own words - released with the rest.
+var _pad_held: Array[String] = []
+var _stick_held := false
 var _failures: Array[String] = []
 var _log: Array[String] = []
 var _marks: Dictionary = {}
@@ -131,6 +135,29 @@ func _run(step: Dictionary) -> void:
 			_steps.insert(_index, {"op": "release", "action": String(action)})
 		"press_until_state":
 			_press_until_state(step)
+		"pad_press":
+			# A REAL pad button through the input map, where press sends an action that skips it:
+			# the one way a session proves the pad is bound, and the pack's map is the deployed one.
+			var button := str(step.get("button", ""))
+			if _pad_press(button):
+				_frames_left = 1
+				_steps.insert(_index, {"op": "pad_release", "button": button})
+		"pad_release":
+			_pad_release(str(step.get("button", "")))
+		"stick":
+			_stick(float(step.get("x", 0.0)), float(step.get("y", 0.0)))
+			_frames_left = int(step.get("frames", 1))
+		"key_press":
+			# A real key, so a session can show the words flip BACK to the keyboard's; press is
+			# action-level and says nothing about a device.
+			var key := str(step.get("key", ""))
+			if _key(key, true):
+				_frames_left = 1
+				_steps.insert(_index, {"op": "key_release", "key": key})
+		"key_release":
+			_key(str(step.get("key", "")), false)
+		"assert_prompt":
+			_assert_prompt(step)
 		"fight_well":
 			_fight_well(step)
 		"assert_status":
@@ -709,6 +736,88 @@ func _release(action: StringName) -> void:
 func _release_all() -> void:
 	for action in _held.duplicate():
 		_release(action)
+	for button in _pad_held.duplicate():
+		_pad_release(button)
+	if _stick_held:
+		_stick(0.0, 0.0)
+
+
+## The word is Prompts' own, so a session and a help line cannot call one button two things.
+func _pad_press(button: String) -> bool:
+	if not Prompts.BUTTONS.has(button):
+		_fail("no such pad button '%s' (known: %s)" % [
+			button, ", ".join(PackedStringArray(Prompts.BUTTONS.keys()))])
+		return false
+	Input.parse_input_event(_pad_event(button, true))
+	if not _pad_held.has(button):
+		_pad_held.append(button)
+	return true
+
+
+func _pad_release(button: String) -> void:
+	if Prompts.BUTTONS.has(button):
+		Input.parse_input_event(_pad_event(button, false))
+	_pad_held.erase(button)
+
+
+func _pad_event(button: String, down: bool) -> InputEventJoypadButton:
+	var event := InputEventJoypadButton.new()
+	event.button_index = Prompts.BUTTONS[button]
+	event.pressed = down
+	return event
+
+
+## The left stick, held where it is put: one motion event per axis through the map. A zero on
+## both is letting go, which release_all also does.
+func _stick(x: float, y: float) -> void:
+	for pair: Array in [[JOY_AXIS_LEFT_X, x], [JOY_AXIS_LEFT_Y, y]]:
+		var event := InputEventJoypadMotion.new()
+		event.axis = pair[0]
+		event.axis_value = clampf(float(pair[1]), -1.0, 1.0)
+		Input.parse_input_event(event)
+	_stick_held = x != 0.0 or y != 0.0
+
+
+## A key by its name ("Escape", "W"), bound by POSITION the way the map binds every key.
+func _key(name: String, down: bool) -> bool:
+	var code := OS.find_keycode_from_string(name)
+	if code == KEY_NONE:
+		_fail("no such key '%s'" % name)
+		return false
+	var event := InputEventKey.new()
+	event.physical_keycode = code
+	event.pressed = down
+	Input.parse_input_event(event)
+	return true
+
+
+## Whether any line a player could be reading right now says the words: every visible Label on
+## every CanvasLayer of the running scene, the help lines and the hint alike. `expect` false is
+## "no line says this", which is how a session shows the other device's words are GONE.
+func _assert_prompt(step: Dictionary) -> void:
+	var wanted := str(step.get("contains", ""))
+	var expect := bool(step.get("expect", true))
+	if wanted.is_empty():
+		_fail("assert_prompt needs 'contains'")
+		return
+	var found := ""
+	var scene := get_tree().current_scene
+	if scene != null:
+		for child in scene.get_children():
+			var layer := child as CanvasLayer
+			if layer == null:
+				continue
+			for node in layer.find_children("", "Label", true, false):
+				var label := node as Label
+				if label.is_visible_in_tree() and label.text.contains(wanted):
+					found = label.text
+	if found.is_empty() == expect:
+		if expect:
+			_fail("no line on screen says '%s'" % wanted)
+		else:
+			_fail("a line on screen still says '%s': '%s'" % [wanted, found])
+		return
+	_log.append("prompt '%s' %s" % [wanted, ("found in '%s'" % found) if expect else "absent"])
 
 
 func _fail(message: String) -> void:
