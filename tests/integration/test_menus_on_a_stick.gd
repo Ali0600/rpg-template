@@ -122,3 +122,31 @@ func test_the_d_pad_moves_the_cursor_one_row() -> void:
 	_dpad(JOY_BUTTON_DPAD_DOWN, false)
 	await _steps(1)
 	assert_int(menu.index()).is_equal(1)
+
+
+func test_the_pads_b_does_not_pause_but_menu_and_escape_do() -> void:
+	# The owner's call after playing it: B is "go back", and there is nothing in the world to go
+	# back from. Esc is on the same action and still pauses, so this is a fact about the CLASS of
+	# the event, and the harness's action on `cancel` (thirty sessions' way of pausing) is untouched.
+	var world := await _boot()
+	_dpad(JOY_BUTTON_B, true)
+	await _steps(1)
+	_dpad(JOY_BUTTON_B, false)
+	await _steps(1)
+	assert_str(Router.state_name()).override_failure_message("the pad's B opened the pause menu").is_equal("world")
+	_dpad(JOY_BUTTON_START, true)
+	await _steps(1)
+	_dpad(JOY_BUTTON_START, false)
+	await _steps(1)
+	assert_str(Router.state_name()).is_equal("paused")
+	world._close_pause()
+	await _steps(1)
+	var esc := InputEventKey.new()
+	esc.physical_keycode = KEY_ESCAPE
+	esc.pressed = true
+	Input.parse_input_event(esc)
+	await _steps(1)
+	esc.pressed = false
+	Input.parse_input_event(esc)
+	await _steps(1)
+	assert_str(Router.state_name()).override_failure_message("Escape no longer pauses").is_equal("paused")

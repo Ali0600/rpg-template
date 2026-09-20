@@ -361,7 +361,8 @@ on the action it stands for, held against the map in both devices, and every pad
 writes the words for the device in hand: W/S, E and Esc, or D-pad, A and B (Xbox letters, since
 Godot's own `JoyButton` constants are that layout; a PlayStation or Switch table keyed by
 `Input.get_joy_name` is the hook, `docs/DECISIONS.md` M52). `{pause}` is the one verb whose action
-differs by device: Esc on `cancel`, Menu on `menu`. `GameManifest.controls_hint` is data in the same
+differs by device: Esc on `cancel`, Menu on `menu` - and a pad's B, on `cancel` too, does NOT pause:
+the world refuses a `cancel` that arrived as a pad button, by class, so B is only ever "go back". `GameManifest.controls_hint` is data in the same
 tokens, and `problems()` refuses a hint naming a token no device has a word for, or naming none.
 `fill` is applied to help templates and the hint ONLY - never to an item's description, a
 candidate's effect or anything from data; the pause screen fills each template at its own return.

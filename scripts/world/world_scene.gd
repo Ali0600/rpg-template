@@ -930,7 +930,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	# conversation - Router already refuses world input while one is on screen, and the dialog
 	# box consumes `cancel` itself. `menu` beside it since M52: Start is the pad's "Menu" button
 	# and the Xbox pause convention, and Tab, bound to it from the first commit, was read by nothing.
-	if event.is_action(&"cancel") or event.is_action(&"menu"):
+	# A pad's B is on `cancel` too and does NOT pause - the owner's call after playing it: B is
+	# "go back" and there is nothing in the world to go back from. By class, because a harness
+	# action on `cancel` is thirty sessions' way of pausing and must keep working.
+	if event.is_action(&"menu") or (event.is_action(&"cancel") and not event is InputEventJoypadButton):
 		if open_pause():
 			get_viewport().set_input_as_handled()
 		return

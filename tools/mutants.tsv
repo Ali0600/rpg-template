@@ -1124,7 +1124,8 @@ project.godot	s|"physical_keycode":4194305,|"physical_keycode":4194333,|	tests/u
 scripts/util/input_gate.gd	s|return down and not was|return down|	tests/unit/test_input_gate.gd	a held stick presses on every motion event
 scripts/ui/pause_screen.gd	s|if _gate.pressed\(event, &"move_down"\):|if event.is_action(\&"move_down"):|	tests/integration/test_menus_on_a_stick.gd	a stick pushed up moves the pause cursor down
 scripts/ui/shop_screen.gd	s|if _gate.pressed\(event, &"move_down"\):|if event.is_action(\&"move_down"):|	tests/unit/test_prompts.gd	a screen reads the stick past the gate and the text gate does not notice
-scripts/world/world_scene.gd	s|if event.is_action\(&"cancel"\) or event.is_action\(&"menu"\):|if event.is_action(\&"cancel"):|	tests/integration/test_flow_model.gd	Start opens nothing
+scripts/world/world_scene.gd	s|if event.is_action\(&"menu"\) or \(event.is_action\(&"cancel"\) and not event is InputEventJoypadButton\):|if event.is_action(\&"cancel") and not event is InputEventJoypadButton:|	tests/integration/test_flow_model.gd	Start opens nothing
+scripts/world/world_scene.gd	s|and not event is InputEventJoypadButton\):|and true):|	tests/integration/test_menus_on_a_stick.gd	the pad's B opens the pause menu again
 scripts/ui/pause_screen.gd	s|elif event.is_action\(&"menu"\) and _menu.page\(\) == PauseMenu.Page.TOP:|elif false:|	tests/integration/test_flow_model.gd	Menu never closes what it opened
 scripts/world/world_scene.gd	s|if device == _device:|if true:|	tests/integration/test_prompts_follow_the_pad.gd	the words never follow the device
 scripts/world/world_scene.gd	s|layer.call\("reprompt", _device\)|pass|	tests/integration/test_prompts_follow_the_pad.gd	no layer is ever reworded, at mount or after

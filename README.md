@@ -205,7 +205,7 @@ behaving strangely.
   their own fix PRs, and tokens get the least access they need. Every download the build and the
   art pipeline make is pinned to a commit or checked against a committed checksum, and the Pages
   deploy waits for the green run of the exact commit it ships.
-- Added mutation testing over the project's own quality gates: 1,007 mutants, each proving a rule
+- Added mutation testing over the project's own quality gates: 1,008 mutants, each proving a rule
   fails when it is broken. The run is split four ways, with a fast lane that runs only the
   mutants a change touches (pull-request runs went from 18 → 3 min), and a sub-second static
   check that every mutant still targets one line.

@@ -4028,6 +4028,11 @@ hint has faded.
 **Chosen: both, and Menu also CLOSES the pause menu from its top page.** Every Xbox game toggles pause
 on that button, and thirty sessions and every keyboard player's Esc are untouched.
 
+*2026-09-20, after playing it: B removed.* The owner's call at the pad: B is "go back" and there is
+nothing in the world to go back from, so only Menu pauses on the pad. Esc and Tab are unchanged - the
+world refuses a `cancel` that arrived as a pad BUTTON, by class, because a harness action on `cancel`
+is how thirty sessions pause. B still closes the pause menu, which is going back.
+
 - `menu` alone - `rejected — thirty sessions open the menu on cancel, and Esc is muscle memory`.
 - `cancel` alone - `rejected — an Xbox player presses Menu to pause and nothing happens`.
 
@@ -4078,4 +4083,4 @@ whose `ProjectSettings.save()` strips every comment from `project.godot` (`docs/
 - The hint: 356 design pixels on a 320 window, measured; the four strings are "{move} to walk
   {confirm} to look    {pause} to pause", 252 and 264 pixels filled. The one keyboard wording
   that changed anywhere is the save point's "Enter: save", now "E: save".
-- Twenty mutants, two older rows re-aimed, all twenty-two killed; 314 rows scoped and run.
+- Twenty-one mutants, two older rows re-aimed, all killed; 314 rows scoped and run.
