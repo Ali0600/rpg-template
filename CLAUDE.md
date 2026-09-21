@@ -328,7 +328,7 @@ CanvasLayers it finds, so a new screen fails there without anybody remembering t
 `world_scene._physics_process` hands `ControlsHint.show_while(Router.player_can_move())` at its
 head - ABOVE the player guard, so the rule is about all twelve states rather than only the ones with
 a game behind them. The LAYER's visibility is the whole switch and the fade is untouched beside it:
-`visible` answers "do these keys work" and `_label.modulate.a` answers "has this player already
+`visible` answers "do these keys work" and `_band.modulate.a` answers "has this player already
 learned it", so a faded hint in the world is still SHOWN, which is what lets the rule be stated in
 both directions. Told rather than asking, because a view naming `Router` drops itself AND every
 suite depending on it out of the per-file parse gate. Nothing hid it at all until 2026-09-19, when it
@@ -343,6 +343,16 @@ whole machine, and state thirteen is covered with no edit to the model - and pin
 `test_engine_assumptions`: a hidden `CanvasLayer` really does stop its child being drawn, while the
 child's own `visible` stays true, which is why the gate reads `is_visible_in_tree()` and not the
 property that was just set.
+
+**A hint drawn outside a window brings its own ground** (M52.1). The line is in `dim`, a colour
+chosen to be read against `panel`, and it was drawn straight onto the world: over the village's grey
+bottom row that measured 1.3:1, and everything right of the letterbox could not be read. It sits on
+a band now - the style's `panel`, opaque, the full width of the window and down to its bottom edge,
+which is the colour the letterbox is painted, so the two join. Opaque because it was measured: at the
+pause backdrop's 0.85 the worst pixel of the village frame still gave 3.02:1, where solid is `dim` on
+`panel` whatever the map draws. The words are the band's child, so they fade with it, and `setup`
+paints through `restyle`, so a recolour and a fresh build cannot differ. `test_controls_fit` holds the
+band's rect as a literal, because "the words are inside it" is also true of a band that floats.
 
 **A pad plays the demo, and every word on screen follows the device in hand** (M52). The input map
 has bound an Xbox pad since the first commit - the D-pad and the left stick on the four moves, A on
