@@ -4084,3 +4084,40 @@ whose `ProjectSettings.save()` strips every comment from `project.godot` (`docs/
   {confirm} to look    {pause} to pause", 252 and 264 pixels filled. The one keyboard wording
   that changed anywhere is the save point's "Enter: save", now "E: save".
 - Twenty-one mutants, two older rows re-aimed, all killed; 314 rows scoped and run.
+
+## The walk hint sits on a strip of window — *M52.1*
+
+The walk hint is drawn in the style's `dim`, a colour chosen to be read against a window's `panel`,
+and it was drawn straight onto the world. A windowed photograph of the pad session found it: over the
+village's bottom row, grey brick, the words right of the letterbox could not be read. The README's own
+village picture, taken 2026-09-03 (#141), had shown the same thing ever since. Measured in WCAG contrast with the
+demo's colours (`dim #75758a`, `panel #0a0a14`): over every colour in the village frame, the bare hint
+bottoms out at 1.00, because the ground can be the hint's own colour, and a mid-grey brick gives
+about 1.3.
+
+- **A band behind the line** - a strip of the window's fill across the bottom of the screen.
+- **The loud role with an outline** - the hint in `text`, ringed in `panel`.
+- **Leave it.**
+
+The owner said "fix the visual grey glitch" on 2026-09-21, and then chose between two bands:
+
+- **Solid** - `panel`, opaque, the full width of the window and down to its bottom edge.
+- **See-through** - `panel` at the pause backdrop's 0.85, so the bricks show faintly.
+
+**Chosen: a solid band.** It is `dim` on `panel` whatever the map draws - 4.38:1 in the demo's
+colours and 4.38 to 6.44 across every style and palette, the pairing every help line inside a window
+already uses. The letterbox is painted `panel` too (`world_scene._bind_style`), so on a map narrower
+than the window the band joins it with no seam. It hides the bottom 14 design pixels of the map, but
+only until the player first moves and the hint fades - and the band fades with it.
+
+- See-through at 0.85 - `rejected — its worst pixel over the village frame gave 3.02:1, and 2.96 over
+  a white ground, right on the usual floor for large text, where solid cannot move at all`.
+- The loud role with an outline - `rejected — it takes the hint off the quiet role every help line
+  uses, and an outline still depends on what the map draws beside each stroke`.
+- Leave it - `rejected — 1.0:1 at worst, measured`.
+
+**Revisit hook:** `ControlsHint.restyle`, the one place the band is coloured, and `BAND_HEIGHT`.
+
+**As built, 2026-09-21:** differenced against `main`, 12,428 pixels change, every one of them inside
+the bottom 28 screen pixels and none above. The band holds exactly two colours, fill and text, so the
+glyphs land on whole pixels, with six screen pixels above and below the words.

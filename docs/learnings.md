@@ -2635,3 +2635,17 @@ action and never meets the axis.
 **Takeaway:** an API that answers a coarser question than the one you asked passes every test
 written in its own terms. Drive the real event CLASS through the real layer once, and read the
 engine's own matching code before trusting what a boolean is called.
+
+### A colour is legible only over the ground it was chosen for
+
+A text colour is picked to contrast with one background. Draw it anywhere else and its contrast
+becomes whatever happens to be underneath, which can be the same colour as the text.
+
+**Why it came up:** the walk hint used the interface's quiet grey, picked to be read on a window's
+dark fill, and it was drawn straight onto the map. Over the village's grey brick bottom row it
+measured 1.3:1, and over some pixel in the same frame it was exactly 1:1. Every gate was green, and
+the README's own screenshot had shown it for weeks. A solid strip of the window's fill behind it
+brought it back to 4.38:1 whatever the map draws. A see-through strip at 85% still fell to 3.02:1.
+
+**Takeaway:** text drawn outside a window brings its own ground. Measure the worst case over what
+can actually sit behind it, not the background you imagined when you picked the colour.

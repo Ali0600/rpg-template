@@ -1134,6 +1134,10 @@ scripts/ui/prompts.gd	s|if event is InputEventKey or event is InputEventJoypadBu
 scripts/ui/controls_hint.gd	s|_label.text = Prompts.fill\(_template, _device\)|pass|	tests/integration/test_prompts_follow_the_pad.gd	the hint keeps keyboard words on a pad
 scripts/ui/controls_hint.gd	s|_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS|pass|	tests/unit/test_controls_fit.gd	an over-long hint draws off the screen again
 scripts/ui/controls_hint.gd	s|return float\(viewport_width - 2 \* MARGIN\)|return 1000.0|	tests/unit/test_controls_fit.gd	the fit gate measures against a width the screen does not have
+scripts/ui/controls_hint.gd	s|_band.color = style.ui_color\("panel"\)|_band.color = style.ui_color("dim")|	tests/unit/test_controls_fit.gd	the band under the hint is drawn in the hint's own colour, and the words vanish into it
+scripts/ui/controls_hint.gd	s|_band.add_child\(_label\)|add_child(_label)|	tests/unit/test_controls_fit.gd	the hint's words leave the band and are drawn at the top of the screen
+scripts/ui/controls_hint.gd	s|_band.modulate.a = clampf\(1.0 - t, 0.0, 1.0\)|_label.modulate.a = clampf(1.0 - t, 0.0, 1.0)|	tests/unit/test_controls_fit.gd	the hint's words fade and leave a dark bar across the bottom for the rest of the game
+scripts/ui/controls_hint.gd	s|_band.position = Vector2\(0, viewport_size.y - BAND_HEIGHT\)|_band.position = Vector2(0, viewport_size.y - BAND_HEIGHT * 2)|	tests/unit/test_controls_fit.gd	the band floats above the bottom edge with a sliver of map under the words
 scripts/data/game_manifest.gd	s|for token in Prompts.unknown_tokens\(controls_hint\):|for token in []:|	tests/unit/test_game_manifest.gd	a hint naming a token no device has a word for ships
 scripts/data/game_manifest.gd	s|if not controls_hint.is_empty\(\) and Prompts.tokens_of\(controls_hint\).is_empty\(\):|if false:|	tests/unit/test_game_manifest.gd	a hint that cannot follow the device ships
 scripts/autoload/qa.gd	s|if found.is_empty\(\) == expect:|if false:|	tests/unit/test_qa_ops.gd	assert_prompt never fails

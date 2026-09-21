@@ -104,3 +104,78 @@ func test_the_hint_label_is_bounded_and_trims() -> void:
 	assert_that(hint._label.text_overrun_behavior).override_failure_message(
 		"an over-long hint would draw off the screen again").is_equal(TextServer.OVERRUN_TRIM_ELLIPSIS)
 	hint.free()
+
+
+## Every style on disk, since the band's colour is a role each one answers differently.
+func _styles() -> Array[SpriteStyle]:
+	var out: Array[SpriteStyle] = []
+	for path in ContentScan.files("res://data/styles", ["tres"]):
+		var style := load(path) as SpriteStyle
+		if style != null:
+			out.append(style)
+	return out
+
+
+func _hint_over(style: SpriteStyle) -> ControlsHint:
+	var hint := ControlsHint.new()
+	add_child(hint)
+	hint.setup(style, UiScale.DESIGN_SIZE, "{move} to walk    {confirm} to look    {pause} to pause")
+	return hint
+
+
+func test_the_line_is_drawn_on_a_solid_band_of_window() -> void:
+	# Fitting is not reading. The hint is drawn in the style's quiet colour, which was chosen to be
+	# read against a WINDOW - and it used to be drawn straight onto the world, so on the village's
+	# bottom row it was grey text on grey brick: 1.3:1 measured, everything right of the letterbox
+	# unreadable. Now it sits on a strip of the window's own fill, opaque, so what is behind the
+	# words is the colour they were chosen for whatever the map draws there.
+	var styles := _styles()
+	assert_int(styles.size()).override_failure_message(
+		"no styles were found, so this proved nothing").is_greater_equal(2)
+	for style in styles:
+		var hint := _hint_over(style)
+		var band: ColorRect = hint._band
+		assert_object(band).override_failure_message("%s: the hint has no band" % style.id).is_not_null()
+		# Across the whole window and down to its bottom edge, so it joins the letterbox and leaves
+		# no sliver of map under the words. Literals: this is the expected shape, not a readback.
+		assert_that(band.get_global_rect()).override_failure_message(
+			"%s: the band is at %s" % [style.id, band.get_global_rect()]).is_equal(Rect2(0, 166, 320, 14))
+		assert_bool(band.get_global_rect().encloses(hint._label.get_global_rect())).override_failure_message(
+			"%s: the words at %s are not on the band" % [style.id, hint._label.get_global_rect()]).is_true()
+		assert_bool(band.is_ancestor_of(hint._label)).override_failure_message(
+			"%s: the words are not drawn over the band" % style.id).is_true()
+		assert_that(band.color).override_failure_message(
+			"%s: the band is %s, not the window's fill" % [style.id, band.color]).is_equal(style.ui_color("panel"))
+		assert_float(band.color.a).override_failure_message(
+			"%s: the band lets the map show through" % style.id).is_equal(1.0)
+		hint.free()
+
+
+func test_a_recolour_repaints_the_band() -> void:
+	# The options page's recolour test collects Panels, and the band is a ColorRect, so it would
+	# not notice a band left in the old palette behind words in the new one.
+	var style := load(STYLE) as SpriteStyle
+	var parchment := load("res://data/palettes/parchment.tres") as UiPalette
+	var hint := _hint_over(style)
+	var recoloured := style.with_ui_colors(parchment.colors)
+	assert_that(recoloured.ui_color("panel")).is_not_equal(style.ui_color("panel"))
+	hint.restyle(recoloured)
+	assert_that(hint._band.color).override_failure_message(
+		"the band kept the old palette's fill after a recolour").is_equal(recoloured.ui_color("panel"))
+	assert_that(hint._label.get_theme_color(&"font_color")).is_equal(recoloured.ui_color("dim"))
+	hint.free()
+
+
+func test_the_band_fades_with_the_words() -> void:
+	# The band is there for the words, so it goes when they do. Left behind, it would be a dark bar
+	# across the bottom of the screen for the rest of the game.
+	var hint := _hint_over(load(STYLE) as SpriteStyle)
+	assert_float(hint._band.modulate.a).is_equal(1.0)
+	assert_float(ControlsHint.LINGER_SECONDS + ControlsHint.FADE_SECONDS).override_failure_message(
+		"the fade outlasts the ten seconds this test waits").is_less(10.0)
+	hint.dismiss()
+	hint._process(10.0)
+	assert_float(hint._band.modulate.a).override_failure_message(
+		"the words faded and the band stayed").is_equal(0.0)
+	assert_float(hint._label.modulate.a * hint._band.modulate.a).is_equal(0.0)
+	hint.free()
